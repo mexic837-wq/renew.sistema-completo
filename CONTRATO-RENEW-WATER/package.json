@@ -1,0 +1,20 @@
+{
+  "name": "contrato-renew-water-portal",
+  "version": "1.0.0",
+  "description": "Portal de Contratos Renew Water — Servidor Express para VPS",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "dev:legacy": "npx -y http-server . -p 3005"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "express": "^4.18.2",
+    "pdf-lib": "^1.17.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,970 @@
+/* ============================================================
+   RENEW SOLAR – screens/projectDetail.js
+   Screen 4: Vista Dinámica "Camaleón" del Proyecto
+   ============================================================ */
+import { 
+  getDealById, advanceDealPhase, formatDate, syncKanbanActivity, 
+  uploadFile, getAdminPipelines, getAdminFases, getRespuestasByProyecto,
+  getAdminCampos, saveGranular, saveRecibo, getDB
+} from '../api.js';
+import { showToast } from '../components/toast.js';
+import { navigate, getCurrentUser } from '../app.js';
+
+// ─── WEBHOOK CONFIG ─────────────────────────────────────────
+const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/notificacion-flujo';
+
+async function notifyWebhook(payload) {
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error('[Webhook Error]', e);
+  }
+}
+
+function renderDiscussion(discusion) {
+    if (!discusion) return 'No hay comentarios aún.';
+    let arr = discusion;
+    if (typeof arr === 'string') {
+        try { arr = JSON.parse(arr); } catch(e) { return 'No hay comentarios aún.'; }
+    }
+    if (!Array.isArray(arr) || arr.length === 0) return 'No hay comentarios aún.';
+    
+    return arr.map(c => `
+        <div style="background:var(--bg); padding:10px 14px; border-radius:10px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-weight:700; font-size:0.8rem; color:var(--text-primary)">${c.user}</span>
+                <span style="font-size:0.7rem; color:var(--text-muted)">${new Date(c.date).toLocaleString()}</span>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-primary); line-height:1.4">${c.text}</div>
+        </div>
+    `).join('');
+}
+
+export async function renderDetail(dealId) {
+  const screen = document.getElementById('screen-detail');
+  if (!screen) return;
+
+  screen.innerHTML = `
+    <div class="screen-header slide-in-left">
+      <button class="back-btn" id="pd-back-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <h2>Cargando...</h2>
+    </div>
+    <div style="padding:24px 16px">
+      <div class="skeleton" style="height:100px;border-radius:16px;margin-bottom:16px"></div>
+      <div class="skeleton" style="height:150px;border-radius:16px"></div>
+    </div>
+  `;
+
+  const backBtn = document.getElementById('pd-back-btn');
+  if (backBtn) backBtn.addEventListener('click', () => navigate('dashboard'));
+
+  try {
+    const deal = await getDealById(dealId);
+    const pipelines = await getAdminPipelines();
+    const fasesAll = await getAdminFases();
+    const allCampos = await getAdminCampos();
+    
+    const pipeline = pipelines.find(p => p.id === deal.pipeline_id);
+    const fases = fasesAll.filter(f => f.pipeline_id === pipeline.id).sort((a,b) => a.orden - b.orden);
+    const curFidx = fases.findIndex(f => f.id === deal.fase_id);
+    
+    const dbMock = { Admin_Campos_Formulario: allCampos };
+
+    await buildDetailView(screen, deal, pipeline, fases, curFidx, dbMock);
+  } catch (err) {
+    showToast(err.message, 'error');
+    console.error(err);
+    const headerTitle = screen.querySelector('h2');
+    if(headerTitle) headerTitle.textContent = 'Error';
+  }
+}
+
+async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
+  const isCompleted = curFidx === -1;
+  const currentFaseObj = isCompleted ? fases[fases.length - 1] : fases[curFidx];
+
+  screen.innerHTML = `
+    <div class="screen-header slide-in-left" style="background:${pipeline.color}; border:none">
+      <button class="back-btn" id="pd-back-btn2" style="color:#fff; background:rgba(255,255,255,0.2)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2 style="color:white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${deal.nombre_cliente}</h2>
+      <span class="badge" style="margin-left:auto; background:white; color:${pipeline.color}; font-weight:800; box-shadow: 0 2px 8px rgba(0,0,0,0.1)">${isCompleted ? 'Completado' : currentFaseObj.nombre}</span>
+    </div>
+
+    <div class="progress-section" style="margin-top:0; border-radius:0 0 24px 24px; box-shadow:0 8px 16px rgba(0,0,0,0.1)">
+      <div class="progress-steps" style="padding-top:16px; overflow-x:auto; display:flex; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; padding-bottom:20px; gap:8px">
+        ${fases.map((f, i) => `
+          <div class="progress-step ${isCompleted || i < curFidx ? 'done' : i === curFidx ? 'active' : ''}" style="min-width: 90px; flex: 0 0 auto;">
+            <div class="step-circle" style="${isCompleted || i < curFidx ? `background:${pipeline.color}; border-color:${pipeline.color}` : (i === curFidx ? `border-color:${pipeline.color}; color:${pipeline.color}` : '')}">
+              ${isCompleted || i < curFidx
+                ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
+                : (i + 1)}
+            </div>
+            <div class="step-label" style="white-space:normal; line-height:1.2">${f.nombre}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="padding: 16px; padding-bottom: 40px;">
+      <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>
+        <div style="display:flex; flex-direction:column; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Email</span>
+            <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.email || 'N/A'}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Teléfono</span>
+            <span style="font-size:0.95rem; font-weight:700; color:${pipeline.color}; word-break:break-all">${deal.telefono}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Dirección</span>
+            <span style="font-size:0.95rem; font-weight:500; color:var(--text-primary); word-break:break-all; line-height:1.4">${deal.direccion}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">ID / Licencia de Conducir</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.licencia || '-'}</span>
+              ${deal.foto_id ? `<button onclick="window.open('${deal.foto_id}')" style="background:${pipeline.color}; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver Documento</button>` : `<span style="font-size:0.7rem; color:var(--text-muted); font-style:italic">Sin adjunto</span>`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="dynamic-action-section"></div>
+
+      <div class="info-card slide-in-bottom" style="margin-bottom:120px; margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
+          Discusión Interna
+          <label style="font-size:0.7rem; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-primary)">
+             <input type="checkbox" id="chk-has-issue" ${deal.tiene_problema ? 'checked' : ''} style="accent-color:#ef4444; width:14px; height:14px;">
+             Requiere Atención
+          </label>
+        </h3>
+        <div id="discussion-list" style="background:var(--surface-alt); border-radius:12px; padding:16px; font-size:0.85rem; color:var(--text-muted); max-height: 250px; overflow-y:auto; border:1px solid var(--border); display:flex; flex-direction:column; gap:12px;">
+          ${renderDiscussion(deal.discusion)}
+        </div>
+        <div style="display:flex; gap:8px; margin-top:16px; align-items:center;">
+          <input type="text" id="discussion-input" placeholder="Escribe un comentario o actualización..." style="flex:1; height:48px; min-width:0; border-radius:12px; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary); padding:0 16px; font-size:0.85rem; outline:none;" />
+          <button id="btn-send-discussion" style="background:${pipeline.color}; color:#fff; border:none; padding:0 20px; height:48px; border-radius:12px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:opacity 0.2s;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const backBtn2 = document.getElementById('pd-back-btn2');
+  if (backBtn2) backBtn2.addEventListener('click', () => navigate('dashboard'));
+
+  // Discusión Interna Event Listeners
+  const btnSend = document.getElementById('btn-send-discussion');
+  const inputDisc = document.getElementById('discussion-input');
+  const chkIssue = document.getElementById('chk-has-issue');
+
+  if (btnSend && inputDisc) {
+      const sendComment = async () => {
+          const text = inputDisc.value.trim();
+          if (!text) return;
+          const user = getCurrentUser();
+          const comment = {
+              user: user?.nombre || 'Usuario',
+              text: text,
+              date: new Date().toISOString()
+          };
+          
+          if (!deal.discusion) deal.discusion = [];
+          if (typeof deal.discusion === 'string') {
+              try { deal.discusion = JSON.parse(deal.discusion); } catch(e) { deal.discusion = []; }
+          }
+          
+          deal.discusion.push(comment);
+          deal.tiene_problema = chkIssue.checked;
+
+          try {
+              btnSend.innerHTML = '...';
+              await saveGranular('proyectos_dinamicos', [deal]);
+              inputDisc.value = '';
+              const list = document.getElementById('discussion-list');
+              list.innerHTML = renderDiscussion(deal.discusion);
+              list.scrollTop = list.scrollHeight;
+          } catch(e) {
+              console.error("Save discussion error:", e);
+              showToast('Error al guardar comentario: ' + e.message, 'error');
+              deal.discusion.pop();
+          } finally {
+              btnSend.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+          }
+      };
+
+      btnSend.addEventListener('click', sendComment);
+      inputDisc.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendComment();
+      });
+  }
+
+  if (chkIssue) {
+      chkIssue.addEventListener('change', async () => {
+          deal.tiene_problema = chkIssue.checked;
+          try {
+              await saveGranular('proyectos_dinamicos', [deal]);
+              showToast(chkIssue.checked ? 'Marcado como problema' : 'Problema resuelto', 'success');
+          } catch(e) {
+              console.error("Save issue state error:", e);
+              chkIssue.checked = !chkIssue.checked;
+              deal.tiene_problema = chkIssue.checked;
+              showToast('Error al actualizar estado: ' + e.message, 'error');
+          }
+      });
+  }
+
+  await renderDynamicAction(deal, pipeline, fases, curFidx, db);
+}
+
+async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
+  const container = document.getElementById('dynamic-action-section');
+  if (!container) return;
+  
+  if (curFidx === -1) {
+    container.innerHTML = `
+      <div class="form-card slide-in-bottom" style="background:${pipeline.color}10; border:1px solid ${pipeline.color}30; margin-top:24px;">
+        <div class="flex items-center gap-4">
+          <div class="text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg" style="background:${pipeline.color}">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold" style="color:${pipeline.color}">¡Proyecto Finalizado!</h3>
+            <p class="text-sm text-gray-600">Todas las fases han sido procesadas.</p>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const actFase = fases[curFidx];
+  const isLocked = deal.is_locked;
+  const campos = db.Admin_Campos_Formulario.filter(c => c.fase_id === actFase.id);
+
+  const existingResp = await getRespuestasByProyecto(deal.id);
+
+  if (!campos.length) {
+    const isWorkOrder = actFase.nombre.toLowerCase().includes('orden de trabajo');
+    const isContract = actFase.nombre.toLowerCase().includes('contrato');
+    const isCreditApp = actFase.nombre.toLowerCase().includes('aprobación') || actFase.nombre.toLowerCase().includes('crédito');
+    
+    container.innerHTML = `
+      <div class="form-card slide-in-bottom" style="margin-top:24px; ${isLocked ? 'opacity:0.7; pointer-events:none; filter:grayscale(0.5)' : ''}">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="bg-gray-100 text-gray-500 w-12 h-12 flex items-center justify-center rounded-full">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">${isLocked ? 'Fase Bloqueada' : (isWorkOrder ? 'Completar Orden de Trabajo' : isContract ? 'Completar Contrato' : isCreditApp ? 'Completar Aplicación de Crédito' : 'Fase en espera')}</h3>
+            <p class="text-sm text-gray-600">${isLocked ? `Corresponde a: ${deal.rol_fase}` : (isWorkOrder || isContract || isCreditApp ? 'Ir a la sección correspondiente para llenarla.' : 'No hay acciones requeridas. Avanzar fase.')}</p>
+          </div>
+        </div>
+        ${!isLocked && isWorkOrder ? `
+          <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:#0d9488" id="btn-go-work-order">
+            Llenar Orden de Trabajo
+          </button>
+        ` : ''}
+        ${!isLocked && isContract ? `
+          <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:#f59e0b" id="btn-go-contract">
+            Llenar Contrato
+          </button>
+        ` : ''}
+        ${!isLocked && isCreditApp ? `
+          <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:#0284c7" id="btn-go-credit">
+            Llenar Aplicación de Crédito
+          </button>
+        ` : ''}
+        ${!isLocked && !isWorkOrder && !isContract && !isCreditApp ? `<button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:${pipeline.color};" id="btn-advance-empty">Avanzar a la Siguiente Fase</button>` : ''}
+      </div>`;
+      
+    if (!isLocked) {
+      if (isWorkOrder) {
+        const btnGo = document.getElementById('btn-go-work-order');
+        if (btnGo) {
+          btnGo.addEventListener('click', () => {
+             const iframe = document.getElementById('iframe-work-order');
+             if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=' + deal.id;
+             if (window.appNavigate) window.appNavigate('work-order');
+          });
+        }
+      }
+      if (isContract) {
+        const btnGoC = document.getElementById('btn-go-contract');
+        if (btnGoC) {
+          btnGoC.addEventListener('click', () => {
+             const iframe = document.getElementById('iframe-contract-app');
+             if (iframe) iframe.src = 'CONTRATO-RENEW-WATER/index.html?tab=contract&v=' + Date.now() + '&proyectoId=' + deal.id + '&pipeline=' + encodeURIComponent(pipeline.nombre);
+             if (window.appNavigate) window.appNavigate('contract-app');
+          });
+        }
+      }
+      if (isCreditApp) {
+        const btnGoCr = document.getElementById('btn-go-credit');
+        if (btnGoCr) {
+          btnGoCr.addEventListener('click', () => {
+             const iframe = document.getElementById('iframe-credit-app');
+             if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=credit&proyectoId=' + deal.id;
+             if (window.appNavigate) window.appNavigate('credit-app');
+          });
+        }
+      }
+      const btnEmpty = document.getElementById('btn-advance-empty');
+      if (btnEmpty) btnEmpty.addEventListener('click', () => submitPhase(deal.id, {}, pipeline.nombre));
+    }
+    return;
+  }
+
+  const fileAnswers = {};
+
+  const inputsHtml = campos.map(c => {
+    let html = '';
+    const disabledAttr = isLocked ? 'disabled' : '';
+    const lockedStyle = isLocked ? 'opacity:0.6; cursor:not-allowed;' : '';
+    
+    const saved = existingResp.find(r => r.campo_id === c.id);
+    const val = saved ? saved.valor : '';
+
+    if(c.tipo === 'Desplegable') {
+       const opts = (c.opciones || "").split(',').map(o => {
+         const optVal = o.trim();
+         const isSelected = val === optVal ? 'selected' : '';
+         return `<option value="${optVal}" ${isSelected}>${optVal}</option>`;
+       }).join('');
+       html = `<div class="input-wrap select-wrap no-icon"><select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}"><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select></div>`;
+    } else if (c.tipo === 'Aplicación de Crédito') {
+       const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
+       html = `
+        <div style="margin-bottom:16px;">
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
+          ${isDone ? `
+            <div style="background:#0284c715; border:1px solid #0284c740; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
+              <div style="background:#0284c720; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <span style="color:#0284c7; font-size:0.85rem; font-weight:700;">Aplicación de Crédito Completada</span>
+              ${val.startsWith('http') ? `<button onclick="window.open('${val}')" style="margin-left:auto; background:#0284c7; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+            </div>
+          ` : `
+            <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0284c7" ${disabledAttr} onclick="
+              const iframe = document.getElementById('iframe-credit-app');
+              if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=credit&proyectoId=${deal.id}';
+              if (window.appNavigate) window.appNavigate('credit-app');
+            ">
+              Llenar Aplicación de Crédito
+            </button>
+          `}
+          <input type="hidden" id="df_${c.id}" value="${val || 'Completado en Formulario Externo'}" />
+        </div>
+       `;
+    } else if (c.tipo === 'Orden de Trabajo') {
+       const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
+       html = `
+        <div style="margin-bottom:16px;">
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
+          ${isDone ? `
+            <div style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
+              <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <span style="color:#0d9488; font-size:0.85rem; font-weight:700;">Orden de Trabajo Completada</span>
+              ${val.startsWith('http') ? `<button onclick="window.open('${val}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+            </div>
+          ` : `
+            <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" ${disabledAttr} onclick="
+              const iframe = document.getElementById('iframe-work-order');
+              if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
+              if (window.appNavigate) window.appNavigate('work-order');
+            ">
+              Llenar Orden de Trabajo
+            </button>
+          `}
+          <input type="hidden" id="df_${c.id}" value="${val || 'Completado en Formulario Externo'}" />
+        </div>
+       `;
+    } else if (c.tipo === 'Contrato') {
+        const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
+        const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
+        
+        // Check both project responses and client metadata
+        const hasProjectResp = !!(val && val !== 'No subido' && val !== 'No provisto');
+        const hasClientMetadata = !!(deal[`contrato_${prefix}_url`] || deal.contrato_url);
+        const isDone = hasProjectResp || hasClientMetadata;
+        const finalUrl = hasProjectResp ? val : (deal[`contrato_${prefix}_url`] || deal.contrato_url);
+
+        html = `
+         <div style="margin-bottom:16px;">
+           <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
+           ${isDone ? `
+             <div style="background:#f59e0b15; border:1px solid #f59e0b40; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
+               <div style="background:#f59e0b20; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+               </div>
+               <span style="color:#f59e0b; font-size:0.85rem; font-weight:700;">Contrato Firmado y Guardado</span>
+               ${(finalUrl && finalUrl.startsWith('http')) ? `<button onclick="window.open('${finalUrl}')" style="margin-left:auto; background:#f59e0b; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+             </div>
+           ` : `
+             <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#f59e0b" ${disabledAttr} onclick="
+               const iframe = document.getElementById('iframe-contract-app');
+               if (iframe) iframe.src = 'CONTRATO-RENEW-WATER/index.html?tab=contract&v=${Date.now()}&proyectoId=${deal.id}&pipeline=${encodeURIComponent(pipeline.nombre)}';
+               if (window.appNavigate) window.appNavigate('contract-app');
+             ">
+               Llenar Contrato
+             </button>
+           `}
+           <input type="hidden" id="df_${c.id}" value="${val || 'Completado en Formulario Externo'}" />
+         </div>
+        `;
+    } else if (c.tipo === 'Archivo') {
+       let textLabel = (c.etiqueta || "").toLowerCase().includes('subir') ? c.etiqueta : `Subir ${c.etiqueta}`;
+
+       // A field is "done" if it has a previously saved value (any format: base64 or URL)
+       const hasFile = !!(val && val !== 'No subido' && val !== 'No provisto' && (val.startsWith('data:') || val.startsWith('http')));
+       if (hasFile) fileAnswers[c.id] = val;
+
+       // Also auto-fill from client's id_photo for ID photo fields
+       const etiqLower = (c.etiqueta || '').toLowerCase();
+       const isIdField = etiqLower.includes('foto id') || etiqLower.includes('id del cliente')
+                      || etiqLower.includes('licencia de conducir') || etiqLower.includes('foto del cliente');
+       if (!hasFile && isIdField && deal.id_photo) {
+           fileAnswers[c.id] = deal.id_photo;
+       }
+
+       const isDone = hasFile || !!(fileAnswers[c.id]);
+       const donePhotoSrc = isDone && (val?.startsWith('data:image') || deal.id_photo?.startsWith('data:image'))
+                           ? (val?.startsWith('data:image') ? val : deal.id_photo) : null;
+
+       if (isDone) {
+         // LOCKED: field already has a value — show as completed, no re-upload allowed
+         html = `
+          <div class="upload-area has-file" id="ubox_${c.id}"
+               style="margin-bottom:16px;cursor:default;display:block;border-color:${pipeline.color};background:${pipeline.color}15;padding:12px 16px;pointer-events:none;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              ${donePhotoSrc
+                ? `<img src="${donePhotoSrc}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${pipeline.color}40;flex-shrink:0;">`
+                : `<div style="width:36px;height:36px;border-radius:50%;background:${pipeline.color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                   </div>`
+              }
+              <div style="flex:1;min-width:0;">
+                <p style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:${pipeline.color};letter-spacing:0.05em;margin:0;">Archivo Cargado</p>
+                <p style="font-size:0.7rem;color:var(--text-muted);margin:0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.etiqueta}</p>
+              </div>
+              <div style="background:${pipeline.color}20;border-radius:50%;width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+          </div>
+         `;
+       } else {
+         // OPEN: field not yet filled — show normal upload button
+         html = `
+          <label class="upload-area ${isLocked ? 'locked-upload' : ''}" id="ubox_${c.id}"
+                 for="df_${c.id}"
+                 style="margin-bottom:16px;cursor:${isLocked ? 'not-allowed' : 'pointer'};display:block;${lockedStyle}">
+            <input type="file" id="df_${c.id}" accept="image/*,.pdf" style="display:none" ${disabledAttr}/>
+            <div class="upload-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <polyline points="9 15 12 12 15 15"/>
+              </svg>
+            </div>
+            <p id="ulbl_${c.id}" style="font-size:0.75rem;font-weight:600;">${isLocked ? 'Lectura bloqueada' : textLabel}</p>
+          </label>
+         `;
+       }
+     } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Tecnico') {
+       const isVendedor = c.tipo === 'Recibo Vendedor';
+       const recColor   = isVendedor ? '#3b82f6' : '#10b981';
+       const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
+       html = `
+         <div style="margin-bottom:16px;" id="recibo-wrap-${c.id}">
+           <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
+           ${isDone ? `
+             <div style="background:${recColor}15;border:1px solid ${recColor}40;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+               <div style="background:${recColor}20;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${recColor}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+               </div>
+               <span style="color:${recColor};font-size:0.85rem;font-weight:700;">Recibo Completado ✓</span>
+               <button onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">Ver</button>
+             </div>
+           ` : `
+             <button type="button" onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')"
+               style="width:100%;background:${recColor};color:white;border:none;padding:14px;border-radius:12px;font-size:0.9rem;font-weight:800;cursor:pointer;box-shadow:0 4px 16px ${recColor}30;" ${disabledAttr}>
+               ${isVendedor ? '💵 Llenar Recibo de Pago – Vendedor' : '🔧 Llenar Recibo de Instalación – Técnico'}
+             </button>
+           `}
+           <input type="hidden" id="df_${c.id}" value="${val || ''}"/>
+         </div>
+       `;
+     } else {
+       html = `<div class="input-wrap no-icon"><input type="${c.tipo==='Número'?'number':'text'}" id="df_${c.id}" class="w-full" placeholder="${c.etiqueta}..." value="${val}" ${disabledAttr} style="${lockedStyle}"></div>`;
+     }
+    return c.tipo === 'Archivo' ? html : `<div class="field-group"><label>${c.etiqueta}</label>${html}</div>`;
+  }).join('');
+
+  const numFilled = existingResp.filter(r => campos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+  const isComplete = numFilled >= campos.length;
+
+  // Force special buttons if phase name matches but they are not in campos
+  const actNomLower = actFase.nombre.toLowerCase();
+  const isCreditAppPhase = actNomLower.includes('aprobación') || actNomLower.includes('crédito');
+  const isWorkOrderPhase = actNomLower.includes('orden de trabajo');
+  const isContractPhase = actNomLower.includes('contrato');
+
+  const hasCreditField = campos.some(c => c.tipo === 'Aplicación de Crédito');
+  const hasWorkOrderField = campos.some(c => c.tipo === 'Orden de Trabajo');
+  const hasContractField = campos.some(c => c.tipo === 'Contrato');
+  
+  let extraHtml = '';
+  if (!isLocked) {
+      if (isCreditAppPhase && !hasCreditField) {
+          const isDone = existingResp.some(r => r.valor && r.valor.startsWith('http') && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Aplicación de Crédito'));
+          if (!isDone) {
+            extraHtml += `
+              <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
+                <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0284c7" onclick="
+                  const iframe = document.getElementById('iframe-credit-app');
+                  if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=credit&proyectoId=${deal.id}';
+                  if (window.appNavigate) window.appNavigate('credit-app');
+                ">
+                  Llenar Aplicación de Crédito
+                </button>
+              </div>
+            `;
+          }
+      }
+      if (isWorkOrderPhase && !hasWorkOrderField) {
+          const isDone = existingResp.some(r => r.valor && r.valor.startsWith('http') && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo'));
+          if (!isDone) {
+            extraHtml += `
+              <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
+                <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" onclick="
+                  const iframe = document.getElementById('iframe-work-order');
+                  if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
+                  if (window.appNavigate) window.appNavigate('work-order');
+                ">
+                  Llenar Orden de Trabajo
+                </button>
+              </div>
+            `;
+          }
+      }
+      if (isContractPhase && !hasContractField) {
+          const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
+          const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
+          
+          const hasProjectResp = existingResp.some(r => r.valor && r.valor.startsWith('http') && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Contrato'));
+          const hasClientMetadata = !!(deal[`contrato_${prefix}_url`] || deal.contrato_url);
+          const isDone = hasProjectResp || hasClientMetadata;
+
+          if (!isDone) {
+            extraHtml += `
+              <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
+                <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#f59e0b" onclick="
+                  const iframe = document.getElementById('iframe-contract-app');
+                  if (iframe) iframe.src = 'CONTRATO-RENEW-WATER/index.html?tab=contract&v=${Date.now()}&proyectoId=${deal.id}&pipeline=${encodeURIComponent(pipeline.nombre)}';
+                  if (window.appNavigate) window.appNavigate('contract-app');
+                ">
+                  Llenar Contrato
+                </button>
+              </div>
+            `;
+          }
+      }
+  }
+
+  container.innerHTML = `
+    <div class="form-card slide-in-bottom border-l-4" style="border-left-color:${isLocked ? '#94a3b8' : pipeline.color}; padding-top:24px; padding-bottom:24px; border-radius:16px; margin-top:24px; position:relative;">
+      ${isLocked ? `
+        <div style="position:absolute; top:12px; right:16px; background:#f1f5f9; color:#64748b; padding:4px 10px; border-radius:8px; font-size:0.6rem; font-weight:800; display:flex; align-items:center; gap:4px; text-transform:uppercase;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Vista de Solo Lectura
+        </div>
+      ` : ''}
+      
+      <h3 class="text-lg font-bold text-gray-800 mb-2">${isLocked ? 'Fase en Proceso' : `Acción: Llenar ${actFase.nombre}`}</h3>
+      <p class="text-xs text-gray-500 mb-6" id="phase-status-desc">
+        ${isLocked ? `Esta etapa debe ser completada por <strong>${deal.rol_fase}</strong>. Puedes ver los avances aquí.` : 
+          (isComplete ? '¡Todo listo! Ya puedes finalizar esta etapa.' : `Faltan <strong>${campos.length - numFilled}</strong> campos/archivos para poder avanzar.`)}
+      </p>
+      
+      <div id="form-fields-container" style="${isLocked ? 'pointer-events:none' : ''}">
+        ${inputsHtml}
+        ${extraHtml}
+      </div>
+
+      ${!isLocked ? `
+        <button id="btn-dyn-submit" class="btn btn-primary slide-in-right" 
+                style="width:100%; height:56px; font-size:1.05rem; box-shadow:0 8px 24px ${pipeline.color}40; background:${pipeline.color}; margin-top:20px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:8px"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="label-submit-text">${isComplete ? 'Finalizar Fase y Enviar' : 'Guardar Avances'}</span>
+        </button>
+      ` : `
+        <div style="margin-top:20px; padding:16px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:12px; text-align:center;">
+          <p style="font-size:0.75rem; color:#64748b; font-weight:600;">Serás notificado cuando sea tu turno.</p>
+        </div>
+      `}
+    </div>
+  `;
+
+  if (!isLocked) {
+    const user = getCurrentUser();
+    const btnSubmit = document.getElementById('btn-dyn-submit');
+
+    if (btnSubmit) {
+      btnSubmit.addEventListener('click', () => {
+        // ── VALIDACIÓN DE DATOS DEL CLIENTE ──
+        // Bloquear avance si faltan datos básicos del cliente
+        const missingFields = [];
+        if (!deal.nombre_cliente || deal.nombre_cliente.trim() === '') missingFields.push('Nombre del cliente');
+        if (!deal.email || deal.email.trim() === '' || deal.email === 'N/A') missingFields.push('Email');
+        if (!deal.telefono || deal.telefono.trim() === '') missingFields.push('Teléfono');
+        if (!deal.direccion || deal.direccion.trim() === '') missingFields.push('Dirección');
+
+        if (missingFields.length > 0) {
+          showToast(`⚠️ Faltan datos del cliente: ${missingFields.join(', ')}. Completa el perfil antes de avanzar.`, 'error');
+          return;
+        }
+
+        const resp = {};
+        for (const c of campos) {
+          const el = document.getElementById(`df_${c.id}`);
+          const val = c.tipo === 'Archivo' ? (fileAnswers[c.id] || "") : (el?.value || "").trim();
+          resp[c.id] = val || "No provisto";
+        }
+        btnSubmit.innerHTML = 'Espere...';
+        submitPhase(deal.id, resp, actFase.nombre);
+      });
+    }
+
+    setTimeout(() => {
+      campos.filter(c => c.tipo === 'Archivo').forEach(c => {
+        // Skip fields that already have a value — they're locked and display as "done"
+        if (fileAnswers[c.id]) return;
+
+        const input = document.getElementById(`df_${c.id}`);
+        const area = document.getElementById(`ubox_${c.id}`);
+        const label = document.getElementById(`ulbl_${c.id}`);
+        if(input) {
+          input.addEventListener('change', async () => {
+            if (input.files.length) {
+              const file = input.files[0];
+              if (label) label.textContent = `Subiendo...`;
+              const url = await uploadFile(file, 'projects');
+              fileAnswers[c.id] = url;
+              if (area) {
+                area.classList.add('has-file');
+                area.style.borderColor = pipeline.color;
+                area.style.background = pipeline.color + '15';
+                const icon = area.querySelector('.upload-icon');
+                if (icon) icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+              }
+              if (label) { label.textContent = `Archivo Cargado`; label.style.color = pipeline.color; }
+              
+              syncKanbanActivity({
+                proyecto_id: deal.id,
+                evento: 'ARCHIVO_SUBIDO',
+                campo_etiqueta: c.etiqueta,
+                archivo_nombre: file.name,
+                responsable_id: user?.id,
+                fase_nombre: actFase.nombre
+              });
+
+              notifyWebhook({
+                evento: 'ARCHIVO_SUBIDO',
+                proyecto_id: deal.id,
+                cliente_nombre: deal.nombre_cliente,
+                pipeline: pipeline.nombre,
+                fase_actual: actFase.nombre,
+                campo_id: c.id,
+                campo_etiqueta: c.etiqueta,
+                archivo_nombre: file.name,
+                responsable_id: user?.id,
+                timestamp: new Date().toISOString()
+              });
+            }
+          });
+        }
+      });
+    }, 100);
+  }
+}
+
+async function submitPhase(dealId, resp, faseNombre) {
+  try {
+    const res = await advanceDealPhase(dealId, resp);
+    if (res.didAdvance) {
+      showToast(`¡Fase completada! Avanzando...`, 'success');
+      setTimeout(() => {
+        if (res.isCompletado) navigate('dashboard');
+        else renderDetail(dealId); 
+      }, 1000);
+    } else {
+      showToast(`Avances guardados correctamente.`, 'info');
+      setTimeout(() => renderDetail(dealId), 800);
+    }
+  } catch(e) {
+    showToast(e.message, 'error');
+  }
+}
+
+// --------------------------------------------------------------
+//  RECIBO MODAL � Vendedor & T�cnico
+// --------------------------------------------------------------
+window._abrirReciboModal = async function(campoId, tipo, dealId) {
+  const isVendedor = tipo === 'Recibo Vendedor';
+  const existingModal = document.getElementById('modal-recibo-dinamico');
+  if (existingModal) existingModal.remove();
+
+  // Importar herramientas necesarias
+  const { getDB, saveRecibo, getCurrentUser } = await import('../api.js');
+  const db = getDB();
+  const user = getCurrentUser() || {};
+  const deal = (db.Proyectos_Dinamicos || []).find(p => p.id === dealId) || {};
+  const cli  = (db.Clientes_Maestro || []).find(c => c.id === deal.cliente_id) || {};
+  const tecnicoAsignado = (db.Usuarios || []).find(u => (u.rol === "tecnico" || u.rol === "técnico") && (u.id === deal.tecnico_id || u.id === deal.asignado_a));
+  
+  const tecnicoNom = tecnicoAsignado ? (tecnicoAsignado.nombre + " " + (tecnicoAsignado.apellido || "")) : "";
+  const vendedorNom = (user.nombre || "") + " " + (user.apellido || "");
+  const clienteNom = cli.nombre || deal.nombre_cliente || "";
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-recibo-dinamico';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;width:100%;max-width:550px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 48px rgba(0,0,0,0.4);animation:modalIn 0.3s ease-out;">
+      <div style="padding:24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h3 style="font-size:1.1rem;font-weight:900;color:var(--text-primary);margin:0;">${isVendedor ? 'Recibo de Pago' : 'Recibo de Instalación'}</h3>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 0;">${clienteNom}</p>
+        </div>
+        <button id="btn-close-recibo" style="background:var(--surface-alt);border:none;border-radius:12px;width:40px;height:40px;color:var(--text-primary);cursor:pointer;">✕</button>
+      </div>
+      <div id="recibo-form-fields" style="flex:1;overflow-y:auto;padding:24px;background:var(--bg-main);">
+        ${isVendedor ? _buildFormVendedor(vendedorNom, tecnicoNom, clienteNom) : _buildFormTecnico(tecnicoNom, clienteNom)}
+      </div>
+      <div style="padding:24px;border-top:1px solid var(--border);display:flex;gap:12px;">
+        <button id="btn-guardar-recibo" style="flex:1;background:var(--accent);color:white;border:none;border-radius:14px;padding:16px;font-weight:800;font-size:0.95rem;cursor:pointer;box-shadow:0 8px 16px var(--accent-alpha);">
+          Guardar Recibo
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  // Manejo de eventos
+  modal.querySelector('#btn-close-recibo').onclick = () => modal.remove();
+  
+  if (!isVendedor) {
+    modal.querySelector('#btn-add-item').onclick = () => {
+      const container = modal.querySelector('#items-container');
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.style.cssText = 'display:grid;grid-template-columns:2fr 60px 1fr 80px 20px;gap:6px;margin-bottom:8px;align-items:center;';
+      row.innerHTML = `
+        <input type="text" placeholder="Descripción..." style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
+        <input type="number" placeholder="1" value="1" style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
+        <input type="text" placeholder="Modelo" style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
+        <input type="number" placeholder="0.00" style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
+        <button type="button" onclick="this.closest('.item-row').remove()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;font-weight:900;">✕</button>`;
+      container.appendChild(row);
+    };
+  }
+
+  modal.querySelector('#btn-guardar-recibo').onclick = async () => {
+    const btn = modal.querySelector('#btn-guardar-recibo');
+    btn.textContent = 'Guardando...';
+    btn.disabled = true;
+    
+    try {
+      const g = id => modal.querySelector('#rec-' + id)?.value || '';
+      let datosJson = {};
+
+      if (isVendedor) {
+        const extraCharges = [...modal.querySelectorAll('.extra-charge-row')].map(r => {
+          const [conc, monto] = r.querySelectorAll('input'); return { concepto: conc.value, monto: parseFloat(monto.value)||0 };
+        }).filter(x => x.concepto);
+        
+        datosJson = {
+          sales_representative: g('sales-rep'),
+          check_number: g('check-number'),
+          transfer_date: g('transfer-date'),
+          customer_name: g("customer-name") || clienteNom,
+          finance_company: g('finance'),
+          sales_amount: parseFloat(g('sales-amount'))||0,
+          aprobacion_pct: parseFloat(g('aprobacion-pct'))||0,
+          monto_aprobacion: parseFloat(g('monto-aprobacion'))||0,
+          cost: parseFloat(g('cost'))||0,
+          costo_plan_pct: parseFloat(g('costo-plan-pct'))||0,
+          total_costo: parseFloat(g('total-costo'))||0,
+          linea_pozo: g('linea-pozo'),
+          total_analista: parseFloat(g('total-analista'))||0,
+          extra_charges: extraCharges,
+          instalador: g('instalador'),
+          grand_total: parseFloat(g('grand-total'))||0
+        };
+      } else {
+        const items = [...modal.querySelectorAll('.item-row')].map(row => {
+          const inputs = row.querySelectorAll('input');
+          return { description: inputs[0].value, qty: parseFloat(inputs[1].value)||1, model: inputs[2].value, total: parseFloat(inputs[3].value)||0 };
+        }).filter(i => i.description);
+        
+        datosJson = {
+          installer_name: tecnicoNom,
+          customer_name: g("customer-name") || clienteNom,
+          address: cli.direccion || deal.direccion || '',
+          date: g('date'),
+          items,
+          total_price: parseFloat(g('total-price'))||0
+        };
+      }
+
+      const recibo = {
+        proyecto_id: dealId,
+        tipo: isVendedor ? 'vendedor' : 'tecnico',
+        trabajador_id: user.id,
+        trabajador_nombre: vendedorNom,
+        cliente_nombre: clienteNom,
+        direccion: cli.direccion || deal.direccion || '—',
+        fecha_recibo: new Date().toISOString().split('T')[0],
+        datos_json: { ...datosJson, campo_id: campoId }
+      };
+
+      await saveRecibo(recibo);
+      
+      // ── PERSISTENCIA: Guardar en Respuestas_Dinamicas para que el estado se mantenga tras recargar ──
+      const { advanceDealPhase } = await import('../api.js');
+      await advanceDealPhase(dealId, { [campoId]: 'Completado' }, { preventAutoAdvance: true });
+
+      const hiddenField = document.getElementById('df_' + campoId);
+      if (hiddenField) { 
+        hiddenField.value = 'Completado'; 
+        hiddenField.dispatchEvent(new Event('change')); 
+      }
+      
+      const wrap = document.getElementById('recibo-wrap-' + campoId);
+      if (wrap) {
+        const b = wrap.querySelector('button');
+        if (b) { b.disabled = true; b.textContent = '✓ Recibo Completado'; b.style.opacity = '0.7'; }
+      }
+
+      const { showToast } = await import('../components/toast.js');
+      showToast('Recibo guardado ✓', 'success');
+      modal.remove();
+      
+    } catch(err) {
+      console.error(err);
+      btn.textContent = 'Guardar Recibo';
+      btn.disabled = false;
+    }
+  };
+};
+
+function _buildFormVendedor(vendedorNom = "", tecnicoNom = "", clienteNom = "") {
+  const st = 'background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;';
+  const today = new Date().toISOString().split('T')[0];
+  const field = (lbl, id, type='text', ph='', val='') => `
+    <div style="margin-bottom:12px;">
+      <label style="font-size:0.68rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">${lbl}</label>
+      <input type="${type}" id="${id}" placeholder="${ph}" value="${val}" style="${st}"/>
+    </div>`;
+  const sep = txt => `<p style="font-size:0.65rem;font-weight:900;color:#3b82f6;text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--border);">${txt}</p>`;
+  return `
+    ${sep('INFORMACIÓN PRINCIPAL')}
+    ${field('Customer Name','rec-customer-name','text','Nombre del cliente', clienteNom)}
+    ${field('Sales Representative','rec-sales-rep','text','Nombre del vendedor', vendedorNom)}
+    ${field('Check Number','rec-check-number','text','# de cheque')}
+    ${field('Transfer Date','rec-transfer-date','date','',today)}
+    ${field('Finance Company','rec-finance','text','Empresa financiera')}
+    ${sep('Montos')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${field('Sales Amount ($)','rec-sales-amount','number','0.00')}
+      ${field('Aprobación (%)','rec-aprobacion-pct','number','100')}
+    </div>
+    ${field('Monto Aprobación ($)','rec-monto-aprobacion','number','0.00')}
+    ${sep('Costos')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${field('Cost ($)','rec-cost','number','0.00')}
+      ${field('Costo Plan (%)','rec-costo-plan-pct','number','2')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${field('Total Costo ($)','rec-total-costo','number','0.00')}
+      ${field('Total Analista ($)','rec-total-analista','number','0.00')}
+    </div>
+    ${field('LÍNEA POZO','rec-linea-pozo','text','Opcional')}
+    ${sep('Extra Charges')}
+    <div id="extra-charges-container">
+      <div class="extra-charge-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="MILLAS" style="${st}" value="MILLAS"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
+      <div class="extra-charge-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="EXTRA" style="${st}" value="EXTRA"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
+    </div>
+    ${sep('Deductions')}
+    <div id="deductions-container">
+      <div class="deduction-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="Bono" style="${st}" value="Bono"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
+      <div class="deduction-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="Reversa" style="${st}" value="Reversa"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
+    </div>
+    ${sep('Instalador & Credits')}
+    ${field('Nombre del Instalador','rec-instalador','text','Nombre del técnico', tecnicoNom)}
+    <div id="credits-container">
+      <div class="credit-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="Transfer" style="${st}" value="Transfer"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
+      <div class="credit-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="Adicional" style="${st}" value="Adicional"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
+    </div>
+    ${sep('Total')}
+    ${field('GRAND TOTAL ($)','rec-grand-total','number','0.00')}
+  `;
+}
+
+function _buildFormTecnico(tecnicoNom = "", clienteNom = "") {
+  const st = 'background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;';
+  const today = new Date().toISOString().split('T')[0];
+  const field = (lbl, id, type='text', ph='', val='') => `
+    <div style="margin-bottom:12px;">
+      <label style="font-size:0.68rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">${lbl}</label>
+      <input type="${type}" id="${id}" placeholder="${ph}" value="${val}" style="${st}"/>
+    </div>`;
+  const sep = txt => `<p style="font-size:0.65rem;font-weight:900;color:#10b981;text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--border);">${txt}</p>`;
+  return `
+    ${sep('Fecha')}
+    ${field('Date','rec-date','date','',today)}
+    ${sep('Items Instalados')}
+    <div id="items-container">
+      <div style="display:grid;grid-template-columns:2fr 60px 1fr 80px 20px;gap:6px;margin-bottom:4px;">
+        <span style="font-size:0.62rem;color:var(--text-muted);font-weight:800;">DESCRIPCIÓN</span>
+        <span style="font-size:0.62rem;color:var(--text-muted);font-weight:800;">QTY</span>
+        <span style="font-size:0.62rem;color:var(--text-muted);font-weight:800;">MODELO</span>
+        <span style="font-size:0.62rem;color:var(--text-muted);font-weight:800;">TOTAL ($)</span>
+        <span></span>
+      </div>
+      <div class="item-row" style="display:grid;grid-template-columns:2fr 60px 1fr 80px 20px;gap:6px;margin-bottom:8px;align-items:center;">
+        <input type="text" placeholder="Water treatment system�" style="${st}"/>
+        <input type="number" placeholder="1" value="1" style="${st}"/>
+        <input type="text" placeholder="Renew City 6" style="${st}"/>
+        <input type="number" placeholder="0.00" style="${st}"/>
+        <span></span>
+      </div>
+    </div>
+    <button type="button" id="btn-add-item" style="background:#10b98115;border:1px dashed #10b98160;color:#10b981;border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px;">
+      + Agregar Equipo
+    </button>
+    ${sep('Totales')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${field('Discount (%)','rec-discount-pct','number','0','0')}
+      ${field('Total Price ($)','rec-total-price','number','0.00')}
+    </div>
+  `;
+}

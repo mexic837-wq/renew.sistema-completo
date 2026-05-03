@@ -1,0 +1,2241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renew Admin – Super Constructor de Flujos</title>
+    <script src="js/security-guard.js"></script>
+    <script>
+        // ── GLOBAL SECURITY GUARD ──
+        (function() {
+            var user = JSON.parse(localStorage.getItem('rs_user'));
+            var allowed = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
+            if (!user || !allowed.includes(user.rol)) {
+                document.write(`
+                <html>
+                <head>
+                  <title>Acceso Restringido</title>
+                  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                  <style>
+                    body { background: #050505; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
+                    .box { background: #111827; padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); text-align: center; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+                    .icon-box { width: 80px; height: 80px; background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+                    h1 { margin: 0 0 10px; font-size: 24px; text-transform: uppercase; }
+                    p { color: #9ca3af; margin: 0 0 30px; font-size: 14px; line-height: 1.5; }
+                    button { background: #f43f5e; color: white; border: none; padding: 16px 20px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 0 20px rgba(244,63,94,0.3); transition: 0.3s; }
+                    button:hover { background: #e11d48; }
+                  </style>
+                </head>
+                <body>
+                  <div class="box">
+                      <div class="icon-box"><i class="fa-solid fa-lock" style="color: #f43f5e; font-size: 32px;"></i></div>
+                      <h1>Área Restringida</h1>
+                      <p>Tu nivel de autorización no permite visualizar el panel de administración o modificar bases de datos globales.</p>
+                      <button onclick="window.location.href='index.html'"><i class="fa-solid fa-arrow-left"></i> Volver a mi App</button>
+                  </div>
+                </body>
+                </html>
+                `);
+                window.stop();
+            }
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/google-calendar@6.1.11/index.global.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+       <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#050505',      
+                        darkSurface: '#0B0F1A', 
+                        darkCard: '#111827',
+                        tealAccent: '#00f5d4',
+                        limeAccent: '#daff00',
+                        yellowAccent: '#ffcc00',
+                        orangeAccent: '#fbb714',
+                        /* ── Light mode palette (matches Lumina reference) ── */
+                        bgLight: '#eef2f5',
+                        surfaceLight: '#ffffff',
+                        lightPrimary: '#0FAB9E',
+                        lightPrimaryDark: '#0d9488',
+                        bgDark: '#050505',
+                        surfaceDark: '#0B0F1A'
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0, 0, 0, 0.5)',
+                        'teal-glow': '0 0 20px rgba(0, 245, 212, 0.15)',
+                        'light-card': '0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize flatpickr for all date inputs
+            window.initDatePickers = () => {
+                flatpickr("input[type=date]", {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "m/d/Y",
+                    allowInput: true,
+                    monthSelectorType: "static",
+                    animate: true,
+                    disableMobile: "true",
+                    appendTo: document.body,   // Mount outside modal so z-index works globally
+                    onReady: function(selectedDates, dateStr, instance) {
+                        // Force high z-index after mount
+                        if (instance.calendarContainer) {
+                            instance.calendarContainer.style.zIndex = '2147483647';
+                        }
+                    }
+                });
+            };
+            window.initDatePickers();
+        });
+    </script>
+    <style>
+      /* Ensure flatpickr is above modals */
+      .flatpickr-calendar {
+          z-index: 2147483647 !important;
+          position: fixed !important;
+      }
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+      
+      /* ── CSS Variables: Light Mode ─────────────────── */
+      :root {
+        --lp: #0FAB9E;          /* light primary teal */
+        --lp-dark: #0d9488;     /* hover shade */
+        --lp-bg: #eef2f5;       /* page background */
+        --lp-surface: #ffffff;  /* cards / sidebar */
+        --lp-border: #e3e8ef;   /* borders */
+        --lp-text: #1a2b3c;     /* headings */
+        --lp-sub: #64748b;      /* secondary text */
+        --lp-muted: #94a3b8;    /* muted text */
+        --lp-glow: rgba(15,171,158,0.15);
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+
+      /* ── Light-mode overrides (only when NOT .dark on html) ─ */
+      html:not(.dark) body {
+        background-color: var(--lp-bg) !important;
+        color: var(--lp-text);
+      }
+      html:not(.dark) .text-gray-900 {
+        color: #1a2b3c !important; /* Ensure visibility in light mode */
+      }
+      html:not(.dark) .text-white {
+        color: #1a2b3c !important; /* Invert white text in light mode where appropriate */
+      }
+
+      /* Sidebar */
+      html:not(.dark) #admin-sidebar {
+        background: var(--lp-surface) !important;
+        border-right: 1px solid var(--lp-border) !important;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.04);
+      }
+
+      /* Logo image: show with original teal color in light mode */
+      html:not(.dark) #admin-sidebar img[alt="RENEW OS Logo"] {
+        filter: none !important;
+      }
+
+      /* Logo text gradient */
+      html:not(.dark) #logo-text_main {
+        background: linear-gradient(135deg, var(--lp), #05d085);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* ── Navigation items – light mode ─────────────── */
+      html:not(.dark) .nav-item {
+        color: var(--lp-sub) !important;
+      }
+      html:not(.dark) .nav-item:hover {
+        background: rgba(15,171,158,0.08) !important;
+        color: var(--lp) !important;
+      }
+
+      /* Active item: light teal background with teal text/icon */
+      html:not(.dark) .sidebar-item-active {
+        background: rgba(15,171,158,0.08) !important;
+        border-right: none !important;
+        border-left: none !important;
+        color: var(--lp) !important;
+        font-weight: 700;
+      }
+      html:not(.dark) .sidebar-item-active i {
+        color: var(--lp) !important;
+      }
+      /* Collapsed active */
+      html:not(.dark) .admin-sidebar-collapsed .sidebar-item-active {
+        background: rgba(15,171,158,0.12) !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+
+      /* ── Header – light mode ─────────────────────── */
+      html:not(.dark) header {
+        background: var(--lp-surface) !important;
+        border-bottom: 1px solid var(--lp-border) !important;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+      }
+      html:not(.dark) header input {
+        color: var(--lp-text);
+      }
+      html:not(.dark) header input::placeholder {
+        color: var(--lp-muted);
+      }
+
+      /* ── View context bar ────────────────────────── */
+      html:not(.dark) .px-10.py-10 {
+        background: var(--lp-surface) !important;
+        border-bottom: 1px solid var(--lp-border) !important;
+      }
+      html:not(.dark) #view-title {
+        color: var(--lp-text) !important;
+      }
+      html:not(.dark) #view-desc {
+        color: var(--lp-muted) !important;
+      }
+      html:not(.dark) .aqua-title-box {
+        background: rgba(15,171,158,0.06);
+        border: 1.5px solid rgba(15,171,158,0.18);
+      }
+
+      /* ── FullCalendar Dark Theme Overrides ─────────── */
+      .fc {
+          --fc-border-color: rgba(0, 245, 212, 0.1);
+          --fc-daygrid-event-dot-width: 6px;
+          --fc-event-bg-color: #00f5d4;
+          --fc-event-border-color: #00f5d4;
+          --fc-event-text-color: #000;
+          --fc-today-bg-color: rgba(0, 245, 212, 0.05);
+          --fc-button-bg-color: #111827;
+          --fc-button-border-color: rgba(0, 245, 212, 0.2);
+          --fc-button-hover-bg-color: #00f5d4;
+          --fc-button-hover-border-color: #00f5d4;
+          --fc-button-active-bg-color: #00f5d4;
+          --fc-button-active-border-color: #00f5d4;
+          font-family: inherit;
+      }
+      .dark .fc {
+          color: #fff;
+      }
+      .dark .fc-theme-standard td, .dark .fc-theme-standard th {
+          border-color: rgba(255, 255, 255, 0.05);
+          background: transparent !important;
+      }
+      .dark .fc-list-day-cushion {
+          background: rgba(255, 255, 255, 0.05);
+      }
+      .fc-header-toolbar {
+          padding: 1rem;
+          background: rgba(0, 245, 212, 0.02);
+          border-radius: 1rem;
+          margin-bottom: 2rem !important;
+          border: 1px solid rgba(0, 245, 212, 0.05);
+      }
+      .fc-toolbar-title {
+          font-size: 1.25rem !important;
+          font-weight: 800 !important;
+          text-transform: uppercase;
+          letter-spacing: -0.025em;
+          color: #111827;
+      }
+      .dark .fc-toolbar-title {
+          color: #fff;
+      }
+      .fc-button {
+          font-size: 0.65rem !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.1em !important;
+          padding: 0.6rem 1.2rem !important;
+          border-radius: 0.75rem !important;
+          border: 1px solid rgba(0, 0, 0, 0.1) !important;
+          background: rgba(0, 0, 0, 0.03) !important;
+          color: #111827 !important;
+          transition: all 0.2s ease !important;
+      }
+      .dark .fc-button {
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background: rgba(255, 255, 255, 0.03) !important;
+          color: #fff !important;
+      }
+      .fc-button-primary:not(:disabled).fc-button-active,
+      .fc-button:hover {
+          background: #00f5d4 !important;
+          color: #000 !important;
+          border-color: #00f5d4 !important;
+      }
+      .fc-icon {
+          color: inherit !important;
+      }
+      .fc-event {
+          cursor: pointer;
+          border: none !important;
+          border-radius: 8px !important;
+          padding: 4px 8px !important;
+          font-weight: 700;
+          font-size: 11px !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      .fc-daygrid-event {
+          white-space: normal !important;
+          align-items: center;
+      }
+      .fc-col-header-cell {
+          padding: 12px 0 !important;
+          font-size: 10px !important;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          font-weight: 800;
+          color: #64748b;
+      }
+      .fc-scrollgrid {
+          border: none !important;
+      }
+      .fc-day-today {
+          background: rgba(0, 245, 212, 0.03) !important;
+      }
+      .fc-list-event:hover td {
+          background: rgba(0, 245, 212, 0.05) !important;
+      }
+
+      /* ── Canvas/Main area ────────────────────────── */
+      html:not(.dark) #main-canvas {
+        background: var(--lp-bg) !important;
+      }
+
+      /* ── Cards & tables – light mode ────────────── */
+      html:not(.dark) .bg-white {
+        background: var(--lp-surface) !important;
+        border-color: var(--lp-border) !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.03) !important;
+      }
+      html:not(.dark) .border-gray-100 {
+        border-color: var(--lp-border) !important;
+      }
+      html:not(.dark) .border-gray-200 {
+        border-color: var(--lp-border) !important;
+      }
+      html:not(.dark) .bg-gray-50,
+      html:not(.dark) .bg-bgLight {
+        background: #f8fafb !important;
+      }
+
+      /* Table rows */
+      html:not(.dark) thead {
+        background: #f8fafb !important;
+      }
+      html:not(.dark) tbody tr:hover {
+        background: rgba(15,171,158,0.03) !important;
+      }
+      html:not(.dark) .text-gray-900 { color: var(--lp-text) !important; }
+      html:not(.dark) .text-gray-800 { color: #2d3f55 !important; }
+      html:not(.dark) .text-gray-600 { color: var(--lp-sub) !important; }
+      html:not(.dark) .text-gray-500 { color: #7a8fa8 !important; }
+      html:not(.dark) .text-gray-400 { color: var(--lp-muted) !important; }
+
+      /* ── Primary button (btn-premium) – light mode ─ */
+      html:not(.dark) .btn-premium {
+        background: var(--lp) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(15,171,158,0.35);
+      }
+      html:not(.dark) .btn-premium:hover {
+        background: var(--lp-dark) !important;
+        box-shadow: 0 6px 20px rgba(15,171,158,0.45);
+      }
+
+      /* ── Aqua labels in light mode ───────────────── */
+      html:not(.dark) .aqua-label {
+        background: rgba(15,171,158,0.10);
+        border: 1px solid rgba(15,171,158,0.25);
+        color: var(--lp);
+      }
+
+      /* ── tealAccent references → use lp in light ─ */
+      html:not(.dark) .text-tealAccent {
+        color: var(--lp) !important;
+      }
+      html:not(.dark) .bg-tealAccent\/10, 
+      html:not(.dark) .bg-tealAccent\/5 {
+        background: rgba(15,171,158,0.08) !important;
+      }
+      html:not(.dark) .border-tealAccent {
+        border-color: var(--lp) !important;
+      }
+
+      /* ── Footer area in sidebar ───────────────────── */
+      html:not(.dark) .border-t.border-gray-100 {
+        border-color: var(--lp-border) !important;
+      }
+      html:not(.dark) #btn-theme-toggle {
+        color: var(--lp-sub);
+      }
+      html:not(.dark) #btn-theme-toggle:hover {
+        color: var(--lp);
+      }
+
+      /* ── Scrollbars ──────────────────────────────── */
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      
+      #main-canvas::-webkit-scrollbar {
+          height: 6px;
+          background: transparent;
+      }
+      #main-canvas::-webkit-scrollbar-thumb {
+          background: rgba(15,171,158,0.15);
+          border-radius: 10px;
+      }
+      
+      .scroll-container-fases::-webkit-scrollbar {
+          height: 6px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+      }
+      .scroll-container-fases::-webkit-scrollbar-thumb {
+          background: #00f5d4;
+          border-radius: 10px;
+      }
+
+      #main-canvas {
+          overflow-x: hidden !important;
+          flex: 1;
+          transition: all 0.5s ease;
+      }
+      
+      /* Dark mode keeps original teal */
+      .dark .sidebar-item-active {
+        background: rgba(0, 245, 212, 0.08);
+        border-right: 3px solid #00f5d4;
+        color: #00f5d4 !important;
+      }
+      /* Light mode active: handled above */
+      .sidebar-item-active {
+        border-right: none;
+        border-radius: 0.75rem;
+        margin-left: 0.25rem;
+        margin-right: 0.25rem;
+      }
+
+      .btn-premium {
+        background: #00f5d4;
+        color: #000;
+        font-weight: 700;
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(0, 245, 212, 0.2);
+        border: none;
+        cursor: pointer;
+      }
+      .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 245, 212, 0.4);
+      }
+
+      .btn-secondary-premium {
+        background: #1a1a1a;
+        color: #fff;
+        font-weight: 600;
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        border: 1px solid #333;
+      }
+
+      /* Modal Animation */
+      .animate-modal-in {
+        animation: modalIn 0.3s ease forwards;
+      }
+      @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+
+      .nuclear-visible {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          z-index: 9999 !important;
+      }
+      .nuclear-hidden {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+      }
+
+
+
+      #admin-sidebar {
+          transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s;
+      }
+
+      .admin-sidebar-collapsed {
+          width: 4.5rem !important; 
+          overflow: hidden !important;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+      }
+      .admin-sidebar-collapsed::-webkit-scrollbar {
+          display: none;
+      }
+      
+      .admin-sidebar-collapsed .nav-text, 
+      .admin-sidebar-collapsed #logo-text_sub,
+      .admin-sidebar-collapsed #logo-text_main,
+      .admin-sidebar-collapsed .footer-text,
+      .admin-sidebar-collapsed .theme-text,
+      .admin-sidebar-collapsed #sub-auto,
+      .admin-sidebar-collapsed nav p,
+      .admin-sidebar-collapsed .nav-item .fa-chevron-down,
+      .admin-sidebar-collapsed #logo-container {
+          display: none !important;
+      }
+
+      .admin-sidebar-collapsed .sidebar-header {
+          padding: 0 !important;
+          justify-content: center !important;
+          margin-top: 1rem;
+      }
+
+      .admin-sidebar-collapsed .nav-item {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          padding: 0 !important;
+          margin: 0.6rem auto !important;
+          width: 2.75rem !important;
+          height: 2.75rem !important;
+          gap: 0 !important;
+          border-right: none !important;
+          border-radius: 12px !important;
+      }
+
+      .dark .admin-sidebar-collapsed .sidebar-item-active {
+          border-left: none !important;
+          border-right: none !important;
+          background: rgba(0, 245, 212, 0.1) !important;
+          color: #00f5d4 !important;
+      }
+
+      .admin-sidebar-collapsed .nav-item div {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          gap: 0 !important;
+      }
+
+      .admin-sidebar-collapsed .nav-item i {
+          font-size: 1.1rem !important;
+          margin: 0 !important;
+      }
+
+      .admin-sidebar-collapsed #btn-theme-toggle {
+          justify-content: center !important;
+          padding: 1.5rem 0 !important;
+          gap: 0 !important;
+      }
+
+      .admin-sidebar-collapsed .footer-user-info {
+          justify-content: center !important;
+          padding: 0 !important;
+          gap: 0 !important;
+      }
+
+      .admin-sidebar-collapsed #btn-reset-db {
+          padding: 1rem 0 !important;
+          justify-content: center !important;
+      }
+
+      /* Custom Aqua Green Box Styles */
+      .aqua-label {
+          background: rgba(0, 245, 212, 0.1);
+          border: 1px solid rgba(0, 245, 212, 0.3);
+          color: #00f5d4;
+          padding: 6px 12px;
+          border-radius: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          font-size: 9px;
+          letter-spacing: 0.2em;
+          display: inline-flex;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          box-shadow: 0 4px 15px rgba(0, 245, 212, 0.05);
+      }
+
+      .aqua-title-box {
+          background: rgba(0, 245, 212, 0.05);
+          border: 1px solid rgba(0, 245, 212, 0.2);
+          padding: 1.25rem 2.5rem;
+          border-radius: 2rem;
+          display: inline-block;
+          box-shadow: 0 10px 40px rgba(0, 245, 212, 0.05);
+          backdrop-filter: blur(10px);
+      }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmuV4zmbor3JagjOJn2WKUcRA0SUGsh3U&libraries=places" defer></script>
+</head>
+    <body class="bg-bgLight dark:bg-bgDark transition-colors duration-300 text-gray-800 dark:text-gray-200 font-sans h-screen flex overflow-hidden">
+    <!-- ADMIN PRELOADER (Intel Engine) -->
+    <div id="admin-preloader" class="fixed inset-0 bg-[#000000] z-[100000] flex flex-col items-center justify-center transition-all duration-700">
+        <div class="relative w-48 h-48 flex items-center justify-center">
+            <!-- Animated rings -->
+            <div class="absolute inset-0 border-4 border-tealAccent/10 rounded-full animate-ping" style="animation-duration: 3s;"></div>
+            <div class="absolute inset-4 border-2 border-tealAccent/20 rounded-full animate-spin" style="animation-duration: 10s;"></div>
+            <div class="absolute inset-8 border border-white/5 rounded-full"></div>
+            
+            <!-- Logo with glow -->
+            <div class="z-10 bg-[#0a0a0a] p-8 rounded-3xl shadow-[0_0_60px_rgba(0,245,212,0.15)] border border-tealAccent/30 group">
+                <img src="./assets/images/renew copia logo.png" class="w-16 h-16 object-contain animate-pulse">
+            </div>
+        </div>
+        
+        <div class="mt-12 text-center space-y-3">
+            <h2 class="text-white font-black text-2xl tracking-tight leading-none uppercase">RENEW <span class="text-tealAccent">INTELLIGENCE</span></h2>
+            <div class="flex items-center gap-3 justify-center">
+                <span class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></span>
+                <p id="preloader-text" class="text-[10px] text-gray-500 font-black uppercase tracking-[0.4em] translate-x-1">Initializing Neural Core...</p>
+            </div>
+        </div>
+
+        <!-- Progress bar line -->
+        <div class="absolute bottom-0 left-0 w-full h-[1px] bg-white/5 overflow-hidden">
+            <div id="preloader-progress" class="h-full bg-tealAccent shadow-[0_0_15px_#00f5d4] transition-all duration-1000" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <style>
+        #admin-preloader.fade-out { opacity: 0; visibility: hidden; transform: scale(1.1); pointer-events: none; }
+    </style>
+
+    
+    <!-- Fixed Root Scroll Arrows -->
+    <div id="ctrl-scroll-left" class="fixed top-1/2 -translate-y-1/2 left-72 z-[9999] opacity-0 pointer-events-none flex items-center justify-center cursor-pointer transition-all duration-300">
+        <div class="w-12 h-12 bg-tealAccent/20 hover:bg-tealAccent/80 text-tealAccent hover:text-bgDark border border-tealAccent/50 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110">
+            <i class="fa-solid fa-chevron-left text-xl"></i>
+        </div>
+    </div>
+    <div id="ctrl-scroll-right" class="fixed top-1/2 -translate-y-1/2 right-6 z-[9999] opacity-0 pointer-events-none flex items-center justify-center cursor-pointer transition-all duration-300">
+        <div class="w-12 h-12 bg-tealAccent/20 hover:bg-tealAccent/80 text-tealAccent hover:text-bgDark border border-tealAccent/50 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110">
+            <i class="fa-solid fa-chevron-right text-xl"></i>
+        </div>
+    </div>
+    
+    <!-- NOTIFICATIONS PANEL (Relocated) -->
+    <div id="notifications-overlay" onclick="window.closeNotifications()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[999998] hidden transition-opacity duration-300 opacity-0"></div>
+    <div id="notifications-panel" class="fixed top-0 right-0 h-full w-80 bg-[#0f172a] border-l border-gray-800 transform translate-x-full transition-transform duration-300 z-[999999] shadow-2xl flex flex-col">
+        <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+            <h3 class="text-white font-black uppercase tracking-[0.2em] text-xs">Notificaciones</h3>
+            <button id="btn-close-notifications" onclick="window.closeNotifications()" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div id="notifications-list" class="flex-1 overflow-y-auto p-4 space-y-3 hide-scrollbar">
+            <!-- Dynamic Notifications -->
+        </div>
+        <div class="p-4 border-t border-gray-800">
+            <button class="w-full py-2 text-[10px] uppercase font-bold text-gray-500 hover:text-tealAccent transition-all tracking-widest" onclick="document.getElementById('notifications-list').innerHTML = ''; document.getElementById('notifications-badge').classList.add('hidden');">
+                Clear All
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="admin-sidebar" class="w-56 border-r border-gray-100 dark:border-gray-900 bg-white dark:bg-[#050505] flex flex-col z-40 transition-all duration-300">
+        <div>
+            <div class="sidebar-header h-20 flex items-center px-6 gap-3">
+                <img src="./assets/images/renew copia logo.png" class="w-6 h-6 object-contain brightness-0 invert dark:brightness-100 dark:invert-0 transition-all duration-300" alt="RENEW OS Logo">
+                <div id="logo-container" class="flex flex-col">
+                    <h1 id="logo-text_main" class="text-lg font-black text-tealAccent leading-none tracking-tighter uppercase">EQUIPO <span class="text-gray-900 dark:text-white">RENEW</span></h1>
+                    <p id="logo-text_sub" class="text-[8px] uppercase tracking-[0.2em] font-black text-gray-400 dark:text-gray-600 mt-0.5">Intelligence</p>
+                </div>
+            </div>
+            
+            <nav class="mt-4 px-2 space-y-1.5" id="admin-nav">
+                <a href="#" data-view="constructor" class="nav-item sidebar-item-active flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-layer-group text-sm"></i>
+                    </div>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#" data-view="rendimiento-global" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-chart-line text-sm"></i>
+                    </div>
+                    <span class="nav-text">Rendimiento Global</span>
+                </a>
+                <a href="#" data-view="usuarios" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-user-group text-sm"></i>
+                    </div>
+                    <span class="nav-text">Equipo</span>
+                </a>
+                <a href="#" data-view="hrhub" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-address-card text-sm"></i>
+                    </div>
+                    <span class="nav-text">RRHH</span>
+                </a>
+                <a href="#" data-view="proveedores" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-handshake text-sm"></i>
+                    </div>
+                    <span class="nav-text">Proveedores</span>
+                </a>
+                <a href="#" data-view="crm" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-users-gear text-sm"></i>
+                    </div>
+                    <span class="nav-text">Clientes</span>
+                </a>
+                <a href="#" data-view="mapa-admin" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-map-location-dot text-sm"></i>
+                    </div>
+                    <span class="nav-text">Mapa Clientes</span>
+                </a>
+                <a href="#" data-view="calendario" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-calendar-days text-sm"></i>
+                    </div>
+                    <span class="nav-text">Calendario</span>
+                </a>
+                <a href="#" data-view="kanban" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-table-columns text-sm"></i>
+                    </div>
+                    <span class="nav-text">Kanban</span>
+                </a>
+                <a href="#" data-view="academia" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-graduation-cap text-sm"></i>
+                    </div>
+                    <span class="nav-text">Gestor Academia</span>
+                </a>
+                <a href="#" data-view="anuncios" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-bullhorn text-sm"></i>
+                    </div>
+                    <span class="nav-text">Anuncios Globales</span>
+                </a>
+
+                <!-- Inventario Group -->
+                <div class="px-0">
+                    <button id="btn-toggle-inv" class="nav-item w-full flex items-center justify-between px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 flex justify-center">
+                                <i class="fa-solid fa-boxes-stacked text-sm"></i>
+                            </div>
+                            <span class="nav-text">Inventario</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-300 nav-text group-[.open]:rotate-180"></i>
+                    </button>
+                    
+                    <div id="sub-inv" class="hidden pl-10 space-y-1 mt-1 border-l border-gray-100 dark:border-gray-800 ml-6 transition-all">
+                        <a href="#" data-view="inventario" data-eco="solar" class="nav-item flex items-center gap-2 py-2 text-xs text-gray-500 hover:text-tealAccent transition-colors">Renew Solar</a>
+                        <a href="#" data-view="inventario" data-eco="water" class="nav-item flex items-center gap-2 py-2 text-xs text-gray-500 hover:text-blue-500 transition-colors">Renew Water</a>
+                        <a href="#" data-view="inventario" data-eco="home" class="nav-item flex items-center gap-2 py-2 text-xs text-gray-500 hover:text-purple-500 transition-colors">Renew Home</a>
+                    </div>
+                </div>
+
+                <!-- Automatizaciones Group -->
+                <div class="px-0">
+                    <button id="btn-toggle-auto" class="nav-item w-full flex items-center justify-between px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 flex justify-center">
+                                <i class="fa-solid fa-bolt text-sm text-yellowAccent"></i>
+                            </div>
+                            <span class="nav-text">Automations</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-300 nav-text group-[.open]:rotate-180"></i>
+                    </button>
+                    
+                    <div id="sub-auto" class="hidden pl-10 space-y-1 mt-1 border-l border-gray-100 dark:border-gray-800 ml-6 transition-all">
+                        <a href="#" data-view="marketing" class="nav-item block py-2 text-xs text-gray-500 hover:text-tealAccent transition-colors">Email Drip</a>
+                        <a href="#" data-view="whatsapp" class="nav-item block py-2 text-xs text-gray-500 hover:text-green-400 transition-colors">WhatsApp Drip</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Spacer -->
+        <div class="flex-grow"></div>
+        
+        <div class="p-4 space-y-1 mt-auto">
+            <!-- Theme Toggle -->
+            <button id="btn-theme-toggle" class="nav-item w-full flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                <div class="w-7 flex justify-center items-center">
+                    <i class="fa-solid fa-moon dark:hidden text-sm"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-sm"></i>
+                </div>
+                <span class="nav-text">Tema del Sistema</span>
+            </button>
+
+            <!-- Profile / Avatar -->
+            <button onclick="window.renderView('usuarios')" class="nav-item w-full flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                <div class="w-7 flex justify-center items-center">
+                    <div id="footer-user-avatar" class="w-6 h-6 rounded-full bg-gradient-to-tr from-tealAccent/20 to-blue-500/20 border border-tealAccent/30 flex items-center justify-center text-[10px] text-tealAccent font-black">DV</div>
+                </div>
+                <span class="nav-text" id="footer-user-name">Perfil de Usuario</span>
+            </button>
+
+            <div class="py-2">
+                <div class="w-full h-[1px] bg-gray-100 dark:bg-white/5"></div>
+            </div>
+
+            <!-- Shutdown -->
+            <button id="btn-reset-db" class="nav-item w-full flex items-center gap-2 px-3 py-2 text-red-500/80 hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all font-semibold text-xs group">
+                <div class="w-7 flex justify-center items-center">
+                    <i class="fa-solid fa-power-off text-sm"></i>
+                </div>
+                <span class="nav-text">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden">
+        
+        <!-- Header -->
+        <header class="h-20 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-10">
+            <div class="flex items-center gap-8 flex-1">
+                <button id="admin-hamburger-btn" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                
+                <div class="relative w-full max-w-md">
+                  <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm"></i>
+                  <input id="global-search-input" type="text" placeholder="Buscar registros..." class="w-full bg-transparent border-none focus:ring-0 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-600 text-gray-900 dark:text-white pl-12">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                  <button id="btn-notifications" onclick="window.showNotifications()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all relative">
+                    <i class="fa-solid fa-bell text-lg"></i>
+                    <span id="notifications-badge" class="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white dark:border-darkBg hidden animate-pulse"></span>
+                  </button>
+                  <button id="btn-header-chat" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all">
+                    <i class="fa-solid fa-comment-dots text-lg"></i>
+                  </button>
+                  <div class="relative group">
+                    <button id="btn-header-settings" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all">
+                      <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+                    <!-- Settings Dropdown -->
+                    <div id="settings-dropdown" class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0f172a] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl py-3 z-[100] hidden animate-fadeIn origin-top-right">
+                        <div class="px-4 py-2 border-b border-gray-50 dark:border-gray-800 mb-2">
+                            <p id="lbl-quick-settings" class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ajustes Rápidos</p>
+                        </div>
+                        <button id="btn-menu-edit-profile" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-tealAccent/5 hover:text-tealAccent transition-all group">
+                            <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-user-pen text-xs"></i>
+                            </div>
+                            <span id="lbl-edit-profile">Editar Perfil</span>
+                        </button>
+                        <a href="index.html" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-blue-500/5 hover:text-blue-500 transition-all group">
+                            <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                                <i class="fa-solid fa-mobile-screen-button text-xs"></i>
+                            </div>
+                            <span id="lbl-mobile-version">Versión Móvil</span>
+                        </a>
+
+                        <!-- Language Switcher -->
+                        <div class="px-4 py-2.5">
+                            <p id="lbl-lang-settings" class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Idioma / Language</p>
+                            <div class="flex gap-2">
+                                <button id="admin-lang-es" onclick="window.setAdminLang('es')"
+                                    class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border transition-all"
+                                    style="border-color: rgba(0,245,212,0.4); background: rgba(0,245,212,0.08); color: #00f5d4;">
+                                    🇪🇸 ES
+                                </button>
+                                <button id="admin-lang-en" onclick="window.setAdminLang('en')"
+                                    class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border border-gray-700 text-gray-400 transition-all hover:border-blue-400 hover:text-blue-400">
+                                    🇺🇸 EN
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                             <button id="btn-quick-logout" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/5 transition-all">
+                                <div class="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                                    <i class="fa-solid fa-power-off text-xs"></i>
+                                </div>
+                                <span id="lbl-logout-text">Cerrar Sesión</span>
+                            </button>
+                        </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="h-8 w-[1px] bg-gray-800 mx-2"></div>
+
+                <button id="btn-global-action" onclick="window.handleGlobalAdd()" class="btn-premium flex items-center gap-3 px-6 py-3">
+                    <i class="fa-solid fa-plus text-sm"></i> 
+                    <span class="text-xs uppercase tracking-widest font-black">Create Task</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- View Context -->
+        <div class="px-10 py-10 bg-white dark:bg-transparent border-b border-gray-100 dark:border-none">
+            <div class="aqua-title-box">
+                <h2 id="view-title" class="text-4xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-1">System Engine</h2>
+                <p id="view-desc" class="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400 dark:text-gray-600">Initializing Core Protocols...</p>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="flex-1 overflow-auto p-10 bg-bgLight dark:bg-[#050505] transition-colors" id="main-canvas">
+            <!-- Rendered by admin-app.js -->
+        </div>
+
+    </main>
+
+    <!-- MODAL: CREAR PIPELINE -->
+    <div id="modal-nuclear-pip" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[440px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-4">Crear Nuevo Pipeline</h3>
+            <label class="aqua-label">Nombre del Ecosistema</label>
+            <input type="text" id="inp-pip-nombre" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: Renew HVAC">
+            
+            <label class="aqua-label">Color Hexadecimal (UI Móvil)</label>
+            <div class="flex gap-3 mb-6">
+                <input type="color" id="inp-pip-color" value="#f59e0b" class="h-12 w-12 rounded cursor-pointer bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 p-1">
+                <input type="text" id="inp-pip-hex" value="#f59e0b" class="flex-1 bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" readonly>
+            </div>
+
+            <!-- Roles con Acceso -->
+            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
+                        <i class="fa-solid fa-shield-halved text-tealAccent text-[10px]"></i>
+                    </div>
+                    <label class="aqua-label mb-0">Rangos con Acceso</label>
+                    <span class="text-[9px] text-gray-400">(quiénes pueden usar este pipeline)</span>
+                </div>
+                <div id="pip-roles-perms" class="grid grid-cols-2 gap-2">
+                    <!-- Populated when modal opens -->
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end mt-6">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
+                <button id="btn-save-pipeline" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20">Crear Pipeline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR PERMISOS DE PIPELINE (abierto desde ícono lápiz en tab) -->
+    <div id="modal-edit-pip-roles" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[460px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
+            <input type="hidden" id="edit-pip-roles-id">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-2xl bg-sky-50 dark:bg-sky-500/10 flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-sky-500"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg text-gray-800 dark:text-white font-black">Configurar Pipeline</h3>
+                    <p id="edit-pip-roles-nombre" class="text-xs text-gray-400 font-bold uppercase tracking-widest"></p>
+                </div>
+            </div>
+
+            <!-- Color Selection -->
+            <label class="aqua-label">Color del Pipeline (UI Móvil)</label>
+            <div class="flex gap-3 mb-6">
+                <input type="color" id="edit-pip-color" class="h-12 w-12 rounded cursor-pointer bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 p-1">
+                <input type="text" id="edit-pip-hex" class="flex-1 bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" readonly>
+            </div>
+
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Selecciona qué rangos tienen acceso a este pipeline. Los trabajadores de los rangos seleccionados podrán ver y trabajar en este ecosistema.</p>
+
+            <div id="edit-pip-roles-perms" class="grid grid-cols-2 gap-2 mb-6">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="flex gap-3 justify-end border-t border-gray-100 dark:border-white/5 pt-5">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 px-4 py-2">Cancelar</button>
+                <button id="btn-save-pip-roles" class="bg-sky-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-sky-400 shadow-lg shadow-sky-500/20 flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk text-sm"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AÑADIR CAMPO -->
+    <div id="modal-nuclear-cam" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[480px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-4">Añadir Campo Dinámico</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Fase de destino:<br><strong id="lbl-fase-destino" class="text-tealAccent">Fase X</strong></p>
+            
+            <input type="hidden" id="inp-cam-fase-id">
+
+            <label class="aqua-label">Etiqueta de la Pregunta / Input</label>
+            <input type="text" id="inp-cam-etiqueta" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: Capacidad del Sistema (Tons)">
+            
+            <label class="aqua-label">Tipo de Campo</label>
+            <select id="inp-cam-tipo" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
+                <option value="Texto">Texto Simple</option>
+                <option value="Número">Numérico</option>
+                <option value="Desplegable">Selector Desplegable (Select)</option>
+                <option value="Archivo">Subida de Archivos (Foto/PDF)</option>
+                <option value="Orden de Trabajo">Enlace a Orden de Trabajo</option>
+                <option value="Aplicación de Crédito">Enlace a Aplicación de Crédito</option>
+                <option value="Contrato">Enlace a Contrato</option>
+                <option value="Recibo Vendedor">Recibo de Pago – Vendedor</option>
+                <option value="Recibo Tecnico">Recibo de Instalación – Técnico</option>
+            </select>
+
+            <div id="wrap-opciones" class="hidden">
+                <label class="aqua-label">Opciones (Separadas por coma)</label>
+                <input type="text" id="inp-cam-opciones" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: Opción 1, Opción 2, Opción 3">
+            </div>
+
+            <div class="flex gap-3 justify-end mt-6">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
+                <button id="btn-save-campo" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20">Agregar a la UI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR FASE -->
+    <div id="modal-nuclear-fas" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[420px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-4">Nueva Fase del Workflow</h3>
+            <label class="aqua-label">Nombre de la Fase</label>
+            <input type="text" id="inp-fas-nombre" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-6 focus:border-tealAccent focus:outline-none" placeholder="Ej: Instalación Técnica">
+            
+            <div class="flex gap-3 justify-end mt-2">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
+                <button id="btn-save-fase" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20">Guardar Fase</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ASIGNAR USUARIOS ESPECÍFICOS A FASE -->
+    <div id="modal-fase-users-picker" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[110] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[400px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-1">Asignar Usuarios</h3>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-6">Selecciona los usuarios específicos para esta fase</p>
+            
+            <div id="fase-users-list" class="max-h-[300px] overflow-y-auto mb-6 pr-2 space-y-2">
+                <!-- User list with checkboxes will be injected here -->
+            </div>
+            
+            <div class="flex gap-3 justify-end">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 px-4 py-2">Cerrar</button>
+                <button id="btn-confirm-fase-users" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20">Confirmar Asignación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AÑADIR CLIENTE (CRM) — ADMIN -->
+    <div id="modal-nuclear-cli" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[680px] max-h-[92vh] overflow-y-auto rounded-[3rem] shadow-2xl p-12 hide-scrollbar animate-scaleIn">
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-1">Añadir Nuevo Cliente (CRM Maestro)</h3>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-6">Panel Administrador</p>
+            
+            <label class="aqua-label">State ID</label>
+            <input type="text" id="inp-cli-state" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="ID del Estado...">
+            
+            <div class="flex gap-4 mb-4">
+                <div class="flex-1">
+                    <label class="aqua-label">Nombre *</label>
+                    <input type="text" id="inp-cli-nombre" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="Michael">
+                </div>
+                <div class="flex-1">
+                    <label class="aqua-label">Apellido *</label>
+                    <input type="text" id="inp-cli-apellido" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="Chen">
+                </div>
+            </div>
+
+            <label class="aqua-label">Foto / ID Image</label>
+            <div id="drop-cli-foto" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 border-dashed rounded p-4 text-center text-gray-500 dark:text-gray-400 cursor-pointer mb-4 hover:border-tealAccent transition-colors relative min-h-[100px] flex flex-col items-center justify-center">
+                <input type="file" id="inp-cli-foto" class="hidden" accept="image/*">
+                <div id="cli-foto-preview" class="hidden w-full h-32 mb-2 rounded bg-cover bg-center"></div>
+                <div id="cli-foto-placeholder">
+                    <p class="text-tealAccent font-bold">+ Add Image</p>
+                    <p class="text-xs mt-1">File size must not exceed 3 Mb.</p>
+                </div>
+            </div>
+            
+            <label class="aqua-label">Date of birth</label>
+            <input type="date" id="inp-cli-dob" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" onclick="this.showPicker()">
+
+            <div class="flex gap-4 mb-4">
+                <div class="flex-1 border-r pr-4 border-gray-100 dark:border-gray-700">
+                    <label class="aqua-label">Teléfono *</label>
+                    <div class="flex">
+                        <select id="sel-cli-cc" class="w-24 bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded-l p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none border-r-0">
+                            <option value="+1">US (+1)</option>
+                            <option value="+58">VE (+58)</option>
+                            <option value="+51">PE (+51)</option>
+                            <option value="+57">CO (+57)</option>
+                        </select>
+                        <input type="tel" id="inp-cli-tel" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded-r p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="555-5555">
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <label class="aqua-label">E-mail</label>
+                    <input type="email" id="inp-cli-email" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="correo@email.com">
+                </div>
+            </div>
+
+            <label class="aqua-label">Address</label>
+            <input type="text" id="inp-cli-direccion" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: 789 Brickell Ave, Miami">
+
+            <!-- ═══ NUEVOS CAMPOS ═══ -->
+            <div class="flex gap-4 mb-4">
+                <div class="flex-1">
+                    <label class="aqua-label">Departamentos Activos</label>
+                    <div class="flex flex-wrap gap-3 mt-2 p-3 bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded" id="chk-cli-departamentos-wrap">
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-800 dark:text-white text-sm font-semibold">
+                            <input type="checkbox" name="chk-cli-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🌊 Water
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-800 dark:text-white text-sm font-semibold">
+                            <input type="checkbox" name="chk-cli-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ☀️ Solar
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-800 dark:text-white text-sm font-semibold">
+                            <input type="checkbox" name="chk-cli-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🏠 Home
+                        </label>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <label class="aqua-label">Fecha de Inicio</label>
+                    <input type="date" id="inp-cli-fecha-inicio" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" onclick="this.showPicker()">
+                </div>
+            </div>
+
+            <label class="aqua-label">Empresa</label>
+            <input type="text" id="inp-cli-empresa" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Empresa asociada...">
+
+            <label class="aqua-label">Notas Internas</label>
+            <textarea id="inp-cli-notas" rows="3" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none resize-none" placeholder="Observaciones, indicaciones especiales..."></textarea>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="aqua-label">Estado del Cliente</label>
+                    <select id="inp-cli-estado" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
+                        <option value="Not selected">Not selected</option>
+                        <option value="Lead">Lead</option>
+                        <option value="En Proceso">En Proceso</option>
+                        <option value="Completado">Completado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="aqua-label">Estado Global (Ciclo de Vida)</label>
+                    <select id="inp-cli-macro-estado" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
+                        <option value="Prospecto">🔵 Prospecto</option>
+                        <option value="En Proceso">🟡 En Proceso (Pipeline Activo)</option>
+                        <option value="Cliente Fiel">🟢 Cliente Fiel (Completado)</option>
+                        <option value="Cancelado">🔴 Cancelado / No Molestar</option>
+                    </select>
+                </div>
+            </div>
+
+
+            <!-- ═══ DOCUMENTOS DEL CLIENTE ═══ -->
+            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-5">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-folder-open text-sky-400 text-xs"></i>
+                    </div>
+                    <label class="aqua-label mb-0 text-sm">Documentos del Cliente</label>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- ID -->
+                    <div id="drop-cli-adjunto-id" class="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent/60 hover:bg-tealAccent/5 transition-all min-h-[90px] p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-cli-adjunto-id').click()">
+                        <input type="file" id="inp-cli-adjunto-id" class="hidden" accept="image/*,.pdf">
+                        <i class="fa-solid fa-id-card text-lg text-tealAccent mb-1"></i>
+                        <span id="lbl-cli-adj-id" class="text-[10px] text-gray-400 font-bold uppercase text-center">Foto ID</span>
+                    </div>
+                    <!-- Electric Bill -->
+                    <div id="drop-cli-adjunto-bill" class="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/60 hover:bg-amber-400/5 transition-all min-h-[90px] p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-cli-adjunto-bill').click()">
+                        <input type="file" id="inp-cli-adjunto-bill" class="hidden" accept="image/*,.pdf">
+                        <i class="fa-solid fa-bolt text-lg text-amber-400 mb-1"></i>
+                        <span id="lbl-cli-adj-bill" class="text-[10px] text-gray-400 font-bold uppercase text-center">Bill Eléctrico</span>
+                    </div>
+                    <!-- Insurance -->
+                    <div id="drop-cli-adjunto-seguro" class="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-400/60 hover:bg-purple-400/5 transition-all min-h-[90px] p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-cli-adjunto-seguro').click()">
+                        <input type="file" id="inp-cli-adjunto-seguro" class="hidden" accept="image/*,.pdf">
+                        <i class="fa-solid fa-shield-halved text-lg text-purple-400 mb-1"></i>
+                        <span id="lbl-cli-adj-seguro" class="text-[10px] text-gray-400 font-bold uppercase text-center">Seguro</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SECCIÓN EXCLUSIVA DE OFICINA (SOLO ADMIN) ═══ -->
+            <div class="border border-amber-500/20 bg-amber-500/[0.03] rounded-2xl p-5 mb-5 relative" style="box-shadow: 0 0 20px rgba(245,158,11,0.04) inset;">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                        <i class="fa-solid fa-lock text-amber-500 text-xs"></i>
+                    </div>
+                    <div>
+                        <label class="aqua-label mb-0 text-sm">Sección Oficina</label>
+                        <span class="text-[9px] text-amber-500/70 font-bold uppercase tracking-wider ml-2">Solo Admin</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Hoja de Aplicación -->
+                    <div id="drop-cli-ofi-aplicacion" class="border-2 border-dashed border-amber-400/20 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/50 hover:bg-amber-400/5 transition-all min-h-[85px] p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-cli-ofi-aplicacion').click()">
+                        <input type="file" id="inp-cli-ofi-aplicacion" class="hidden" accept="image/*,.pdf">
+                        <i class="fa-solid fa-file-lines text-lg text-amber-400 mb-1"></i>
+                        <span id="lbl-cli-ofi-app" class="text-[10px] text-gray-400 font-bold uppercase text-center">Hoja Aplicación</span>
+                    </div>
+                    <!-- Recibo de Pago -->
+                    <div id="drop-cli-ofi-recibo" class="border-2 border-dashed border-amber-400/20 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/50 hover:bg-amber-400/5 transition-all min-h-[85px] p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-cli-ofi-recibo').click()">
+                        <input type="file" id="inp-cli-ofi-recibo" class="hidden" accept="image/*,.pdf">
+                        <i class="fa-solid fa-receipt text-lg text-amber-400 mb-1"></i>
+                        <span id="lbl-cli-ofi-recibo" class="text-[10px] text-gray-400 font-bold uppercase text-center">Recibo de Pago</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
+                <button id="btn-save-cliente" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20 flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk text-sm"></i> Guardar Datos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AÑADIR USUARIO / TRABAJADOR -->
+    <div id="modal-nuclear-usr" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[600px] rounded-[3rem] shadow-2xl p-12 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn">
+            <h3 id="modal-usr-title" class="text-xl text-gray-800 dark:text-white font-bold mb-4">Añadir Trabajador</h3>
+            <input type="hidden" id="inp-usr-id">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="aqua-label">Nombre(s)</label>
+                    <input type="text" id="inp-usr-nombre" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Carlos">
+                </div>
+                <div>
+                    <label class="aqua-label">Apellido(s)</label>
+                    <input type="text" id="inp-usr-apellido" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Rodríguez">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="aqua-label">Correo Electrónico *</label>
+                <input type="email" id="inp-usr-email" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-2 focus:border-tealAccent focus:outline-none" placeholder="ejemplo@renewsolar.com">
+            </div>
+
+            <div class="mb-4">
+                <label class="aqua-label">Foto de Perfil</label>
+                <div id="drop-usr-foto" class="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent transition-all relative overflow-hidden group">
+                    <div id="usr-foto-placeholder" class="text-center">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400"></i>
+                        <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold px-4">Subir Foto o Arrastrar</p>
+                    </div>
+                    <div id="preview-usr-foto" class="absolute inset-0 bg-cover bg-center hidden"></div>
+                    <input type="file" id="inp-usr-foto-file" class="hidden" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="aqua-label">Teléfono</label>
+                    <div class="flex">
+                        <select id="sel-usr-cc" class="w-24 bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded-l p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none border-r-0">
+                            <option value="+1">US (+1)</option>
+                            <option value="+58">VE (+58)</option>
+                            <option value="+51">PE (+51)</option>
+                            <option value="+57">CO (+57)</option>
+                        </select>
+                        <input type="tel" id="inp-usr-tel" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded-r p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="555-1234">
+                    </div>
+                </div>
+                <div>
+                    <label class="aqua-label">Fecha Nacimiento</label>
+                    <input type="date" id="inp-usr-dob" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" onclick="this.showPicker ? this.showPicker() : ''">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="mb-4">
+                    <label class="aqua-label">Contraseña Temporal</label>
+                    <input type="text" id="inp-usr-pass" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" value="renew123">
+                </div>
+                <div class="mb-4">
+                    <label class="aqua-label">Departamento / Unidad</label>
+                    <input type="text" id="inp-usr-dept" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: Grupo Renew">
+                </div>
+            </div>
+
+            <select id="inp-usr-rol" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-6 focus:border-tealAccent focus:outline-none">
+                <option value="Call Center">Call Center</option>
+                <option value="Vendedor">Vendedor / Representante</option>
+                <option value="Procesador">Procesador</option>
+                <option value="Técnico">Técnico</option>
+                <option value="Diseñador">Diseñador</option>
+                <option value="Contabilidad">Contabilidad</option>
+                <option value="Finanzas">Finanzas</option>
+                <option value="Supervisión">Supervisión</option>
+                <option value="CEO">CEO</option>
+                <option value="Admin">Administrador (BackOffice)</option>
+                <option value="call_center">Call Center</option>
+            </select>
+
+            <!-- W-9 Upload -->
+            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-lg bg-amber-400/10 flex items-center justify-center">
+                        <i class="fa-solid fa-file-invoice text-amber-500 text-[10px]"></i>
+                    </div>
+                    <label class="aqua-label mb-0">Formulario W-9</label>
+                    <span class="text-[9px] text-gray-400">(Opcional — PDF o imagen)</span>
+                </div>
+                <div id="drop-usr-w9" class="w-full border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/60 hover:bg-amber-400/5 transition-all relative min-h-[80px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-usr-w9-file').click()">
+                    <input type="file" id="inp-usr-w9-file" class="hidden" accept=".pdf,image/*">
+                    <div id="w9-upload-placeholder" class="text-center">
+                        <i class="fa-solid fa-file-arrow-up text-xl text-amber-400 mb-1"></i>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Subir W-9</p>
+                    </div>
+                    <div id="w9-upload-success" class="hidden flex-col items-center gap-1 text-center">
+                        <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
+                        <p id="w9-file-name" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold truncate max-w-[200px]"></p>
+                        <button type="button" id="btn-remove-w9" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearW9Upload();">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ecosistemas Autorizados -->
+            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
+                        <i class="fa-solid fa-lock-open text-tealAccent text-[10px]"></i>
+                    </div>
+                    <label class="aqua-label mb-0">Ecosistemas Autorizados</label>
+                    <span class="text-[9px] text-gray-400">(acceso a pipelines del sistema móvil)</span>
+                </div>
+                <div id="usr-pipeline-perms" class="flex flex-col gap-2">
+                    <!-- Populated dynamically when modal opens -->
+                    <p class="text-xs text-gray-400 italic">Cargando pipelines...</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end mt-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
+                <button id="btn-save-usuario" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20">Crear Perfil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AÑADIR PARTNER / PROVEEDOR -->
+    <div id="modal-nuclear-partner" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[600px] rounded-[3rem] shadow-2xl p-12 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn">
+            <h3 id="modal-partner-title" class="text-xl text-gray-800 dark:text-white font-bold mb-4">Añadir Partner / Proveedor</h3>
+            <input type="hidden" id="inp-partner-id">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="aqua-label">Empresa / Nombre Oficial</label>
+                    <input type="text" id="inp-partner-empresa" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Renew Solar LLC">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="aqua-label">Nombre de Contacto</label>
+                    <input type="text" id="inp-partner-contacto" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Michael Chen">
+                </div>
+                <div>
+                    <label class="aqua-label">Categoría / Servicio</label>
+                    <select id="inp-partner-servicio" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
+                        <option value="Solar">Solar</option>
+                        <option value="Roof">Roof</option>
+                        <option value="Fence">Fence</option>
+                        <option value="HVAC">HVAC</option>
+                        <option value="General">General / Otros</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="aqua-label">Teléfono</label>
+                    <input type="tel" id="inp-partner-tel" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="555-1234">
+                </div>
+                <div>
+                    <label class="aqua-label">Email</label>
+                    <input type="email" id="inp-partner-email" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="partner@email.com">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label class="aqua-label">Área de Cobertura</label>
+                    <input type="text" id="inp-partner-area" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: All Florida, Zip 33411">
+                </div>
+            </div>
+
+            <!-- Documents Upload -->
+            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-5 space-y-4">
+                <!-- W9 -->
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded-lg bg-emerald-400/10 flex items-center justify-center">
+                            <i class="fa-solid fa-file-invoice text-emerald-500 text-[10px]"></i>
+                        </div>
+                        <label class="aqua-label mb-0">W-9 Form</label>
+                    </div>
+                    <div id="drop-partner-w9" class="w-full border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-center cursor-pointer hover:border-emerald-400/60 transition-all p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-partner-w9-file').click()">
+                        <input type="file" id="inp-partner-w9-file" class="hidden" accept=".pdf,image/*">
+                        <span id="partner-w9-text" class="text-xs text-gray-400 font-bold uppercase">Subir W-9</span>
+                    </div>
+                </div>
+
+                <!-- Insurance -->
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded-lg bg-sky-400/10 flex items-center justify-center">
+                            <i class="fa-solid fa-shield-halved text-sky-500 text-[10px]"></i>
+                        </div>
+                        <label class="aqua-label mb-0">Póliza de Seguro</label>
+                    </div>
+                    <div id="drop-partner-seguro" class="w-full border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-center cursor-pointer hover:border-sky-400/60 transition-all p-3" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-partner-seguro-file').click()">
+                        <input type="file" id="inp-partner-seguro-file" class="hidden" accept=".pdf,image/*">
+                        <span id="partner-seguro-text" class="text-xs text-gray-400 font-bold uppercase">Subir Seguro</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end mt-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
+                <button id="btn-save-partner" class="bg-tealAccent text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-teal-500 shadow-lg shadow-tealAccent/20">Registrar Partner</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-worker-detail" class="fixed inset-0 bg-black/70 backdrop-blur-sm nuclear-hidden items-center justify-center z-[100]">
+        <!-- ... (worker modal content remains same, I'll just keep the structure for brevity in instruction if possible or replace the whole block) ... -->
+        <div class="bg-surfaceLight dark:bg-[#121212] w-[950px] max-h-[90vh] rounded-xl shadow-2xl flex relative animate-fadeIn overflow-hidden">
+            <!-- Botón Cerrar (Esquina) -->
+            <button class="btn-cancel absolute top-3 right-3 z-10 bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all border border-gray-200">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+            <!-- Column Izquierda (Perfil) -->
+            <div class="w-[300px] min-w-[300px] bg-white border-r border-[#dde3e6] p-6 flex flex-col items-center overflow-y-auto">
+                <div class="w-full flex justify-between items-center mb-6">
+                    <span class="bg-sky-400 text-white px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">ADMINISTRATOR <i class="fa-solid fa-chevron-down text-[8px]"></i></span>
+                    <div class="text-right">
+                        <p class="text-[10px] text-red-500 font-bold uppercase flex items-center gap-1 justify-end"><span class="w-2 h-2 rounded-full bg-red-500"></span> OFFLINE</p>
+                        <p class="text-[9px] text-gray-400">last seen 2 days ago</p>
+                    </div>
+                </div>
+                <div class="relative group mb-8 cursor-pointer" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-usr-foto-file').click()"><div id="det-usr-avatar" class="w-48 h-48 rounded-full border-[6px] border-white shadow-xl bg-cover bg-center bg-gray-100 flex items-center justify-center overflow-hidden relative"><div id="det-usr-avatar-inner" class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-user text-6xl text-gray-200"></i></div></div><div class="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-camera text-white text-3xl mb-1"></i><span class="text-white text-[10px] font-bold uppercase tracking-widest">Cambiar</span></div></div>
+                <input type="file" id="det-usr-foto-file" class="hidden" accept="image/*">
+                <div class="flex flex-col gap-2 w-full mb-10">
+                    <div class="flex gap-2 w-full">
+                        <button id="btn-usr-chat" class="flex-1 border border-[#c6d8e1] text-[#535c69] py-2 rounded-full text-xs font-bold hover:bg-gray-50 transition-colors">CHAT</button>
+                        <button id="btn-usr-video" class="flex-1 border border-[#c6d8e1] text-[#535c69] py-2 rounded-full text-xs font-bold hover:bg-gray-50 transition-colors">VIDEO CALL</button>
+                    </div>
+                    <button id="btn-usr-email" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-full text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-google text-red-500"></i> EMAIL
+                    </button>
+                </div>
+            </div>
+            <!-- Column Derecha (Info) -->
+            <div class="flex-1 p-6 flex flex-col overflow-y-auto">
+                <div id="det-view-panel">
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                        <div class="flex justify-between items-center mb-8 border-b border-gray-50 pb-4"><h3 class="text-lg font-medium text-[#333]">Información de contacto</h3><button id="btn-edit-worker-from-detail" title="Editar información" class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:text-tealAccent hover:bg-tealAccent/10 transition-all shadow-sm border border-gray-100"><i class="fa-solid fa-gear text-sm"></i></button></div>
+                        <div class="grid grid-cols-1 gap-6"><div class="space-y-4"><div><label class="block text-[10px] text-gray-400 font-medium mb-1">First name</label><p id="det-usr-nombre" class="text-sm font-bold text-[#333]">-</p></div><div><label class="block text-[10px] text-gray-400 font-medium mb-1">Last name</label><p id="det-usr-apellido" class="text-sm font-bold text-[#333]">-</p></div><div><label class="block text-[10px] text-gray-400 font-medium mb-1">Email</label><p id="det-usr-email" class="text-sm font-bold text-sky-500">-</p></div><div><label class="block text-[10px] text-gray-400 font-medium mb-1">Position</label><p id="det-usr-rol" class="text-sm font-bold text-[#333]">-</p></div><div><label class="block text-[10px] text-gray-400 font-medium mb-1">Department</label><p id="det-usr-dept" class="text-sm font-bold text-[#333]">-</p></div><div><label class="block text-[10px] text-gray-400 font-medium mb-1">Mobile phone</label><p id="det-usr-tel" class="text-sm font-bold text-[#333] flex items-center gap-2">-</p></div><div><label class="block text-[10px] text-gray-400 font-medium mb-1">Fecha Nacimiento (Cumpleaños)</label><p id="det-usr-dob-view" class="text-sm font-bold text-[#333]">-</p></div>
+                        <div class="pt-4 border-t border-gray-50 mt-4">
+                          <label class="block text-[10px] text-gray-400 font-medium mb-3 uppercase tracking-widest flex items-center gap-2">
+                              <i class="fa-solid fa-folder-open text-tealAccent"></i> DOCUMENTACIÓN (PDF O IMAGEN)
+                          </label>
+                          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="det-usr-docs-interactive">
+                              <!-- Se renderiza desde admin-app.js -->
+                          </div>
+                        </div>
+                        </div></div>
+                    </div>
+                </div>
+                <div id="det-edit-panel" class="hidden">
+                    <input type="hidden" id="det-edit-id">
+                    
+                    <!-- Back Arrow Header -->
+                    <div class="flex items-center gap-3 mb-4 cursor-pointer w-max group" id="btn-back-edit-worker" title="Volver sin guardar">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 text-gray-400 group-hover:text-tealAccent group-hover:border-tealAccent transition-all">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 group-hover:text-tealAccent transition-colors uppercase tracking-widest">Regresar</span>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                        <!-- ... edit fields ... -->
+                        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre(s)</label><input id="det-edit-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Carlos"></div><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Apellido(s)</label><input id="det-edit-apellido" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Rodríguez"></div></div>
+                        <div class="mb-4"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Email</label><input id="det-edit-email" type="email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors"></div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Teléfono</label>
+                                <div class="flex">
+                                    <select id="det-edit-cc" class="w-20 border border-gray-200 rounded-l-lg px-1 py-2 text-xs text-[#333] bg-gray-50 outline-none">
+                                        <option value="+1">+1</option>
+                                        <option value="+58">+58</option>
+                                        <option value="+51">+51</option>
+                                        <option value="+57">+57</option>
+                                    </select>
+                                    <input id="det-edit-tel" type="tel" class="flex-1 border border-l-0 border-gray-200 rounded-r-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none" placeholder="555-1234">
+                                </div>
+                            </div>
+                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Departamento</label><input id="det-edit-dept" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="Call Center">Call Center</option><option value="Vendedor">Vendedor</option><option value="Procesador">Procesador</option><option value="Técnico">Técnico</option><option value="Diseñador">Diseñador</option><option value="Contabilidad">Contabilidad</option><option value="Finanzas">Finanzas</option><option value="Supervisión">Supervisión</option><option value="Admin">Admin</option><option value="CEO">CEO</option></select></div>
+                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Contraseña</label><input id="det-edit-pass" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]" placeholder="renew123"></div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Fecha Nacimiento (Cumpleaños)</label>
+                            <input id="det-edit-dob" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors">
+                        </div>
+
+                        <!-- Ecosistemas Autorizados en Edición -->
+                        <div class="border-t border-gray-100 pt-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
+                                    <i class="fa-solid fa-lock-open text-tealAccent text-[10px]"></i>
+                                </div>
+                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Ecosistemas Autorizados</label>
+                                <span class="text-[9px] text-gray-400">(pipelines móviles)</span>
+                            </div>
+                            <div id="det-edit-pipeline-perms" class="flex flex-col gap-2">
+                                <!-- Populated dynamically -->
+                                <p class="text-[10px] text-gray-400 italic">Cargando ecosistemas...</p>
+                            </div>
+                        </div>
+
+                        <!-- ZONA DE DOCUMENTOS en Edición -->
+                        <div class="border-t border-gray-100 pt-5 mt-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
+                                    <i class="fa-solid fa-folder-open text-tealAccent text-[10px]"></i>
+                                </div>
+                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Documentación (PDF o Imagen)</label>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- W-9 -->
+                                <div id="det-edit-drop-w9" class="w-full border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/60 hover:bg-amber-400/5 transition-all min-h-[72px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-w9-file').click()">
+                                    <input type="file" id="det-edit-inp-w9-file" class="hidden" accept=".pdf,image/*">
+                                    <div id="det-edit-w9-placeholder" class="text-center">
+                                        <i class="fa-solid fa-file-invoice text-xl text-amber-400 mb-1"></i>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Subir W-9</p>
+                                    </div>
+                                    <div id="det-edit-w9-success" class="hidden flex-col items-center gap-1 text-center">
+                                        <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
+                                        <p id="det-edit-w9-file-name" class="text-[9px] text-emerald-600 font-bold truncate max-w-[150px]"></p>
+                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditW9();">Eliminar</button>
+                                    </div>
+                                </div>
+                                <!-- CARNET -->
+                                <div id="det-edit-drop-carnet" class="w-full border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-sky-400/60 hover:bg-sky-400/5 transition-all min-h-[72px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-carnet-file').click()">
+                                    <input type="file" id="det-edit-inp-carnet-file" class="hidden" accept=".pdf,image/*">
+                                    <div id="det-edit-carnet-placeholder" class="text-center">
+                                        <i class="fa-solid fa-id-badge text-xl text-sky-400 mb-1"></i>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Subir Carnet</p>
+                                    </div>
+                                    <div id="det-edit-carnet-success" class="hidden flex-col items-center gap-1 text-center">
+                                        <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
+                                        <p id="det-edit-carnet-file-name" class="text-[9px] text-emerald-600 font-bold truncate max-w-[150px]"></p>
+                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditCarnet();">Eliminar</button>
+                                    </div>
+                                </div>
+                                <!-- CONTRATO -->
+                                <div id="det-edit-drop-contrato" class="w-full border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-400/60 hover:bg-purple-400/5 transition-all min-h-[72px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-contrato-file').click()">
+                                    <input type="file" id="det-edit-inp-contrato-file" class="hidden" accept=".pdf,image/*">
+                                    <div id="det-edit-contrato-placeholder" class="text-center">
+                                        <i class="fa-solid fa-file-signature text-xl text-purple-400 mb-1"></i>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Subir Contrato</p>
+                                    </div>
+                                    <div id="det-edit-contrato-success" class="hidden flex-col items-center gap-1 text-center">
+                                        <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
+                                        <p id="det-edit-contrato-file-name" class="text-[9px] text-emerald-600 font-bold truncate max-w-[150px]"></p>
+                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditContrato();">Eliminar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="det-save-bar" class="hidden mt-auto pt-4"><div class="bg-white rounded-xl border border-tealAccent/20 shadow-sm p-4 flex items-center justify-between gap-4"><div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></div><span class="text-[11px] font-black text-gray-500 uppercase tracking-widest">Cambios sin guardar</span></div><div class="flex gap-3"><button onclick="toggleDetailEditMode()" class="px-4 py-2 text-xs font-bold text-gray-500 border border-gray-200 rounded-lg">Cancelar</button><button id="det-btn-save" class="px-5 py-2 bg-tealAccent text-black text-xs font-black rounded-lg">Guardar Cambios</button></div></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DETALLE DE CLIENTE (Bitrix24 Style) -->
+    <div id="modal-client-detail" class="fixed inset-0 bg-black/70 backdrop-blur-sm nuclear-hidden items-center justify-center z-[100]">
+        <div class="bg-surfaceLight dark:bg-[#121212] w-[950px] max-h-[90vh] rounded-xl shadow-2xl flex relative animate-fadeIn overflow-hidden">
+            <button class="btn-cancel absolute top-3 right-3 z-10 bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center border border-gray-200">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            <!-- Izquierda: Perfil Card -->
+            <div class="w-[300px] min-w-[300px] bg-white border-r border-[#dde3e6] p-6 flex flex-col items-center overflow-y-auto">
+                <div class="w-full flex justify-between items-center mb-6">
+                    <span class="bg-tealAccent text-black px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest">CLIENTE MAESTRO</span>
+                    <div class="text-right">
+                        <p id="det-cli-status-label" class="text-[10px] text-tealAccent font-bold uppercase flex items-center gap-1 justify-end">
+                            <span class="w-2 h-2 rounded-full bg-tealAccent"></span> PROSPECTO
+                        </p>
+                    </div>
+                </div>
+
+                <div class="relative group mb-8 cursor-pointer" onclick="document.getElementById('det-cli-foto-file').click()">
+                    <div id="det-cli-avatar" class="w-48 h-48 rounded-full border-[6px] border-white shadow-xl bg-cover bg-center bg-gray-100 flex items-center justify-center overflow-hidden relative">
+                        <i class="fa-solid fa-user text-6xl text-gray-200"></i>
+                    </div>
+                    <div class="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fa-solid fa-camera text-white text-3xl mb-1"></i>
+                        <span class="text-white text-[10px] font-bold uppercase tracking-widest">Cambiar Foto</span>
+                    </div>
+                </div>
+                <input type="file" id="det-cli-foto-file" class="hidden" accept="image/*">
+
+                <div class="flex flex-col gap-2 w-full mb-10">
+                    <button id="btn-cli-whatsapp" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-whatsapp text-green-500"></i> WHATSAPP
+                    </button>
+                    <button id="btn-cli-call" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-phone text-sky-500"></i> LLAMAR
+                    </button>
+                    <button id="btn-cli-email" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-google text-red-500"></i> EMAIL
+                    </button>
+                </div>
+            </div>
+
+            <!-- Derecha: Datos -->
+            <div class="flex-1 flex flex-col overflow-hidden bg-gray-50/30">
+                <!-- Navigation Tabs -->
+                <div class="flex items-center px-6 bg-white border-b border-gray-100 flex-shrink-0">
+                    <button class="cli-tab-btn active border-b-2 border-tealAccent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-tealAccent transition-all" data-tab="info">General Info</button>
+                    <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="evidences">Archivos Adjuntos</button>
+                </div>
+
+                <div class="p-6 overflow-y-auto flex-1">
+                    <!-- Tab Content: General Info -->
+                    <div id="cli-tab-info" class="cli-tab-content active transition-all duration-300">
+                        <div id="det-cli-view-panel">
+                    <!-- Contact Info Section -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                        <div class="flex justify-between items-center mb-8 border-b border-gray-50 pb-4">
+                            <h3 class="text-lg font-medium text-[#333]">Información de contacto</h3>
+                            <button id="btn-edit-cli-from-detail" title="Editar información" class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:text-tealAccent hover:bg-tealAccent/10 border border-gray-100">
+                                 <i class="fa-solid fa-gear text-sm"></i>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Nombre Completo</label>
+                                <p id="det-cli-nombre" class="text-sm font-bold text-[#333]">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Email</label>
+                                <p id="det-cli-email" class="text-sm font-bold text-sky-500">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Teléfono Principal</label>
+                                <p id="det-cli-tel" class="text-sm font-bold text-[#333]">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Departamentos Activos</label>
+                                <div id="det-cli-dept" class="flex flex-wrap gap-1.5 mt-1">
+                                    <span class="text-sm text-gray-300 italic">-</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Fecha de Inicio</label>
+                                <p id="det-cli-fecha-inicio" class="text-sm font-bold text-amber-500">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Estado Global (Ciclo de Vida)</label>
+                                <p id="det-cli-macro-estado" class="text-sm font-black">-</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Dirección de Servicio</label>
+                                <p id="det-cli-direccion" class="text-sm font-bold text-[#333]">-</p>
+                            </div>
+                            <!-- Vendedor Asignado -->
+                            <div class="col-span-2 pt-4 border-t border-gray-50">
+                                <label class="block text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-widest text-tealAccent">Vendedor Responsable</label>
+                                <div id="det-cli-vendedor-box" class="flex items-center gap-3 bg-tealAccent/5 p-3 rounded-xl border border-tealAccent/10">
+                                    <div class="w-10 h-10 rounded-full bg-tealAccent/20 flex items-center justify-center text-tealAccent font-black text-xs" id="det-cli-vendedor-avatar">?</div>
+                                    <div>
+                                        <p id="det-cli-vendedor-nombre" class="text-sm font-bold text-[#333]">Sin asignar</p>
+                                        <p class="text-[9px] text-gray-400 uppercase font-medium">Asignación Directa</p>
+                                    </div>
+                                    <button id="btn-reassign-vendedor" class="ml-auto px-4 py-2 bg-white border border-tealAccent/20 text-tealAccent text-[10px] font-black uppercase rounded-lg hover:bg-tealAccent hover:text-white transition-all shadow-sm">
+                                        Cambiar Asignación
+                                    </button>
+                                </div>
+                                <!-- Dropdown oculto por defecto -->
+                                <div id="vendedor-selector-wrap" class="hidden mt-3 animate-fadeIn">
+                                    <select id="sel-vendedor-asignar" class="w-full bg-white border border-tealAccent/30 rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:ring-2 focus:ring-tealAccent/20">
+                                        <option value="">-- Seleccionar Vendedor --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+
+                    <!-- Personal Details Section -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                        <h3 class="text-md font-medium text-[#333] mb-4">Documentación y Detalles</h3>
+                        <div class="grid grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1">State ID / ZIP</label>
+                                <p id="det-cli-state-id" class="text-sm font-black text-tealAccent">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1">Fecha Nacimiento</label>
+                                <p id="det-cli-dob" class="text-sm font-bold text-[#333]">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-medium mb-1">Foto ID / Licencia</label>
+                                <div id="det-cli-id-photo-wrp" class="mt-1">
+                                    <button id="btn-view-cli-id-photo" class="hidden items-center gap-2 px-3 py-1.5 bg-tealAccent/10 text-tealAccent text-[10px] font-black uppercase rounded-lg border border-tealAccent/20 hover:bg-tealAccent/20 transition-all">
+                                        <i class="fa-solid fa-image"></i> Ver Documento
+                                    </button>
+                                    <span id="det-cli-id-no-photo" class="text-[10px] text-gray-400 italic">No cargada</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-gray-50">
+                            <label class="block text-[10px] text-gray-400 font-medium mb-1">Notas Internas</label>
+                            <p id="det-cli-notas" class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 min-h-[60px]">-</p>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- Tab Content: Evidences -->
+                <div id="cli-tab-evidences" class="cli-tab-content hidden transition-all duration-300">
+                    <div class="bg-white rounded-lg shadow-sm p-6 overflow-y-auto max-h-[60vh] hide-scrollbar">
+                        <!-- ══ DOCUMENTOS PRINCIPALES ══ -->
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-lg font-medium text-[#333]">Documentación Técnica</h3>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Archivos críticos para la aprobación del proyecto</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4 mb-8">
+                            <!-- Adjunto ID -->
+                            <div id="drop-det-adj-id" class="border-2 border-dashed border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent/40 hover:bg-tealAccent/5 transition-all min-h-[100px]" onclick="document.getElementById('inp-det-adj-id').click()">
+                                <input type="file" id="inp-det-adj-id" class="hidden" accept="image/*,.pdf">
+                                <i class="fa-solid fa-address-card text-xl text-tealAccent mb-2"></i>
+                                <span id="lbl-det-adj-id" class="text-[10px] text-gray-400 font-black uppercase text-center">Foto ID</span>
+                            </div>
+                            <!-- Adjunto Bill -->
+                            <div id="drop-det-adj-bill" class="border-2 border-dashed border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/40 hover:bg-amber-400/5 transition-all min-h-[100px]" onclick="document.getElementById('inp-det-adj-bill').click()">
+                                <input type="file" id="inp-det-adj-bill" class="hidden" accept="image/*,.pdf">
+                                <i class="fa-solid fa-bolt text-xl text-amber-500 mb-2"></i>
+                                <span id="lbl-det-adj-bill" class="text-[10px] text-gray-400 font-black uppercase text-center">Bill Eléctrico</span>
+                            </div>
+                            <!-- Adjunto Seguro -->
+                            <div id="drop-det-adj-seguro" class="border-2 border-dashed border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-purple-400/40 hover:bg-purple-400/5 transition-all min-h-[100px]" onclick="document.getElementById('inp-det-adj-seguro').click()">
+                                <input type="file" id="inp-det-adj-seguro" class="hidden" accept="image/*,.pdf">
+                                <i class="fa-solid fa-shield-heart text-xl text-purple-500 mb-2"></i>
+                                <span id="lbl-det-adj-seguro" class="text-[10px] text-gray-400 font-black uppercase text-center">Póliza Seguro</span>
+                            </div>
+                        </div>
+
+                        <!-- ══ SECCIÓN OFICINA (SOLO ADMIN) ══ -->
+                        <div class="bg-amber-400/5 border border-amber-400/20 rounded-2xl p-6 mb-8">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fa-solid fa-lock text-amber-500 text-xs"></i>
+                                <h4 class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Sección Oficina</h4>
+                                <span class="text-[9px] bg-amber-400 text-white px-2 py-0.5 rounded-full font-bold ml-1">SOLO ADMIN</span>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div id="drop-det-ofi-app" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-app').click()">
+                                    <input type="file" id="inp-det-ofi-app" class="hidden" accept="image/*,.pdf">
+                                    <i class="fa-solid fa-file-signature text-amber-500 mb-1"></i>
+                                    <span id="lbl-det-ofi-app" class="text-[9px] text-amber-700 font-bold uppercase text-center">Hoja Aplicación</span>
+                                </div>
+                                <div id="drop-det-ofi-recibo" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-recibo').click()">
+                                    <input type="file" id="inp-det-ofi-recibo" class="hidden" accept="image/*,.pdf">
+                                    <i class="fa-solid fa-receipt text-amber-500 mb-1"></i>
+                                    <span id="lbl-det-ofi-recibo" class="text-[9px] text-amber-700 font-bold uppercase text-center">Recibo de Pago</span>
+                                </div>
+                                <div id="drop-det-ofi-contrato" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-contrato').click()">
+                                    <input type="file" id="inp-det-ofi-contrato" class="hidden" accept="image/*,.pdf">
+                                    <i class="fa-solid fa-file-contract text-amber-500 mb-1"></i>
+                                    <span id="lbl-det-ofi-contrato" class="text-[9px] text-amber-700 font-bold uppercase text-center">Contrato Firmado</span>
+                                </div>
+                                <div id="drop-det-ofi-orden" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-orden').click()">
+                                    <input type="file" id="inp-det-ofi-orden" class="hidden" accept="image/*,.pdf">
+                                    <i class="fa-solid fa-file-invoice text-amber-500 mb-1"></i>
+                                    <span id="lbl-det-ofi-orden" class="text-[9px] text-amber-700 font-bold uppercase text-center">Orden de Trabajo</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ══ GALERÍA DE EVIDENCIAS MÓVILES ══ -->
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-lg font-medium text-[#333]">Galería de Archivos Adjuntos</h3>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Fotos tomadas desde la app móvil</p>
+                            </div>
+                            <span id="evidence-count-badge" class="bg-gray-100 text-gray-500 text-[10px] font-black px-3 py-1 rounded-full border border-gray-200">0 ARCHIVOS</span>
+                        </div>
+
+                        <div id="cli-evidence-gallery" class="grid grid-cols-3 gap-4">
+                            <!-- Dynamically populated -->
+                            <div class="col-span-full py-10 text-center opacity-30">
+                                <i class="fa-solid fa-camera text-2xl mb-2"></i>
+                                <p class="text-[10px] font-black uppercase">Sin archivos adjuntos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Panel -->
+                <div id="det-cli-edit-panel" class="hidden">
+                    <input type="hidden" id="det-cli-edit-id">
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                         <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-50">
+                             <div class="flex items-center gap-3">
+                                 <button onclick="exitClientEditMode()" class="mr-2 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-500 transition-all" title="Volver">
+                                     <i class="fa-solid fa-arrow-left"></i>
+                                 </button>
+                                 <div class="w-8 h-8 rounded-full bg-tealAccent/10 flex items-center justify-center">
+                                     <i class="fa-solid fa-pen-to-square text-tealAccent text-xs"></i>
+                                 </div>
+                                 <h3 class="text-lg font-medium text-[#333]">Editar Cliente</h3>
+                             </div>
+                             <span class="text-[10px] font-black text-tealAccent uppercase tracking-widest bg-tealAccent/5 border border-tealAccent/20 px-3 py-1 rounded-full">Modo Edición</span>
+                         </div>
+
+                         <div class="grid grid-cols-2 gap-4 mb-4">
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Nombre Completo</label>
+                                 <input id="det-cli-edit-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             </div>
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Email</label>
+                                 <input id="det-cli-edit-email" type="email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             </div>
+                         </div>
+
+                         <div class="grid grid-cols-2 gap-4 mb-4">
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Teléfono</label>
+                                 <input id="det-cli-edit-tel" type="tel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             </div>
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Estado Global (Ciclo de Vida)</label>
+                                 <select id="det-cli-edit-macro-estado" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none bg-white">
+                                      <option value="Prospecto">🔵 Prospecto</option>
+                                      <option value="En Proceso">🟡 En Proceso</option>
+                                      <option value="Cliente Fiel">🟢 Cliente Fiel</option>
+                                      <option value="Cancelado">🔴 Cancelado / No Molestar</option>
+                                  </select>
+                             </div>
+                         </div>
+
+                         <div class="mb-4">
+                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Departamentos Activos</label>
+                             <div class="flex flex-wrap gap-3 p-3 border border-gray-200 rounded-lg" id="det-cli-edit-dept-wrap">
+                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
+                                     <input type="checkbox" name="det-chk-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🌊 Water
+                                 </label>
+                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
+                                     <input type="checkbox" name="det-chk-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ☀️ Solar
+                                 </label>
+                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
+                                     <input type="checkbox" name="det-chk-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🏠 Home
+                                 </label>
+                             </div>
+                         </div>
+
+
+                         <div class="mb-4">
+                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Dirección de Servicio</label>
+                             <input id="det-cli-edit-direccion" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                         </div>
+
+                         <div class="grid grid-cols-2 gap-4 mb-4">
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Vendedor Especialista</label>
+                                 <select id="det-cli-edit-vendedor" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                    <option value="">No asignado</option>
+                                 </select>
+                             </div>
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Fecha de Inicio</label>
+                                 <input id="det-cli-edit-fecha-inicio" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             </div>
+                         </div>
+
+                         <div class="grid grid-cols-2 gap-4 mb-4">
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">State ID / ZIP</label>
+                                 <input id="det-cli-edit-state-id" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             </div>
+                             <div>
+                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Fecha Nacimiento</label>
+                                 <input id="det-cli-edit-dob" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             </div>
+                         </div>
+
+                         <div class="mb-4">
+                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Subir Foto ID / Licencia</label>
+                             <div class="flex items-center gap-4 mt-1">
+                                 <input type="file" id="inp-cli-id-photo-file" class="hidden" accept="image/*">
+                                 <button onclick="document.getElementById('inp-cli-id-photo-file').click()" class="flex-1 py-3 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 hover:border-tealAccent/40 hover:text-tealAccent transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                                     <i class="fa-solid fa-cloud-arrow-up"></i>
+                                     Seleccionar Imagen
+                                 </button>
+                                 <div id="cli-id-photo-preview" class="hidden relative w-12 h-12 rounded-lg border border-gray-100 overflow-hidden group">
+                                     <img src="" class="w-full h-full object-cover">
+                                     <button id="btn-remove-cli-id-photo" class="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                         <i class="fa-solid fa-times"></i>
+                                     </button>
+                                 </div>
+                             </div>
+                         </div>
+
+                         <div class="mb-2">
+                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Notas Internas</label>
+                             <textarea id="det-cli-edit-notas" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-[#333] focus:border-tealAccent outline-none h-24"></textarea>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Save Bar -->
+                <div id="det-cli-save-bar" class="hidden mt-auto pt-4">
+                    <div class="bg-white rounded-xl border border-tealAccent/20 shadow-sm p-4 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></div>
+                            <span class="text-[11px] font-black text-gray-500 uppercase tracking-widest">Cambios sin guardar</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="btn-cancel-cli-edit" class="px-4 py-2 text-xs font-bold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+                            <button id="btn-save-cli-changes" class="px-5 py-2 bg-tealAccent text-black text-xs font-black uppercase tracking-widest rounded-lg hover:shadow-lg hover:shadow-tealAccent/20 transition-all flex items-center gap-2">
+                                <span id="save-btn-text">Guardar Cambios</span>
+                                <div id="save-btn-spinner" class="hidden w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL: CONFIRMAR RESET -->
+    <div id="modal-reset" class="fixed inset-0 bg-black/80 backdrop-blur-md nuclear-hidden flex-col items-center justify-center z-[100]">
+        <div class="bg-surfaceLight dark:bg-surfaceDark transition-colors duration-300 border border-red-500/50 w-[400px] rounded-xl shadow-[0_0_40px_rgba(239,68,68,0.2)] p-6 text-center">
+            <i class="fa-solid fa-triangle-exclamation text-5xl text-red-500 mb-4"></i>
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-2">¡Peligro Crítico!</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Estás a punto de borrar absolutamente toda la base de datos dinámica. Se eliminarán pipelines, pases, y todos los registros del CRM móvil.<br><br>¿Seguro que deseas reiniciar el sistema e inyectar de nuevo los datos de prueba de 'Renew Solar'?</p>
+            
+            <div class="flex gap-3 justify-center">
+                <button class="btn-cancel bg-gray-200 text-gray-800 hover:bg-gray-300 dark:text-white hover:bg-gray-700 px-6 py-2 rounded font-medium transition-colors">Cancelar</button>
+                <button id="btn-confirm-reset" class="bg-red-600 text-gray-800 dark:text-white px-6 py-2 rounded font-medium hover:bg-red-500 shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bomb"></i> Destruir Todo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR ARTICULO INVENTARIO -->
+    <div id="modal-nuclear-inv" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[420px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
+            <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-4 tracking-tighter">Añadir Artículo al Inventario</h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="aqua-label">Código</label>
+                    <input type="text" id="inp-inv-codigo" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-4 focus:border-tealAccent outline-none transition-all" placeholder="Ej: E-301">
+                </div>
+                <div>
+                    <label class="aqua-label">Línea</label>
+                    <input type="text" id="inp-inv-linea" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-4 focus:border-tealAccent outline-none transition-all" placeholder="Ej: Clásica">
+                </div>
+            </div>
+
+            <label class="aqua-label">Producto / Descripción</label>
+            <input type="text" id="inp-inv-nombre" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-4 focus:border-tealAccent outline-none transition-all" placeholder="Nombre completo del producto">
+            
+            <div>
+                <label class="aqua-label">Sede / Storage (Ciudad)</label>
+                <select id="inp-inv-sede-select" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-4 focus:border-tealAccent outline-none transition-all">
+                    <option value="orlando">Orlando</option>
+                    <option value="miami">Miami</option>
+                    <option value="dallas">Dallas</option>
+                    <option value="new_york">Nueva York</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="aqua-label">Medida</label>
+                    <input type="text" id="inp-inv-medida" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Ej: 10 x 44">
+                </div>
+                <div>
+                    <label class="aqua-label">Botón</label>
+                    <input type="text" id="inp-inv-boton" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Ej: 3B">
+                </div>
+                <div>
+                    <label class="aqua-label">Color</label>
+                    <input type="text" id="inp-inv-color" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Ej: NEGRO">
+                </div>
+            </div>
+
+            <label class="aqua-label">Existencia Actual</label>
+            <input type="number" id="inp-inv-stock" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-6 focus:border-tealAccent outline-none transition-all" placeholder="0" min="0">
+
+            <div class="flex gap-3 justify-end mt-2">
+                <button class="btn-cancel text-[10px] uppercase font-black text-gray-400 hover:text-gray-600 px-4 py-2">Cancelar</button>
+                <button id="btn-save-inv" class="bg-tealAccent text-black px-6 py-2 rounded-xl text-xs font-black hover:bg-teal-500 shadow-lg shadow-tealAccent/20 transition-all uppercase tracking-widest">Guardar Artículo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SUMAR STOCK RÁPIDO -->
+    <div id="modal-quick-stock" class="fixed inset-0 bg-black/80 backdrop-blur-md nuclear-hidden items-center justify-center z-[150] p-6 animate-fadeIn">
+        <div class="bg-white dark:bg-[#0f172a] border border-white/5 w-full max-w-[300px] rounded-[2.5rem] shadow-2xl p-10 text-center relative overflow-hidden group">
+            <div class="absolute -top-12 -right-12 w-24 h-24 bg-tealAccent/10 rounded-full blur-2xl group-hover:bg-tealAccent/20 transition-all duration-700 pointer-events-none"></div>
+            
+            <div class="w-16 h-16 bg-tealAccent/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-tealAccent/20">
+                <i class="fa-solid fa-plus text-2xl text-tealAccent"></i>
+            </div>
+            
+            <h3 class="text-[12px] font-black text-gray-900 dark:text-white mb-2 uppercase tracking-tight">Reabastecer Articulo</h3>
+            <p id="lbl-add-stock-name" class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">Nombre del producto</p>
+            
+            <div class="relative mb-6">
+                <input type="number" id="inp-quick-stock-qty" class="w-full bg-gray-100 dark:bg-white/[0.03] border border-transparent focus:border-tealAccent/50 rounded-2xl py-4 text-center text-3xl font-black text-tealAccent outline-none transition-all" value="1" min="1">
+                <p class="text-[8px] text-gray-500 mt-2 font-bold italic">Unidades a ingresar</p>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+                <button id="btn-confirm-quick-stock" class="w-full py-4 bg-tealAccent text-black rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-teal-glow hover:scale-[1.02] active:scale-95 transition-all">
+                    Confirmar
+                </button>
+                <button class="btn-cancel w-full py-2 text-gray-400 hover:text-white text-[9px] uppercase font-bold tracking-widest transition-all">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SUCCESS PROTOCOL -->
+    <div id="modal-success" class="fixed inset-0 bg-black/60 backdrop-blur-md nuclear-hidden flex items-center justify-center z-[200] p-6">
+        <div class="bg-white dark:bg-[#111827] border border-tealAccent/20 w-full max-w-[420px] rounded-[3rem] shadow-2xl p-12 text-center animate-scaleIn relative overflow-hidden group">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl group-hover:bg-tealAccent/20 transition-all duration-700 pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none"></div>
+            
+            <div class="w-24 h-24 bg-tealAccent/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-tealAccent/20 relative">
+                <div class="absolute inset-0 rounded-full bg-tealAccent/20 animate-ping opacity-20"></div>
+                <i class="fa-solid fa-check-double text-4xl text-tealAccent"></i>
+            </div>
+            
+            <h3 class="text-2xl font-black text-gray-900 dark:text-white mb-4 tracking-tighter uppercase">Protocolo Acertado</h3>
+            <p id="success-modal-msg" class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-10 font-medium">El sistema ha procesado la activación correctamente y la secuencia ya se encuentra en marcha.</p>
+            
+            <button class="btn-close-success w-full py-5 bg-tealAccent text-black rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-teal-glow hover:scale-[1.02] active:scale-95 transition-all">
+                Cerrar Notificación
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: AÑADIR/VER EVENTO CALENDARIO -->
+    <div id="modal-calendar-event" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[200] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[500px] rounded-[2.5rem] shadow-2xl p-8 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn relative overflow-hidden group">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between mb-6 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-tealAccent/10 rounded-2xl flex items-center justify-center border border-tealAccent/20">
+                        <i class="fa-solid fa-calendar-plus text-xl text-tealAccent"></i>
+                    </div>
+                    <div>
+                        <h3 id="modo-texto" class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Añadir Evento</h3>
+                    </div>
+                </div>
+                <button onclick="closeModals()" class="btn-cancel text-gray-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <form id="form-calendario-evento" class="space-y-4">
+                
+                <div>
+                    <label class="aqua-label mb-1"><i class="fas fa-user"></i> Nombre de la Cita / Cliente</label>
+                    <input type="text" id="ev-nombre" required class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Ej. Instalación Juan Pérez">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="aqua-label mb-1"><i class="fas fa-calendar-day"></i> Fecha/Hora de Inicio</label>
+                        <input type="datetime-local" id="ev-fecha-inicio" required class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" oninput="window.onStartDateChange(this)">
+                    </div>
+                    <div>
+                        <label class="aqua-label mb-1"><i class="fas fa-calendar-check"></i> Fecha/Hora de Fin</label>
+                        <input type="datetime-local" id="ev-fecha-fin" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="aqua-label mb-1"><i class="fas fa-phone-alt"></i> Teléfono</label>
+                        <input type="tel" id="ev-telefono" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Ej. +52 555 123 4567">
+                        <a href="#" id="ev-telefono-link" class="hidden text-tealAccent font-bold text-sm mt-2 hover:underline" target="_blank">Llamar: <span id="ev-telefono-txt"></span></a>
+                    </div>
+
+                    <div>
+                        <label class="aqua-label mb-1"><i class="fas fa-map-marker-alt"></i> Dirección física</label>
+                        <input type="text" id="ev-direccion" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Ej. Av. Reforma 222, CDMX">
+                        <a href="#" id="ev-direccion-link" class="hidden text-tealAccent font-bold text-sm mt-2 hover:underline" target="_blank"><i class="fas fa-location-arrow"></i> Ver en Maps</a>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1"><i class="fas fa-bell"></i> Recordatorio</label>
+                    <select id="ev-recordatorio" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                        <option value='{"tipo":"minutos", "valor":15}'>15 minutos antes</option>
+                        <option value='{"tipo":"horas", "valor":1}'>1 hora antes</option>
+                        <option value='{"tipo":"dias", "valor":1}'>1 día antes</option>
+                        <option value='none'>Sin recordatorio</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1"><i class="fas fa-align-left"></i> Detalles / Descripción</label>
+                    <textarea id="ev-descripcion" rows="3" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="Tipo de instalación, observaciones..."></textarea>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1"><i class="fas fa-paperclip"></i> Adjunto (Foto/Archivo)</label>
+                    <input type="file" id="ev-adjunto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-2 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" accept="image/*,.pdf,.doc,.docx">
+                    <a href="#" id="ev-adjunto-link" class="hidden text-tealAccent font-bold text-sm mt-2 hover:underline" target="_blank"><i class="fas fa-download"></i> Ver Archivo Actual</a>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1"><i class="fas fa-users"></i> Colaboradores Asignados</label>
+                    <div id="ev-colaboradores-container" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 space-y-2 max-h-36 overflow-y-auto hide-scrollbar">
+                        <!-- Checkboxes llenados por JS -->
+                        <p class="text-xs text-gray-400 italic">Cargando equipo...</p>
+                    </div>
+                    <!-- Hidden select for compatibility / Google Calendar attendees data -->
+                    <select id="ev-colaboradores" multiple class="hidden"></select>
+                    <p class="text-[10px] text-gray-400 mt-1"><i class="fa-solid fa-envelope text-tealAccent/60"></i> Los correos se usarán como invitados en Google Calendar</p>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-2"><i class="fas fa-palette"></i> Clasificación por Color</label>
+                    <div class="flex gap-4">
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="ev-color" value="Verde" class="peer sr-only" checked>
+                            <div class="w-8 h-8 rounded-full bg-[#00ff88] border-2 border-transparent peer-checked:border-white peer-checked:scale-110 shadow-lg transition-all opacity-70 peer-checked:opacity-100"></div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="ev-color" value="Amarillo" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-[#fce803] border-2 border-transparent peer-checked:border-white peer-checked:scale-110 shadow-lg transition-all opacity-70 peer-checked:opacity-100"></div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="ev-color" value="Rojo" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-[#ff3366] border-2 border-transparent peer-checked:border-white peer-checked:scale-110 shadow-lg transition-all opacity-70 peer-checked:opacity-100"></div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="ev-color" value="Azul" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-[#00d4ff] border-2 border-transparent peer-checked:border-white peer-checked:scale-110 shadow-lg transition-all opacity-70 peer-checked:opacity-100"></div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="ev-color" value="Naranja" class="peer sr-only">
+                            <div class="w-8 h-8 rounded-full bg-[#ff8c00] border-2 border-transparent peer-checked:border-white peer-checked:scale-110 shadow-lg transition-all opacity-70 peer-checked:opacity-100"></div>
+                        </label>
+                    </div>
+                </div>
+
+            </form>
+
+            <div class="mt-8 flex gap-3 relative z-10">
+                <button onclick="closeModals()" class="btn-cancel flex-1 py-3 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+                    Cancelar
+                </button>
+                <button id="btn-guardar-evento" onclick="window.guardarEventoCalendario(event)" class="flex-1 py-3 bg-tealAccent text-black rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-teal-glow hover:scale-[1.02] active:scale-95 transition-all">
+                    Guardar Evento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR NOMBRE DE FASE -->
+    <div id="modal-edit-fase" class="fixed inset-0 bg-black/80 backdrop-blur-md nuclear-hidden flex items-center justify-center z-[250] p-6 animate-fadeIn">
+        <div class="bg-white dark:bg-[#0f172a] border border-white/5 w-full max-w-[400px] rounded-[2.5rem] shadow-2xl p-10 relative overflow-hidden group text-center">
+            <div class="absolute -top-12 -right-12 w-24 h-24 bg-tealAccent/10 rounded-full blur-2xl group-hover:bg-tealAccent/20 transition-all duration-700 pointer-events-none"></div>
+            
+            <div class="w-16 h-16 bg-tealAccent/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-tealAccent/20">
+                <i class="fa-solid fa-pen-to-square text-2xl text-tealAccent"></i>
+            </div>
+
+            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2 uppercase tracking-tighter">Editar Fase</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-xs mb-8 font-medium">Modifica el nombre de esta estación de trabajo.</p>
+
+            <div class="space-y-6 text-left">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-tealAccent uppercase tracking-[0.2em] ml-1">Nuevo Nombre</label>
+                    <input type="text" id="inp-edit-fase-nombre" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-5 py-4 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-tealAccent/50 focus:border-tealAccent outline-none transition-all font-bold" placeholder="Ej. Instalación Final">
+                </div>
+            </div>
+
+            <div class="mt-10 flex gap-3">
+                <button onclick="closeModals()" class="btn-cancel flex-1 py-4 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+                    Cancelar
+                </button>
+                <button id="btn-save-fase-name" class="flex-1 py-4 bg-tealAccent text-black rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-teal-glow hover:scale-[1.02] active:scale-95 transition-all">
+                    Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init theme
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <!-- NOTIFICATIONS PANEL (Relocated to top of body) -->
+
+    <!-- Init error banner (shown on fatal init failure) -->
+    <div id="init-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999999;background:linear-gradient(90deg,#ef4444,#dc2626);color:#fff;font-weight:700;font-size:13px;padding:12px 20px;text-align:center;"></div>
+
+    <!-- Module script -->
+    <script type="module" src="./js/admin-app.js?v=10"></script>
+</body>
+</html>

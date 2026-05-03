@@ -1,0 +1,26 @@
+{
+  "name": "sistema-completo-renew",
+  "version": "1.0.0",
+  "description": "Sistema de gestión dinámico para Renew Solar",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "dev": "node server.js",
+    "dev:full": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "pdf-lib": "^1.17.1"
+  }
+}

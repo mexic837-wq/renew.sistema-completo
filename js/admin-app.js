@@ -1,0 +1,7172 @@
+import {
+  initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
+  getAdminPipelines, getAdminFases, getAdminCampos,
+  createAdminPipeline, createAdminFase, createAdminCampo, 
+  nukeAndResetDB, updateAdminFaseRole, updateAdminFaseUsers,
+  deleteAdminPipeline, deleteAdminFase, deleteAdminCampo, reorderAdminCampos, reorderAdminFases,
+  getAdminWorkers, saveAdminWorker, deleteAdminWorker,
+  getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
+  getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
+  syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser
+} from './api.js';
+window.getDB = getDB;
+window.saveDB = saveDB;
+import { showToast } from './components/toast.js';
+import { t, getLang, setLang } from './i18n.js';
+import { renderRendimientoGlobal } from './screens/rendimiento-global.js';
+import { renderHRHub } from './screens/hrhub.js';
+
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+let state = {
+  activeView: 'crm',
+  activeClientId: null,
+  activePipId: null,
+  activeEcoFilter: null,
+  activeInventorySede: 'orlando',
+  currentCliIdPhoto: null,
+  currentUsrFoto: null,
+  currentUsrW9Url: null,
+  crmKanbanActive: false
+};
+
+// ── GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) ──
+window.addStock = (id) => {
+    console.log("Global addStock called for ID:", id);
+    const invData = getInventario();
+    const item = invData.find(i => i.id === id);
+    if (!item) return showToast("Artículo no encontrado", "error");
+    
+    // Fix IDs to match admin.html
+    const labelName = document.getElementById('lbl-add-stock-name');
+    const inputQty = document.getElementById('inp-quick-stock-qty');
+    const btnConfirm = document.getElementById('btn-confirm-quick-stock');
+    
+    if (labelName) labelName.textContent = item.nombreItem;
+    if (inputQty) inputQty.value = 1;
+    
+    if (btnConfirm) {
+        btnConfirm.onclick = async () => {
+            const val = parseInt(inputQty.value) || 0;
+            if (val > 0) {
+                item.stockActual = (parseInt(item.stockActual) || 0) + val;
+                saveInventario(invData);
+
+                // Record in history
+                const historial = getHistorialInventario();
+                const adminUser = JSON.parse(localStorage.getItem('currentUser')) || { nombre: 'Admin' };
+                historial.unshift({
+                    fecha: new Date().toISOString(),
+                    tecnico_nombre: `(Admin) ${adminUser.nombre}`,
+                    item_nombre: item.nombreItem,
+                    item_id: item.id,
+                    cantidad_retirada: -val, // Negative withdrawal = addition
+                    sede: item.locacion || 'orlando',
+                    ecosistema: item.ecosistema || 'solar'
+                });
+                if (historial.length > 500) historial.length = 500;
+                saveHistorialInventario(historial);
+
+                window.closeModals();
+                await renderView();
+                window.addNotification('Inventario', `Se añadieron ${val} unidades a ${item.nombreItem}`, 'success');
+            }
+        };
+    }
+    
+    window.showModal(document.getElementById('modal-quick-stock'));
+};
+
+window.editStock = (id) => {
+    console.log("Global editStock called for ID:", id);
+    const invData = getInventario();
+    const item = invData.find(i => i.id === id);
+    if (!item) return showToast("Artículo no encontrado", "error");
+
+    const modInv = document.getElementById('modal-nuclear-inv');
+    const btnSave = document.getElementById('btn-save-inv');
+    
+    if (modInv) {
+        modInv.querySelector('h3').textContent = 'Editar Artículo';
+        if (btnSave) {
+            btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Actualizar Artículo';
+            btnSave.dataset.editId = id;
+        }
+        
+        document.getElementById('inp-inv-codigo').value = item.id;
+        document.getElementById('inp-inv-linea').value = item.ecosistema;
+        document.getElementById('inp-inv-nombre').value = item.nombreItem;
+        if(document.getElementById('inp-inv-medida')) document.getElementById('inp-inv-medida').value = item.medida || '';
+        if(document.getElementById('inp-inv-boton')) document.getElementById('inp-inv-boton').value = item.boton || '';
+        if(document.getElementById('inp-inv-color')) document.getElementById('inp-inv-color').value = item.color || '';
+        
+        // As we merged locacion and storage, set the locacion to the select
+        const sedeSelect = document.getElementById('inp-inv-sede-select');
+        if (sedeSelect) sedeSelect.value = item.locacion || 'orlando';
+        
+        document.getElementById('inp-inv-stock').value = item.stockActual;
+        window.showModal(modInv);
+    }
+};
+
+window.deleteItem = async (id) => {
+    if (!confirm('¿Seguro que deseas eliminar este artículo del inventario?')) return;
+    await deleteInventarioItem(id);
+    renderView();
+    window.addNotification("Inventario", "Artículo eliminado", "warning");
+};
+
+window.adminDeletePartner = async (id, e) => {
+    e.stopPropagation();
+    if (!confirm('¿Seguro que deseas eliminar este partner/proveedor?')) return;
+    const db = getDB();
+    if (!db.Admin_Proveedores) return;
+    db.Admin_Proveedores = db.Admin_Proveedores.filter(p => String(p.id) !== String(id));
+    try {
+        await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table: 'partners_directorio', id }) });
+    } catch(err) { console.error('Error on cloud delete', err); }
+    await saveDB(db);
+    renderView();
+    showToast('Partner eliminado', 'warning');
+};
+
+window.adminBulkDeletePartners = async () => {
+    const checked = document.querySelectorAll('.partner-chk:checked');
+    if (!checked.length) {
+        showToast('Debes seleccionar al menos un partner', 'error');
+        return;
+    }
+    if (!confirm(`¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
+    
+    const ids = Array.from(checked).map(c => c.dataset.id);
+    const db = getDB();
+    if (db.Admin_Proveedores) {
+        db.Admin_Proveedores = db.Admin_Proveedores.filter(p => !ids.includes(String(p.id)));
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            for (const id of ids) {
+                await fetch('/api/delete', { method: 'POST', headers, body: JSON.stringify({ table: 'partners_directorio', id }) });
+            }
+        } catch(err) { console.error('Error on cloud bulk delete', err); }
+        await saveDB(db);
+        renderView();
+        showToast(`${checked.length} partners eliminados`, 'warning');
+    }
+};
+
+
+// ── Global Header Action Wrapper ──
+window.handleGlobalAdd = async () => {
+    const curView = state.activeView;
+    console.log("handleGlobalAdd for view:", curView);
+    
+    if (curView === 'inventario') {
+        const modInv = document.getElementById('modal-nuclear-inv');
+        const btnSave = document.getElementById('btn-save-inv');
+        if(btnSave) delete btnSave.dataset.editId;
+        
+        if(modInv) {
+            const h3 = modInv.querySelector('h3');
+            if(h3) h3.textContent = 'Añadir Artículo al Inventario';
+            if(btnSave) btnSave.innerHTML = 'Guardar Artículo';
+            
+            if(document.getElementById('inp-inv-codigo')) document.getElementById('inp-inv-codigo').value = '';
+            if(document.getElementById('inp-inv-linea')) document.getElementById('inp-inv-linea').value = '';
+            if(document.getElementById('inp-inv-nombre')) document.getElementById('inp-inv-nombre').value = '';
+            if(document.getElementById('inp-inv-medida')) document.getElementById('inp-inv-medida').value = '';
+            if(document.getElementById('inp-inv-boton')) document.getElementById('inp-inv-boton').value = '';
+            if(document.getElementById('inp-inv-color')) document.getElementById('inp-inv-color').value = '';
+            if(document.getElementById('inp-inv-stock')) document.getElementById('inp-inv-stock').value = '';
+            
+            window.showModal(modInv);
+        }
+    } 
+    else if (curView === 'constructor') {
+      UI.inpPipNom.value = '';
+      if(document.getElementById('inp-pip-id')) document.getElementById('inp-pip-id').value = '';
+      if(UI.inpPipCol) UI.inpPipCol.value = '#00f5d4';
+      if(document.getElementById('inp-pip-roles')) document.getElementById('inp-pip-roles').value = '';
+      
+      const rolesBadge = document.getElementById('pip-roles-badge');
+      if (rolesBadge) rolesBadge.textContent = 'Sin restricciones';
+
+      window.showModal(UI.modPip);
+    } 
+    else if (curView === 'crm' || curView === 'crm_maestro') {
+      UI.inpCliNom.value = '';
+      if(UI.inpCliEmail) UI.inpCliEmail.value = '';
+      if(UI.inpCliTel) UI.inpCliTel.value = '';
+      if(document.getElementById('inp-cli-direccion')) document.getElementById('inp-cli-direccion').value = '';
+      if(document.getElementById('inp-cli-estado')) document.getElementById('inp-cli-estado').value = 'Lead';
+      if(document.getElementById('inp-cli-macro-estado')) document.getElementById('inp-cli-macro-estado').value = 'Prospecto';
+      if(document.getElementById('inp-cli-fecha-inicio')) document.getElementById('inp-cli-fecha-inicio').value = '';
+      if(document.getElementById('inp-cli-notes')) document.getElementById('inp-cli-notes').value = '';
+      if(document.getElementById('inp-cli-empresa')) document.getElementById('inp-cli-empresa').value = '';
+      
+      // Reset multi-dept checkboxes
+      document.querySelectorAll('input[name="chk-cli-dept"]').forEach(cb => cb.checked = false);
+
+      // Reset photo
+      state.currentCliFoto = null;
+      if(UI.previewCliFoto) UI.previewCliFoto.classList.add('hidden');
+      if(UI.placeholderCliFoto) UI.placeholderCliFoto.classList.remove('hidden');
+
+      window.showModal(UI.modCli);
+    } 
+    else if (curView === 'calendario') {
+      console.log("[RENEW-DEBUG] Opening Calendar Modal...");
+      if (typeof window.mostrarDetalleEventoCalendario === 'function') {
+        window.mostrarDetalleEventoCalendario(null);
+      } else {
+        console.warn("[RENEW-WARN] mostrarDetalleEventoCalendario is not defined. Falling back to Google Calendar.");
+        window.open('https://calendar.google.com/', '_blank');
+      }
+    }
+    else if (curView === 'usuarios' || curView === 'equipo') {
+      const title = document.getElementById('modal-usr-title');
+      if(title) title.textContent = t('team_btn_add');
+      UI.inpUsrId.value = '';
+      UI.inpUsrNom.value = '';
+      UI.inpUsrApe.value = '';
+      UI.inpUsrEmail.value = '';
+      UI.inpUsrTel.value = '';
+      if(document.getElementById('sel-usr-cc')) document.getElementById('sel-usr-cc').value = '+1';
+      UI.inpUsrDob.value = '';
+      UI.inpUsrPass.value = 'renew123';
+      UI.inpUsrRol.value = 'Vendedor';
+      
+      state.currentUsrFoto = null;
+      if(UI.previewUsrFoto) UI.previewUsrFoto.classList.add('hidden');
+      if(UI.placeholderUsrFoto) UI.placeholderUsrFoto.classList.remove('hidden');
+
+      // Re-init date pickers for the modal
+      if(window.initDatePickers) window.initDatePickers();
+
+      // Reset W-9 upload state
+      state.currentUsrW9Url = null;
+      const w9Placeholder = document.getElementById('w9-upload-placeholder');
+      const w9Success = document.getElementById('w9-upload-success');
+      const w9FileInp = document.getElementById('inp-usr-w9-file');
+      if (w9Placeholder) w9Placeholder.classList.remove('hidden');
+      if (w9Success) { w9Success.classList.add('hidden'); w9Success.classList.remove('flex'); }
+      if (w9FileInp) w9FileInp.value = '';
+
+      const usrPipBox = document.getElementById('usr-pipeline-perms');
+      if (usrPipBox) {
+        const dbLocal = getDB();
+        const pipelines = dbLocal.Admin_Pipelines || [];
+        if (pipelines.length === 0) {
+          usrPipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aún.</p>';
+        } else {
+          const getPipIcon = (n) => {
+            const nl = n.toLowerCase();
+            if (nl.includes('solar')) return 'fa-sun';
+            if (nl.includes('water') || nl.includes('agua')) return 'fa-droplet';
+            if (nl.includes('home') || nl.includes('casa')) return 'fa-house';
+            return 'fa-bolt';
+          };
+          usrPipBox.innerHTML = pipelines.map(pip => `
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-white/5 cursor-pointer hover:border-tealAccent/40 transition-all" style="background:${pip.color}08; border-color:${pip.color}20">
+              <input type="checkbox" class="usr-pip-chk w-4 h-4 rounded accent-teal-500" data-pip="${pip.nombre}">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:${pip.color}15; color:${pip.color}">
+                <i class="fa-solid ${getPipIcon(pip.nombre)} text-xs"></i>
+              </div>
+              <span class="text-sm font-bold text-gray-700 dark:text-gray-300 flex-1">${pip.nombre}</span>
+            </label>
+          `).join('');
+        }
+      }
+      // Reset state for new worker
+      state.currentUsrFoto = null;
+      state.currentUsrW9Url = null;
+      if (UI.previewUsrFoto) UI.previewUsrFoto.classList.add('hidden');
+      if (UI.placeholderUsrFoto) UI.placeholderUsrFoto.classList.remove('hidden');
+      if (UI.inpUsrFotoFile) UI.inpUsrFotoFile.value = '';
+      if (document.getElementById('inp-usr-w9-file')) document.getElementById('inp-usr-w9-file').value = '';
+      if (document.getElementById('w9-upload-success')) document.getElementById('w9-upload-success').classList.add('hidden');
+      if (document.getElementById('w9-upload-placeholder')) document.getElementById('w9-upload-placeholder').classList.remove('hidden');
+
+      window.showModal(UI.modUsr);
+    }
+    else if (curView === 'proveedores') {
+      const title = document.getElementById('modal-partner-title');
+      if(title) title.textContent = 'Añadir Partner / Proveedor';
+      if(document.getElementById('inp-partner-id')) document.getElementById('inp-partner-id').value = '';
+      if(document.getElementById('inp-partner-empresa')) document.getElementById('inp-partner-empresa').value = '';
+      if(document.getElementById('inp-partner-contacto')) document.getElementById('inp-partner-contacto').value = '';
+      if(document.getElementById('inp-partner-servicio')) document.getElementById('inp-partner-servicio').value = 'Solar';
+      if(document.getElementById('inp-partner-tel')) document.getElementById('inp-partner-tel').value = '';
+      if(document.getElementById('inp-partner-email')) document.getElementById('inp-partner-email').value = '';
+      if(document.getElementById('inp-partner-area')) document.getElementById('inp-partner-area').value = '';
+      
+      state.currentPartnerW9Url = null;
+      state.currentPartnerSeguroUrl = null;
+      const w9Text = document.getElementById('partner-w9-text');
+      if (w9Text) w9Text.textContent = 'Subir W-9';
+        if(document.getElementById('inp-partner-w9-file')) document.getElementById('inp-partner-w9-file').value = '';
+        if(document.getElementById('inp-partner-seguro-file')) document.getElementById('inp-partner-seguro-file').value = '';
+
+        window.showModal(document.getElementById('modal-nuclear-partner'));
+    }
+
+};
+
+async function init() {
+  console.log('--- INITIALIZING RENEW OS ---');
+  let initSuccess = false;
+  let initError = null;
+
+  const updateProgress = (pct, text) => {
+    console.log(`[PROGRESS] ${pct}%: ${text}`);
+    const bar = document.getElementById('preloader-progress');
+    const txt = document.getElementById('preloader-text');
+    if (bar) bar.style.width = `${pct}%`;
+    if (txt && text) txt.textContent = text;
+  };
+
+  // ── Safety net: force-remove preloader after 30s no matter what ──
+  const safetyTimer = setTimeout(() => {
+    const p = document.getElementById('admin-preloader');
+    if (p) { p.classList.add('fade-out'); setTimeout(() => p.remove(), 800); }
+    console.warn('[INIT] Safety timer removed preloader after 30s');
+  }, 30000);
+
+  try {
+      updateProgress(10, 'Sincronizando Base de Datos...');
+      await initDB(); 
+      console.log('[INIT] initDB completed');
+      
+      updateProgress(30, 'Verificando Credenciales...');
+      const user = JSON.parse(localStorage.getItem('rs_user'));
+      const hash = window.location.hash;
+      
+      if (!user) {
+          console.warn('[INIT] No user found, redirecting to login');
+          clearTimeout(safetyTimer);
+          window.location.href = 'index.html#login';
+          return;
+      }
+      console.log('[INIT] User:', user.email);
+
+      // Deep Linking Logic
+      if (hash && hash.startsWith('#crmDetail?id=')) {
+          const allowedRoles = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
+          if (allowedRoles.includes(user.rol)) {
+              const qs = hash.split('?')[1];
+              const params = new URLSearchParams(qs);
+              const clientId = params.get('id');
+              if (clientId) {
+                  state.activeView = 'crm_maestro';
+                  setTimeout(async () => {
+                      if (typeof showClientDetail === 'function') {
+                          console.log('[DeepLink] Opening client detail for:', clientId);
+                          await showClientDetail(clientId);
+                      }
+                  }, 1500);
+              }
+              history.replaceState(null, '', window.location.pathname + '#crm_maestro');
+          }
+      }
+
+      updateProgress(50, 'Configurando Interfaz...');
+      cacheElements();
+      bindGlobalEvents();
+      
+      // Theme & Lang
+      initAdminTheme();
+      updateAdminLangUI();
+      updateAdminNavLabels();
+
+      updateProgress(70, 'Cargando Datos de Nube...');
+      await loadData();
+      
+      updateProgress(90, 'Renderizando Sistema...');
+      await renderView();
+      updateSidebarUser();
+
+      console.log('--- MOTOR LISTO ---');
+      updateProgress(100, 'Motor Listo');
+      initSuccess = true;
+      window.addNotification('Sistema Iniciado', 'Conexión a la nube establecida.', 'success');
+
+  } catch (err) {
+      console.error('[INIT FATAL] Initialization failed:', err);
+      initError = err;
+      updateProgress(0, 'Error — revisa la consola');
+  } finally {
+      // ── ALWAYS remove the preloader, success or failure ──
+      clearTimeout(safetyTimer);
+      setTimeout(() => {
+        const preloader = document.getElementById('admin-preloader');
+        if (preloader) {
+          preloader.classList.add('fade-out');
+          setTimeout(() => preloader.remove(), 800);
+          console.log('[INIT] Preloader removed. Success:', initSuccess);
+        }
+        // If it failed, show a non-blocking toast with the error
+        if (!initSuccess && initError) {
+          const banner = document.getElementById('init-error-banner');
+          if (banner) {
+            banner.textContent = '⚠ Error al iniciar: ' + (initError.message || initError);
+            banner.style.display = 'block';
+          }
+        }
+      }, initSuccess ? 1000 : 300);
+  }
+}
+
+// Global scope helpers that were inside init previously
+function initAdminTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+    } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+const updateAdminLangUI = () => {
+    const current = localStorage.getItem('app_lang') || 'es';
+    const btnEs = document.getElementById('admin-lang-es');
+    const btnEn = document.getElementById('admin-lang-en');
+    if (btnEs && btnEn) {
+        if (current === 'es') {
+            btnEs.style.borderColor = 'rgba(0,245,212,0.5)';
+            btnEs.style.background  = 'rgba(0,245,212,0.1)';
+            btnEs.style.color       = '#00f5d4';
+            btnEn.style.borderColor = 'rgba(100,116,139,0.3)';
+            btnEn.style.background  = 'transparent';
+            btnEn.style.color       = '#64748b';
+        } else {
+            btnEn.style.borderColor = 'rgba(59,130,246,0.5)';
+            btnEn.style.background  = 'rgba(59,130,246,0.1)';
+            btnEn.style.color       = '#60a5fa';
+            btnEs.style.borderColor = 'rgba(100,116,139,0.3)';
+            btnEs.style.background  = 'transparent';
+            btnEs.style.color       = '#64748b';
+        }
+    }
+};
+
+window.setAdminLang = (lang) => {
+    localStorage.setItem('app_lang', lang);
+    window.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
+    updateAdminLangUI();
+    showToast(lang === 'es' ? '🇪🇸 Idioma: Español' : '🇺🇸 Language: English', 'success');
+};
+
+window.addEventListener('db_synced', async () => {
+    // Re-render the active admin view when background sync finishes
+    if (typeof renderView === 'function') {
+        await renderView();
+    }
+});
+
+const updateAdminNavLabels = () => {
+    document.querySelectorAll('#admin-nav a[data-view]').forEach(el => {
+        const viewKey = el.dataset.view;
+        const keyMap = {
+            'constructor': 'dash',
+            'calendario':  'calendar',
+            'crm':         'crm',
+            'usuarios':    'team',
+            'equipo':      'team',
+            'kanban':      'kanban',
+            'academia':    'academy',
+            'anuncios':    'announce',
+            'inventario':  'inv',
+            'automations': 'auto',
+            'hrhub':       'hrhub'
+        };
+        const tKey = keyMap[viewKey] ? `admin_nav_${keyMap[viewKey]}` : null;
+        if (tKey) {
+            const span = el.querySelector('.nav-text');
+            if (span) span.textContent = t(tKey);
+        }
+    });
+    const themeToggle = document.getElementById('btn-theme-toggle');
+    if (themeToggle) {
+        const span = themeToggle.querySelector('.nav-text');
+        if (span) span.textContent = t('admin_nav_theme');
+    }
+    const qs = document.getElementById('lbl-quick-settings');
+    if (qs) qs.textContent = t('admin_quick');
+    const ep = document.getElementById('lbl-edit-profile');
+    if (ep) ep.textContent = t('admin_edit_profile');
+    const mv = document.getElementById('lbl-mobile-version');
+    if (mv) mv.textContent = t('admin_mobile');
+    const lg = document.getElementById('lbl-lang-settings');
+    if (lg) lg.textContent = t('admin_language');
+    const lo = document.getElementById('lbl-logout-text');
+    if (lo) lo.textContent = t('admin_logout');
+};
+
+// Administrative Actions Attached to Window for Inline Buttons
+window.adminDeletePipeline = async (id, e) => {
+    e.stopPropagation(); e.preventDefault();
+    if (confirm('¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
+      const btn = e.target.closest ? e.target.closest('button') : null;
+      if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.style.pointerEvents = 'none'; }
+      try {
+        await deleteAdminPipeline(id);
+        await loadData();
+        renderView();
+      } finally {
+        if (btn) btn.style.pointerEvents = 'auto';
+      }
+    }
+};
+
+window.adminEditFaseName = async (id, e) => {
+    if(e) { e.stopPropagation(); e.preventDefault(); }
+    const db = getDB();
+    const fase = db.Admin_Fases.find(f => f.id === id);
+    if (!fase) return;
+    if (UI.modEditFaseName) {
+        UI.inpEditFaseNombre.value = fase.nombre;
+        UI.btnSaveFaseName.onclick = async () => {
+            const newName = UI.inpEditFaseNombre.value.trim();
+            if (newName && newName !== fase.nombre) {
+                fase.nombre = newName;
+                await saveDB(db);
+                window.closeModals();
+                await loadData();
+                renderView();
+                showToast('Fase actualizada', 'success');
+            } else if (newName === fase.nombre) {
+                window.closeModals();
+            }
+        };
+        window.showModal(UI.modEditFaseName);
+    }
+};
+
+window.adminDeleteFase = async (id, e) => {
+    e.stopPropagation(); e.preventDefault();
+    if (confirm('¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
+      const btn = e.target.closest ? e.target.closest('button') : null;
+      if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
+      try {
+        await deleteAdminFase(id);
+        await loadData();
+        renderView();
+      } finally {
+        if (btn) btn.style.pointerEvents = 'auto';
+      }
+    }
+};
+
+window.adminDeleteCampo = async (id, e) => {
+    e.stopPropagation(); e.preventDefault();
+    if (confirm('¿ELIMINAR ESTA PREGUNTA?')) {
+      const btn = e.target.closest ? e.target.closest('button') : null;
+      if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
+      try {
+        await deleteAdminCampo(id);
+        await loadData();
+        renderView();
+      } finally {
+        if (btn) btn.style.pointerEvents = 'auto';
+      }
+    }
+};
+
+window.adminDeleteAcademia = async (id) => {
+    if (confirm('¿Eliminar este contenido?')) {
+        try {
+            const db = getDB();
+            db.academiaContent = (db.academiaContent || []).filter(i => i.id !== id);
+            const { deleteRecord } = await import('./api.js');
+            await deleteRecord('academia_content', id);
+            await saveDB(db);
+            await renderView();
+            window.addNotification('Gestor Academia', `Se eliminó el material`, 'warning');
+        } catch (err) {
+            console.error('Error al eliminar material:', err);
+        }
+    }
+};
+
+window.adminDeleteWorker = async (id, e) => {
+    if(e) { e.stopPropagation(); e.preventDefault(); }
+    if (confirm('¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
+      await deleteAdminWorker(id);
+      await renderView();
+    }
+};
+
+window.adminToggleWorkerStatus = async (id, isEnabled, e) => {
+    if(e) { e.stopPropagation(); }
+    const workers = await getAdminWorkers();
+    const worker = workers.find(w => w.id === id);
+    if (worker) {
+        worker.is_suspended = !isEnabled;
+        await saveAdminWorker(worker);
+        window.addNotification('Equipo', `Cuenta de ${worker.nombre} ha sido ${isEnabled ? 'habilitada' : 'deshabilitada'}.`, isEnabled ? 'success' : 'warning');
+        // Do not re-render immediately to prevent switch jump, just save it.
+    }
+};
+
+window.adminDeleteClient = async (id, e) => {
+    if(e) { e.stopPropagation(); e.preventDefault(); }
+    if (confirm('¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
+      const btn = e.target.closest('.btn-delete-client');
+      const originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>';
+        btn.disabled = true;
+      }
+
+      try {
+        // deleteClientesMaestro already updates local state atomically.
+        // Do NOT call initDB() — it re-fetches from cloud and races the delete,
+        // causing the deleted client to reappear before Supabase propagates.
+        await deleteClientesMaestro(id);
+        await renderView(); // Refresh UI immediately from updated local state
+        showToast('Cliente eliminado exitosamente', 'warning');
+      } catch (err) {
+        console.error('Error al borrar cliente:', err);
+        showToast('Error al eliminar cliente', 'error');
+        if (btn) {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+        }
+      }
+    }
+};
+
+window.adminBulkDeleteWorkers = async () => {
+    const checked = Array.from(document.querySelectorAll('.worker-chk:checked')).map(chk => chk.dataset.id);
+    if(checked.length === 0) return alert('Selecciona al menos un trabajador');
+    if (confirm(`¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
+      await deleteAdminWorker(checked);
+      await renderView();
+    }
+};
+
+window.adminBulkDeleteClients = async () => {
+    const checked = Array.from(document.querySelectorAll('.cli-chk:checked')).map(chk => chk.dataset.id);
+    console.log('[DEBUG] Selected for deletion:', checked);
+    
+    if(checked.length === 0) return alert('Selecciona al menos un cliente');
+    
+    if (confirm(`¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
+      const btn = document.getElementById('btn-bulk-delete-cli');
+      const originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Borrando...';
+        btn.disabled = true;
+      }
+
+      try {
+        await deleteClientesMaestro(checked);
+        // deleteClientesMaestro already updates local state atomically.
+        // Do NOT call initDB() - re-fetches from cloud, can race the delete.
+        await renderView(); // Refresh UI immediately from updated local state
+        showToast(`${checked.length} clientes eliminados`, 'warning');
+      } catch (err) {
+        console.error('Error al borrar clientes:', err);
+        showToast('Error al eliminar clientes: ' + (err.message || 'Error desconocido'), 'error');
+        if (btn) {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+        }
+      }
+    }
+};
+
+window.adminDeleteProject = async (id, e) => {
+    if(e) { e.stopPropagation(); e.preventDefault(); }
+    if (confirm('¿ESTÁS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
+        await deleteAdminProject(id);
+        const drawer = document.getElementById('kanban-drawer-overlay');
+        if(drawer) drawer.remove();
+        await loadData();
+        renderView();
+    }
+};
+
+
+const UI = {};
+function cacheElements() {
+  UI.canvas = document.getElementById('main-canvas');
+  UI.sidebar = document.getElementById('admin-sidebar');
+  UI.hambBtn = document.getElementById('admin-hamburger-btn');
+  UI.viewTitle = document.getElementById('view-title');
+  UI.viewDesc = document.getElementById('view-desc');
+  UI.btnReset = document.getElementById('btn-reset-db');
+  UI.btnAddGlobal = document.getElementById('btn-global-action');
+  
+  // Modals & Inputs
+  UI.modPip = document.getElementById('modal-nuclear-pip');
+  UI.inpPipNom = document.getElementById('inp-pip-nombre');
+  UI.inpPipCol = document.getElementById('inp-pip-color');
+  UI.inpPipHex = document.getElementById('inp-pip-hex');
+  UI.btnSavePip = document.getElementById('btn-save-pipeline');
+
+  UI.modCam = document.getElementById('modal-nuclear-cam');
+  UI.lblFaseDest = document.getElementById('lbl-fase-destino');
+  UI.inpCamFaseId = document.getElementById('inp-cam-fase-id');
+  UI.inpCamEtq = document.getElementById('inp-cam-etiqueta');
+  UI.inpCamTipo = document.getElementById('inp-cam-tipo');
+  UI.wrpCamOpc = document.getElementById('wrap-opciones');
+  UI.inpCamOpc = document.getElementById('inp-cam-opciones');
+  UI.btnSaveCam = document.getElementById('btn-save-campo');
+
+  UI.modFas = document.getElementById('modal-nuclear-fas');
+  UI.inpFasNom = document.getElementById('inp-fas-nombre');
+  UI.btnSaveFas = document.getElementById('btn-save-fase');
+
+  UI.modCli = document.getElementById('modal-nuclear-cli');
+  UI.inpCliNom = document.getElementById('inp-cli-nombre');
+  UI.inpCliEmail = document.getElementById('inp-cli-email');
+  UI.inpCliTel = document.getElementById('inp-cli-tel');
+  UI.btnSaveCli = document.getElementById('btn-save-cliente');
+  UI.dropCliFoto = document.getElementById('drop-cli-foto');
+  UI.inpCliFoto = document.getElementById('inp-cli-foto');
+  UI.previewCliFoto = document.getElementById('cli-foto-preview');
+  UI.placeholderCliFoto = document.getElementById('cli-foto-placeholder');
+
+  UI.modInv = document.getElementById('modal-nuclear-inv');
+  UI.btnSaveInv = document.getElementById('btn-save-inv');
+
+  UI.modUsr = document.getElementById('modal-nuclear-usr');
+  UI.inpUsrId = document.getElementById('inp-usr-id');
+  UI.inpUsrNom = document.getElementById('inp-usr-nombre');
+  UI.inpUsrApe = document.getElementById('inp-usr-apellido');
+  UI.inpUsrEmail = document.getElementById('inp-usr-email');
+  UI.dropUsrFoto = document.getElementById('drop-usr-foto');
+  UI.inpUsrFotoFile = document.getElementById('inp-usr-foto-file');
+  UI.previewUsrFoto = document.getElementById('preview-usr-foto');
+  UI.placeholderUsrFoto = document.getElementById('usr-foto-placeholder');
+  UI.inpUsrTel = document.getElementById('inp-usr-tel');
+  UI.inpUsrDob = document.getElementById('inp-usr-dob');
+  UI.inpUsrPass = document.getElementById('inp-usr-pass');
+  UI.inpUsrRol = document.getElementById('inp-usr-rol');
+  UI.inpUsrDept = document.getElementById('inp-usr-dept');
+  UI.btnSaveUsr = document.getElementById('btn-save-usuario');
+
+  UI.modUsrDetail = document.getElementById('modal-worker-detail');
+  UI.btnEditFromDetail = document.getElementById('btn-edit-worker-from-detail');
+
+  UI.modCliDetail = document.getElementById('modal-client-detail');
+  UI.btnEditCliFromDetail = document.getElementById('btn-edit-cli-from-detail');
+  UI.btnSaveCliChanges = document.getElementById('btn-save-cli-changes');
+  UI.btnCancelCliEdit = document.getElementById('btn-cancel-cli-edit');
+
+  UI.modReset = document.getElementById('modal-reset');
+  UI.modSuccess = document.getElementById('modal-success');
+  UI.msgSuccess = document.getElementById('success-modal-msg');
+  
+  UI.modEditFaseName = document.getElementById('modal-edit-fase');
+  UI.inpEditFaseNombre = document.getElementById('inp-edit-fase-nombre');
+  UI.btnSaveFaseName = document.getElementById('btn-save-fase-name');
+
+  UI.btnToggleAuto = document.getElementById('btn-toggle-auto');
+  UI.subAuto = document.getElementById('sub-auto');
+  UI.btnToggleInv = document.getElementById('btn-toggle-inv');
+  UI.subInv = document.getElementById('sub-inv');
+
+  // Header Buttons
+  UI.btnNotifications = document.getElementById('btn-notifications');
+  UI.btnChat = document.getElementById('btn-header-chat');
+  UI.btnHeaderSettings = document.getElementById('btn-header-settings');
+  UI.settingsDropdown = document.getElementById('settings-dropdown');
+  UI.btnMenuEditProfile = document.getElementById('btn-menu-edit-profile');
+
+  // Notifications Panel Elements
+  UI.notPanel = document.getElementById('notifications-panel');
+  UI.notOverlay = document.getElementById('notifications-overlay');
+  UI.notList = document.getElementById('notifications-list');
+  UI.notBadge = document.getElementById('notifications-badge');
+  UI.btnCloseNot = document.getElementById('btn-close-notifications');
+  
+  // Footer User Elements
+  UI.footerUserName = document.getElementById('footer-user-name');
+  UI.footerUserRole = document.getElementById('footer-user-role');
+  UI.footerUserAvatar = document.getElementById('footer-user-avatar');
+
+  document.querySelectorAll('.btn-cancel').forEach(btn => 
+    btn.addEventListener('click', closeModals)
+  );
+}
+
+function bindGlobalEvents() {
+  // Sidebar Navigation
+
+  // Sidebar Navigation
+  document.querySelectorAll('#admin-nav a').forEach(link => {
+    link.addEventListener('click', async (e) => {
+      e.preventDefault();
+      document.querySelectorAll('#admin-nav a').forEach(l => {
+        l.classList.remove('bg-tealAccent/10', 'text-tealAccent', 'border-tealAccent/20', 'sidebar-item-active');
+        l.classList.add('text-gray-500', 'dark:text-gray-400');
+        l.classList.remove('hover:bg-tealAccent/10', 'hover:text-tealAccent', 'dark:hover:text-tealAccent');
+      });
+      const t = e.currentTarget;
+      t.classList.remove('text-gray-500', 'dark:text-gray-400');
+      t.classList.add('sidebar-item-active');
+      
+      state.activeView = t.dataset.view;
+      state.activeEcoFilter = t.dataset.eco || null; // For inventory filtering
+      
+      // If switching views, ensure we scroll to top or reset necessary states
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      await renderView();
+    });
+  });
+
+  // Toggle Inventario Submenu
+  if (UI.btnToggleInv && UI.subInv) {
+    UI.btnToggleInv.addEventListener('click', (e) => {
+      e.preventDefault();
+      UI.subInv.classList.toggle('hidden');
+      UI.btnToggleInv.classList.toggle('open');
+      const icon = UI.btnToggleInv.querySelector('.fa-chevron-down');
+      if (icon) icon.classList.toggle('rotate-180');
+    });
+  }
+
+  // Toggle Automations Submenu
+  if (UI.btnToggleAuto && UI.subAuto) {
+    UI.btnToggleAuto.addEventListener('click', (e) => {
+      e.preventDefault();
+      UI.subAuto.classList.toggle('hidden');
+      UI.btnToggleAuto.classList.toggle('open');
+      const icon = UI.btnToggleAuto.querySelector('.fa-chevron-down');
+      if (icon) icon.classList.toggle('rotate-180');
+    });
+  }
+
+  // ── Global Action Button (Ensure reliability) ──
+  if (UI.btnAddGlobal) {
+      UI.btnAddGlobal.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (typeof window.handleGlobalAdd === 'function') {
+              window.handleGlobalAdd();
+          }
+      });
+  }
+
+  // ── Global Edit Delegate (Most Robust) ──
+  document.addEventListener('click', async (e) => {
+    // ── Theme Toggle Handle ──
+    const themeBtn = e.target.closest('#btn-theme-toggle');
+    if (themeBtn) {
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      const newTheme = isCurrentlyDark ? 'light' : 'dark';
+      if (newTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      localStorage.setItem('theme', newTheme);
+      showToast(newTheme === 'dark' ? '🌙 Modo Oscuro' : '☀️ Modo Claro', 'success');
+      return;
+    }
+
+    try {
+        // ── Inventory & Global Actions (Prioritized) ──
+        // (Global Action is handled via inline onclick in admin.html)
+
+        // (Inventory button clicks are handled via inline onclick in renderView)
+
+        const btnSedeTab = e.target.closest('.inv-sede-tab');
+        if (btnSedeTab) {
+            state.activeInventorySede = btnSedeTab.dataset.sede;
+            console.log("Sede Tab Clicked:", state.activeInventorySede);
+            await renderView();
+            return;
+        }
+
+        const btnSaveInvMaster = e.target.closest('#btn-save-inv');
+        if (btnSaveInvMaster) {
+            e.preventDefault();
+            // Re-implement or Call save handler
+            // Note: Since we want to ensure it works, we ensure the handler is accessible
+        }
+    } catch (err) {
+        console.error("Delegation Error (Inventory):", err);
+        showToast("Error en acción de inventario: " + err.message, "error");
+    }
+
+    // 1. Edit User Button
+    const btnEditUsr = e.target.closest('.btn-edit-usuario');
+    if (btnEditUsr) {
+      const id = btnEditUsr.dataset.id;
+      triggerUserEdit(id);
+      return;
+    }
+
+    // 2. Worker Name Link (Show Detail)
+    const nameLink = e.target.closest('.worker-name-link');
+    if (nameLink) {
+      const id = nameLink.dataset.id;
+      await showWorkerDetail(id);
+      return;
+    }
+
+    // 2.5 Partner Name Link (Edit)
+    const partnerLink = e.target.closest('.partner-name-link');
+    if (partnerLink) {
+      e.preventDefault();
+      const id = partnerLink.dataset.id;
+      triggerPartnerEdit(id);
+      return;
+    }
+
+    // 3. Client Name Link (CRM Maestro)
+    const cliLink = e.target.closest('.client-name-link');
+    if (cliLink) {
+      e.preventDefault();
+      const id = cliLink.dataset.id;
+      await showClientDetail(id);
+      return;
+    }
+
+    // 4. Assign Users to Phase Button
+    const btnAssignUsers = e.target.closest('.btn-assign-users');
+    if (btnAssignUsers) {
+      e.preventDefault();
+      const faseId = btnAssignUsers.dataset.faseid;
+      openFaseUserPicker(faseId);
+      return;
+    }
+
+    // Handlers for individual and bulk deletes removed from here as they are now 
+    // centralized in the main Unified Delegation listener at the bottom of this file.
+    // This prevents multiple confirmation dialogs and race conditions.
+
+    const btnSedeTab = e.target.closest('.inv-sede-tab');
+    if (btnSedeTab) {
+        state.activeInventorySede = btnSedeTab.dataset.sede;
+        await renderView();
+        return;
+    }
+
+    // Modal Actions (Inventory)
+    const btnSaveInv = e.target.closest('#btn-save-inv');
+    if (btnSaveInv) {
+        const editId = btnSaveInv.dataset.editId;
+        const codigo = document.getElementById('inp-inv-codigo').value.trim();
+        const linea = document.getElementById('inp-inv-linea').value.trim();
+        const nombre = document.getElementById('inp-inv-nombre').value.trim();
+        const medida = document.getElementById('inp-inv-medida') ? document.getElementById('inp-inv-medida').value.trim() : '';
+        const boton = document.getElementById('inp-inv-boton') ? document.getElementById('inp-inv-boton').value.trim() : '';
+        const color = document.getElementById('inp-inv-color') ? document.getElementById('inp-inv-color').value.trim() : '';
+        const locacion = document.getElementById('inp-inv-sede-select').value;
+        const stock = parseInt(document.getElementById('inp-inv-stock').value) || 0;
+
+        if (!nombre || !codigo) return alert('Código y Producto son obligatorios');
+
+        const invData = getInventario();
+
+        if (editId) {
+            const idx = invData.findIndex(i => i.id === editId);
+            if (idx > -1) {
+                invData[idx] = { 
+                    ...invData[idx], 
+                    id: codigo, 
+                    nombreItem: nombre, 
+                    ecosistema: linea, 
+                    medida,
+                    boton,
+                    color,
+                    locacion, 
+                    storage: locacion, 
+                    stockActual: stock 
+                };
+            }
+        } else {
+            invData.push({
+              id: codigo,
+              nombreItem: nombre,
+              ecosistema: linea,
+              medida,
+              boton,
+              color,
+              category: state.activeEcoFilter || 'solar',
+              locacion: locacion,
+              storage: locacion,
+              stockActual: stock
+            });
+        }
+        
+        saveInventario(invData);
+        delete btnSaveInv.dataset.editId; 
+        
+        window.closeModals();
+        await renderView();
+        window.addNotification('Inventario', editId ? 'Artículo actualizado' : 'Nuevo artículo registrado', 'success');
+        return;
+    }
+
+    const btnConfirmStock = e.target.closest('#btn-confirm-quick-stock');
+    if (btnConfirmStock) {
+        // Accessing the temporary handler set in window.addStock if needed, 
+        // or just re-implementing logic here for robustness.
+        // For simplicity, we assume window.addStock sets the behavior.
+        // But delegator is better.
+    }
+  });
+
+  async function triggerUserEdit(id, fallbackData = null) {
+      console.log("Triggering Edit for User ID:", id);
+      let usr;
+      
+      if (fallbackData) {
+          usr = fallbackData;
+      } else {
+          const workers = await getAdminWorkers();
+          usr = workers.find(u => u.id === id);
+      }
+      
+      if (usr) {
+        document.getElementById('modal-usr-title').textContent = "Editar Trabajador";
+        UI.inpUsrId.value = usr.id;
+        UI.inpUsrNom.value = usr.nombre || '';
+        UI.inpUsrApe.value = usr.apellido || '';
+        UI.inpUsrEmail.value = usr.email || '';
+        const phonePartsUsr = (usr.telefono || '').split(' ');
+        if (phonePartsUsr.length > 1 && phonePartsUsr[0].startsWith('+')) {
+            if(document.getElementById('sel-usr-cc')) document.getElementById('sel-usr-cc').value = phonePartsUsr[0];
+            UI.inpUsrTel.value = phonePartsUsr.slice(1).join(' ');
+        } else {
+            if(document.getElementById('sel-usr-cc')) document.getElementById('sel-usr-cc').value = '+1';
+            UI.inpUsrTel.value = usr.telefono || '';
+        }
+        UI.inpUsrDob.value = usr.dob || '';
+        UI.inpUsrPass.value = usr.password || usr.pass || 'renew123';
+        UI.inpUsrRol.value = usr.rol || 'Vendedor';
+        if(UI.inpUsrDept) UI.inpUsrDept.value = usr.department || '';
+        
+        // Re-init date pickers to apply flatpickr to modal fields
+        if(window.initDatePickers) window.initDatePickers();
+        
+        state.currentUsrFoto = usr.foto;
+        if (usr.foto) {
+          UI.previewUsrFoto.style.backgroundImage = `url(${usr.foto})`;
+          UI.previewUsrFoto.classList.remove('hidden');
+          UI.placeholderUsrFoto.classList.add('hidden');
+        } else {
+          UI.previewUsrFoto.classList.add('hidden');
+          UI.placeholderUsrFoto.classList.remove('hidden');
+        }
+
+        // Pre-fill W-9 state for edit mode
+        state.currentUsrW9Url = usr.w9Url || null;
+        const w9Placeholder = document.getElementById('w9-upload-placeholder');
+        const w9Success = document.getElementById('w9-upload-success');
+        const w9NameEl = document.getElementById('w9-file-name');
+        const w9FileInp = document.getElementById('inp-usr-w9-file');
+        if (usr.w9Url) {
+          if (w9Placeholder) w9Placeholder.classList.add('hidden');
+          if (w9Success) { w9Success.classList.remove('hidden'); w9Success.classList.add('flex'); }
+          if (w9NameEl) w9NameEl.textContent = 'Archivo cargado ✓';
+        } else {
+          if (w9Placeholder) w9Placeholder.classList.remove('hidden');
+          if (w9Success) { w9Success.classList.add('hidden'); w9Success.classList.remove('flex'); }
+          if (w9FileInp) w9FileInp.value = '';
+        }
+        
+        window.showModal(UI.modUsr);
+      }
+  }
+
+  if (UI.btnEditFromDetail) {
+    UI.btnEditFromDetail.addEventListener('click', () => {
+        const id = UI.btnEditFromDetail.dataset.id;
+        // Check if current logged-in user has permission (CEO or Admin)
+        const currentUser = (() => {
+            try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
+        })();
+        const currentRol = (currentUser.rol || '').toLowerCase();
+        const canEdit = currentRol === 'ceo' || currentRol === 'admin' || currentRol === 'administrador';
+        if (!canEdit) {
+            window.addNotification('Seguridad', 'Solo el CEO o Administrador pueden editar perfiles.', 'error');
+            return;
+        }
+        // Toggle inline edit mode in the detail modal
+        toggleDetailEditMode(id);
+    });
+  }
+
+  if (UI.btnEditCliFromDetail) {
+    UI.btnEditCliFromDetail.addEventListener('click', () => {
+        const id = UI.btnEditCliFromDetail.dataset.id;
+        toggleClientEditMode(id);
+    });
+  }
+
+  if (UI.btnCancelCliEdit) {
+    UI.btnCancelCliEdit.addEventListener('click', () => {
+        exitClientEditMode();
+    });
+  }
+
+  if (UI.btnSaveCliChanges) {
+    UI.btnSaveCliChanges.addEventListener('click', async () => {
+        await saveClientChanges();
+    });
+  }
+
+  // ID Photo Upload Logic
+  const inpCliIdPhotoFile = document.getElementById('inp-cli-id-photo-file');
+  if (inpCliIdPhotoFile) {
+    inpCliIdPhotoFile.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Use server upload instead of base64
+        state.currentCliIdPhoto = await uploadFile(file, 'profiles');
+        const preview = document.getElementById('cli-id-photo-preview');
+        if (preview) {
+            preview.querySelector('img').src = state.currentCliIdPhoto;
+            preview.classList.remove('hidden');
+        }
+      }
+    });
+  }
+
+  const btnRemoveCliIdPhoto = document.getElementById('btn-remove-cli-id-photo');
+  if (btnRemoveCliIdPhoto) {
+    btnRemoveCliIdPhoto.addEventListener('click', () => {
+        state.currentCliIdPhoto = null;
+        const preview = document.getElementById('cli-id-photo-preview');
+        if (preview) preview.classList.add('hidden');
+        if (inpCliIdPhotoFile) inpCliIdPhotoFile.value = '';
+    });
+  }
+
+  // Notification Listeners (Migrated to global window.showNotifications)
+
+  // Global Function for adding notifications
+  window.addNotification = (title, message, type = 'info') => {
+    if (!UI.notList) return;
+
+    const accentColor = {
+      success: 'text-tealAccent',
+      warning: 'text-orangeAccent',
+      error: 'text-red-500',
+      info: 'text-blue-400'
+    }[type] || 'text-tealAccent';
+
+    const bgOpacity = {
+        success: 'bg-tealAccent/5',
+        warning: 'bg-orangeAccent/5',
+        error: 'bg-red-500/5',
+        info: 'bg-blue-400/5'
+    }[type] || 'bg-white/5';
+
+    const icon = {
+      success: 'fa-circle-check',
+      warning: 'fa-triangle-exclamation',
+      error: 'fa-circle-xmark',
+      info: 'fa-circle-info'
+    }[type] || 'fa-bell';
+
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const html = `
+      <div class="p-4 rounded-2xl ${bgOpacity} border border-white/5 group hover:border-tealAccent/20 transition-all animate-fadeIn relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1 h-full ${type === 'success' ? 'bg-tealAccent' : type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-orangeAccent' : 'bg-blue-400'} opacity-50"></div>
+        <div class="flex justify-between items-start mb-2">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid ${icon} ${accentColor} text-[10px]"></i>
+            <h4 class="${accentColor} font-black text-[10px] uppercase tracking-widest">${title}</h4>
+          </div>
+          <span class="text-[9px] text-gray-500 font-bold opacity-60">${time}</span>
+        </div>
+        <p class="text-xs text-gray-400 font-medium leading-relaxed pl-4">${message}</p>
+      </div>
+    `;
+
+    UI.notList.insertAdjacentHTML('afterbegin', html);
+    
+    // Show badge if panel is closed
+    if (UI.notPanel.classList.contains('translate-x-full')) {
+      UI.notBadge.classList.remove('hidden');
+    }
+  };
+
+  if (UI.btnChat) {
+    UI.btnChat.addEventListener('click', () => {
+      showToast("Iniciando cifrado de canal seguro...", "default");
+      setTimeout(() => showToast("Conectando con el equipo de soporte RENEW...", "info"), 600);
+    });
+  }
+
+  if (UI.btnHeaderSettings) {
+    UI.btnHeaderSettings.addEventListener('click', (e) => {
+      e.stopPropagation();
+      UI.settingsDropdown.classList.toggle('hidden');
+    });
+  }
+
+  if (UI.btnMenuEditProfile) {
+    UI.btnMenuEditProfile.addEventListener('click', () => {
+      UI.settingsDropdown.classList.add('hidden');
+      triggerUserEdit('admin_julian', {
+        id: 'admin_julian',
+        nombre: 'Julian',
+        apellido: 'Vercetti',
+        email: 'julian@renewsolar.com',
+        rol: 'Admin',
+        department: 'Dirección General',
+        telefono: '+1 (305) 555-9988'
+      });
+    });
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+      if (UI.settingsDropdown && !UI.settingsDropdown.classList.contains('hidden')) {
+          if (!UI.settingsDropdown.contains(e.target) && !UI.btnHeaderSettings.contains(e.target)) {
+              UI.settingsDropdown.classList.add('hidden');
+          }
+      }
+  });
+
+  const btnLogout = document.getElementById('btn-quick-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+      localStorage.removeItem('rs_user');
+      localStorage.removeItem('active_unit');
+      window.location.href = 'index.html';
+    });
+  }
+
+
+
+
+  // ── Save/Edit Usuario Event ──
+  if (UI.btnSaveUsr) {
+    UI.btnSaveUsr.addEventListener('click', async () => {
+      const id = UI.inpUsrId.value;
+      const initials = (UI.inpUsrNom.value[0] + (UI.inpUsrApe.value[0] || 'X')).toUpperCase();
+      
+      // Read pipeline permissions (from create modal checkboxes)
+      const checkedPips = Array.from(
+        document.querySelectorAll('.usr-pip-chk:checked')
+      ).map(chk => chk.dataset.pip);
+
+      const workers = await getAdminWorkers();
+      const existing = id ? workers.find(w => w.id === id) : null;
+
+      const newUsr = {
+        id: id || crypto.randomUUID(),
+        nombre: UI.inpUsrNom.value.trim(),
+        apellido: UI.inpUsrApe.value.trim(),
+        email: UI.inpUsrEmail.value.trim(),
+        foto: state.currentUsrFoto,
+        w9Url: state.currentUsrW9Url,
+        telefono: (document.getElementById('sel-usr-cc') ? document.getElementById('sel-usr-cc').value + ' ' : '') + UI.inpUsrTel.value.trim(),
+        dob: UI.inpUsrDob.value,
+        initials: initials,
+        rol: UI.inpUsrRol.value,
+        department: UI.inpUsrDept ? UI.inpUsrDept.value.trim() : '',
+        password: UI.inpUsrPass.value.trim(),
+        unidades: checkedPips,
+        is_suspended: existing ? (existing.is_suspended || false) : false
+      };
+
+      if (!newUsr.nombre || !newUsr.apellido || !newUsr.email) return showToast('Datos obligatorios incompletos', 'error');
+
+      // Bloquear botón y mostrar animación
+      const originalText = UI.btnSaveUsr.innerHTML;
+      UI.btnSaveUsr.disabled = true;
+      UI.btnSaveUsr.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creando...`;
+      UI.btnSaveUsr.classList.add('opacity-70', 'cursor-not-allowed');
+
+      try {
+          await saveAdminWorker(newUsr);
+          window.closeModals();
+          window.addNotification('Usuarios', 'Perfil creado exitosamente', 'success');
+          await renderView();
+      } catch (error) {
+          console.error('[ERROR] Guardando trabajador:', error);
+          showToast('Hubo un problema al crear el perfil.', 'error');
+      } finally {
+          // Restaurar botón (por si el modal se vuelve a abrir luego)
+          UI.btnSaveUsr.disabled = false;
+          UI.btnSaveUsr.innerHTML = originalText;
+          UI.btnSaveUsr.classList.remove('opacity-70', 'cursor-not-allowed');
+      }
+    });
+  }
+
+  // ── User Photo Upload ──
+  if (UI.dropUsrFoto) {
+    UI.dropUsrFoto.addEventListener('click', () => UI.inpUsrFotoFile.click());
+    UI.dropUsrFoto.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        UI.dropUsrFoto.classList.add('border-tealAccent', 'bg-tealAccent/5');
+    });
+    UI.dropUsrFoto.addEventListener('dragleave', () => {
+        UI.dropUsrFoto.classList.remove('border-tealAccent', 'bg-tealAccent/5');
+    });
+    UI.dropUsrFoto.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        UI.dropUsrFoto.classList.remove('border-tealAccent', 'bg-tealAccent/5');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            try {
+                showToast('Subiendo foto...', 'info');
+                state.currentUsrFoto = await uploadFile(file, 'profiles');
+                UI.previewUsrFoto.style.backgroundImage = `url(${state.currentUsrFoto})`;
+                UI.previewUsrFoto.classList.remove('hidden');
+                UI.placeholderUsrFoto.classList.add('hidden');
+                showToast('Foto cargada correctamente', 'success');
+            } catch (err) {
+                console.error('Error subiendo foto:', err);
+                showToast('Error al subir la foto', 'error');
+            }
+        }
+    });
+  }
+  if (UI.inpUsrFotoFile) {
+    UI.inpUsrFotoFile.addEventListener('change', async () => {
+      if (UI.inpUsrFotoFile.files.length) {
+        try {
+            showToast('Subiendo foto...', 'info');
+            state.currentUsrFoto = await uploadFile(UI.inpUsrFotoFile.files[0], 'profiles');
+            UI.previewUsrFoto.style.backgroundImage = `url(${state.currentUsrFoto})`;
+            UI.previewUsrFoto.classList.remove('hidden');
+            UI.placeholderUsrFoto.classList.add('hidden');
+            showToast('Foto cargada correctamente', 'success');
+        } catch (err) {
+            console.error('Error subiendo foto:', err);
+            showToast('Error al subir la foto', 'error');
+        }
+      }
+    });
+  }
+
+  // ── W-9 File Upload ──────────────────────────────────────────
+  state.currentUsrW9Url = null;
+
+  window.clearW9Upload = function() {
+    state.currentUsrW9Url = null;
+    const placeholder = document.getElementById('w9-upload-placeholder');
+    const success = document.getElementById('w9-upload-success');
+    const inp = document.getElementById('inp-usr-w9-file');
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (success) success.classList.add('hidden');
+    if (inp) inp.value = '';
+  };
+
+  const inpW9File = document.getElementById('inp-usr-w9-file');
+  if (inpW9File) {
+    inpW9File.addEventListener('change', async () => {
+      const file = inpW9File.files[0];
+      if (!file) return;
+      const placeholder = document.getElementById('w9-upload-placeholder');
+      const success = document.getElementById('w9-upload-success');
+      const nameEl = document.getElementById('w9-file-name');
+      try {
+        showToast('Subiendo documento W-9...', 'info');
+        const fileUrl = await uploadFile(file, 'documents');
+        state.currentUsrW9Url = fileUrl;
+        
+        if (nameEl) nameEl.textContent = file.name;
+        if (placeholder) placeholder.classList.add('hidden');
+        if (success) {
+          success.classList.remove('hidden');
+          success.classList.add('flex');
+        }
+        showToast('Documento subido con éxito', 'success');
+      } catch(e) {
+        console.error('Error subiendo W-9:', e);
+        showToast('Error al subir el documento', 'error');
+      }
+    });
+  }
+  // ─────────────────────────────────────────────────────────────
+
+  // ── Upload Partners W9 ──
+  const inpPartnerW9 = document.getElementById('inp-partner-w9-file');
+  if (inpPartnerW9) {
+      inpPartnerW9.addEventListener('change', async () => {
+          const file = inpPartnerW9.files[0];
+          if (!file) return;
+          const nameEl = document.getElementById('partner-w9-text');
+          try {
+              state.currentPartnerW9Url = await uploadFile(file, 'documents');
+              if (nameEl) nameEl.textContent = file.name;
+          } catch(e) {
+              console.error('Error uploading partner w9:', e);
+          }
+      });
+  }
+
+  // ── Upload Partners Seguro ──
+  const inpPartnerSeguro = document.getElementById('inp-partner-seguro-file');
+  if (inpPartnerSeguro) {
+      inpPartnerSeguro.addEventListener('change', async () => {
+          const file = inpPartnerSeguro.files[0];
+          if (!file) return;
+          const nameEl = document.getElementById('partner-seguro-text');
+          try {
+              state.currentPartnerSeguroUrl = await uploadFile(file, 'documents');
+              if (nameEl) nameEl.textContent = file.name;
+          } catch(e) {
+              console.error('Error uploading partner seguro:', e);
+          }
+      });
+  }
+
+  // ── Save Partner / Proveedor ──
+  const btnSavePartner = document.getElementById('btn-save-partner');
+  if (btnSavePartner) {
+      btnSavePartner.addEventListener('click', async () => {
+          const btn = btnSavePartner;
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
+          btn.disabled = true;
+
+          const id = document.getElementById('inp-partner-id').value;
+          const empresa = document.getElementById('inp-partner-empresa').value.trim();
+          const contacto = document.getElementById('inp-partner-contacto').value.trim();
+          const servicio = document.getElementById('inp-partner-servicio').value;
+          const tel = document.getElementById('inp-partner-tel').value.trim();
+          const email = document.getElementById('inp-partner-email').value.trim();
+          const area = document.getElementById('inp-partner-area').value.trim();
+          
+          if (!empresa) { 
+              showToast('La Empresa es obligatoria', 'error');
+              btn.disabled=false; 
+              btn.innerHTML=originalText; 
+              return; 
+          }
+
+          const db = getDB();
+          db.Admin_Proveedores = db.Admin_Proveedores || [];
+          
+          const newPartner = {
+              id: id || crypto.randomUUID(),
+              empresa,
+              contacto,
+              servicio,
+              telefono: tel,
+              email,
+              area,
+              w9Url: state.currentPartnerW9Url || null,
+              seguroUrl: state.currentPartnerSeguroUrl || null,
+              created_at: new Date().toISOString()
+          };
+
+          if (id) {
+              const idx = db.Admin_Proveedores.findIndex(p => p.id === id);
+              if (idx !== -1) {
+                  // Preserve original created_at if editing
+                  newPartner.created_at = db.Admin_Proveedores[idx].created_at || newPartner.created_at;
+                  db.Admin_Proveedores[idx] = newPartner;
+              }
+          } else {
+              db.Admin_Proveedores.push(newPartner);
+          }
+
+          await saveDB(db);
+          window.closeModals();
+          await loadData();
+          await renderView();
+          showToast('Partner guardado exitosamente', 'success');
+          
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+      });
+  }
+
+  window.triggerPartnerEdit = (id) => {
+      const db = getDB();
+      const p = (db.Admin_Proveedores || []).find(x => x.id === id);
+      if (!p) return;
+
+      const title = document.getElementById('modal-partner-title');
+      if(title) title.textContent = 'Editar Partner / Proveedor';
+      
+      document.getElementById('inp-partner-id').value = p.id;
+      document.getElementById('inp-partner-empresa').value = p.empresa || '';
+      document.getElementById('inp-partner-contacto').value = p.contacto || '';
+      document.getElementById('inp-partner-servicio').value = p.servicio || 'General';
+      document.getElementById('inp-partner-tel').value = p.telefono || '';
+      document.getElementById('inp-partner-email').value = p.email || '';
+      document.getElementById('inp-partner-area').value = p.area || '';
+      
+      state.currentPartnerW9Url = p.w9Url || null;
+      state.currentPartnerSeguroUrl = p.seguroUrl || null;
+      
+      const w9Text = document.getElementById('partner-w9-text');
+      if (w9Text) w9Text.textContent = p.w9Url ? 'W-9 Cargado' : 'Subir W-9';
+      
+      const seguroText = document.getElementById('partner-seguro-text');
+      if (seguroText) seguroText.textContent = p.seguroUrl ? 'Seguro Cargado' : 'Subir Seguro';
+
+      window.showModal(document.getElementById('modal-nuclear-partner'));
+  };
+  // ─────────────────────────────────────────────────────────────
+
+  // ── Detail User Photo Upload ──
+  const inpDetUsrFotoFile = document.getElementById('det-usr-foto-file');
+  if (inpDetUsrFotoFile) {
+      inpDetUsrFotoFile.addEventListener('change', async (e) => {
+          if (inpDetUsrFotoFile.files.length) {
+              const file = inpDetUsrFotoFile.files[0];
+              try {
+                  showToast('Actualizando foto de perfil...', 'info');
+                  const fileUrl = await uploadFile(file, 'profiles');
+                  state.currentUsrFoto = fileUrl; // Update central state
+                  
+                  const avatarBox = document.getElementById('det-usr-avatar');
+                  if (avatarBox) {
+                      avatarBox.style.backgroundImage = `url(${fileUrl})`;
+                      avatarBox.innerHTML = ''; // clear initial letters
+                  }
+                  
+                  // Save immediately to database
+                  const editBtn = document.getElementById('btn-edit-worker-from-detail');
+                  if (editBtn && editBtn.dataset.id) {
+                      const editId = editBtn.dataset.id;
+                      const workers = await getAdminWorkers();
+                      const usr = workers.find(u => u.id === editId);
+                      if (usr) {
+                          usr.foto = fileUrl;
+                          await saveAdminWorker(usr);
+                          showToast('Foto de perfil actualizada', 'success');
+                          await renderView(); // refresh table view
+                      }
+                  }
+              } catch (err) {
+                  console.error('Error actualizando foto:', err);
+                  showToast('Error al actualizar la foto de perfil', 'error');
+              }
+          }
+      });
+  }
+
+  if (UI.btnReset) {
+    UI.btnReset.addEventListener('click', () => {
+      UI.modReset.style.display = 'flex';
+    });
+  }
+
+  if (UI.btnConfirmReset) {
+    UI.btnConfirmReset.addEventListener('click', async () => {
+      UI.btnConfirmReset.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Reiniciando...';
+      await nukeAndResetDB();
+      window.location.reload();
+    });
+  }
+
+  // CRM Photo logic
+  if (UI.dropCliFoto) {
+    UI.dropCliFoto.addEventListener('click', () => UI.inpCliFoto.click());
+    UI.dropCliFoto.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        UI.dropCliFoto.classList.add('border-tealAccent', 'bg-tealAccent/5');
+    });
+    UI.dropCliFoto.addEventListener('dragleave', () => {
+        UI.dropCliFoto.classList.remove('border-tealAccent', 'bg-tealAccent/5');
+    });
+    UI.dropCliFoto.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        UI.dropCliFoto.classList.remove('border-tealAccent', 'bg-tealAccent/5');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            state.currentCliFoto = await uploadFile(file, 'profiles');
+            UI.previewCliFoto.style.backgroundImage = `url(${state.currentCliFoto})`;
+            UI.previewCliFoto.classList.remove('hidden');
+            UI.placeholderCliFoto.classList.add('hidden');
+        }
+    });
+  }
+  if (UI.inpCliFoto) {
+    UI.inpCliFoto.addEventListener('change', async () => {
+      if (UI.inpCliFoto.files.length) {
+        state.currentCliFoto = await uploadFile(UI.inpCliFoto.files[0], 'profiles');
+        UI.previewCliFoto.style.backgroundImage = `url(${state.currentCliFoto})`;
+        UI.previewCliFoto.classList.remove('hidden');
+        UI.placeholderCliFoto.classList.add('hidden');
+      }
+    });
+  }
+
+  // Header "Global" Action Button moved to document body delegator for maximum reliability
+
+  // (Global handler moved to window.handleGlobalAdd at top level)
+
+  function autoFillPipelinePerms(selectedRol) {
+    const dbLocal = getDB();
+    const pipelines = dbLocal.Admin_Pipelines || [];
+    document.querySelectorAll('.usr-pip-chk').forEach(chk => {
+      const pipName = chk.dataset.pip;
+      const pip = pipelines.find(p => p.nombre === pipName);
+      // Check if the selected role has access to this pipeline
+      const hasAccess = !pip || !pip.rolesConAcceso || pip.rolesConAcceso.length === 0
+        ? true  // No restrictions means all have access
+        : pip.rolesConAcceso.includes(selectedRol);
+      chk.checked = hasAccess;
+    });
+  }
+
+  // Kanban Drag & Drop Listeners
+  document.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.kanban-card');
+    if (card) {
+      e.dataTransfer.setData('text/plain', card.dataset.proyectoid);
+      setTimeout(() => card.style.opacity = '0.4', 0);
+    }
+  });
+
+  document.addEventListener('dragend', (e) => {
+    const card = e.target.closest('.kanban-card');
+    if (card) card.style.opacity = '1';
+  });
+
+  document.addEventListener('dragover', (e) => {
+    if (e.target.closest('.kanban-drop-zone')) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('drop', async (e) => {
+    const zone = e.target.closest('.kanban-drop-zone');
+    if (zone) {
+      e.preventDefault();
+      const projectId = e.dataTransfer.getData('text/plain');
+      const newFaseId = zone.dataset.faseid;
+      
+      const { saveDB } = await import('./api.js');
+      const db = getDB();
+      const p = db.Proyectos_Dinamicos.find(x => x.id === projectId);
+      if (p && p.fase_id !== newFaseId) {
+        p.fase_id = newFaseId;
+        await saveDB(db);
+        await renderView();
+      }
+    }
+  });
+
+  // Kanban Card Click – Open Project Detail Drawer
+  document.addEventListener('click', (e) => {
+    const card = e.target.closest('.kanban-card');
+    // Ignore if currently dragging
+    if (card && !e.target.closest('[draggable]')?.style.opacity?.includes('0.4')) {
+      const projectId = card.dataset.proyectoid;
+      if (projectId) openKanbanDrawer(projectId);
+    }
+  });
+
+  // ── Global Modal Close Delegate ──
+  document.addEventListener('click', (e) => {
+    const btnCancel = e.target.closest('.btn-cancel');
+    if (btnCancel) {
+      if (typeof window.closeModals === 'function') {
+        window.closeModals();
+      }
+    }
+  });
+
+  // Save Cliente (CRM) Event — with Document Upload (Phase 4)
+  if (UI.btnSaveCli) {
+    // ── File Upload Visual Feedback Helper ──
+    const setupDocUpload = (inputId, dropId, labelId, successColor) => {
+      const inp = document.getElementById(inputId);
+      const drop = document.getElementById(dropId);
+      const lbl = document.getElementById(labelId);
+      if (!inp) return;
+      inp.addEventListener('change', () => {
+        if (inp.files.length) {
+          if (drop) { drop.style.borderColor = successColor; drop.style.background = successColor + '10'; }
+          if (lbl) { lbl.textContent = '✓ ' + inp.files[0].name.substring(0, 20); lbl.style.color = successColor; }
+        }
+      });
+    };
+    setupDocUpload('inp-cli-adjunto-id', 'drop-cli-adjunto-id', 'lbl-cli-adj-id', '#00f5d4');
+    setupDocUpload('inp-cli-adjunto-bill', 'drop-cli-adjunto-bill', 'lbl-cli-adj-bill', '#f59e0b');
+    setupDocUpload('inp-cli-adjunto-seguro', 'drop-cli-adjunto-seguro', 'lbl-cli-adj-seguro', '#a855f7');
+    setupDocUpload('inp-cli-ofi-aplicacion', 'drop-cli-ofi-aplicacion', 'lbl-cli-ofi-app', '#f59e0b');
+    setupDocUpload('inp-cli-ofi-recibo', 'drop-cli-ofi-recibo', 'lbl-cli-ofi-recibo', '#f59e0b');
+
+    UI.btnSaveCli.addEventListener('click', async () => {
+      const state_id = document.getElementById('inp-cli-state').value.trim();
+      const firstNom = document.getElementById('inp-cli-nombre').value.trim();
+      const apellido = document.getElementById('inp-cli-apellido').value.trim();
+      const dob = document.getElementById('inp-cli-dob').value;
+      const telVal = document.getElementById('inp-cli-tel').value.trim();
+      const ccVal = document.getElementById('sel-cli-cc') ? document.getElementById('sel-cli-cc').value : '';
+      const telefono = ccVal && telVal ? `${ccVal} ${telVal}` : telVal;
+      const email = document.getElementById('inp-cli-email').value.trim();
+      const direccion = document.getElementById('inp-cli-direccion').value.trim();
+      const empresa = document.getElementById('inp-cli-empresa').value.trim();
+      const estado = document.getElementById('inp-cli-estado').value;
+
+      // New fields — multi-department checkboxes
+      const deptChecks = document.querySelectorAll('input[name="chk-cli-dept"]:checked');
+      const departamentos_activos = Array.from(deptChecks).map(cb => cb.value);
+      const departamento = departamentos_activos[0] || '';
+      const fecha_inicio = document.getElementById('inp-cli-fecha-inicio') ? document.getElementById('inp-cli-fecha-inicio').value : '';
+      const notas = document.getElementById('inp-cli-notas') ? document.getElementById('inp-cli-notas').value.trim() : '';
+      const macro_estado = document.getElementById('inp-cli-macro-estado') ? document.getElementById('inp-cli-macro-estado').value : 'Prospecto';
+
+      // ── VALIDATION ──────────────────
+      if (!firstNom || !apellido) { alert('El Nombre y Apellido son obligatorios'); return; }
+      if (!email) { alert('El Email es obligatorio'); return; }
+      if (!direccion) { alert('La Dirección es obligatoria'); return; }
+      if (!telVal) { alert('El Teléfono es obligatorio'); return; }
+      // ────────────────────────────────
+
+      // ── DISABLE BUTTON WHILE SAVING ──
+      const originalBtnHtml = UI.btnSaveCli.innerHTML;
+      UI.btnSaveCli.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
+      UI.btnSaveCli.disabled = true;
+      UI.btnSaveCli.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        const fullNombre = `${firstNom} ${apellido}`.trim();
+
+        // ── UPLOAD DOCUMENTS TO SUPABASE STORAGE ──
+        const uploadIfPresent = async (inputId, folder) => {
+          const inp = document.getElementById(inputId);
+          if (inp && inp.files && inp.files.length > 0) {
+            showToast(`Subiendo ${inp.files[0].name}...`, 'info');
+            return await uploadFile(inp.files[0], folder);
+          }
+          return null;
+        };
+
+        const [adjIdUrl, adjBillUrl, adjSeguroUrl, ofiAppUrl, ofiReciboUrl] = await Promise.all([
+          uploadIfPresent('inp-cli-adjunto-id', 'clientes-documentos'),
+          uploadIfPresent('inp-cli-adjunto-bill', 'clientes-documentos'),
+          uploadIfPresent('inp-cli-adjunto-seguro', 'clientes-documentos'),
+          uploadIfPresent('inp-cli-ofi-aplicacion', 'clientes-documentos'),
+          uploadIfPresent('inp-cli-ofi-recibo', 'clientes-documentos'),
+        ]);
+
+        // Build adjuntos_oficina JSONB
+        const adjuntosOficina = [];
+        if (ofiAppUrl) adjuntosOficina.push({ tipo: 'hoja_aplicacion', url: ofiAppUrl, fecha: new Date().toISOString() });
+        if (ofiReciboUrl) adjuntosOficina.push({ tipo: 'recibo_pago', url: ofiReciboUrl, fecha: new Date().toISOString() });
+
+        const db = getDB();
+        db.Counters.cli = (db.Counters.cli || 0) + 1;
+        const newId = 'cli_' + db.Counters.cli;
+        db.Clientes_Maestro.push({
+          id: newId, 
+          nombre: fullNombre, 
+          email: email, 
+          telefono: telefono,
+          direccion: direccion, 
+          zip: "Pendiente",
+          state_id, dob, empresa, 
+          estado: estado === 'Not selected' ? 'Lead' : estado,
+          foto: state.currentCliFoto,
+          // ── MULTI-DEPT & LIFECYCLE ──
+          departamento: departamento || null,
+          departamentos_activos: departamentos_activos.length > 0 ? departamentos_activos : [],
+          macro_estado: macro_estado,
+          fecha_inicio: fecha_inicio || null,
+          fecha_creacion: new Date().toISOString(),
+          notas: notas || null,
+          adjunto_id_url: adjIdUrl || null,
+          adjunto_bill_url: adjBillUrl || null,
+          adjunto_seguro_url: adjSeguroUrl || null,
+          adjuntos_oficina: adjuntosOficina.length > 0 ? adjuntosOficina : null,
+        });
+        await saveDB(db);
+        
+        window.closeModals();
+        await renderView();
+        showToast(`Cliente ${fullNombre} registrado exitosamente`, 'success');
+      } catch (err) {
+        console.error('Error saving client:', err);
+        showToast('Error al guardar: ' + err.message, 'error');
+      } finally {
+        UI.btnSaveCli.innerHTML = originalBtnHtml;
+        UI.btnSaveCli.disabled = false;
+        UI.btnSaveCli.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  }
+
+
+  // Save Fase Event
+  if (UI.btnSaveFas) {
+    UI.btnSaveFas.addEventListener('click', async () => {
+      const nom = UI.inpFasNom.value.trim();
+      if (!nom) return alert('Define un nombre para la fase');
+      
+      const originalText = UI.btnSaveFas.innerHTML;
+      UI.btnSaveFas.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
+      UI.btnSaveFas.disabled = true;
+      UI.btnSaveFas.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        const pFasesCount = state.fases.filter(f => f.pipeline_id === state.activePipId).length;
+        await createAdminFase(state.activePipId, nom, pFasesCount + 1);
+        window.closeModals();
+        await loadData();
+        renderConstructor();
+      } finally {
+        UI.btnSaveFas.innerHTML = originalText;
+        UI.btnSaveFas.disabled = false;
+        UI.btnSaveFas.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  }
+
+  if (UI.inpPipCol) {
+    UI.inpPipCol.addEventListener('input', e => UI.inpPipHex.value = e.target.value);
+  }
+  const editPipCol = document.getElementById('edit-pip-color');
+  const editPipHex = document.getElementById('edit-pip-hex');
+  if (editPipCol && editPipHex) {
+    editPipCol.addEventListener('input', e => editPipHex.value = e.target.value);
+  }
+
+  if (UI.btnSavePip) {
+    UI.btnSavePip.addEventListener('click', async () => {
+      if(!UI.inpPipNom.value.trim() || UI.btnSavePip.disabled) return;
+      
+      const originalText = UI.btnSavePip.innerHTML;
+      UI.btnSavePip.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Creando...';
+      UI.btnSavePip.disabled = true;
+      UI.btnSavePip.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+          // Read selected roles
+          const rolesConAcceso = Array.from(
+            document.querySelectorAll('.pip-role-chk:checked')
+          ).map(chk => chk.dataset.rol);
+
+          const newPip = await createAdminPipeline(
+            UI.inpPipNom.value.trim(),
+            UI.inpPipCol.value,
+            rolesConAcceso
+          );
+          await createAdminFase(newPip.id, 'Fase 1: Recolección', 1);
+          window.closeModals();
+          await loadData();
+          state.activePipId = newPip.id;
+          await renderView();
+      } catch (err) {
+          console.error("Error creating pipeline", err);
+      } finally {
+          UI.btnSavePip.innerHTML = originalText;
+          UI.btnSavePip.disabled = false;
+          UI.btnSavePip.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  }
+
+  // ── Edit Pipeline Roles (pencil icon) ──
+  const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
+  const ROLES_LIST = ['Call Center', 'Vendedor', 'Procesador', 'Técnico', 'Diseñador', 'Contabilidad', 'Finanzas', 'Supervisión', 'CEO', 'Admin'];
+  const ROLE_ICONS_MAP = {
+    'Call Center': 'fa-headset',
+    'Vendedor': 'fa-handshake', 'Procesador': 'fa-gears', 'Técnico': 'fa-screwdriver-wrench',
+    'Diseñador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator', 'Finanzas': 'fa-coins',
+    'Supervisión': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
+  };
+
+  // Event delegation on canvas for pencil icon
+  UI.canvas.addEventListener('click', (e) => {
+    const pencil = e.target.closest('.btn-edit-pip-roles');
+    if (!pencil) return;
+    e.stopPropagation();
+
+    const pipId = pencil.dataset.pipid;
+    const pipNom = pencil.dataset.pipnom;
+    const dbLocal = getDB();
+    const pip = (dbLocal.Admin_Pipelines || []).find(p => p.id === pipId);
+    const currentRoles = pip?.rolesConAcceso || ROLES_LIST;
+
+    document.getElementById('edit-pip-roles-id').value = pipId;
+    document.getElementById('edit-pip-roles-nombre').textContent = pipNom;
+    
+    // Set color values
+    const colInput = document.getElementById('edit-pip-color');
+    const hexInput = document.getElementById('edit-pip-hex');
+    const currentPipColor = pip?.color || '#00f5d4';
+    if (colInput) colInput.value = currentPipColor;
+    if (hexInput) hexInput.value = currentPipColor;
+
+    const permsBox = document.getElementById('edit-pip-roles-perms');
+    permsBox.innerHTML = ROLES_LIST.map(rol => `
+      <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-100 dark:border-white/5 cursor-pointer hover:border-sky-400/40 transition-all" style="background:rgba(14,165,233,0.03)">
+        <input type="checkbox" class="edit-pip-role-chk w-4 h-4 rounded accent-sky-500" data-rol="${rol}" ${currentRoles.includes(rol) ? 'checked' : ''}>
+        <i class="fa-solid ${ROLE_ICONS_MAP[rol] || 'fa-user'} text-sky-400 text-[11px]"></i>
+        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">${rol}</span>
+      </label>
+    `).join('');
+
+    window.showModal(modEditPipRoles);
+  });
+
+  // Save pipeline role permissions
+  const btnSavePipRoles = document.getElementById('btn-save-pip-roles');
+  if (btnSavePipRoles) {
+    btnSavePipRoles.addEventListener('click', async () => {
+      const pipId = document.getElementById('edit-pip-roles-id').value;
+      const selectedRoles = Array.from(
+        document.querySelectorAll('.edit-pip-role-chk:checked')
+      ).map(chk => chk.dataset.rol);
+
+      const dbLocal = getDB();
+      const pip = (dbLocal.Admin_Pipelines || []).find(p => p.id === pipId);
+      if (pip) {
+        pip.rolesConAcceso = selectedRoles;
+        
+        // Save color
+        const newCol = document.getElementById('edit-pip-color').value;
+        pip.color = newCol;
+
+        await saveDB(dbLocal);
+        await loadData();
+        showToast(`Pipeline "${pip.nombre}" actualizado correctamente.`, 'success');
+        window.closeModals();
+        await renderView();
+      }
+    });
+  }
+
+  // Register modal in closeModals
+  if (modEditPipRoles) {
+    modEditPipRoles.querySelectorAll('.btn-cancel').forEach(btn =>
+      btn.addEventListener('click', closeModals)
+    );
+  }
+
+  if (UI.inpCamTipo) {
+    UI.inpCamTipo.addEventListener('change', e => {
+      if(e.target.value === 'Desplegable') {
+        UI.wrpCamOpc.classList.remove('hidden');
+      } else {
+        UI.wrpCamOpc.classList.add('hidden');
+        UI.inpCamOpc.value = '';
+      }
+    });
+  }
+
+  if (UI.btnSaveCam) {
+    UI.btnSaveCam.addEventListener('click', async () => {
+      const fn = UI.inpCamFaseId.value;
+      const etq = UI.inpCamEtq.value.trim();
+      const tipo = UI.inpCamTipo.value;
+      const opc = UI.inpCamOpc.value.trim();
+      if(!etq) return alert("Define la etiqueta");
+      if(tipo === 'Desplegable' && !opc) return alert("Define las opciones separadas por coma");
+      
+      const originalText = UI.btnSaveCam.innerHTML;
+      UI.btnSaveCam.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Agregando...';
+      UI.btnSaveCam.disabled = true;
+      UI.btnSaveCam.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        await createAdminCampo(fn, etq, tipo, opc);
+        window.closeModals();
+        await loadData();
+        await renderView();
+      } finally {
+        UI.btnSaveCam.innerHTML = originalText;
+        UI.btnSaveCam.disabled = false;
+        UI.btnSaveCam.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  }
+
+  // ── Unified Delegation for Generic View Actions ──
+  document.body.addEventListener('click', async (e) => {
+    // ── GENERAL ACTIONS (Only if inside canvas and not a delete) ──
+    const target = e.target;
+    
+    // 0. Global Modal Actions (Cancel / Success Close)
+    if (target.closest('.btn-close-success') || target.closest('.btn-cancel')) {
+      window.closeModals();
+      return;
+    }
+
+    if (target.closest('.btn-delete-pipeline') || target.closest('.btn-delete-fase') || target.closest('.btn-delete-campo')) return;
+    
+    // Delegation for CRM / Team Links and Delete Buttons
+    const cliLink = target.closest('.client-name-link');
+    if (cliLink) {
+        e.preventDefault();
+        showClientDetail(cliLink.dataset.id);
+        return;
+    }
+
+    const usrLink = target.closest('.worker-name-link');
+    if (usrLink) {
+        e.preventDefault();
+        showWorkerDetail(usrLink.dataset.id);
+        return;
+    }
+
+    const delCli = target.closest('.btn-delete-client');
+    if (delCli) {
+        window.adminDeleteClient(delCli.dataset.id, e);
+        return;
+    }
+
+    const delUsr = target.closest('.btn-delete-worker');
+    if (delUsr) {
+        window.adminDeleteWorker(delUsr.dataset.id, e);
+        return;
+    }
+
+    const toggleStatus = target.closest('.toggle-worker-status');
+    if (toggleStatus) {
+        window.adminToggleWorkerStatus(toggleStatus.dataset.id, toggleStatus.checked, e);
+        return;
+    }
+
+    const bulkDelCli = target.closest('#btn-bulk-delete-cli');
+    if (bulkDelCli) {
+        window.adminBulkDeleteClients();
+        return;
+    }
+
+    const bulkDelUsr = target.closest('#btn-bulk-delete-workers');
+    if (bulkDelUsr) {
+        window.adminBulkDeleteWorkers();
+        return;
+    }
+
+    const delProy = target.closest('.btn-delete-kanban-project');
+    if (delProy) {
+        window.adminDeleteProject(delProy.dataset.id, e);
+        return;
+    }
+
+    const delPartner = target.closest('.btn-delete-partner');
+    if (delPartner) {
+        window.adminDeletePartner(delPartner.dataset.id, e);
+        return;
+    }
+
+    const bulkDelPartner = target.closest('#btn-bulk-delete-partners');
+    if (bulkDelPartner) {
+        window.adminBulkDeletePartners();
+        return;
+    }
+
+    if (!UI.canvas.contains(target)) return;
+
+    // 1. Pipeline Tab Switch
+    const tab = e.target.closest('.pip-tab');
+    if (tab) {
+      state.activePipId = tab.dataset.id;
+      await renderView();
+      return;
+    }
+
+    // 2. Add Field
+    const btnCampo = e.target.closest('.btn-add-campo');
+    if (btnCampo) {
+      const activePipDetails = state.pipelines.find(p => p.id === state.activePipId);
+      UI.inpCamFaseId.value = btnCampo.dataset.faseid;
+      UI.lblFaseDest.textContent = btnCampo.dataset.fasenom;
+      UI.lblFaseDest.style.color = activePipDetails ? activePipDetails.color : '#fff';
+      UI.inpCamEtq.value = ''; UI.inpCamOpc.value = '';
+      UI.wrpCamOpc.classList.add('hidden');
+      UI.inpCamTipo.value = 'Texto';
+      window.showModal(UI.modCam);
+      return;
+    }
+
+    // 3. Add Fase
+    const btnFaseAction = e.target.closest('#btn-add-fase');
+    if (btnFaseAction) {
+      UI.inpFasNom.value = '';
+      window.showModal(UI.modFas);
+      return;
+    }
+
+    // ── Marketing / WA ──
+    const btnAddPaso = e.target.closest('#btn-add-paso');
+    if (btnAddPaso) {
+      const container = document.getElementById('mk-secuencia-container');
+      if (container) {
+        const nextIdx = container.querySelectorAll('.mk-card').length + 1;
+        container.insertAdjacentHTML('beforeend', crearPasoMarketingHTML(nextIdx));
+      }
+      return;
+    }
+
+    const btnDelPaso = e.target.closest('.btn-eliminar-paso');
+    if (btnDelPaso) {
+      e.target.closest('.mk-card').remove();
+      document.querySelectorAll('.mk-card').forEach((card, i) => {
+         const idxBadge = card.querySelector('.mk-step-idx');
+         if(idxBadge) idxBadge.textContent = i + 1;
+      });
+      return;
+    }
+
+    const btnSend = e.target.closest('#btn-enviar-campana');
+    if (btnSend) {
+      const cards = document.querySelectorAll('.mk-card');
+      const secuencia = [];
+      cards.forEach(card => {
+        secuencia.push({
+          asunto: card.querySelector('.mk-asunto').value,
+          programacion: card.querySelector('.mk-fecha-envio').value,
+          cuerpo: card.querySelector('.mk-cuerpo').value
+        });
+      });
+      
+      const audiencia = document.getElementById('mk-audiencia').value;
+      let dests = [];
+      const dbLocal = getDB();
+
+      if (audiencia === 'clientes_especificos' || audiencia === 'trabajadores_especificos') {
+        document.querySelectorAll('.chk-audiencia:checked').forEach(chk => {
+          const nameSpan = chk.closest('label').querySelector('.text-xs');
+          dests.push({
+            email: chk.value,
+            telefono: (chk.dataset.telefono || '').replace(/\D/g, ''),
+            nombre: nameSpan ? nameSpan.textContent.trim() : 'Destinatario'
+          });
+        });
+      } else if (audiencia === 'todos_trabajadores') {
+        const workers = await getAdminWorkers();
+        dests = workers.map(w => ({ email: w.email || '', telefono: (w.telefono || '').replace(/\D/g, ''), nombre: `${w.nombre} ${w.apellido || ''}`.trim() }));
+      } else {
+        let clientes = dbLocal.Clientes_Maestro || [];
+        if (audiencia === 'Solar') {
+           const solarPip = (dbLocal.Admin_Pipelines||[]).find(p => p.nombre.toLowerCase().includes('solar'));
+           const solarProys = (dbLocal.Proyectos_Dinamicos||[]).filter(p => solarPip && p.pipeline_id === solarPip.id);
+           const solarClientIds = new Set(solarProys.map(p => p.cliente_id));
+           clientes = clientes.filter(c => solarClientIds.has(c.id));
+        } else if (audiencia === 'Water') {
+           const waterPip = (dbLocal.Admin_Pipelines||[]).find(p => p.nombre.toLowerCase().includes('water'));
+           const waterProys = (dbLocal.Proyectos_Dinamicos||[]).filter(p => waterPip && p.pipeline_id === waterPip.id);
+           const waterClientIds = new Set(waterProys.map(p => p.cliente_id));
+           clientes = clientes.filter(c => waterClientIds.has(c.id));
+        }
+        dests = clientes.map(c => ({ email: c.email || '', telefono: (c.telefono || '').replace(/\D/g, ''), nombre: c.nombre || 'Destinatario' }));
+      }
+
+      const payload = {
+        audiencia: audiencia,
+        secuencia: secuencia,
+        destinatarios: dests,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('--- Email Engine Payload ---', payload);
+      
+      // Visual feedback
+      const originalHtml = btnSend.innerHTML;
+      btnSend.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Activating...';
+      btnSend.disabled = true;
+
+      fetch('https://n8n.milian-app.online/webhook/email-renew', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        btnSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
+        btnSend.classList.remove('bg-tealAccent');
+        btnSend.classList.add('bg-green-500');
+        showSuccessModal('¡Ya está activado! Los protocolos de Email Engine se han sincronizado con éxito.');
+      })
+      .catch(err => {
+        console.error('Email Engine Error:', err);
+        btnSend.innerHTML = originalHtml;
+        btnSend.disabled = false;
+        showToast('Error al conectar con el servidor de Email: ' + err.message, 'error');
+      });
+      return;
+    }
+
+
+    const btnAddWaPaso = e.target.closest('#btn-add-wa-paso');
+    if (btnAddWaPaso) {
+      const container = document.getElementById('wa-secuencia-container');
+      if (container) {
+        const nextIdx = container.querySelectorAll('.wa-card').length + 1;
+        container.insertAdjacentHTML('beforeend', crearPasoWhatsAppHTML(nextIdx));
+      }
+      return;
+    }
+
+    const btnDelWaPaso = e.target.closest('.btn-eliminar-wa-paso');
+    if (btnDelWaPaso) {
+      e.target.closest('.wa-card').remove();
+      document.querySelectorAll('.wa-card').forEach((card, i) => {
+         const idxBadge = card.querySelector('.wa-step-idx');
+         if(idxBadge) idxBadge.textContent = i + 1;
+      });
+      return;
+    }
+
+    const btnWaSend = e.target.closest('#btn-enviar-wa-campana');
+    if (btnWaSend) {
+      const audiencia = document.getElementById('wa-audiencia').value;
+      let dests = [];
+      const dbLocal = getDB();
+
+      if (audiencia === 'clientes_especificos' || audiencia === 'trabajadores_especificos') {
+        document.querySelectorAll('.wa-chk-audiencia:checked').forEach(chk => {
+          const nameSpan = chk.closest('label').querySelector('.text-xs');
+          dests.push({
+            email: chk.value,
+            telefono: (chk.dataset.telefono || '').replace(/\D/g, ''),
+            nombre: nameSpan ? nameSpan.textContent.trim() : 'Destinatario'
+          });
+        });
+      } else if (audiencia === 'todos_trabajadores') {
+        const workers = await getAdminWorkers();
+        dests = workers.map(w => ({ email: w.email || '', telefono: (w.telefono || '').replace(/\D/g, ''), nombre: `${w.nombre} ${w.apellido || ''}`.trim() }));
+      } else {
+        let clientes = dbLocal.Clientes_Maestro || [];
+        if (audiencia === 'Solar') {
+           const solarPip = (dbLocal.Admin_Pipelines||[]).find(p => p.nombre.toLowerCase().includes('solar'));
+           const solarProys = (dbLocal.Proyectos_Dinamicos||[]).filter(p => solarPip && p.pipeline_id === solarPip.id);
+           const solarClientIds = new Set(solarProys.map(p => p.cliente_id));
+           clientes = clientes.filter(c => solarClientIds.has(c.id));
+        } else if (audiencia === 'Water') {
+           const waterPip = (dbLocal.Admin_Pipelines||[]).find(p => p.nombre.toLowerCase().includes('water'));
+           const waterProys = (dbLocal.Proyectos_Dinamicos||[]).filter(p => waterPip && p.pipeline_id === waterPip.id);
+           const waterClientIds = new Set(waterProys.map(p => p.cliente_id));
+           clientes = clientes.filter(c => waterClientIds.has(c.id));
+        }
+        dests = clientes.map(c => ({ email: c.email || '', telefono: (c.telefono || '').replace(/\D/g, ''), nombre: c.nombre || 'Destinatario' }));
+      }
+
+      const cards = document.querySelectorAll('.wa-card');
+      const secuencia = [];
+      cards.forEach(card => {
+        secuencia.push({
+          programacion: card.querySelector('.wa-fecha-envio').value,
+          cuerpo: card.querySelector('.wa-cuerpo').value
+        });
+      });
+
+      const payload = {
+        audiencia: audiencia,
+        secuencia: secuencia,
+        destinatarios: dests,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('--- WhatsApp Engine Payload ---', payload);
+      
+      const originalHtml = btnWaSend.innerHTML;
+      btnWaSend.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Transmitiendo...';
+      btnWaSend.disabled = true;
+
+      fetch('https://n8n.milian-app.online/webhook/whatsapp-renew', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        btnWaSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
+        btnWaSend.classList.remove('bg-tealAccent');
+        btnWaSend.classList.add('bg-green-500');
+        showSuccessModal('¡Protocolo WhatsApp Activado! Las señales se están transmitiendo a la red.');
+      })
+      .catch(err => {
+        console.error('WhatsApp Engine Error:', err);
+        btnWaSend.innerHTML = originalHtml;
+        btnWaSend.disabled = false;
+        showToast('Error al conectar con el servidor de WhatsApp: ' + err.message, 'error');
+      });
+      return;
+    }
+
+    const chkAll = e.target.closest('.chk-select-all');
+    if (chkAll) {
+      const isWA = chkAll.id === 'wa-all';
+      const siblings = document.querySelectorAll(isWA ? '.wa-chk-audiencia' : '.chk-audiencia');
+      siblings.forEach(s => s.checked = chkAll.checked);
+      return;
+    }
+  });
+
+  // ── Audience Search Filtering ──
+  UI.canvas.addEventListener('input', (e) => {
+    if (e.target.classList.contains('chk-search-input')) {
+      const q = e.target.value.toLowerCase();
+      const parent = e.target.closest('#mk-seleccion-especifica') || e.target.closest('#wa-seleccion-especifica');
+      if (!parent) return;
+      
+      const cards = parent.querySelectorAll('.recipient-grid label');
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(q)) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+  });
+
+  UI.canvas.addEventListener('change', async (e) => {
+    if (e.target.id === 'mk-audiencia' || e.target.id === 'wa-audiencia') {
+      const isWA = e.target.id === 'wa-audiencia';
+      const val = e.target.value;
+      const subContainer = document.getElementById(isWA ? 'wa-seleccion-especifica' : 'mk-seleccion-especifica');
+      if (!subContainer) return;
+      
+      if (val === 'clientes_especificos' || val === 'trabajadores_especificos') {
+        const db = getDB();
+        let items = [];
+        
+        if (val === 'clientes_especificos') {
+          items = db.Clientes_Maestro || [];
+        } else {
+          items = await getAdminWorkers();
+        }
+
+        const chkClass = isWA ? 'wa-chk-audiencia' : 'chk-audiencia';
+        const accentColor = isWA ? 'text-green-500' : 'text-tealAccent';
+        const ringColor = isWA ? 'focus:ring-green-500' : 'focus:ring-tealAccent';
+        const toggleAllId = isWA ? 'wa-all' : 'mk-all';
+        
+        subContainer.innerHTML = `
+          <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
+            <div class="flex items-center gap-3 flex-1 w-full">
+              <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" placeholder="Buscar por nombre o email..." class="chk-search-input w-full bg-gray-100 dark:bg-gray-900/50 border border-transparent focus:border-tealAccent rounded-xl pl-9 pr-4 py-2 text-xs font-medium outline-none transition-all">
+              </div>
+            </div>
+            <div class="flex items-center gap-6">
+               <label class="flex items-center gap-2 cursor-pointer group whitespace-nowrap">
+                 <span class="text-[10px] uppercase font-black text-gray-400 group-hover:text-tealAccent transition-colors">Seleccionar Todos</span>
+                 <input type="checkbox" id="${toggleAllId}" class="chk-select-all w-4 h-4 rounded ${accentColor} ${ringColor}">
+               </label>
+            </div>
+          </div>
+          <div class="recipient-grid grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            ${items.map(item => `
+              <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-tealAccent transition-all group">
+                <input type="checkbox" value="${item.email}" data-telefono="${item.telefono || ''}" class="${chkClass} w-4 h-4 rounded ${accentColor} ${ringColor}">
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-gray-800 dark:text-white">${item.nombre} ${item.apellido || ''}</span>
+                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin teléfono') : (item.email || 'Sin email')}</span>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        `;
+        subContainer.classList.remove('hidden');
+      } else {
+        subContainer.classList.add('hidden');
+        subContainer.innerHTML = '';
+      }
+      return;
+    }
+
+    if (e.target.classList.contains('sel-fase-rol')) {
+      const faseId = e.target.dataset.faseid;
+      const nuevoRol = e.target.value;
+      await updateAdminFaseRole(faseId, nuevoRol);
+      const stFaseObj = state.fases.find(f => f.id === faseId);
+      if (stFaseObj) stFaseObj.rol_encargado = nuevoRol;
+      renderConstructor(); // Sincronizar UI para mostrar/ocultar botón de asignación
+    }
+  });
+}
+
+window.showSuccessModal = (msg) => {
+  if (UI.msgSuccess) UI.msgSuccess.textContent = msg;
+  window.showModal(UI.modSuccess);
+};
+
+// ── W-9 Viewer: opens base64 data URLs as Blob to avoid Chrome blank page ──
+window.openW9File = function(dataUrl) {
+  if (!dataUrl) return;
+  try {
+    // Split "data:<mime>;base64,<data>"
+    const [header, b64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)[1];  // e.g. "application/pdf" or "image/jpeg"
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+    const win = window.open(blobUrl, '_blank');
+    // Revoke after 60 s to free memory
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    if (!win) alert('Permite ventanas emergentes para ver el W-9.');
+  } catch(e) {
+    console.error('[W-9 Viewer] Error:', e);
+    // Fallback: try opening directly
+    window.open(dataUrl, '_blank');
+  }
+};
+
+window.showModal = (m) => {
+  if (!m) {
+    console.error("[RENEW-ERROR] showModal received null element!");
+    return;
+  }
+  
+  console.log("[RENEW-DEBUG] Showing modal:", m.id);
+
+  // 1. Reparent to body to ensure it's top-level and not clipped by siblings
+  if (m.parentElement !== document.body) {
+      console.log("[RENEW-DEBUG] Reparenting modal to body");
+      document.body.appendChild(m);
+  }
+
+  // 2. Clear potentially stuck animations from internal content
+  const content = m.querySelector('div');
+  if (content) {
+      content.classList.remove('animate-scaleIn', 'animate-fadeIn', 'animate-slideUp');
+  }
+
+  // 3. Forced reset of classes
+  m.classList.remove('hidden', 'modal-hidden', 'nuclear-hidden');
+  m.classList.add('nuclear-visible', 'flex');
+
+  // RESTORED: Custom reset for Inventory Modal if opening for NEW item
+  if (m.id === 'modal-nuclear-inv') {
+      const btnSave = document.getElementById('btn-save-inv');
+      if (btnSave && !btnSave.dataset.editId) {
+          m.querySelector('h3').textContent = 'Añadir Artículo al Inventario';
+          btnSave.innerHTML = 'Guardar Artículo';
+          // Clear inputs
+          if(document.getElementById('inp-inv-codigo')) document.getElementById('inp-inv-codigo').value = '';
+          if(document.getElementById('inp-inv-linea')) document.getElementById('inp-inv-linea').value = '';
+          if(document.getElementById('inp-inv-nombre')) document.getElementById('inp-inv-nombre').value = '';
+          if(document.getElementById('inp-inv-stock')) document.getElementById('inp-inv-stock').value = '';
+      }
+  }
+
+  // 4. Maximum priority styles
+  m.style.setProperty('display', 'flex', 'important');
+  m.style.setProperty('visibility', 'visible', 'important');
+  m.style.setProperty('opacity', '1', 'important');
+  m.style.setProperty('pointer-events', 'auto', 'important');
+  m.style.setProperty('z-index', '2147483647', 'important'); // Max possible 32-bit int z-index
+  
+  // 5. Diagnostic check after 50ms to allow DOM reflow
+  setTimeout(() => {
+      const rect = m.getBoundingClientRect();
+      console.log(`[RENEW-DIAGNOSTIC] Modal ${m.id} dimensions:`, rect.width, 'x', rect.height);
+      console.log(`[RENEW-DIAGNOSTIC] Is visible in computed style?`, window.getComputedStyle(m).display);
+      if (rect.width === 0 || rect.height === 0) {
+          console.warn("[RENEW-WARNING] Modal has 0 dimensions! Forcing layout...");
+          m.style.width = '100vw';
+          m.style.height = '100vh';
+          m.style.top = '0';
+          m.style.left = '0';
+          m.style.position = 'fixed';
+      }
+  }, 50);
+}
+
+window.closeModals = () => {
+  // Reset detail modal to view mode before closing
+  exitDetailEditMode();
+
+  document.querySelectorAll('.fixed.inset-0:not(.hidden)').forEach(m => {
+    m.classList.add('nuclear-hidden');
+    m.classList.remove('flex', 'nuclear-visible');
+    m.style.cssText = "display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;";
+    
+    // Reset Inventory Edit Data if present
+    const btnSaveInv = document.getElementById('btn-save-inv');
+    if(btnSaveInv) delete btnSaveInv.dataset.editId;
+  });
+  
+  // Clean photo states
+  state.currentCliFoto = null;
+  state.currentUsrFoto = null;
+  if(UI.previewCliFoto) UI.previewCliFoto.classList.add('hidden');
+  if(UI.placeholderCliFoto) UI.placeholderCliFoto.classList.remove('hidden');
+  if(UI.previewUsrFoto) UI.previewUsrFoto.classList.add('hidden');
+  if(UI.placeholderUsrFoto) UI.placeholderUsrFoto.classList.remove('hidden');
+}
+
+window.showNotifications = () => {
+  const panel = document.getElementById('notifications-panel');
+  const overlay = document.getElementById('notifications-overlay');
+  const badge = document.getElementById('notifications-badge');
+  
+  if (panel) {
+      panel.classList.remove('translate-x-full');
+      // Aseguramos visibilidad y quitamos estilos de depuración
+      panel.style.display = 'flex';
+  }
+  
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    setTimeout(() => overlay.classList.add('opacity-100'), 10);
+  }
+  
+  if (badge) badge.classList.add('hidden');
+  console.log("[RENEW] Panel de notificaciones abierto");
+};
+
+window.closeNotifications = () => {
+  const panel = document.getElementById('notifications-panel');
+  const overlay = document.getElementById('notifications-overlay');
+  
+  if (panel) {
+      panel.classList.add('translate-x-full');
+      panel.style.removeProperty('display');
+      panel.style.removeProperty('transform');
+  }
+  
+  if (overlay) {
+    overlay.classList.remove('opacity-100');
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.style.removeProperty('display');
+    }, 300);
+  }
+  console.log("[RENEW-DEBUG] Notifications panel closed");
+};
+
+async function loadData() {
+  state.pipelines = await getAdminPipelines();
+  state.fases = await getAdminFases();
+  state.campos = await getAdminCampos();
+  state.workers = await getAdminWorkers();
+  if(!state.activePipId && state.pipelines.length > 0) {
+    state.activePipId = state.pipelines[0].id;
+  }
+}
+window.loadData = loadData;
+
+function setGlobalButton(show, html, className = "btn-premium flex items-center gap-3 px-6 py-3 shadow-lg") {
+  const btn = document.getElementById('btn-global-action');
+  if (!btn) return;
+  if (!show) {
+    btn.classList.add('hidden');
+    btn.style.setProperty('display', 'none', 'important');
+  } else {
+    btn.innerHTML = html;
+    btn.className = className;
+    btn.classList.remove('hidden');
+    btn.style.setProperty('display', 'flex', 'important');
+  }
+}
+
+window.showProblemModal = (proyId) => {
+    const db = getDB();
+    const proy = (db.Proyectos_Dinamicos || []).find(p => p.id === proyId);
+    if (!proy) return;
+    
+    // Parse if it happens to be stringified
+    let discusion = proy.discusion || [];
+    if (typeof discusion === 'string') {
+        try { discusion = JSON.parse(discusion); } catch(e) { discusion = []; }
+    }
+    
+    const listHtml = discusion.length > 0 
+        ? discusion.map(msg => `
+            <div style="background:var(--surface-alt, #f9fafb); border:1px solid var(--border, #e5e7eb); padding:12px; border-radius:8px;">
+                <div style="font-size:0.75rem; font-weight:bold; color:var(--text-muted, #6b7280); margin-bottom:4px;">${new Date(msg.date).toLocaleString()}</div>
+                <div style="font-size:0.85rem; color:var(--text-primary, #111827);">${msg.text}</div>
+            </div>
+          `).join('')
+        : `<div style="text-align:center; color:var(--text-muted, #6b7280); font-size:0.85rem; padding:20px;">No hay comentarios registrados.</div>`;
+    
+    const m = document.createElement('div');
+    m.className = 'fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn';
+    m.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1c23] w-full max-w-lg rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-scaleIn">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-red-50 dark:bg-red-500/10">
+                <h3 class="font-black text-red-600 dark:text-red-400 uppercase tracking-widest text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Discusión Interna
+                </h3>
+                <button onclick="this.closest('.fixed').remove()" class="text-red-400 hover:text-red-600 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 max-h-[60vh] overflow-y-auto flex flex-col gap-3">
+                ${listHtml}
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-white/10 flex justify-end">
+                <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-800 dark:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">Cerrar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(m);
+};
+
+window.renderView = async function renderView() {
+  let db = getDB();
+  if (!db) return; // Wait for initDB if called too early
+  
+  // Toggle Search Bar Visibility
+  const searchInput = document.getElementById('global-search-input');
+  if (searchInput) {
+      if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
+          searchInput.parentElement.style.display = 'block';
+      } else {
+          searchInput.parentElement.style.display = 'none';
+          searchInput.value = ''; // clear when hidden
+      }
+  }
+
+  // Sync statuses/departments before any render
+  syncClientStatuses(db);
+  // Re-read db after sync might have changed it
+  db = getDB();
+
+  // Hide arrows by default using opacity classes (avoids display + CSP conflicts)
+  const sl = document.getElementById('ctrl-scroll-left');
+  const sr = document.getElementById('ctrl-scroll-right');
+  if(sl) { sl.classList.add('opacity-0', 'pointer-events-none'); sl.classList.remove('opacity-100', 'pointer-events-auto'); }
+  if(sr) { sr.classList.add('opacity-0', 'pointer-events-none'); sr.classList.remove('opacity-100', 'pointer-events-auto'); }
+
+  if (state.activeView === 'constructor') {
+    UI.viewTitle.textContent = "Workflow Constructor";
+    UI.viewDesc.textContent = "Engineer the phases and dynamic fields for the RENEW Ecosystem.";
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> New Pipeline');
+    renderConstructor();
+  } 
+  else if (state.activeView === 'crm' || state.activeView === 'crm_maestro') {
+    UI.viewTitle.textContent = t('crm_title');
+    UI.viewDesc.textContent = t('crm_desc');
+    setGlobalButton(true, `<i class="fa-solid fa-user-plus"></i> ${t('crm_btn_add')}`);
+
+    // ── Build a responsable lookup: clienteId → worker name ─────────
+    const allWorkers = await getAdminWorkers(); // mock + dynamic merged
+    const allProys = db.Proyectos_Dinamicos || [];
+
+    // For each client, find their MOST RECENT project and get responsable_id
+    const repByClientId = {};
+    allProys.forEach(p => {
+      if (!p.cliente_id || !p.responsable_id) return;
+      const existing = repByClientId[p.cliente_id];
+      // Keep the project with the latest fecha (string comparison works for ISO dates)
+      if (!existing || (p.fecha || '') >= (existing.fecha || '')) {
+        repByClientId[p.cliente_id] = { responsable_id: p.responsable_id, fecha: p.fecha };
+      }
+    });
+
+    function getRepName(c) {
+      if (c.vendedor_asignado_id) {
+          const worker = allWorkers.find(w => w.id === c.vendedor_asignado_id);
+          if (worker) return [worker.nombre, worker.apellido].filter(Boolean).join(' ');
+      }
+      const entry = repByClientId[c.id];
+      if (!entry) return null;
+      const worker = allWorkers.find(w => w.id === entry.responsable_id);
+      if (!worker) return null;
+      return [worker.nombre, worker.apellido].filter(Boolean).join(' ');
+    }
+    // ────────────────────────────────────────────────────────────────
+    
+    let clientesFiltrados = db.Clientes_Maestro || [];
+    if (window.globalSearchQuery) {
+        clientesFiltrados = clientesFiltrados.filter(c => {
+            const repData = repByClientId[c.id];
+            const dateStr = repData ? (repData.fecha || '') : '';
+            const repName = getRepName(c) || '';
+            const searchStr = `${c.nombre || ''} ${c.telefono || ''} ${c.empresa || ''} ${c.estado || ''} ${c.state_id || ''} ${dateStr} ${repName}`.toLowerCase();
+            return searchStr.includes(window.globalSearchQuery);
+        });
+    }
+
+    const rows = clientesFiltrados.map(c => {
+      const repName = getRepName(c);
+      const repHtml = repName
+        ? `<div class="flex items-center gap-1.5">
+             <div class="w-5 h-5 rounded-full bg-tealAccent/10 flex items-center justify-center shrink-0">
+               <i class="fa-solid fa-user-tie text-tealAccent text-[7px]"></i>
+             </div>
+             <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[100px]">${repName}</span>
+           </div>`
+        : `<span class="text-[9px] text-gray-300 dark:text-gray-700 italic">Sin asignar</span>`;
+
+      // ORIGEN BADGE — 3 tipos: call_center | vendedor | referido
+      let origenHtml = `<span class="text-[9px] text-gray-300 dark:text-gray-600 italic">–</span>`;
+      if (c.origen_tipo === 'call_center') {
+        origenHtml = `
+          <div class="flex items-center gap-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <i class="fa-solid fa-headset text-[7px]"></i> CC
+            </span>
+            <span class="text-[9px] font-bold text-gray-600 dark:text-gray-400 truncate max-w-[80px]" title="${c.origen_nombre || ''}">${c.origen_nombre || ''}</span>
+          </div>`;
+      } else if (c.origen_tipo === 'vendedor') {
+        origenHtml = `
+          <div class="flex items-center gap-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <i class="fa-solid fa-handshake text-[7px]"></i> Vend.
+            </span>
+            <span class="text-[9px] font-bold text-gray-600 dark:text-gray-400 truncate max-w-[80px]" title="${c.origen_nombre || ''}">${c.origen_nombre || ''}</span>
+          </div>`;
+      } else if (c.origen_tipo === 'referido') {
+        origenHtml = `
+          <div class="flex items-center gap-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <i class="fa-solid fa-user-group text-[7px]"></i> Ref.
+            </span>
+            <span class="text-[9px] font-bold text-gray-600 dark:text-gray-400 truncate max-w-[80px]" title="${c.origen_nombre || ''}">${c.origen_nombre || ''}</span>
+          </div>`;
+      }
+
+      return [
+        `<input type="checkbox" class="cli-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${c.id}">`,
+        c.foto ? `<img src="${c.foto}" class="w-7 h-7 rounded-lg object-cover border border-gray-200 dark:border-white/5" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center&quot;><i class=&quot;fa-solid fa-user text-gray-400 dark:text-gray-700 text-[9px]&quot;></i></div>';">` : `<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center"><i class="fa-solid fa-user text-gray-400 dark:text-gray-700 text-[9px]"></i></div>`,
+        `<span class="font-black text-tealAccent text-[9px] uppercase tracking-wide">${c.state_id || 'Global'}</span>`,
+        `<a href="#" class="client-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight whitespace-nowrap min-w-[120px] inline-block" data-id="${c.id}">${c.nombre || 'Desconocido'}</a>`,
+        `<span class="text-gray-500 dark:text-gray-400 font-medium tracking-tighter text-xs whitespace-nowrap">${c.telefono || '-'}</span>`,
+        `<span class="text-gray-400 dark:text-gray-500 text-[10px] break-all min-w-[150px] inline-block">${c.email || 'Sin Email'}</span>`,
+        `<span class="text-gray-400 dark:text-gray-500 text-[10px] min-w-[200px] break-words inline-block" title="${c.direccion || ''}">${c.direccion || 'Pendiente'}</span>`,
+        (() => { const _da = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length ? c.departamentos_activos : (c.empresa ? [c.empresa.replace('Renew ','')] : []); return _da.length ? _da.map(d => { const _c = d.toLowerCase().includes('water') ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : d.toLowerCase().includes('solar') ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-lime-500/10 text-lime-500 border-lime-500/20'; return `<span class="inline-flex px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider ${_c} border">${d}</span>`; }).join(' ') : `<span class="text-gray-400 text-[9px] italic">Prospecto</span>`; })(),
+        origenHtml,
+        repHtml,
+        `<span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${c.estado === 'Completado' ? 'bg-tealAccent/10 text-tealAccent' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-600'} border border-gray-200 dark:border-white/5">${c.estado || 'Prospecto'}</span>`,
+        `<button class="btn-delete-client text-gray-300 hover:text-red-500 transition-colors" data-id="${c.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>`
+      ];
+    });
+
+    // ── CRM Sub-View Tabs: Table | Kanban Lifecycle ──
+    const crmTabsHtml = `
+      <div class="flex items-center gap-2 mb-5 mt-2" id="crm-view-tabs">
+        <button class="crm-sub-tab px-4 py-2 rounded-xl text-xs font-bold border transition-all ${!state.crmKanbanActive ? 'bg-tealAccent/10 text-tealAccent border-tealAccent/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-gray-200 dark:border-white/10 hover:text-tealAccent'}" data-crm-tab="table">
+          <i class="fa-solid fa-table-list mr-1"></i> Tabla CRM
+        </button>
+        <button class="crm-sub-tab px-4 py-2 rounded-xl text-xs font-bold border transition-all ${state.crmKanbanActive ? 'bg-tealAccent/10 text-tealAccent border-tealAccent/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-gray-200 dark:border-white/10 hover:text-tealAccent'}" data-crm-tab="kanban">
+          <i class="fa-solid fa-grip-vertical mr-1"></i> Kanban Ciclo de Vida
+        </button>
+      </div>
+    `;
+
+    if (state.crmKanbanActive) {
+      // ── KANBAN LIFECYCLE VIEW ──
+      const MACRO_COLS = [
+        { key: 'Prospecto',     emoji: '🔵', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
+        { key: 'En Proceso',    emoji: '🟡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
+        { key: 'Cliente Fiel',  emoji: '🟢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
+        { key: 'Cancelado',     emoji: '🔴', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+      ];
+
+      const allClientes = clientesFiltrados;
+      const columnsHtml = MACRO_COLS.map(col => {
+        const cardsInCol = allClientes.filter(c => (c.macro_estado || 'Prospecto') === col.key);
+        const cardsHtml = cardsInCol.map(c => {
+          const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length ? c.departamentos_activos : (c.departamento ? [c.departamento] : []);
+          const deptBadges = depts.map(d => {
+            const _nm = d.replace('Renew ','');
+            const dc = _nm.toLowerCase().includes('water') ? '#0ea5e9' : _nm.toLowerCase().includes('solar') ? '#f59e0b' : '#84cc16';
+            return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;background:${dc}15;color:${dc};border:1px solid ${dc}30;">${_nm}</span>`;
+          }).join(' ');
+          return `
+            <div class="kanban-card" draggable="true" data-client-id="${c.id}" style="
+              background:var(--kanban-card-bg, #fff);border:1px solid var(--kanban-card-border, rgba(0,0,0,0.06));
+              border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:grab;
+              transition:transform 0.15s ease, box-shadow 0.15s ease;
+            ">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">${c.nombre || 'Sin nombre'}</span>
+                <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">${c.state_id || ''}</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? '· ' + c.email : ''}</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">${deptBadges || '<span style="font-size:9px;color:#aaa;font-style:italic;">Sin departamento</span>'}</div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="kanban-column" data-macro="${col.key}" style="
+            flex:1;min-width:260px;max-width:340px;
+            background:${col.bg};border:1.5px solid ${col.border};border-radius:20px;
+            padding:0;display:flex;flex-direction:column;max-height:78vh;
+          ">
+            <div style="padding:16px 18px 12px;border-bottom:1px solid ${col.border};flex-shrink:0;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:1.1rem;">${col.emoji}</span>
+                  <span style="font-size:0.8rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
+                </div>
+                <span style="background:${col.color}18;color:${col.color};padding:2px 10px;border-radius:99px;font-size:11px;font-weight:900;">${cardsInCol.length}</span>
+              </div>
+            </div>
+            <div class="kanban-drop-zone" data-macro="${col.key}" style="
+              flex:1;overflow-y:auto;padding:20px 14px;min-height:400px;
+              transition:all 0.3s;border-radius:0 0 20px 20px;
+            ">
+              ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Arrastra clientes aquí</div>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      UI.canvas.innerHTML = `
+        <style>
+          .kanban-card { background: #ffffff; border: 1px solid rgba(0,0,0,0.08); }
+          .dark .kanban-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.08); }
+          .kanban-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+          .dark .kanban-card:hover { box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+          .kanban-card.dragging { opacity: 0.5; transform: rotate(2deg); }
+          .kanban-drop-zone.drag-over { background: rgba(0,245,212,0.08) !important; }
+        </style>
+        ${crmTabsHtml}
+        <div style="display:flex;gap:16px;overflow-x:auto;padding-bottom:20px;align-items:flex-start;">
+          ${columnsHtml}
+        </div>
+      `;
+
+      // ── Drag & Drop Logic ──
+      const cards = UI.canvas.querySelectorAll('.kanban-card');
+      const zones = UI.canvas.querySelectorAll('.kanban-drop-zone');
+
+      cards.forEach(card => {
+        card.addEventListener('dragstart', (e) => {
+          const cliId = card.dataset.clientId;
+          const _db = getDB();
+          const cli = (_db.Clientes_Maestro || []).find(c => c.id === cliId);
+          
+          // RULE: Don't allow moving "Cliente Fiel"
+          if (cli && cli.macro_estado === 'Cliente Fiel') {
+            e.preventDefault();
+            window.addNotification('CRM', 'Los clientes fieles no se pueden mover manualmente.', 'info');
+            return;
+          }
+
+          state.draggingClientId = cliId; // Global reliable tracking
+          card.classList.add('dragging', 'opacity-50');
+          e.dataTransfer.setData('text/plain', cliId);
+          e.dataTransfer.dropEffect = 'move';
+        });
+
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging', 'opacity-50');
+          state.draggingClientId = null;
+        });
+
+        card.addEventListener('click', async () => {
+          const cliId = card.dataset.clientId;
+          if (typeof window.showClientDetail === 'function') {
+            await window.showClientDetail(cliId);
+          }
+        });
+      });
+
+      zones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => { 
+          e.preventDefault(); 
+          zone.classList.add('drag-over'); 
+        });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+          
+          if (window.isKanbanMoving) return; // Prevent multiple simultaneous moves
+
+          const clientId = state.draggingClientId || e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text');
+          const newMacro = zone.dataset.macro;
+          
+          if (!clientId || !newMacro) return;
+
+          const _db = getDB();
+          const cli = (_db.Clientes_Maestro || []).find(c => c.id === clientId);
+          if (!cli || cli.macro_estado === newMacro) return;
+
+          const oldMacro = cli.macro_estado || 'Prospecto';
+          const oldEstado = cli.estado || 'Lead';
+
+          // Optimistic UI & Blocking
+          window.isKanbanMoving = true;
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.1);z-index:9999;cursor:wait;display:flex;align-items:center;justify-content:center;';
+          overlay.innerHTML = '<div class="bg-white p-4 rounded-xl shadow-xl flex items-center gap-3"><i class="fa-solid fa-circle-notch fa-spin text-tealAccent"></i> <span class="text-xs font-bold uppercase">Actualizando...</span></div>';
+          document.body.appendChild(overlay);
+
+          // Update multiple fields for better persistence compatibility
+          cli.macro_estado = newMacro;
+          cli.estado = newMacro; // Sync standard field
+          if (newMacro === 'Cancelado') {
+            cli.departamento = 'CANCELADO'; // Force legacy field as backup
+          }
+
+          try {
+            await saveDB(_db);
+            window.addNotification('CRM', `${cli.nombre} movido a ${newMacro}`, 'success');
+            await renderView();
+          } catch (err) {
+            console.error(err);
+            cli.macro_estado = oldMacro; // Rollback
+            cli.estado = oldEstado;
+            window.addNotification('Error', 'No se pudo persistir el cambio', 'error');
+            await renderView();
+          } finally {
+            overlay.remove();
+            window.isKanbanMoving = false;
+          }
+        });
+      });
+
+      // Tab switcher
+      UI.canvas.querySelectorAll('.crm-sub-tab').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          state.crmKanbanActive = btn.dataset.crmTab === 'kanban';
+          await renderView();
+        });
+      });
+
+    } else {
+      // ── TABLE VIEW (original) ──
+      renderTable(
+        [`<button id="btn-bulk-delete-cli" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('crm_col_id'), t('crm_col_source'), t('crm_col_name'), t('crm_col_contact'), t('crm_col_email'), t('crm_col_address'), t('crm_col_dept'), 'ORIGEN', t('crm_col_rep'), t('crm_col_status'), ""],
+        rows
+      );
+
+      // Prepend the tabs before the table
+      const tableWrap = UI.canvas.querySelector('.overflow-x-auto') || UI.canvas.firstElementChild;
+      if (tableWrap) tableWrap.insertAdjacentHTML('beforebegin', crmTabsHtml);
+
+      // Tab switcher
+      UI.canvas.querySelectorAll('.crm-sub-tab').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          state.crmKanbanActive = btn.dataset.crmTab === 'kanban';
+          await renderView();
+        });
+      });
+    }
+  } else if (state.activeView === 'hrhub') {
+    UI.viewTitle.textContent = "HR Hub";
+    UI.viewDesc.textContent = "Centro de RRHH - Gestión de Talento y Onboarding";
+    setGlobalButton(false, ''); 
+    await renderHRHub();
+  } else if (state.activeView === 'mapa-admin') {
+    UI.viewTitle.innerHTML = '<i class="fa-solid fa-map-location-dot text-tealAccent"></i> Mapa Clientes';
+    UI.viewDesc.textContent = 'Ubicación global de todos los clientes en Renew OS.';
+    setGlobalButton(false, '');
+    
+    UI.canvas.innerHTML = `
+      <div class="mt-6 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-premium transition-all animate-fadeIn">
+        <div id="admin-map" style="width: 100%; height: 750px; border-radius: 12px;"></div>
+      </div>
+    `;
+
+    setTimeout(async () => {
+      const mapEl = document.getElementById('admin-map');
+      if (mapEl && window.google && window.google.maps) {
+        const map = new google.maps.Map(mapEl, {
+          center: { lat: 39.8283, lng: -98.5795 }, // USA center
+          zoom: 4,
+          mapTypeControl: false,
+          streetViewControl: false
+        });
+
+        // Add Legend
+        const legend = document.createElement('div');
+        legend.innerHTML = `
+          <div style="background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); font-size: 11px; font-weight: bold; margin: 10px;">
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><img src="http://maps.google.com/mapfiles/ms/icons/yellow-dot.png" style="width:16px; margin-right:4px;"> Renew Home</div>
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><img src="http://maps.google.com/mapfiles/ms/icons/green-dot.png" style="width:16px; margin-right:4px;"> Renew Solar</div>
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><img src="http://maps.google.com/mapfiles/ms/icons/blue-dot.png" style="width:16px; margin-right:4px;"> Renew Water</div>
+            <div style="display:flex; align-items:center;"><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png" style="width:16px; margin-right:4px;"> Global / Otro</div>
+          </div>
+        `;
+        map.controls[google.maps.ControlPosition.RIGHT_TOP].push(legend);
+
+        const geocoder = new google.maps.Geocoder();
+        const bounds = new google.maps.LatLngBounds();
+        let validMarkers = 0;
+
+        let workers = [];
+        try { workers = await getAdminWorkers(); } catch(e){}
+
+        const db = getDB();
+        const clientes = db.Clientes_Maestro || [];
+        const repByClientId = {};
+        (db.Proyectos_Dinamicos || []).forEach(p => {
+          const existing = repByClientId[p.cliente_id];
+          if (!existing || (p.fecha || '') >= (existing.fecha || '')) {
+            repByClientId[p.cliente_id] = p.responsable_id;
+          }
+        });
+
+        clientes.forEach(c => {
+          if (c.direccion) {
+            geocoder.geocode({ address: c.direccion }, (results, status) => {
+              if (status === 'OK' && results[0]) {
+                let iconUrl = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+                const dpto = (c.empresa || '').toLowerCase();
+                if (dpto.includes('home')) iconUrl = 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                else if (dpto.includes('solar')) iconUrl = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+                else if (dpto.includes('water')) iconUrl = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+
+                const marker = new google.maps.Marker({
+                  map: map,
+                  position: results[0].geometry.location,
+                  title: c.nombre || 'Cliente',
+                  icon: iconUrl
+                });
+                
+                let repName = 'Sin asignar';
+                let repId = c.vendedor_asignado_id || repByClientId[c.id];
+                if (repId) {
+                  const worker = workers.find(w => w.id === repId);
+                  if (worker) repName = `${worker.nombre} ${worker.apellido || ''}`.trim();
+                }
+
+                const infoWindow = new google.maps.InfoWindow({
+                  content: `<div style="color:black; padding:5px; font-family: 'Inter', sans-serif;">
+                              <strong style="font-size: 14px;">${c.nombre} ${c.apellido || ''}</strong><br>
+                              <span style="font-size: 12px; color: #666; font-weight: bold; text-transform: uppercase;">🏭 ${c.empresa || 'Global'}</span><br>
+                              <span style="font-size: 12px; color: #00f5d4; font-weight: bold;">🧑‍💼 Rep: ${repName}</span><br>
+                              <span style="font-size: 12px; color: #666;">📞 ${c.telefono || 'Sin teléfono'}</span><br>
+                              <span style="font-size: 12px; color: #666;">🆔 ${c.state_id || 'Sin State ID'}</span><br>
+                              <div style="margin-top: 8px; font-size: 11px; padding: 4px 8px; background: #00f5d420; border: 1px solid #00f5d450; border-radius: 4px; display: inline-block; color: #0f8b78;">📍 ${c.direccion}</div>
+                            </div>`
+                });
+                marker.addListener('click', () => {
+                  infoWindow.open(map, marker);
+                });
+
+                bounds.extend(results[0].geometry.location);
+                validMarkers++;
+                if (validMarkers > 0) map.fitBounds(bounds);
+              }
+            });
+          }
+        });
+      }
+    }, 300);
+  } else if (state.activeView === 'calendario') {
+    UI.viewTitle.innerHTML = '<i class="fa-solid fa-calendar-days text-tealAccent"></i> Calendario Maestro';
+    UI.viewDesc.textContent = 'Gestión y sincronización en tiempo real con Google Calendar.';
+    setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> Añadir Evento');
+    renderCalendario();
+  } else if (state.activeView === 'usuarios' || state.activeView === 'equipo') {
+    UI.viewTitle.textContent = "Team Management & Collaborators";
+    UI.viewDesc.textContent = "Manage system access and roles for the RENEW mobile team.";
+    setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator');
+    
+    let items = await getAdminWorkers();
+    
+    if (window.globalSearchQuery) {
+        items = items.filter(u => {
+            const searchStr = `${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${u.rol || ''} ${u.email || ''} ${u.telefono || ''}`.toLowerCase();
+            return searchStr.includes(window.globalSearchQuery);
+        });
+    }
+
+    const headers = [`<button id="btn-bulk-delete-workers" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('team_col_worker'), t('team_col_division'), 'ECOSISTEMA', t('team_col_auth_email'), t('team_col_phone'), t('team_col_activity'), t('team_col_interface'), t('team_col_w9'), "ACCESO", ""];
+    const rowsHtml = items.map(u => {
+        const safeNombre = u.nombre || 'Worker';
+        const safeApellido = u.apellido || '';
+        const initial = u.initials || (safeNombre[0] || '?');
+        const dept = u.department || 'Renew Group';
+        const rol = u.rol || 'Vendedor';
+        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-7 h-7 rounded-lg object-cover border border-white/5" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]&quot;>${initial}</div>';">` : `<div class="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]">${initial}</div>`;
+        
+        return `
+            <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                <td class="px-4 py-2.5 w-4 text-center">
+                    <input type="checkbox" class="worker-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${u.id}">
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        ${fotoHtml}
+                        <div class="flex flex-col">
+                            <a href="#" class="worker-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight" data-id="${u.id}">${safeNombre} ${safeApellido}</a>
+                            <span class="text-[8px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-widest">${rol}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap">
+                    <span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">
+                        ${dept}
+                    </span>
+                </td>
+                <td class="px-4 py-2.5">
+                    <div class="flex flex-wrap gap-1">
+                        ${(u.unidades && u.unidades.length > 0) ? u.unidades.map(pip => `<span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-200 dark:border-blue-500/20">${pip}</span>`).join('') : '<span class="text-[8px] text-gray-400 dark:text-gray-600 italic">Sin Asignar</span>'}
+                    </div>
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.email || '-'}</td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.telefono || '-'}</td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-[9px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-tighter">Live Monitor</td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase">RENEW OS</td>
+                <td class="px-4 py-2.5 whitespace-nowrap">
+                    ${u.w9Url
+                      ? `<span class="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
+                           <i class="fa-solid fa-circle-check text-[7px]"></i> W-9 OK
+                         </span>`
+                      : `<span class="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
+                           <i class="fa-solid fa-triangle-exclamation text-[7px]"></i> Falta W-9
+                         </span>`
+                    }
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-center">
+                    <label class="relative inline-flex items-center cursor-pointer" title="${u.is_suspended ? 'Cuenta Inhabilitada' : 'Cuenta Activa'}">
+                      <input type="checkbox" class="sr-only peer toggle-worker-status" data-id="${u.id}" ${u.is_suspended ? '' : 'checked'}>
+                      <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
+                    </label>
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-right">
+                    <button class="btn-delete-worker text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    UI.canvas.innerHTML = `
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto hide-scrollbar">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                    <tr>
+                        ${headers.map(h => `<th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em]">${h}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                    ${rowsHtml}
+                </tbody>
+            </table>
+        </div>
+    `;
+  }
+  else if (state.activeView === 'proveedores') {
+    UI.viewTitle.textContent = "Partners Hub";
+    UI.viewDesc.textContent = "Directorio oficial de proveedores y subcontratistas.";
+    setGlobalButton(true, '<i class="fa-solid fa-handshake"></i> Add Partner');
+    
+    let items = (db.Admin_Proveedores || []);
+    
+    if (window.globalSearchQuery) {
+        items = items.filter(u => {
+            const searchStr = `${u.empresa || ''} ${u.contacto || ''} ${u.servicio || ''} ${u.telefono || ''} ${u.area || ''}`.toLowerCase();
+            return searchStr.includes(window.globalSearchQuery);
+        });
+    }
+
+    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
+    const rowsHtml = items.map(u => {
+        const safeEmpresa = u.empresa || 'Empresa Desconocida';
+        const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
+        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-7 h-7 rounded-lg object-cover border border-white/5">` : `<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]">${initial}</div>`;
+        
+        let servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">${u.servicio || 'General'}</span>`;
+        if (u.servicio === 'Fence') servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">🟩 Fence</span>`;
+        else if (u.servicio === 'Roof') servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">🟦 Roof</span>`;
+        else if (u.servicio === 'Solar') servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">🟧 Solar</span>`;
+
+        return `
+            <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                <td class="px-4 py-2.5 w-4 text-center">
+                    <input type="checkbox" class="partner-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${u.id}">
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        ${fotoHtml}
+                        <div class="flex flex-col">
+                            <a href="#" class="partner-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight" data-id="${u.id}">${safeEmpresa}</a>
+                            <span class="text-[8px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-widest">${u.contacto || 'Sin contacto'}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap">
+                    ${servicioHtml}
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.telefono || '-'}</td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.area || '-'}</td>
+                <td class="px-4 py-2.5 whitespace-nowrap flex gap-1">
+                    ${u.w9Url
+                      ? `<a href="${u.w9Url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
+                           <i class="fa-solid fa-file-invoice"></i> W-9 OK
+                         </a>`
+                      : `<span class="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/5 text-gray-400 border border-gray-200 dark:border-white/5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
+                           <i class="fa-solid fa-file-excel"></i> Sin W-9
+                         </span>`
+                    }
+                    ${u.seguroUrl
+                      ? `<a href="${u.seguroUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
+                           <i class="fa-solid fa-shield-halved"></i> Seguro OK
+                         </a>`
+                      : `<span class="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
+                           <i class="fa-solid fa-triangle-exclamation"></i> Sin Seguro
+                         </span>`
+                    }
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap text-right">
+                    <button class="btn-delete-partner text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    UI.canvas.innerHTML = `
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto hide-scrollbar">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                    <tr>
+                        ${headers.map(h => `<th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em]">${h}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                    ${rowsHtml}
+                </tbody>
+            </table>
+        </div>
+    `;
+  }
+  else if (state.activeView === 'kanban') {
+    UI.viewTitle.textContent = "Kanban Pulse";
+    UI.viewDesc.textContent = "Real-time visualization of all deals across the RENEW spectrum.";
+    setGlobalButton(false);
+    
+    const activePip = state.pipelines.find(p => p.id === state.activePipId) || state.pipelines[0];
+    if (!activePip) return UI.canvas.innerHTML = '<div class="py-20 text-center text-gray-600 font-black uppercase tracking-[0.3em]">System Offline: No Pipelines Installed</div>';
+    state.activePipId = activePip.id;
+
+    const tabsHtml = state.pipelines.map(p => `
+      <button class="pip-tab px-10 py-5 rounded-t-3xl font-black text-[10px] uppercase tracking-[0.2em] border-t-2 transition-all ${p.id === state.activePipId ? 'bg-white dark:bg-darkCard border-tealAccent text-tealAccent' : 'bg-transparent border-transparent text-gray-400 dark:text-gray-700 hover:text-tealAccent'}" data-id="${p.id}">
+        ${p.nombre}
+      </button>
+    `).join('');
+
+    const pFases = state.fases.filter(f => f.pipeline_id === state.activePipId).sort((a,b) => a.orden - b.orden);
+    const pDeals = (db.Proyectos_Dinamicos || []).filter(p => p.pipeline_id === state.activePipId);
+
+    const columnsHtml = pFases.map(f => {
+      const dealsInFase = pDeals.filter(d => d.fase_id === f.id);
+      const cardsHtml = dealsInFase.map(d => {
+        const cli = (db.Clientes_Maestro || []).find(c => c.id === d.cliente_id) || { nombre: 'Prospect Unknown' };
+        const resp = (db.Usuarios || []).find(u => u.id === d.responsable_id) || { nombre: 'System Admin', initials: 'SA' };
+        
+        return `
+          <div class="kanban-card bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-xl p-4 shadow-sm dark:shadow-premium hover:shadow-teal-glow hover:border-tealAccent/30 transition-all cursor-grab active:cursor-grabbing mb-3 group" draggable="true" data-proyectoid="${d.id}">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-[8px] font-black text-gray-400 dark:text-gray-700 uppercase tracking-widest">RENEW-${d.id.toUpperCase()}</span>
+              <div class="flex gap-2 items-center">
+                ${d.tiene_problema 
+                  ? `<span class="cursor-pointer flex items-center gap-1 bg-red-50 dark:bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-red-200 dark:border-red-500/20" onclick="event.stopPropagation(); window.showProblemModal('${d.id}')">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>
+                      PROBLEMA
+                    </span>`
+                  : ''}
+                ${d.ultima_actividad && (Date.now() - new Date(d.ultima_actividad).getTime() < 7200000) 
+                  ? `<span class="flex items-center gap-1 bg-tealAccent/10 text-tealAccent text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-tealAccent/20">
+                      <span class="w-1.5 h-1.5 rounded-full bg-tealAccent animate-pulse inline-block"></span>
+                      UPDATED
+                    </span>` 
+                  : `<div class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></div>`}
+              </div>
+            </div>
+            
+            <h4 class="text-gray-900 dark:text-white font-black text-sm mb-0.5 tracking-tighter limit-text-1 group-hover:text-tealAccent transition-colors">${cli.nombre}</h4>
+            <div class="flex items-center gap-2 mb-3">
+               <i class="fa-solid fa-clock text-[9px] text-gray-300 dark:text-gray-700"></i>
+               <span class="text-[9px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-tighter">${d.created_at || 'Recently synced'}</span>
+            </div>
+
+            ${d.ultima_actividad_label ? `
+            <div class="bg-gray-50 dark:bg-white/[0.03] rounded-lg px-2.5 py-1.5 mb-3 border border-gray-100 dark:border-white/5">
+              <p class="text-[8px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-0.5">Última Actividad</p>
+              <p class="text-[10px] font-bold text-gray-700 dark:text-gray-300 truncate">${d.ultima_actividad_label}</p>
+              <p class="text-[8px] text-gray-400 dark:text-gray-600">${d.ultima_actividad ? new Date(d.ultima_actividad).toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : ''}</p>
+            </div>` : ''}
+
+            <div class="flex items-center justify-between border-t border-gray-100 dark:border-white/5 pt-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-[9px] font-black text-tealAccent border border-gray-200 dark:border-white/10">
+                  ${resp.initials || 'UA'}
+                </div>
+                <div class="flex flex-col">
+                   <span class="text-[8px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-tighter">Assigned Head</span>
+                   <span class="text-[10px] text-gray-600 dark:text-gray-400 font-bold tracking-tight">${resp.nombre}</span>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <button class="btn-delete-kanban-project text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" data-id="${d.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                <i class="fas fa-ellipsis-v text-gray-300 dark:text-gray-700 group-hover:text-tealAccent transition-colors text-[10px]"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="kanban-col flex flex-col min-w-[260px] max-w-[260px] h-full" data-faseid="${f.id}">
+          <div class="px-4 py-3 mb-4 bg-white dark:bg-white/[0.01] rounded-xl border border-gray-100 dark:border-white/5 flex justify-between items-center shadow-sm dark:shadow-lg">
+            <h3 class="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-[0.2em] truncate mr-2 flex items-center gap-1">
+              ${f.nombre}
+              <button onclick="adminEditFaseName('${f.id}', event)" class="text-gray-300 hover:text-tealAccent transition-colors p-1 cursor-pointer" title="Editar nombre">
+                <i class="fa-solid fa-pen text-[7px]" style="pointer-events: none;"></i>
+              </button>
+            </h3>
+            <span class="bg-tealAccent/5 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black border border-tealAccent/10 shrink-0">${dealsInFase.length}</span>
+          </div>
+          <div class="kanban-drop-zone flex-1 overflow-y-auto pb-12 hide-scrollbar min-h-[500px]" data-faseid="${f.id}">
+            ${cardsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // --- Add a virtual "Finalizados" column at the end ---
+    const completedDeals = pDeals.filter(d => d.estado === 'Completado' || d.fase_id === 'Completado' || d.fase_id === null);
+    let completedColumnHtml = '';
+    if (completedDeals.length > 0) {
+      const cardsHtml = completedDeals.map(d => {
+        const cli = (db.Clientes_Maestro || []).find(c => c.id === d.cliente_id) || { nombre: 'Prospect Unknown' };
+        const resp = (db.Usuarios || []).find(u => u.id === d.responsable_id) || { nombre: 'System Admin', initials: 'SA' };
+        
+        return `
+          <div class="kanban-card bg-teal-50/50 dark:bg-teal-900/10 border border-teal-200 dark:border-teal-500/20 rounded-xl p-4 shadow-sm dark:shadow-premium hover:shadow-teal-glow transition-all cursor-grab active:cursor-grabbing mb-3 group" draggable="true" data-proyectoid="${d.id}">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-[8px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">RENEW-${d.id.toUpperCase()} (COMPLETADO)</span>
+              <div class="flex gap-2 items-center">
+                ${d.tiene_problema 
+                  ? `<span class="cursor-pointer flex items-center gap-1 bg-red-50 dark:bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-red-200 dark:border-red-500/20" onclick="event.stopPropagation(); window.showProblemModal('${d.id}')">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>
+                      PROBLEMA
+                    </span>`
+                  : ''}
+                <div class="w-2 h-2 rounded-full bg-teal-500"></div>
+              </div>
+            </div>
+            
+            <h4 class="text-gray-900 dark:text-white font-black text-sm mb-0.5 tracking-tighter limit-text-1 group-hover:text-tealAccent transition-colors">${cli.nombre}</h4>
+            <div class="flex items-center gap-2 mb-3">
+               <i class="fa-solid fa-check-circle text-[9px] text-teal-500"></i>
+               <span class="text-[9px] text-teal-600 dark:text-teal-400 font-black uppercase tracking-tighter">Proyecto Finalizado</span>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-teal-100 dark:border-white/5 pt-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-500/20 flex items-center justify-center text-[9px] font-black text-teal-600 border border-teal-200 dark:border-teal-500/30">
+                  ${resp.initials || 'UA'}
+                </div>
+                <div class="flex flex-col">
+                   <span class="text-[8px] text-teal-600 dark:text-teal-400 font-black uppercase tracking-tighter">Account Owner</span>
+                   <span class="text-[10px] text-teal-700 dark:text-teal-300 font-bold tracking-tight">${resp.nombre}</span>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <button class="btn-delete-kanban-project text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" data-id="${d.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      completedColumnHtml = `
+        <div class="kanban-col flex flex-col min-w-[260px] max-w-[260px] h-full" data-faseid="Completado">
+          <div class="px-4 py-3 mb-4 bg-teal-50 dark:bg-teal-500/5 rounded-xl border border-teal-100 dark:border-teal-500/10 flex justify-between items-center shadow-sm dark:shadow-lg">
+            <h3 class="text-[9px] font-black text-teal-700 dark:text-teal-400 uppercase tracking-[0.2em] truncate mr-2 flex items-center gap-1">
+              <i class="fa-solid fa-flag-checkered"></i> FINALIZADOS
+            </h3>
+            <span class="bg-teal-500/10 text-teal-600 text-[9px] px-2 py-0.5 rounded-full font-black border border-teal-500/20 shrink-0">${completedDeals.length}</span>
+          </div>
+          <div class="kanban-drop-zone flex-1 overflow-y-auto pb-12 hide-scrollbar min-h-[500px]" data-faseid="Completado">
+            ${cardsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    UI.canvas.innerHTML = `
+      <div class="flex gap-4 border-b border-gray-100 dark:border-white/5 mb-10 overflow-x-auto hide-scrollbar">
+        ${tabsHtml}
+      </div>
+      <div class="scroll-container-kanban flex flex-nowrap gap-4 overflow-x-auto h-[calc(100vh-280px)] items-start pb-12 hide-scrollbar scroll-smooth" id="kanban-wrapper" style="width: 100%; max-width: 100%;">
+        ${columnsHtml}
+        ${completedColumnHtml}
+      </div>
+    `;
+
+    // Arrows Logic for Kanban
+    setTimeout(() => {
+      const wrap = document.getElementById('kanban-wrapper');
+      const l = document.getElementById('ctrl-scroll-left');
+      const r = document.getElementById('ctrl-scroll-right');
+      if (!wrap || !l || !r) return;
+
+      // Always make arrows visible initially by using Tailwind classes
+      l.classList.remove('hidden');
+      r.classList.remove('hidden');
+
+      let move;
+      l.onmouseenter = () => { move = setInterval(() => { wrap.scrollLeft -= 15; updateArrows(); }, 16); };
+      r.onmouseenter = () => { move = setInterval(() => { wrap.scrollLeft += 15; updateArrows(); }, 16); };
+      [l, r].forEach(btn => btn.onmouseleave = () => clearInterval(move));
+      function updateArrows() {
+        const wrapDyn = document.getElementById('kanban-wrapper');
+        if (!wrapDyn || !l || !r) return;
+        const maxScroll = wrapDyn.scrollWidth - wrapDyn.clientWidth;
+        
+        const atStart = wrapDyn.scrollLeft <= 10;
+        const atEnd = wrapDyn.scrollLeft >= maxScroll - 10;
+
+        if (atStart) {
+            l.classList.add('opacity-0', 'pointer-events-none');
+            l.classList.remove('opacity-100', 'pointer-events-auto');
+        } else {
+            l.classList.remove('opacity-0', 'pointer-events-none');
+            l.classList.add('opacity-100', 'pointer-events-auto');
+        }
+
+        if (atEnd) {
+            r.classList.add('opacity-0', 'pointer-events-none');
+            r.classList.remove('opacity-100', 'pointer-events-auto');
+        } else {
+            r.classList.remove('opacity-0', 'pointer-events-none');
+            r.classList.add('opacity-100', 'pointer-events-auto');
+        }
+      }
+      wrap.addEventListener('scroll', updateArrows);
+      window.addEventListener('resize', updateArrows);
+      
+      // Robust observation
+      if (window._kanbanArrowInterval) clearInterval(window._kanbanArrowInterval);
+      window._kanbanArrowInterval = setInterval(updateArrows, 500);
+      updateArrows();
+    }, 200);
+
+    // ─── Kanban Project Drawer ─────────────────────────────────────
+    renderView._openKanbanDrawer = openKanbanDrawer;
+  }
+  else if (state.activeView === 'rendimiento-global') {
+    UI.viewTitle.textContent = "Rendimiento Global";
+    UI.viewDesc.textContent = "Monitorea el progreso de todo el equipo de ventas en tiempo real.";
+    setGlobalButton(false);
+    renderRendimientoGlobal();
+  }
+  else if (state.activeView === 'marketing') {
+    UI.viewTitle.textContent = "Intelligence: Email Engine";
+    UI.viewDesc.textContent = "Deploy automated email sequences synchronized with CRM signals.";
+    setGlobalButton(false);
+    
+    UI.canvas.innerHTML = `
+      <div class="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+        <div class="flex items-center justify-between bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 rounded-2xl bg-tealAccent/5 flex items-center justify-center text-tealAccent border border-tealAccent/10">
+              <i class="fa-solid fa-microchip text-2xl"></i>
+            </div>
+            <div>
+              <p class="aqua-label mb-1 uppercase text-[9px]">Target Engine Segment</p>
+              <select id="mk-audiencia" class="bg-transparent border-none text-xl font-black text-gray-900 dark:text-white p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors">
+                <option value="Todos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Global Network</option>
+                <option value="Solar" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Solar Leads</option>
+                <option value="Water" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Water Leads</option>
+                <option value="clientes_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Manual Selection</option>
+                <option value="todos_trabajadores" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Internal Team</option>
+                <option value="trabajadores_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Collaborator Selection</option>
+              </select>
+            </div>
+          </div>
+          <div class="text-right">
+             <div class="px-4 py-2 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-black rounded-xl border border-gray-100 dark:border-white/10 uppercase tracking-[0.2em]">Engine Status: Standby</div>
+          </div>
+        </div>
+
+        <div id="mk-seleccion-especifica" class="hidden mt-[-2.5rem] p-8 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-3xl shadow-inner max-h-80 overflow-y-auto animate-slideDown hide-scrollbar"></div>
+
+        <div id="mk-secuencia-container" class="space-y-4">
+          ${crearPasoMarketingHTML(1)}
+        </div>
+
+        <div class="flex gap-4 pt-6">
+           <button id="btn-add-paso" class="flex-1 py-4 bg-gray-50 dark:bg-white/5 hover:bg-tealAccent/10 text-gray-400 dark:text-gray-600 hover:text-tealAccent rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 border border-gray-100 dark:border-white/5">
+             <i class="fa-solid fa-plus-circle text-lg"></i> Add Sequence Step
+           </button>
+           <button id="btn-enviar-campana" class="px-10 py-4 bg-tealAccent text-black rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 shadow-sm hover:shadow-teal-glow hover:scale-[1.02] active:scale-95">
+             <i class="fa-solid fa-bolt-lightning text-lg"></i> Ignite Engine
+           </button>
+        </div>
+      </div>
+    `;
+  }
+  else if (state.activeView === 'whatsapp') {
+    UI.viewTitle.textContent = "Intelligence: WA Reactor";
+    UI.viewDesc.textContent = "Autonomous WhatsApp automation protocols for direct device infiltration.";
+    setGlobalButton(false);
+    
+    UI.canvas.innerHTML = `
+      <div class="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+        <div class="flex items-center justify-between bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
+          <div class="flex items-center gap-5">
+            <div class="w-12 h-12 rounded-2xl bg-green-500/5 flex items-center justify-center text-green-400 border border-green-500/10">
+              <i class="fa-brands fa-whatsapp text-2xl"></i>
+            </div>
+            <div>
+              <p class="aqua-label mb-1 uppercase text-[9px]">WA Protocol Segment</p>
+              <select id="wa-audiencia" class="bg-transparent border-none text-xl font-black text-gray-900 dark:text-white p-0 focus:ring-0 cursor-pointer hover:text-green-400 transition-colors">
+                <option value="Todos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Global Network</option>
+                <option value="Solar" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Solar Leads</option>
+                <option value="Water" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Water Leads</option>
+                <option value="clientes_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Manual Selection</option>
+                <option value="todos_trabajadores" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Internal Team</option>
+                <option value="trabajadores_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Collaborator Selection</option>
+              </select>
+            </div>
+          </div>
+          <div class="text-right">
+             <div class="px-4 py-2 bg-gray-50 dark:bg-white/5 text-green-500/60 text-[10px] font-black rounded-xl border border-gray-200 dark:border-white/10 uppercase tracking-[0.2em]">Reactor Active</div>
+          </div>
+        </div>
+
+        <div id="wa-seleccion-especifica" class="hidden mt-[-2.5rem] p-8 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-3xl shadow-inner max-h-80 overflow-y-auto animate-slideDown hide-scrollbar"></div>
+
+        <div id="wa-secuencia-container" class="space-y-4">
+          ${crearPasoWhatsAppHTML(1)}
+        </div>
+
+        <div class="flex gap-4 pt-6">
+           <button id="btn-add-wa-paso" class="flex-1 py-4 bg-gray-50 dark:bg-white/5 hover:bg-green-500/10 text-gray-400 dark:text-gray-600 hover:text-green-500 rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 border border-gray-100 dark:border-white/5">
+             <i class="fa-solid fa-plus-circle text-lg"></i> Append Automation
+           </button>
+           <button id="btn-enviar-wa-campana" class="px-10 py-4 bg-green-500 text-black rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 shadow-sm hover:shadow-green-500/30 hover:scale-[1.02] active:scale-95">
+             <i class="fa-solid fa-satellite-dish text-lg"></i> Broadcast Signal
+           </button>
+        </div>
+      </div>
+    `;
+  }
+  else if (state.activeView === 'academia') {
+    UI.viewTitle.textContent = "Gestor Academia";
+    UI.viewDesc.textContent = "Sube y administra el contenido de formación y biblioteca virtual.";
+    setGlobalButton(false);
+    
+    const dbLocal = getDB();
+    const academiaContent = dbLocal.academiaContent || [];
+    
+    let finalPips = (state.pipelines || []).map(p => p.nombre);
+
+    const pipsOptionsHtml = finalPips.map(pipName => `
+      <label class="flex items-center gap-2 p-3 rounded-xl border border-gray-100 dark:border-white/5 cursor-pointer hover:border-tealAccent/30 hover:bg-tealAccent/5 transition-all group">
+        <input type="checkbox" class="aca-pip-chk w-4 h-4 rounded border-gray-300 dark:border-white/10 accent-tealAccent" value="${pipName}">
+        <span class="text-[11px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-tighter group-hover:text-tealAccent transition-colors">${pipName}</span>
+      </label>
+    `).join('');
+
+    const contentListHtml = academiaContent.map((item, idx) => `
+       <div class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl mb-3 flex justify-between items-center hover:border-tealAccent/40 transition-all">
+         <div>
+            <h4 class="font-bold text-gray-800 dark:text-white text-sm mb-1">${item.titulo}</h4>
+            <div class="flex items-center gap-2 text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-widest">
+               <i class="fa-solid ${item.tipo.includes('Video') ? 'fa-play' : 'fa-file'}"></i> ${item.tipo}
+            </div>
+            <div class="flex flex-wrap gap-1">${item.permisos.map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
+         </div>
+         <div class="flex items-center gap-2">
+            <button class="text-tealAccent/50 hover:text-tealAccent hover:bg-tealAccent/10 p-2.5 rounded-lg transition-all" onclick="window.adminEditAcademia('${item.id}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+            <button class="text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2.5 rounded-lg transition-all" onclick="window.adminDeleteAcademia('${item.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+         </div>
+       </div>
+    `).join('');
+
+    UI.canvas.innerHTML = `
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto animate-fadeIn">
+         <!-- FORM -->
+         <div class="bg-white dark:bg-darkCard p-8 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+               <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">${t('aca_add_title')}</h3>
+               <div class="w-10 h-10 rounded-2xl bg-tealAccent/10 flex items-center justify-center text-tealAccent">
+                  <i class="fa-solid fa-cloud-arrow-up"></i>
+               </div>
+            </div>
+            
+            <label class="aqua-label">${t('aca_field_title')}</label>
+            <input type="text" id="aca-titulo" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="...">
+            
+            <label class="aqua-label">${t('aca_field_type')}</label>
+            <select id="aca-tipo" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
+               <option value="Video de Entrenamiento">${t('aca_type_video')}</option>
+               <option value="Documento/PDF">${t('aca_type_doc')}</option>
+               <option value="Información Bancaria">${t('aca_type_bank')}</option>
+               <option value="Detalles de equipo">${t('aca_type_equipment')}</option>
+               <option value="FAQ">${t('aca_type_faq')}</option>
+            </select>
+
+            <label class="aqua-label">${t('aca_field_file')}</label>
+            <input type="file" id="aca-file" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" accept=".mp4,.pdf,.doc,.docx">
+
+            <div id="aca-thumb-wrap" class="mt-4 mb-4" style="display:none;">
+              <label class="aqua-label">${t('aca_upload_label')}</label>
+              <input type="file" id="archivoMiniatura" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-6 focus:border-tealAccent focus:outline-none" accept="image/jpeg, image/png, image/webp">
+            </div>
+
+            <label class="aqua-label">${t('aca_field_vis')}</label>
+            <p class="text-[10px] text-gray-400 mb-3 ml-1">Selecciona qué unidades pueden ver este recurso en la app móvil.</p>
+            <div class="grid grid-cols-2 gap-3 mb-8">
+              ${pipsOptionsHtml}
+            </div>
+
+            <div class="flex gap-3">
+               <button id="btn-save-academia" class="flex-1 btn-premium py-4 rounded-xl text-xs tracking-widest font-black uppercase">
+                  <i class="fa-solid fa-save"></i> ${t('aca_btn_save')}
+               </button>
+               <button id="aca-cancel-edit" class="hidden px-6 py-4 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 font-black text-xs uppercase tracking-widest rounded-xl transition-colors">
+                  ${t('aca_btn_cancel')}
+               </button>
+            </div>
+         </div>
+         
+         <!-- LIST -->
+         <div class="bg-white dark:bg-darkCard p-8 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+               <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Biblioteca Activa</h3>
+               <span class="bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full text-xs font-bold text-gray-500">${academiaContent.length} items</span>
+            </div>
+            <div class="overflow-y-auto max-h-[600px] hide-scrollbar custom-scrollbar pr-2">
+              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Base de datos vacía</p></div>'}
+            </div>
+         </div>
+      </div>
+    `;
+
+    document.getElementById('btn-save-academia').addEventListener('click', async () => {
+       const btnSave = document.getElementById('btn-save-academia');
+       const originalHtml = btnSave.innerHTML;
+       const editId = btnSave.dataset.editId;
+       
+       const titulo = document.getElementById('aca-titulo').value.trim();
+       const tipo = document.getElementById('aca-tipo').value;
+       const fileInput = document.getElementById('aca-file');
+       const miniaturaInput = document.getElementById('archivoMiniatura');
+       const file = fileInput.files[0];
+       const miniaturaFile = miniaturaInput ? miniaturaInput.files[0] : null;
+       const permisos = Array.from(document.querySelectorAll('.aca-pip-chk:checked')).map(cb => cb.value);
+
+       if(!titulo || (!file && !editId)) {
+          window.addNotification('Gestor Academia', editId ? 'El título es obligatorio' : 'El título y el archivo adjunto son obligatorios', 'error');
+          return;
+       }
+       if(permisos.length === 0) {
+          window.addNotification('Gestor Academia', 'Selecciona al menos un ecosistema autorizado', 'error');
+          return;
+       }
+
+       btnSave.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
+       btnSave.disabled = true;
+
+       try {
+           let videoUrl = null;
+           let miniaturaUrl = null;
+
+           if(file || miniaturaFile) {
+               const formData = new FormData();
+               if(file) formData.append('video', file);
+               if(miniaturaFile) formData.append('miniatura', miniaturaFile);
+
+               let response;
+               try {
+                   response = await fetch('http://localhost:3001/api/upload-academia', {
+                       method: 'POST',
+                       body: formData
+                   });
+               } catch (fetchErr) {
+                   console.error('Fetch check:', fetchErr);
+                   throw new Error('No se pudo conectar con el servidor de subida (puerto 3001). Asegúrate de realizar "npm run server" en una terminal aparte.');
+               }
+
+               const data = await response.json();
+
+               if (!data.success) {
+                   throw new Error(data.message || 'Error al subir archivo');
+               }
+               
+               if(data.videoUrl) videoUrl = data.videoUrl;
+               if(data.miniaturaUrl) miniaturaUrl = data.miniaturaUrl;
+           }
+
+           const db = getDB();
+           if(!db.academiaContent) db.academiaContent = [];
+           
+           if(editId) {
+               const item = db.academiaContent.find(i => i.id === editId);
+               if(item) {
+                   item.titulo = titulo;
+                   item.tipo = tipo;
+                   item.permisos = permisos;
+                   if(videoUrl) item.enlace = videoUrl;
+                   if(miniaturaUrl) item.miniaturaUrl = miniaturaUrl;
+               }
+           } else {
+               db.academiaContent.push({
+                   id: 'req_' + Date.now().toString(36),
+                   titulo, 
+                   tipo, 
+                   enlace: videoUrl, 
+                   miniaturaUrl: miniaturaUrl,
+                   permisos,
+                   fecha_creacion: new Date().toISOString()
+               });
+           }
+           
+           await saveDB(db);
+
+           document.getElementById('aca-titulo').value = '';
+           fileInput.value = '';
+           if(miniaturaInput) miniaturaInput.value = '';
+           document.querySelectorAll('.aca-pip-chk').forEach(chk => chk.checked = false);
+           delete btnSave.dataset.editId;
+           document.getElementById('aca-cancel-edit').classList.add('hidden');
+           btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Material';
+           btnSave.disabled = false;
+
+           await renderView();
+           window.addNotification('Gestor Academia', editId ? 'Material actualizado exitosamente' : 'Material publicado exitosamente', 'success');
+       } catch (err) {
+           console.error('Upload Error:', err);
+           window.addNotification('Gestor Academia', 'Error en guardado: ' + err.message, 'error');
+           btnSave.innerHTML = originalHtml;
+           btnSave.disabled = false;
+       }
+    });
+
+    document.getElementById('aca-cancel-edit').addEventListener('click', () => {
+       document.getElementById('aca-titulo').value = '';
+       document.getElementById('aca-file').value = '';
+       const minInput = document.getElementById('archivoMiniatura');
+       if(minInput) minInput.value = '';
+       document.querySelectorAll('.aca-pip-chk').forEach(c => c.checked = false);
+
+       const btnSave = document.getElementById('btn-save-academia');
+       btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Material';
+       delete btnSave.dataset.editId;
+       document.getElementById('aca-cancel-edit').classList.add('hidden');
+       
+       const thumbWrap = document.getElementById('aca-thumb-wrap');
+       const acaTipoVal = document.getElementById('aca-tipo');
+       if(thumbWrap) thumbWrap.style.display = (acaTipoVal && acaTipoVal.value === 'Video de Entrenamiento') ? 'block' : 'none';
+    });
+
+    // Al cambiar el tipo de contenido, ocultamos o mostramos el campo de miniatura
+    const acaTipoSelect = document.getElementById('aca-tipo');
+    const thumbWrapCont = document.getElementById('aca-thumb-wrap');
+    if(acaTipoSelect && thumbWrapCont) {
+       // Mostrar/ocultar al cargar según valor inicial
+       thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
+       acaTipoSelect.addEventListener('change', () => {
+          thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
+       });
+    }
+
+  }
+  else if (state.activeView === 'inventario') {
+    const ecoFilter = state.activeEcoFilter || 'solar';
+    UI.viewTitle.textContent = `${t('inv_title').toUpperCase()} - RENEW ${ecoFilter.toUpperCase()}`;
+    UI.viewDesc.textContent = t('inv_desc');
+    setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> ${t('inv_btn_add')}`);
+    
+    const activeInventorySede = state.activeInventorySede;
+    const invData = getInventario();
+    // Filter by ecosystem (if selected from sidebar) and location
+    const items = invData.filter(i => {
+        const matchesSede = i.locacion === activeInventorySede;
+        if (!state.activeEcoFilter) return matchesSede;
+        
+        // Match by category (new solid field) or by line text (fallback)
+        const itemCat = i.category || '';
+        const itemLine = i.ecosistema || '';
+        const filter = state.activeEcoFilter.toLowerCase();
+        
+        return matchesSede && (itemCat.toLowerCase() === filter || itemLine.toLowerCase().includes(filter));
+    });
+    
+    const rowsHtml = items.map(ite => {
+        const lineBadge = ite.ecosistema === 'solar' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 
+                         ite.ecosistema === 'water' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 
+                         'bg-purple-500/10 text-purple-500 border-purple-500/20';
+
+        return `
+            <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] text-gray-500 font-bold uppercase tracking-tight">${ite.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-900 dark:text-white uppercase">${ite.nombreItem}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                   <span class="px-2 py-0.5 ${lineBadge} text-[8px] font-black uppercase tracking-widest rounded border">${ite.ecosistema}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">${ite.medida || '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">${ite.boton || '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">${ite.color || '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-black text-gray-400 uppercase tracking-widest">${ite.storage || ite.locacion}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-xs font-black text-tealAccent">${ite.stockActual}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                   <div class="flex items-center gap-3">
+                       <button onclick="window.addStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center" title="Suma Rápida de Stock">
+                           <i class="fa-solid fa-plus text-[10px]" style="pointer-events: none;"></i>
+                       </button>
+                       <button onclick="window.editStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-[#3b82f6]/5 text-[#3b82f6] hover:bg-[#3b82f6] hover:text-white transition-all flex items-center justify-center" title="Editar Todo">
+                           <i class="fa-solid fa-pen-to-square text-[10px]" style="pointer-events: none;"></i>
+                       </button>
+                       <button onclick="window.deleteItem('${ite.id}')" class="w-8 h-8 rounded-lg bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center" title="Eliminar">
+                           <i class="fa-solid fa-trash text-[10px]" style="pointer-events: none;"></i>
+                       </button>
+                   </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    const historialData = getHistorialInventario();
+
+    // Filter historial by the current sede and current ecosystem
+    const ecoFilterLower = ecoFilter.toLowerCase();
+    const historialFiltered = historialData.filter(h => 
+      h.sede === activeInventorySede && 
+      (h.ecosistema || '').toLowerCase() === ecoFilterLower
+    );
+
+    const historialRowsHtml = historialFiltered.length
+      ? historialFiltered.map(h => {
+          const dateStr = h.fecha ? new Date(h.fecha).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          }) : '-';
+          const sedeLabel = (h.sede || '').charAt(0).toUpperCase() + (h.sede || '').slice(1);
+          return `
+            <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+              <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
+              <td class="px-6 py-3 whitespace-nowrap">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-tealAccent/10 flex items-center justify-center">
+                    <i class="fa-solid fa-screwdriver-wrench text-tealAccent text-[8px]"></i>
+                  </div>
+                  <span class="text-xs font-bold text-gray-800 dark:text-white">${h.tecnico_nombre || 'Desconocido'}</span>
+                </div>
+              </td>
+              <td class="px-6 py-3 whitespace-nowrap text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">${h.item_nombre || '-'}</td>
+              <td class="px-6 py-3 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-2 py-0.5 text-[10px] font-black">
+                  <i class="fa-solid fa-minus text-[8px]"></i> ${h.cantidad_retirada}
+                </span>
+              </td>
+              <td class="px-6 py-3 whitespace-nowrap">
+                <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
+              </td>
+            </tr>
+          `;
+        }).join('')
+      : `<tr><td colspan="5" class="py-16 text-center">
+           <i class="fa-solid fa-clock-rotate-left text-4xl text-gray-200 dark:text-white/5 mb-3 block"></i>
+           <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">${t('inv_no_history')}</span>
+         </td></tr>`;
+
+    UI.canvas.innerHTML = `
+      <div class="max-w-6xl mx-auto animate-fadeIn">
+        <div class="mb-6 flex flex-wrap gap-4">
+           <button class="inv-sede-tab ${activeInventorySede === 'orlando' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="orlando">Sede Orlando</button>
+           <button class="inv-sede-tab ${activeInventorySede === 'miami' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="miami">Sede Miami</button>
+           <button class="inv-sede-tab ${activeInventorySede === 'dallas' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="dallas">Sede Dallas</button>
+           <button class="inv-sede-tab ${activeInventorySede === 'new_york' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="new_york">Sede Nueva York</button>
+        </div>
+
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                    <tr>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_code')}</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_prod')}</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_line')}</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">MEDIDA</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">BOTÓN</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">COLOR</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_storage')}</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_stock')}</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_actions')}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                    ${rowsHtml.length ? rowsHtml : `<tr><td colspan="9" class="py-24 text-center"><i class="fa-solid fa-parachute-box text-5xl text-gray-200 dark:text-white/5 mb-4 block"></i><span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">${t('inv_empty')}</span></td></tr>`}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── Historial de Movimientos ──────────────────────────── -->
+        <div class="mt-8">
+          <div class="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
+              <h2 class="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-orange-400"></i>
+                ${t('ann_hist')}
+              </h2>
+            </div>
+
+          <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                <tr>
+                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_date')}</th>
+                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_tech')}</th>
+                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_item')}</th>
+                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_qty')}</th>
+                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_sede')}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                ${historialRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- ─────────────────────────────────────────────────────── -->
+
+      </div>
+    `;
+
+  }
+  else if (state.activeView === 'anuncios') {
+    UI.viewTitle.textContent = t('ann_title').toUpperCase();
+    UI.viewDesc.textContent = t('ann_desc');
+    setGlobalButton(false);
+    
+    // Safety check db
+    if (!db.anuncios_corporativos) db.anuncios_corporativos = [];
+    const dynPipelines = db.Admin_Pipelines || [];
+    
+    // Sort announcements by descending date
+    const sortedAnuncios = [...db.anuncios_corporativos].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+
+    // Workers for the read report matching logic later
+    window._cachedAnunciosWorkers = await getAdminWorkers();
+    
+    const anunciosHtml = sortedAnuncios.map(an => {
+      const isTodos = an.audiencia === 'todos';
+      const audBadge = isTodos ? 'bg-gray-100 text-gray-600' : 'bg-teal-500/10 text-teal-500 border border-teal-500/20';
+      
+      const totalLecturas = an.estado_lecturas ? an.estado_lecturas.filter(el => el.leido).length : 0;
+      
+      return `
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:border-tealAccent/30 transition-all cursor-pointer mb-5 relative group min-h-[140px] flex flex-col justify-between" onclick="mostrarReporteAnuncio('${an.id}')">
+           <!-- Trash Button -->
+           <button onclick="event.stopPropagation(); window.deleteAnuncio('${an.id}', this)" class="absolute top-4 right-4 w-9 h-9 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white z-20" title="Eliminar Anuncio">
+              <i class="fa-solid fa-trash-can text-sm"></i>
+           </button>
+
+           <div class="flex-1">
+             <div class="flex justify-between items-start mb-3 pr-10">
+               <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${an.titulo}</h4>
+               <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${audBadge} whitespace-nowrap">${an.audiencia.toUpperCase()}</span>
+             </div>
+             <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${an.mensaje}</p>
+           </div>
+
+           <div class="flex justify-between items-center text-[10px] uppercase font-bold text-gray-400 tracking-wider pt-4 border-t border-gray-50 dark:border-white/5 mt-auto">
+             <span><i class="fa-solid fa-calendar mr-1"></i> ${new Date(an.fecha).toLocaleDateString('en-US')}</span>
+             <span class="text-tealAccent bg-tealAccent/10 px-3 py-1.5 rounded-full"><i class="fa-solid fa-eye mr-1"></i> ${totalLecturas} Vistos</span>
+           </div>
+        </div>
+      `;
+    }).join('');
+
+    UI.canvas.innerHTML = `
+      <div class="flex gap-8 h-full">
+        <!-- FORMULARIO CREACIÓN -->
+        <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col overflow-hidden max-h-fit">
+          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+            <div class="w-10 h-10 rounded-full bg-tealAccent/10 flex items-center justify-center text-tealAccent"><i class="fa-solid fa-bullhorn text-lg"></i></div>
+            <div>
+              <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Nuevo Comunicado</h3>
+              <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Envío Inmediato</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4 flex-1">
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_title')}</label>
+                <input type="text" id="ann-input-title" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
+              </div>
+              
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_aud')}</label>
+                <select id="anu-audiencia" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
+                  <option value="todos">Todos los Pipelines</option>
+                  ${dynPipelines.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_msg')}</label>
+                <textarea id="ann-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none resize-none text-gray-900 dark:text-white"></textarea>
+              </div>
+          </div>
+          
+          <button id="btn-publish-ann" class="mt-4 w-full py-3.5 bg-tealAccent text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-tealAccent/90 transition-all shadow-md shadow-tealAccent/20 flex justify-center items-center gap-2">
+            <i class="fa-solid fa-paper-plane text-[10px]"></i>
+            ${t('ann_btn_pub')}
+          </button>
+        </div>
+        
+        <!-- PANEL DE MONITOREO Y LISTADO -->
+        <div class="w-2/3 flex gap-6 overflow-hidden">
+          
+          <!-- Lista de Anuncios -->
+          <div class="flex-1 overflow-y-auto hide-scrollbar pr-2 flex flex-col">
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Anuncios</h3>
+            ${anunciosHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay anuncios enviados</div>'}
+          </div>
+          
+          <!-- Visor / Reporte -->
+          <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col overflow-hidden">
+            <div id="anu-reporte-contenedor" class="w-full h-full flex flex-col p-6 items-center justify-center text-center">
+              <div id="ann-report-placeholder" class="py-20 text-center">
+                <i class="fa-solid fa-chart-pie text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">${t('ann_report_select')}</h4>
+                <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">${t('ann_report_users_desc')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Lógica para enviar nuevo anuncio
+    setTimeout(() => {
+      const btnPub = document.getElementById('btn-publish-ann');
+      if (btnPub) {
+        btnPub.addEventListener('click', async () => {
+          const tit = document.getElementById('ann-input-title').value.trim();
+          const aud = document.getElementById('anu-audiencia').value;
+          const msj = document.getElementById('ann-input-msg').value.trim();
+          
+          if (!tit || !msj) {
+            showToast('Título y mensaje obligatorios', 'error');
+            return;
+          }
+          
+          btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+          btnPub.disabled = true;
+          
+          const nuevoAnuncio = {
+            id: 'ann_' + Date.now().toString(36),
+            titulo: tit,
+            mensaje: msj,
+            audiencia: aud,
+            fecha: new Date().toISOString(),
+            estado_lecturas: [] // se llena a medida que los trabajadores lo ven o se inicializa masivamente
+          };
+          
+          // Initializar el estado_lecturas basado en los trabajadores que pertenecen a esa audiencia
+          const todosTra = await getAdminWorkers();
+          const targetW = todosTra.filter(w => {
+            if (aud === 'todos') return true;
+            if (w.unidades) {
+                return w.unidades.includes(aud);
+            }
+            return false;
+          });
+          
+          nuevoAnuncio.estado_lecturas = targetW.map(w => ({
+            vendedor_id: w.id,
+            vendedor_nombre: `${w.nombre} ${w.apellido}`,
+            leido: false,
+            fecha_lectura: null
+          }));
+          
+          const dbLoc = getDB();
+          if(!dbLoc.anuncios_corporativos) dbLoc.anuncios_corporativos = [];
+          dbLoc.anuncios_corporativos.push(nuevoAnuncio);
+          
+          await saveDB(dbLoc);
+          
+          showToast('¡Anuncio publicado globalmente!', 'success');
+          await renderView();
+        });
+      }
+    }, 100);
+  }
+}
+
+// Ventana global para visualizar reporte de lectura
+window.deleteAnuncio = async (id, btn) => {
+    if (!confirm('¿Seguro que deseas eliminar este anuncio? No podrá recuperarse.')) return;
+    
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-[10px]"></i>';
+        }
+        
+        // 1. Eliminar permanentemente de Supabase
+        const headers = { 'Content-Type': 'application/json' };
+        await fetch('/api/delete', { 
+            method: 'POST', 
+            headers, 
+            body: JSON.stringify({ table: 'anuncios_corporativos', id }) 
+        });
+
+        // 2. Refrescar DB desde el servidor para estar 100% seguros
+        await initDB();
+        
+        showToast('Anuncio eliminado permanentemente', 'warning');
+        renderView();
+    } catch (err) {
+        console.error(err);
+        showToast('Error al eliminar anuncio', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-trash-can text-[10px]"></i>';
+        }
+    }
+};
+
+window.mostrarReporteAnuncio = function(id) {
+  const db = getDB();
+  const ann = (db.anuncios_corporativos || []).find(a => a.id === id);
+  if(!ann) return;
+  
+  const contenedor = document.getElementById('anu-reporte-contenedor');
+  if(!contenedor) return;
+
+  const leidos = ann.estado_lecturas.filter(e => e.leido).length;
+  const total = ann.estado_lecturas.length;
+  const pct = total === 0 ? 0 : Math.round((leidos/total)*100);
+
+  const lsHtml = ann.estado_lecturas.map(est => {
+     if(est.leido) {
+        return `<div class="flex items-center justify-between p-2 border-b border-gray-100 dark:border-white/5">
+            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${est.vendedor_nombre || 'Usuario'}</span>
+            <span class="text-[9px] text-tealAccent font-black uppercase"><i class="fa-solid fa-check-circle"></i> ${t('ann_status_read')}</span>
+        </div>`;
+     } else {
+        return `<div class="flex items-center justify-between p-2 border-b border-gray-100 dark:border-white/5">
+            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${est.vendedor_nombre || 'Usuario'}</span>
+            <span class="text-[9px] text-gray-400 font-black uppercase"><i class="fa-solid fa-clock"></i> ${t('ann_status_pend')}</span>
+        </div>`;
+     }
+  }).join('');
+
+  contenedor.innerHTML = `
+     <div class="w-full flex-1 flex flex-col">
+       <div class="border-b border-gray-100 dark:border-white/5 pb-4 mb-4">
+         <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Reporte:</h3>
+         <p class="text-lg font-black text-gray-900 dark:text-white leading-none">${ann.titulo}</p>
+         <div class="mt-4 bg-white dark:bg-black/30 border border-gray-100 dark:border-white/5 p-3 rounded-xl flex items-center justify-between">
+           <div>
+             <p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Aceptación (Lectura)</p>
+             <p class="text-2xl font-black text-tealAccent leading-none mt-1">${pct}%</p>
+           </div>
+           <div class="text-right">
+             <p class="text-xs font-black text-gray-600 dark:text-gray-300">${leidos} / ${total}</p>
+             <p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Usuarios</p>
+           </div>
+         </div>
+       </div>
+       
+       <div class="flex-1 overflow-y-auto hide-scrollbar border border-gray-100 dark:border-white/5 rounded-xl bg-white dark:bg-black/10">
+         ${total === 0 ? '<div class="p-6 text-center text-[10px] text-gray-400 font-bold">Nadie en esta audiencia</div>' : lsHtml}
+       </div>
+     </div>
+  `;
+};
+
+function crearPasoWhatsAppHTML(index) {
+  const isFirst = index === 1;
+  return `
+    <div class="wa-card bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 p-6 rounded-2xl shadow-sm relative overflow-hidden group mb-6">
+      <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-400 to-green-600 opacity-50"></div>
+      
+      <div class="flex justify-between items-start mb-6">
+        <div class="flex items-center gap-4">
+          <div class="wa-step-idx w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-green-400 font-black text-sm">
+            ${index}
+          </div>
+          <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">WhatsApp Automation</h3>
+        </div>
+        ${!isFirst ? `
+        <button class="btn-eliminar-wa-paso text-red-500/50 hover:text-red-500 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        ` : ''}
+      </div>
+
+      <div class="mb-6">
+        <p class="aqua-label text-green-400">Send Schedule</p>
+        <input type="datetime-local" class="wa-fecha-envio w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:border-green-500 outline-none font-bold transition-all">
+      </div>
+
+      <div class="mt-6">
+        <p class="aqua-label text-green-400">WhatsApp Message Content</p>
+        <textarea class="wa-cuerpo w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:border-green-500 outline-none font-medium h-32 resize-none transition-all" placeholder="Hello {{name}}, your request has been..."></textarea>
+      </div>
+    </div>
+  `;
+}
+
+function crearPasoMarketingHTML(index) {
+  const isFirst = index === 1;
+  return `
+    <div class="mk-card bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 p-6 rounded-2xl shadow-sm relative overflow-hidden group mb-4">
+      <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-tealAccent to-blue-500 opacity-50"></div>
+      
+      <div class="flex justify-between items-start mb-4">
+        <div class="flex items-center gap-3">
+          <div class="mk-step-idx w-8 h-8 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-tealAccent font-black text-xs">
+            ${index}
+          </div>
+          <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter">Email Sequence Step</h3>
+        </div>
+        ${!isFirst ? `
+          <button class="btn-eliminar-paso text-red-500/50 hover:text-red-500 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        ` : ''}
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="md:col-span-2">
+        <p class="aqua-label text-[9px]">Subject Line</p>
+          <input type="text" class="mk-asunto w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg px-3 py-2.5 text-[11px] text-gray-900 dark:text-white focus:border-tealAccent outline-none font-medium transition-all" placeholder="Enter high-impact subject...">
+        </div>
+        <div>
+          <p class="aqua-label text-[9px]">Send Schedule</p>
+          <input type="datetime-local" class="mk-fecha-envio w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg px-3 py-2.5 text-[11px] text-gray-900 dark:text-white focus:border-tealAccent outline-none font-bold transition-all">
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <p class="aqua-label text-[9px]">Message Body</p>
+        <textarea class="mk-cuerpo w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg px-3 py-2.5 text-[11px] text-gray-900 dark:text-white focus:border-tealAccent outline-none font-medium h-24 resize-none transition-all" placeholder="Hello {{name}}, we're thrilled to..."></textarea>
+      </div>
+    </div>
+  `;
+}
+
+function renderCalendario() {
+  UI.canvas.innerHTML = `
+    <div class="mt-6 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-premium transition-all animate-fadeIn">
+      <div id="calendar-master" class="min-h-[750px]"></div>
+    </div>
+  `;
+
+  const calendarEl = document.getElementById('calendar-master');
+  if (!calendarEl) return;
+
+  const API_KEY = 'AIzaSyAmuV4zmbor3JagjOJn2WKUcRA0SUGsh3U';
+  const CALENDAR_ID = 'c_0300a26935f9ffbe1772a440f9070fa95f02f551157e69bd0d71092777559943@group.calendar.google.com';
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: 'es',
+    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,listDay'
+    },
+    googleCalendarApiKey: API_KEY,
+    eventSources: [
+      {
+        googleCalendarId: CALENDAR_ID,
+        className: 'gcal-event'
+      },
+      function(fetchInfo, successCallback, failureCallback) {
+        try {
+            const db = getDB();
+            const data = db.calendario_eventos || [];
+            // Optional: filter by fetchInfo.startStr and fetchInfo.endStr
+            // but for simplicity we can return all or filter in memory
+            const filtered = data.filter(ev => ev.fecha_inicio >= fetchInfo.startStr && ev.fecha_inicio <= fetchInfo.endStr);
+            
+            const mapped = filtered.map(ev => {
+                const colorMap = {
+                    'Verde': '#00ff88',
+                    'Amarillo': '#fce803',
+                    'Rojo': '#ff3366',
+                    'Azul': '#00d4ff',
+                    'Naranja': '#ff8c00'
+                };
+                return {
+                    id: ev.id,
+                    title: ev.nombre,
+                    start: ev.fecha_inicio,
+                    end: ev.fecha_fin,
+                    backgroundColor: colorMap[ev.color] || '#00f5d4',
+                    borderColor: 'transparent',
+                    extendedProps: {
+                        isSupabase: true,
+                        telefono: ev.telefono,
+                        direccion: ev.direccion,
+                        description: ev.descripcion,
+                        adjunto_url: ev.adjunto_url,
+                        color: ev.color,
+                        colaboradores: ev.colaboradores
+                    }
+                };
+             });
+             successCallback(mapped);
+        } catch (error) {
+             console.error("Error fetching events", error);
+             failureCallback(error);
+        }
+      }
+    ],
+    eventContent: function(arg) {
+       const color = arg.event.backgroundColor || '#00f5d4';
+       const timeText = arg.timeText ? `<span class="opacity-70 mr-1">${arg.timeText}</span>` : '';
+       let html = `
+         <div class="flex items-center gap-1.5 w-full overflow-hidden p-1 rounded" style="border-left: 3px solid ${color}; background: ${color}15;">
+            <div class="text-[10px] font-bold text-gray-800 dark:text-white truncate" style="color: ${color}">${timeText}${arg.event.title}</div>
+         </div>
+       `;
+       return { html: html };
+    },
+    buttonText: {
+      today: 'Hoy',
+      month: 'Mes',
+      week: 'Semana',
+      day: 'Agenda'
+    },
+    eventClick: function(info) {
+      info.jsEvent.preventDefault();
+      // Si el evento tiene URL (ej: Google Calendar), evitamos que navegue
+      mostrarDetalleEventoCalendario(info.event);
+    },
+    dateClick: function(info) {
+      // Al hacer click en un dia libre, abre modal en modo creación
+      mostrarDetalleEventoCalendario({ date: info.date });
+    },
+    height: 'auto',
+    themeSystem: 'standard',
+    eventTimeFormat: {
+      hour: '2-digit',
+      minute: '2-digit',
+      meridiem: 'short'
+    }
+  });
+
+  calendar.render();
+  // Store instance for potential refreshes
+  window.currentCalendar = calendar;
+}
+
+// ── Auto-fill end date when start date changes ──
+window.onStartDateChange = function(startInput) {
+    const finInput = document.getElementById('ev-fecha-fin');
+    if (!startInput.value) return;
+    
+    // Set minimum for end date = start date
+    finInput.min = startInput.value;
+    
+    // Auto-fill end date only if it's empty OR earlier than the new start
+    const startMs = new Date(startInput.value).getTime();
+    const finMs = finInput.value ? new Date(finInput.value).getTime() : 0;
+    
+    if (!finInput.value || finMs <= startMs) {
+        const autoEnd = new Date(startMs + 3600000); // +1 hour
+        const pad = n => n < 10 ? '0'+n : n;
+        const autoEndStr = autoEnd.getFullYear() + '-' + pad(autoEnd.getMonth()+1) + '-' + pad(autoEnd.getDate()) + 'T' + pad(autoEnd.getHours()) + ':' + pad(autoEnd.getMinutes());
+        finInput.value = autoEndStr;
+    }
+};
+
+window.mostrarDetalleEventoCalendario = async function(event) {
+  const modal = document.getElementById('modal-calendar-event');
+  if (!modal) return;
+
+  const btnGuardar = document.getElementById('btn-guardar-evento');
+  const titleEl = document.getElementById('modo-texto');
+  const form = document.getElementById('form-calendario-evento');
+  
+  // Función para convertir fecha JS a YYYY-MM-DDThh:mm
+  const toLocalISOString = (d) => {
+      const pad = n => n < 10 ? '0'+n : n;
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  };
+
+  // Set in View Mode if event exists
+  if (event && event.title) {
+    titleEl.innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de Instalación'}`;
+    btnGuardar.classList.add('hidden');
+
+    const props = event.extendedProps || {};
+    
+    document.getElementById('ev-nombre').value = event.title || '';
+    document.getElementById('ev-nombre').readOnly = true;
+
+    if (event.start) {
+        document.getElementById('ev-fecha-inicio').value = toLocalISOString(event.start);
+    }
+    if (event.end) {
+        document.getElementById('ev-fecha-fin').value = toLocalISOString(event.end);
+    }
+    document.getElementById('ev-fecha-inicio').readOnly = true;
+    document.getElementById('ev-fecha-fin').readOnly = true;
+
+    if (props.telefono) {
+      document.getElementById('ev-telefono').classList.add('hidden');
+      const linkTel = document.getElementById('ev-telefono-link');
+      linkTel.classList.remove('hidden');
+      linkTel.href = `tel:${props.telefono}`;
+      document.getElementById('ev-telefono-txt').textContent = props.telefono;
+    } else {
+      document.getElementById('ev-telefono').value = '';
+      document.getElementById('ev-telefono').readOnly = true;
+    }
+
+    if (props.direccion) {
+      document.getElementById('ev-direccion').classList.add('hidden');
+      const linkDir = document.getElementById('ev-direccion-link');
+      linkDir.classList.remove('hidden');
+      const addressUrl = encodeURIComponent(props.direccion);
+      linkDir.href = `https://www.google.com/maps/search/?api=1&query=${addressUrl}`;
+    } else {
+      document.getElementById('ev-direccion').value = '';
+      document.getElementById('ev-direccion').readOnly = true;
+    }
+
+    document.getElementById('ev-descripcion').value = props.description || 'Sin detalles adicionales.';
+    document.getElementById('ev-descripcion').readOnly = true;
+
+    if (props.adjunto_url) {
+      document.getElementById('ev-adjunto').classList.add('hidden');
+      const linkAdj = document.getElementById('ev-adjunto-link');
+      linkAdj.classList.remove('hidden');
+      linkAdj.href = props.adjunto_url;
+    } else {
+      document.getElementById('ev-adjunto').parentElement.classList.add('hidden');
+    }
+
+    document.getElementById('ev-recordatorio').parentElement.classList.add('hidden');
+    document.getElementById('ev-colaboradores').parentElement.classList.add('hidden');
+
+    if (props.color) {
+      const colorRadio = document.querySelector(`input[name="ev-color"][value="${props.color}"]`);
+      if (colorRadio) colorRadio.checked = true;
+    }
+
+    document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
+
+  } else {
+    // ADD NEW EVENT MODE (Triggered genericlly)
+    titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
+    btnGuardar.classList.remove('hidden');
+    form.reset();
+
+    // Reset ReadOnly and Hidden states
+    document.getElementById('ev-nombre').readOnly = false;
+    document.getElementById('ev-fecha-inicio').readOnly = false;
+    document.getElementById('ev-fecha-fin').readOnly = false;
+    document.getElementById('ev-fecha-fin').min = '';
+    
+    // Default dates if triggered by date click
+    if (event && event.date) {
+        const startInput = document.getElementById('ev-fecha-inicio');
+        startInput.value = toLocalISOString(event.date);
+        window.onStartDateChange(startInput); // auto-fill end date
+    }
+
+    document.getElementById('ev-telefono').readOnly = false;
+    document.getElementById('ev-telefono').classList.remove('hidden');
+    document.getElementById('ev-telefono-link').classList.add('hidden');
+
+    document.getElementById('ev-direccion').readOnly = false;
+    document.getElementById('ev-direccion').classList.remove('hidden');
+    document.getElementById('ev-direccion-link').classList.add('hidden');
+
+    document.getElementById('ev-descripcion').readOnly = false;
+    
+    document.getElementById('ev-adjunto').classList.remove('hidden');
+    document.getElementById('ev-adjunto-link').classList.add('hidden');
+    document.getElementById('ev-adjunto').parentElement.classList.remove('hidden');
+
+    document.getElementById('ev-recordatorio').parentElement.classList.remove('hidden');
+    document.getElementById('ev-colaboradores').parentElement.classList.remove('hidden');
+
+    document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
+
+    // ── Load collaborators as checkboxes with email for Google Calendar attendees ──
+    const container = document.getElementById('ev-colaboradores-container');
+    if (container) {
+        container.innerHTML = '<p class="text-xs text-gray-400 italic">Cargando equipo...</p>';
+        try {
+            const workers = await getAdminWorkers();
+            if (workers.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay colaboradores registrados.</p>';
+            } else {
+                container.innerHTML = workers.map(w => {
+                    const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
+                    const rol = w.rol || 'Sin rol';
+                    const email = w.email || '';
+                    const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
+                    return `
+                    <label class="flex items-center gap-3 cursor-pointer group py-1.5 rounded-lg hover:bg-tealAccent/5 px-2 transition-all">
+                        <input type="checkbox" 
+                            class="ev-colab-chk w-4 h-4 rounded accent-teal-500 cursor-pointer flex-shrink-0" 
+                            data-worker="${workerData}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-6 h-6 rounded-full bg-tealAccent/20 border border-tealAccent/30 flex items-center justify-center flex-shrink-0">
+                                <span class="text-[9px] font-black text-tealAccent">${fullName.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-gray-800 dark:text-white truncate">${fullName} <span class="font-normal text-gray-400">(${rol})</span></p>
+                                ${email ? `<p class="text-[9px] text-tealAccent/70 truncate">${email}</p>` : ''}
+                            </div>
+                        </div>
+                    </label>`;
+                }).join('');
+            }
+        } catch (err) {
+            container.innerHTML = '<p class="text-xs text-red-400 italic">Error cargando colaboradores.</p>';
+            console.error('[CALENDAR] Error loading workers:', err);
+        }
+    }
+  }
+
+  window.showModal(modal);
+};
+
+window.guardarEventoCalendario = async function(e) {
+  if (e) e.preventDefault();
+  try {
+    const btnGuardar = document.getElementById('btn-guardar-evento');
+    btnGuardar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+    btnGuardar.disabled = true;
+
+    const nombre = document.getElementById('ev-nombre').value;
+    if (!nombre) { window.showToast('El nombre es obligatorio', 'error'); return; }
+
+    const fechaInicioVal = document.getElementById('ev-fecha-inicio').value;
+    if (!fechaInicioVal) { window.showToast('La fecha de inicio es obligatoria', 'error'); return; }
+
+    const fecha_inicio = new Date(fechaInicioVal).toISOString();
+    const fecha_fin_val = document.getElementById('ev-fecha-fin').value;
+    const fecha_fin = fecha_fin_val ? new Date(fecha_fin_val).toISOString() : null;
+    
+    const telefono = document.getElementById('ev-telefono').value;
+    const direccion = document.getElementById('ev-direccion').value;
+    const descripcion = document.getElementById('ev-descripcion').value;
+    const recordatorio = document.getElementById('ev-recordatorio').value;
+    
+    const colorNode = document.querySelector('input[name="ev-color"]:checked');
+    const color = colorNode ? colorNode.value : 'Verde';
+    
+    // ── Read collaborators from checkboxes (stores id + email for Google Calendar) ──
+    const colaboradores = [];
+    document.querySelectorAll('.ev-colab-chk:checked').forEach(chk => {
+        try {
+            const data = JSON.parse(chk.dataset.worker.replace(/&apos;/g, "'"));
+            colaboradores.push(data); // { id, nombre, email }
+        } catch(e) {
+            colaboradores.push({ id: chk.dataset.worker, nombre: '', email: '' });
+        }
+    });
+
+    // Derive attendees array ready for Google Calendar API
+    const attendees = colaboradores
+        .filter(c => c.email)
+        .map(c => ({ email: c.email, displayName: c.nombre }));
+
+    // Upload file through server endpoint (same pattern as other modules)
+    let adjunto_url = null;
+    const fileInput = document.getElementById('ev-adjunto');
+    
+    if (fileInput && fileInput.files.length > 0) {
+      try {
+        adjunto_url = await uploadFile(fileInput.files[0], 'calendario');
+      } catch (uploadErr) {
+        console.error('Error subiendo adjunto:', uploadErr);
+        // Continue saving without the attachment
+      }
+    }
+
+    const nuevoEvento = {
+      id: 'ev_' + Date.now(),
+      created_at: new Date().toISOString(),
+      nombre, fecha_inicio, fecha_fin, telefono, direccion, descripcion, color, adjunto_url,
+      // colaboradores: array of { id, nombre, email } — used for display
+      colaboradores,
+      // attendees: Google Calendar-ready format for future sync
+      attendees,
+      notificacion_recordatorio: recordatorio !== 'none' ? recordatorio : null
+    };
+
+    // Save via getDB/saveDB (same cloud-sync pattern as every other module)
+    const db = getDB();
+    if (!db.calendario_eventos) db.calendario_eventos = [];
+    db.calendario_eventos.push(nuevoEvento);
+    await saveDB(db);
+    
+    // ── SYNC WITH GOOGLE CALENDAR VIA SERVER (SERVICE ACCOUNT) ──
+    try {
+        const CALENDAR_ID = 'c_0300a26935f9ffbe1772a440f9070fa95f02f551157e69bd0d71092777559943@group.calendar.google.com';
+        
+        const gEvent = {
+            summary: nombre,
+            location: direccion,
+            description: descripcion,
+            start: {
+                dateTime: new Date(fecha_inicio).toISOString(),
+                timeZone: 'America/New_York'
+            },
+            end: {
+                dateTime: fecha_fin ? new Date(fecha_fin).toISOString() : new Date(new Date(fecha_inicio).getTime() + 3600000).toISOString(),
+                timeZone: 'America/New_York'
+            }
+        };
+
+        console.log('[RENEW-GCAL] Sending event to server for Google sync...', gEvent);
+        
+        const response = await fetch('/api/calendar/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                eventData: gEvent,
+                calendarId: CALENDAR_ID
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            console.log('[RENEW-GCAL] Server sync successful:', result);
+        } else {
+            console.warn('[RENEW-GCAL] Server sync failed:', result.error);
+        }
+    } catch (syncErr) {
+        console.error('[RENEW-GCAL] Error communicating with sync server:', syncErr);
+    }
+
+    showToast('Evento guardado con éxito', 'success');
+    window.closeModals();
+    
+    // Refresh calendar to show the new event
+    if (window.currentCalendar) {
+      window.currentCalendar.refetchEvents();
+    }
+
+  } catch (err) {
+    console.error("Error guardando evento:", err);
+    showToast('Ocurrió un error al guardar', 'error');
+  } finally {
+    const btnGuardar = document.getElementById('btn-guardar-evento');
+    if (btnGuardar) {
+      btnGuardar.innerHTML = 'Guardar Evento';
+      btnGuardar.disabled = false;
+    }
+  }
+};
+
+
+function renderTable(headers, rows) {
+  const headHtml = headers.map(h => `<th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] border-b border-gray-100 dark:border-white/5">${h}</th>`).join('');
+  const bodyHtml = rows.map(r => `
+    <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+      ${r.map((col, i) => `<td class="px-4 py-2.5 text-xs ${i===3?'text-gray-900 dark:text-white font-bold':'text-gray-500 dark:text-gray-400 font-medium'} max-w-[250px] overflow-hidden">${col}</td>`).join('')}
+    </tr>
+  `).join('');
+
+  UI.canvas.innerHTML = `
+    <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto custom-scrollbar">
+      <table class="w-full text-xs">
+        <thead class="bg-gray-50 dark:bg-white/[0.01]">${headHtml}</thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-white/5">${bodyHtml}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderConstructor() {
+  if (state.pipelines.length === 0) {
+    UI.canvas.innerHTML = `<h2 class="text-gray-500 text-center py-20">No pipelines found. Create one above to start.</h2>`;
+    return;
+  }
+  const tabsHtml = state.pipelines.map(p => {
+    const rolesStr = (p.rolesConAcceso || []).join(', ') || 'Todos los rangos';
+    return `
+    <button class="pip-tab group relative px-8 py-5 rounded-t-2xl font-black text-xs uppercase tracking-widest border-t-2 transition-all ${p.id === state.activePipId ? 'bg-white dark:bg-darkCard border-tealAccent text-tealAccent' : 'bg-transparent border-transparent text-gray-400 dark:text-gray-600 hover:text-tealAccent'}" data-id="${p.id}">
+      ${p.nombre}
+      <span class="inline-flex items-center gap-1 ml-2">
+        <i class="fa-solid fa-pen text-[9px] opacity-0 group-hover:opacity-100 hover:text-sky-400 transition-all cursor-pointer btn-edit-pip-roles" 
+           data-pipid="${p.id}" data-pipnom="${p.nombre}"
+           title="Editar permisos por rango: ${rolesStr}"
+           style="pointer-events: auto !important;"></i>
+        <i class="fa-solid fa-trash-can text-[10px] opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all cursor-pointer btn-delete-pipeline" 
+           onclick="adminDeletePipeline('${p.id}', event)" 
+           title="Delete Pipeline" style="pointer-events: auto !important;"></i>
+      </span>
+    </button>
+  `;
+  }).join('');
+
+
+  const pFases = state.fases.filter(f => f.pipeline_id === state.activePipId).sort((a,b) => a.orden - b.orden);
+  const activePipDetails = state.pipelines.find(p => p.id === state.activePipId);
+
+  const fasesHtml = pFases.map(f => {
+    const cCampos = state.campos.filter(c => c.fase_id === f.id);
+    const camposHtml = cCampos.map(c => `
+      <div class="campo-card flex items-center justify-between bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 p-3 rounded-lg mb-2 hover:border-tealAccent/40 transition-all group shadow-sm" 
+           draggable="true" data-id="${c.id}" data-faseid="${f.id}">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-grip-vertical text-gray-400 dark:text-gray-700 group-hover:text-tealAccent transition-colors cursor-move text-xs"></i>
+          <div>
+            <p class="text-gray-900 dark:text-white text-xs font-bold tracking-tight">${c.etiqueta}</p>
+            <p class="text-[8.5px] uppercase font-black text-gray-400 dark:text-gray-600 mt-0.5">Input: <span class="text-tealAccent/80">${c.tipo}</span></p>
+          </div>
+        </div>
+        <button class="btn-delete-campo text-gray-400 dark:text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 cursor-pointer" 
+                onclick="adminDeleteCampo('${c.id}', event)" style="pointer-events: auto !important;">
+          <i class="fa-solid fa-trash-can text-[10px]" style="pointer-events: none;"></i>
+        </button>
+      </div>
+    `).join('');
+
+    return `
+      <div class="fase-card bg-white dark:bg-darkCard rounded-[1.5rem] border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden min-w-[280px] max-w-[280px] shrink-0 transform transition-all hover:shadow-teal-glow flex flex-col" draggable="true" data-id="${f.id}" data-pipid="${state.activePipId}">
+        <!-- Phase Header -->
+        <div class="p-6 pb-4 flex flex-col justify-center relative group fase-drag-handle cursor-move">
+          <div class="flex justify-between items-start w-full pointer-events-none">
+            <div class="flex flex-col gap-1 pointer-events-auto">
+              <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-grip text-gray-300 dark:text-gray-700 group-hover:text-tealAccent transition-colors text-xs pointer-events-auto"></i>
+                  <span class="bg-tealAccent/10 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/20 font-black text-[8px] uppercase tracking-[0.2em] w-fit">STATION ${f.orden}</span>
+              </div>
+              <h3 class="font-black text-gray-900 dark:text-white text-[1.1rem] leading-none tracking-tighter mt-1 flex items-center gap-2">
+                ${f.nombre}
+                <button onclick="adminEditFaseName('${f.id}', event)" class="text-gray-300 hover:text-tealAccent transition-colors p-1 cursor-pointer pointer-events-auto" title="Editar nombre">
+                  <i class="fa-solid fa-pen text-[10px]" style="pointer-events: none;"></i>
+                </button>
+              </h3>
+            </div>
+            <div class="flex gap-2 relative z-20">
+              <button class="btn-delete-fase text-gray-300 dark:text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2 cursor-pointer" 
+                      onclick="adminDeleteFase('${f.id}', event)" 
+                      title="Delete Station" style="pointer-events: auto !important;">
+                <i class="fa-solid fa-trash-can text-sm" style="pointer-events: none;"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mt-4 flex flex-col gap-2 border-t border-gray-100 dark:border-white/5 pt-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-5 h-5 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
+                  <i class="fa-solid fa-user-astronaut text-[9px] text-tealAccent"></i>
+                </div>
+                <select class="sel-fase-rol bg-transparent border-none text-[9px] font-black text-gray-400 dark:text-gray-500 p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors uppercase tracking-[0.05em]" data-faseid="${f.id}">
+                  <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
+                  <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Vendedor</option>
+                  <option value="Procesador" ${f.rol_encargado === 'Procesador' ? 'selected' : ''}>Procesador</option>
+                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
+                  <option value="Diseñador" ${f.rol_encargado === 'Diseñador' ? 'selected' : ''}>Diseñador</option>
+                  <option value="Contabilidad" ${f.rol_encargado === 'Contabilidad' ? 'selected' : ''}>Contabilidad</option>
+                  <option value="Finanzas" ${f.rol_encargado === 'Finanzas' ? 'selected' : ''}>Finanzas</option>
+                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
+                  <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Admin</option>
+                  <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
+                  <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
+                </select>
+              </div>
+              <p class="bg-tealAccent/5 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/10 font-bold text-[8px] uppercase mb-0">N: ${cCampos.length}</p>
+            </div>
+            
+            <div class="flex items-center justify-between">
+              <div class="flex -space-x-2 overflow-hidden">
+                ${(f.usuarios_especificos || []).map(uid => {
+                  const u = (state.workers || []).find(w => w.id === uid);
+                  if(!u) return '';
+                  return `<div class="inline-block h-5 w-5 rounded-full ring-2 ring-white dark:ring-[#1a1a1a] bg-tealAccent flex items-center justify-center text-[7px] font-black text-white uppercase" title="${u.nombre}">${u.initials || u.nombre.substring(0,2)}</div>`;
+                }).join('')}
+              </div>
+              ${f.rol_encargado === 'Asignación Específica' ? `
+              <button class="btn-assign-users text-[8px] font-black text-tealAccent hover:underline uppercase tracking-widest" data-faseid="${f.id}">
+                ${(f.usuarios_especificos || []).length > 0 ? 'Editar Usuarios' : '+ Asignar Usuarios'}
+              </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="px-6 py-2 flex-1">
+          <div class="space-y-1 min-h-[80px]">
+            ${camposHtml || '<div class="text-center py-6 text-gray-400 dark:text-gray-700 text-[9px] font-black uppercase tracking-widest border-2 border-dashed border-gray-100 dark:border-white/5 rounded-xl opacity-50">Empty</div>'}
+          </div>
+        </div>
+
+        <div class="p-6 pt-2">
+          <button class="btn-add-campo w-full py-3 bg-gray-50 dark:bg-white/5 hover:bg-tealAccent text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-black rounded-xl flex justify-center items-center gap-2 transition-all font-black text-[9px] uppercase tracking-[0.2em] border border-gray-100 dark:border-white/5" data-faseid="${f.id}" data-fasenom="${f.nombre}">
+            <i class="fa-solid fa-plus text-[10px]"></i> Connect Field
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  UI.canvas.style.overflowX = 'hidden'; 
+
+  UI.canvas.innerHTML = `
+    <div class="flex gap-4 border-b border-gray-100 dark:border-white/5 mb-10 overflow-x-auto hide-scrollbar">
+      ${tabsHtml}
+    </div>
+    
+    <div class="scroll-container-fases flex flex-nowrap gap-6 pb-24 items-start scroll-smooth overflow-x-auto hide-scrollbar" id="phases-wrapper" style="width: 100%; max-width: 100%;">
+      ${fasesHtml}
+      <div class="shrink-0 pt-0 px-2 flex items-center justify-center">
+        <button id="btn-add-fase" class="border flex-col border-dashed border-gray-200 dark:border-white/10 hover:border-tealAccent/40 text-gray-400 dark:text-gray-600 hover:text-tealAccent rounded-3xl min-w-[240px] h-[160px] flex items-center justify-center gap-3 transition-all shrink-0 font-black text-sm uppercase tracking-widest group bg-white dark:bg-white/[0.01]">
+          <i class="fa-solid fa-plus group-hover:scale-125 transition-transform text-xl"></i> New Stage
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Control fixed root arrows
+  setTimeout(() => {
+    const wrap = document.getElementById('phases-wrapper');
+    const l = document.getElementById('ctrl-scroll-left');
+    const r = document.getElementById('ctrl-scroll-right');
+    if (!wrap || !l || !r) return;
+
+    // Always make arrows visible initially by using Tailwind classes
+    l.classList.remove('hidden');
+    r.classList.remove('hidden');
+
+    let move;
+    l.onmouseenter = () => { move = setInterval(() => { wrap.scrollLeft -= 15; updateArrows(); }, 16); };
+    r.onmouseenter = () => { move = setInterval(() => { wrap.scrollLeft += 15; updateArrows(); }, 16); };
+    [l, r].forEach(btn => btn.onmouseleave = () => clearInterval(move));
+
+    function updateArrows() {
+      const wrapDyn = document.getElementById('phases-wrapper');
+      if (!wrapDyn || !l || !r) return;
+      const maxScroll = wrapDyn.scrollWidth - wrapDyn.clientWidth;
+
+      const atStart = wrapDyn.scrollLeft <= 10;
+      const atEnd = wrapDyn.scrollLeft >= maxScroll - 10;
+
+      if (atStart) {
+          l.classList.add('opacity-0', 'pointer-events-none');
+          l.classList.remove('opacity-100', 'pointer-events-auto');
+      } else {
+          l.classList.remove('opacity-0', 'pointer-events-none');
+          l.classList.add('opacity-100', 'pointer-events-auto');
+      }
+
+      if (atEnd) {
+          r.classList.add('opacity-0', 'pointer-events-none');
+          r.classList.remove('opacity-100', 'pointer-events-auto');
+      } else {
+          r.classList.remove('opacity-0', 'pointer-events-none');
+          r.classList.add('opacity-100', 'pointer-events-auto');
+      }
+    }
+    wrap.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+
+    // Robust observation
+    if (window._pipelineArrowInterval) clearInterval(window._pipelineArrowInterval);
+    window._pipelineArrowInterval = setInterval(updateArrows, 500);
+    updateArrows();
+  }, 400);
+
+  initDragAndDrop();
+}
+async function openFaseUserPicker(faseId) {
+  const fase = state.fases.find(f => f.id === faseId);
+  if (!fase) return;
+  
+  const modal = document.getElementById('modal-fase-users-picker');
+  const list = document.getElementById('fase-users-list');
+  const btnConfirm = document.getElementById('btn-confirm-fase-users');
+  
+  if (!modal || !list || !btnConfirm) return;
+  
+  const assigned = fase.usuarios_especificos || [];
+  const workers = state.workers || [];
+  
+  list.innerHTML = workers.map(u => `
+    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-2xl hover:bg-tealAccent/5 transition-colors border border-transparent hover:border-tealAccent/20">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-tealAccent flex items-center justify-center text-[10px] font-black text-white uppercase">${u.initials || u.nombre.substring(0,2)}</div>
+        <div>
+          <p class="text-[11px] font-bold text-gray-800 dark:text-white leading-tight">${u.nombre} ${u.apellido || ''}</p>
+          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">${u.rol || 'Sin Rol'}</p>
+        </div>
+      </div>
+      <input type="checkbox" class="fase-user-check w-5 h-5 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="${u.id}" ${assigned.includes(u.id) ? 'checked' : ''}>
+    </div>
+  `).join('');
+  
+  btnConfirm.onclick = async () => {
+    const checks = list.querySelectorAll('.fase-user-check:checked');
+    const selectedIds = Array.from(checks).map(c => c.value);
+    
+    console.log('[DEBUG] Saving phase users:', faseId, selectedIds);
+    
+    btnConfirm.disabled = true;
+    btnConfirm.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
+    
+    try {
+      // 1. Guardar en DB
+      await updateAdminFaseUsers(faseId, selectedIds);
+      
+      // 2. Cerrar Modal
+      if (typeof window.closeModals === 'function') {
+        window.closeModals();
+      } else {
+        modal.classList.add('nuclear-hidden');
+      }
+      
+      showToast('Asignación de usuarios actualizada', 'success');
+      
+      // 3. Recargar datos y refrescar UI
+      await loadData();
+      renderConstructor();
+      
+    } catch (err) {
+      console.error('[ERROR] Failed to save phase users:', err);
+      showToast('Error al guardar: ' + err.message, 'error');
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = 'Confirmar Asignación';
+    }
+  };
+  
+  modal.classList.remove('nuclear-hidden');
+}
+
+window.openFaseUserPicker = openFaseUserPicker;
+
+function initDragAndDrop() {
+  let draggedId = null;
+  let draggedFaseId = null;
+
+  document.querySelectorAll('.campo-card').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      draggedId = card.dataset.id;
+      draggedFaseId = card.dataset.faseid;
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('opacity-50', 'scale-95');
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('opacity-50', 'scale-95');
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const currentFaseId = card.dataset.faseid;
+      if (currentFaseId === draggedFaseId) {
+        card.classList.add('border-tealAccent');
+      }
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('border-tealAccent');
+    });
+
+    card.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      card.classList.remove('border-tealAccent');
+      
+      const targetId = card.dataset.id;
+      const targetFaseId = card.dataset.faseid;
+
+      if (draggedId && targetId !== draggedId && draggedFaseId === targetFaseId) {
+        // Reorder in same fase
+        const phaseCampos = state.campos.filter(c => c.fase_id === targetFaseId);
+        const draggedIdx = phaseCampos.findIndex(c => c.id === draggedId);
+        const targetIdx = phaseCampos.findIndex(c => c.id === targetId);
+        
+        const newOrder = [...phaseCampos];
+        const [moved] = newOrder.splice(draggedIdx, 1);
+        newOrder.splice(targetIdx, 0, moved);
+
+        await reorderAdminCampos(targetFaseId, newOrder.map(c => c.id));
+        await loadData();
+        renderView();
+      }
+    });
+  });
+
+  // DRAG AND DROP FOR FASES (STATIONS)
+  let draggedFaseContainerId = null;
+  let draggedPipId = null;
+
+  document.querySelectorAll('.fase-card').forEach(faseCard => {
+    faseCard.addEventListener('dragstart', (e) => {
+      // Only drag the phase if we click near the top header, avoid dragging when interacting with fields inside
+      if (e.target.closest('.campo-card')) {
+         e.preventDefault();
+         return;
+      }
+      draggedFaseContainerId = faseCard.dataset.id;
+      draggedPipId = faseCard.dataset.pipid;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => faseCard.classList.add('opacity-50', 'scale-95'), 0);
+    });
+
+    faseCard.addEventListener('dragend', () => {
+      faseCard.classList.remove('opacity-50', 'scale-95');
+      draggedFaseContainerId = null;
+      draggedPipId = null;
+    });
+
+    faseCard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      // Solo resaltar si estamos arrastrando una fase, no un campo
+      if (draggedFaseContainerId && draggedPipId === faseCard.dataset.pipid && draggedFaseContainerId !== faseCard.dataset.id) {
+        faseCard.classList.add('border-tealAccent', 'scale-[1.02]');
+      }
+    });
+
+    faseCard.addEventListener('dragleave', () => {
+      faseCard.classList.remove('border-tealAccent', 'scale-[1.02]');
+    });
+
+    faseCard.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      faseCard.classList.remove('border-tealAccent', 'scale-[1.02]');
+      
+      const targetId = faseCard.dataset.id;
+      const targetPipId = faseCard.dataset.pipid;
+
+      if (draggedFaseContainerId && targetId !== draggedFaseContainerId && draggedPipId === targetPipId) {
+        // Reorder phases
+        const pipFases = state.fases.filter(f => f.pipeline_id === targetPipId).sort((a,b) => a.orden - b.orden);
+        const draggedIdx = pipFases.findIndex(f => f.id === draggedFaseContainerId);
+        const targetIdx = pipFases.findIndex(f => f.id === targetId);
+        
+        const newOrder = [...pipFases];
+        const [moved] = newOrder.splice(draggedIdx, 1);
+        newOrder.splice(targetIdx, 0, moved);
+
+        await reorderAdminFases(targetPipId, newOrder.map(f => f.id));
+        await loadData();
+        renderView();
+      }
+    });
+  });
+}
+
+window.showWorkerDetail = showWorkerDetail;
+window.toggleDetailEditMode = toggleDetailEditMode;
+async function showWorkerDetail(id) {
+    const workers = await getAdminWorkers();
+    const usr = workers.find(u => u.id === id);
+    if (!usr) return;
+
+    const initials = usr.initials || (usr.nombre ? usr.nombre[0] : '?');
+
+    // Exit any existing edit mode
+    exitDetailEditMode();
+
+    // Fill Modal with VIEW mode content
+    document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
+    document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
+    document.getElementById('det-usr-email').textContent = usr.email || '-';
+    document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+    document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
+    document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+
+    // Format DOB for view mode (mes dia año)
+    const dobViewEl = document.getElementById('det-usr-dob-view');
+    if (dobViewEl) {
+        if (usr.dob) {
+            const [y, m, d] = usr.dob.split('-');
+            dobViewEl.textContent = `${m}/${d}/${y}`;
+        } else {
+            dobViewEl.textContent = '-';
+        }
+    }
+
+    // ── Interactive Documentation Zones ──────────────────────────
+    const docsZone = document.getElementById('det-usr-docs-interactive');
+    if (docsZone) {
+        const renderDocBtn = (type, label, url, icon) => {
+            const isLoaded = !!url;
+            return `
+                <div class="relative border-2 ${isLoaded ? 'border-tealAccent bg-tealAccent/5' : 'border-dashed border-gray-200'} rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-gray-50 group overflow-hidden" onclick="document.getElementById('view-upload-${type}').click()">
+                    <input type="file" id="view-upload-${type}" class="hidden" accept=".pdf,image/*" onchange="window.handleInstantDocUpload(event, '${id}', '${type}')">
+                    ${isLoaded ? `
+                        <i class="fa-solid fa-circle-check text-xl text-tealAccent mb-2"></i>
+                        <p class="text-[9px] font-black text-tealAccent uppercase tracking-widest mb-1">Cargado</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <button onclick="event.stopPropagation(); window.openW9File('${url}')" class="text-[8px] text-sky-500 hover:underline uppercase font-bold bg-transparent border-none cursor-pointer p-0"><i class="fa-solid fa-eye text-[7px]"></i> Ver</button>
+                            <span class="text-[8px] text-gray-300">|</span>
+                            <span class="text-[8px] text-gray-400 group-hover:text-tealAccent transition-colors">Reemplazar</span>
+                        </div>
+                    ` : `
+                        <i class="fa-solid ${icon} text-xl text-gray-300 group-hover:text-tealAccent transition-colors mb-2"></i>
+                        <p class="text-[9px] font-black text-gray-400 group-hover:text-tealAccent uppercase tracking-widest">Subir ${label}</p>
+                    `}
+                </div>
+            `;
+        };
+
+        docsZone.innerHTML = `
+            ${renderDocBtn('w9', 'W-9', (usr.w9Url || usr.w9_url), 'fa-file-invoice')}
+            ${renderDocBtn('carnet', 'Carnet', (usr.carnet_url || usr.carnetUrl), 'fa-id-card')}
+            ${renderDocBtn('contrato', 'Contrato', (usr.contrato_url || usr.contratoUrl), 'fa-file-signature')}
+            <div class="doc-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-purple-200 cursor-pointer transition-all hover:border-purple-400 hover:bg-purple-50/50 min-h-[90px]"
+              onclick="window._verRecibosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}')">
+              <i class="fa-solid fa-receipt text-xl text-purple-400 group-hover:text-purple-600 transition-colors mb-2"></i>
+              <p class="text-[9px] font-black text-purple-400 group-hover:text-purple-600 uppercase tracking-widest">Recibos</p>
+            </div>
+        `;
+    }
+    // ─────────────────────────────────────────────────────────────
+
+    const avatarBox = document.getElementById('det-usr-avatar');
+    if (usr.foto) {
+        avatarBox.style.backgroundImage = `url(${usr.foto})`;
+        avatarBox.innerHTML = '';
+    } else {
+        avatarBox.style.backgroundImage = 'none';
+        avatarBox.innerHTML = `<span class="text-6xl text-gray-200 font-black">${initials}</span>`;
+    }
+
+    if(UI.btnEditFromDetail) UI.btnEditFromDetail.dataset.id = id;
+
+    // Show/hide gear based on current user role
+    const currentUser = (() => {
+        try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
+    })();
+    const currentRol = (currentUser.rol || '').toLowerCase();
+    const canEdit = currentRol === 'ceo' || currentRol === 'admin' || currentRol === 'administrador';
+    if (UI.btnEditFromDetail) {
+        UI.btnEditFromDetail.style.display = canEdit ? 'flex' : 'none';
+    }
+
+    state.currentUsrFoto = usr.foto;
+    state.currentUsrW9Url = usr.w9Url;
+
+    // Action Buttons logic
+    const btnUsrEmail = document.getElementById('btn-usr-email');
+    if (btnUsrEmail && usr.email) {
+        btnUsrEmail.onclick = () => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${usr.email}`, '_blank');
+    }
+
+    window.showModal(UI.modUsrDetail);
+}
+
+function exitDetailEditMode() {
+    const editPanel = document.getElementById('det-edit-panel');
+    const viewPanel = document.getElementById('det-view-panel');
+    const saveBar = document.getElementById('det-save-bar');
+    const gearBtn = document.getElementById('btn-edit-worker-from-detail');
+    if (editPanel) editPanel.classList.add('hidden');
+    if (viewPanel) viewPanel.classList.remove('hidden');
+    if (saveBar) saveBar.classList.add('hidden');
+    if (gearBtn) {
+        gearBtn.classList.remove('text-tealAccent', 'bg-tealAccent/10', 'rotate-45');
+        gearBtn.title = 'Editar información';
+    }
+}
+
+async function toggleDetailEditMode(id) {
+    const workers = await getAdminWorkers();
+    const usr = workers.find(u => u.id === id);
+    if (!usr) return;
+
+    const editPanel = document.getElementById('det-edit-panel');
+    const viewPanel = document.getElementById('det-view-panel');
+    const saveBar = document.getElementById('det-save-bar');
+    const gearBtn = document.getElementById('btn-edit-worker-from-detail');
+
+    const isEditing = editPanel && !editPanel.classList.contains('hidden');
+
+    if (isEditing) {
+        // Cancel → return to view mode
+        exitDetailEditMode();
+        // Restore view data
+        document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
+        document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
+        document.getElementById('det-usr-email').textContent = usr.email || '-';
+        document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+        document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
+        document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+        return;
+    }
+
+    // Enter edit mode
+    if (viewPanel) viewPanel.classList.add('hidden');
+    if (editPanel) {
+        editPanel.classList.remove('hidden');
+        // Populate edit fields
+        document.getElementById('det-edit-nombre').value = usr.nombre || '';
+        document.getElementById('det-edit-apellido').value = usr.apellido || '';
+        document.getElementById('det-edit-email').value = usr.email || '';
+        
+        const pParts = (usr.telefono || '').split(' ');
+        const ccEl = document.getElementById('det-edit-cc');
+        const telEl = document.getElementById('det-edit-tel');
+        
+        if (ccEl) {
+            if (pParts.length > 1 && pParts[0].startsWith('+')) {
+                ccEl.value = pParts[0];
+            } else {
+                ccEl.value = '+1';
+            }
+        }
+        
+        if (telEl) {
+            if (pParts.length > 1 && pParts[0].startsWith('+')) {
+                telEl.value = pParts.slice(1).join(' ');
+            } else {
+                telEl.value = usr.telefono || '';
+            }
+        }
+        
+        if (document.getElementById('det-edit-id')) document.getElementById('det-edit-id').value = usr.id;
+        if (document.getElementById('det-edit-dob')) document.getElementById('det-edit-dob').value = usr.dob || '';
+        if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
+        if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'Vendedor';
+        if (document.getElementById('det-edit-pass')) document.getElementById('det-edit-pass').value = usr.password || usr.pass || 'renew123';
+
+        // Apply flatpickr to the new edit field
+        if (window.initDatePickers) window.initDatePickers();
+
+        // ── Pre-fill W-9 state in edit panel ──────────────────────────────
+        state.detEditW9Url = usr.w9Url || usr.w9_url || null;
+        const detW9Placeholder = document.getElementById('det-edit-w9-placeholder');
+        const detW9Success = document.getElementById('det-edit-w9-success');
+        const detW9FileName = document.getElementById('det-edit-w9-file-name');
+        const detW9Inp = document.getElementById('det-edit-inp-w9-file');
+        if (state.detEditW9Url) {
+            if (detW9Placeholder) detW9Placeholder.classList.add('hidden');
+            if (detW9Success) { detW9Success.classList.remove('hidden'); detW9Success.classList.add('flex'); }
+            if (detW9FileName) detW9FileName.textContent = 'Archivo existente \u2713';
+        } else {
+            if (detW9Placeholder) detW9Placeholder.classList.remove('hidden');
+            if (detW9Success) { detW9Success.classList.add('hidden'); detW9Success.classList.remove('flex'); }
+            if (detW9Inp) detW9Inp.value = '';
+        }
+        window.clearDetEditW9 = function() {
+            state.detEditW9Url = null;
+            if (detW9Placeholder) detW9Placeholder.classList.remove('hidden');
+            if (detW9Success) { detW9Success.classList.add('hidden'); detW9Success.classList.remove('flex'); }
+            if (detW9Inp) detW9Inp.value = '';
+        };
+        if (detW9Inp) {
+            const newInp = detW9Inp.cloneNode(true);
+            detW9Inp.parentNode.replaceChild(newInp, detW9Inp);
+            newInp.addEventListener('change', async () => {
+                const file = newInp.files[0];
+                if (!file) return;
+                try {
+                    showToast('Subiendo W-9...', 'info');
+                    const fileUrl = await uploadFile(file, 'documents');
+                    state.detEditW9Url = fileUrl;
+                    if (detW9FileName) detW9FileName.textContent = file.name;
+                    if (detW9Placeholder) detW9Placeholder.classList.add('hidden');
+                    if (detW9Success) { detW9Success.classList.remove('hidden'); detW9Success.classList.add('flex'); }
+                    showToast('W-9 subido', 'success');
+                } catch(e) {
+                    showToast('Error subiendo archivo', 'error');
+                }
+            });
+        }
+
+        // ── Pre-fill Carnet state ──────────────────────────────
+        state.detEditCarnetUrl = usr.carnet_url || usr.carnetUrl || null;
+        const detCarnetPlaceholder = document.getElementById('det-edit-carnet-placeholder');
+        const detCarnetSuccess = document.getElementById('det-edit-carnet-success');
+        const detCarnetFileName = document.getElementById('det-edit-carnet-file-name');
+        const detCarnetInp = document.getElementById('det-edit-inp-carnet-file');
+        if (state.detEditCarnetUrl) {
+            if (detCarnetPlaceholder) detCarnetPlaceholder.classList.add('hidden');
+            if (detCarnetSuccess) { detCarnetSuccess.classList.remove('hidden'); detCarnetSuccess.classList.add('flex'); }
+            if (detCarnetFileName) detCarnetFileName.textContent = 'Archivo existente \u2713';
+        } else {
+            if (detCarnetPlaceholder) detCarnetPlaceholder.classList.remove('hidden');
+            if (detCarnetSuccess) { detCarnetSuccess.classList.add('hidden'); detCarnetSuccess.classList.remove('flex'); }
+            if (detCarnetInp) detCarnetInp.value = '';
+        }
+        window.clearDetEditCarnet = function() {
+            state.detEditCarnetUrl = null;
+            if (detCarnetPlaceholder) detCarnetPlaceholder.classList.remove('hidden');
+            if (detCarnetSuccess) { detCarnetSuccess.classList.add('hidden'); detCarnetSuccess.classList.remove('flex'); }
+            if (detCarnetInp) detCarnetInp.value = '';
+        };
+        if (detCarnetInp) {
+            const newInp = detCarnetInp.cloneNode(true);
+            detCarnetInp.parentNode.replaceChild(newInp, detCarnetInp);
+            newInp.addEventListener('change', async () => {
+                const file = newInp.files[0];
+                if (!file) return;
+                try {
+                    showToast('Subiendo Carnet...', 'info');
+                    const fileUrl = await uploadFile(file, 'documents');
+                    state.detEditCarnetUrl = fileUrl;
+                    if (detCarnetFileName) detCarnetFileName.textContent = file.name;
+                    if (detCarnetPlaceholder) detCarnetPlaceholder.classList.add('hidden');
+                    if (detCarnetSuccess) { detCarnetSuccess.classList.remove('hidden'); detCarnetSuccess.classList.add('flex'); }
+                    showToast('Carnet subido', 'success');
+                } catch(e) {
+                    showToast('Error subiendo archivo', 'error');
+                }
+            });
+        }
+
+        // ── Pre-fill Contrato state ──────────────────────────────
+        state.detEditContratoUrl = usr.contrato_url || usr.contratoUrl || null;
+        const detContratoPlaceholder = document.getElementById('det-edit-contrato-placeholder');
+        const detContratoSuccess = document.getElementById('det-edit-contrato-success');
+        const detContratoFileName = document.getElementById('det-edit-contrato-file-name');
+        const detContratoInp = document.getElementById('det-edit-inp-contrato-file');
+        if (state.detEditContratoUrl) {
+            if (detContratoPlaceholder) detContratoPlaceholder.classList.add('hidden');
+            if (detContratoSuccess) { detContratoSuccess.classList.remove('hidden'); detContratoSuccess.classList.add('flex'); }
+            if (detContratoFileName) detContratoFileName.textContent = 'Archivo existente \u2713';
+        } else {
+            if (detContratoPlaceholder) detContratoPlaceholder.classList.remove('hidden');
+            if (detContratoSuccess) { detContratoSuccess.classList.add('hidden'); detContratoSuccess.classList.remove('flex'); }
+            if (detContratoInp) detContratoInp.value = '';
+        }
+        window.clearDetEditContrato = function() {
+            state.detEditContratoUrl = null;
+            if (detContratoPlaceholder) detContratoPlaceholder.classList.remove('hidden');
+            if (detContratoSuccess) { detContratoSuccess.classList.add('hidden'); detContratoSuccess.classList.remove('flex'); }
+            if (detContratoInp) detContratoInp.value = '';
+        };
+        if (detContratoInp) {
+            const newInp = detContratoInp.cloneNode(true);
+            detContratoInp.parentNode.replaceChild(newInp, detContratoInp);
+            newInp.addEventListener('change', async () => {
+                const file = newInp.files[0];
+                if (!file) return;
+                try {
+                    showToast('Subiendo Contrato...', 'info');
+                    const fileUrl = await uploadFile(file, 'documents');
+                    state.detEditContratoUrl = fileUrl;
+                    if (detContratoFileName) detContratoFileName.textContent = file.name;
+                    if (detContratoPlaceholder) detContratoPlaceholder.classList.add('hidden');
+                    if (detContratoSuccess) { detContratoSuccess.classList.remove('hidden'); detContratoSuccess.classList.add('flex'); }
+                    showToast('Contrato subido', 'success');
+                } catch(e) {
+                    showToast('Error subiendo archivo', 'error');
+                }
+            });
+        }
+        // ────────────────────────────────────────────────────────────
+
+        // ── Pipeline Permissions ──
+        const pipBox = document.getElementById('det-edit-pipeline-perms');
+        if (pipBox) {
+            const dbLocal = getDB();
+            const pipelines = dbLocal.Admin_Pipelines || [];
+            const userUnidades = usr.unidades || [];
+
+            const getPipIcon = (nombre) => {
+                const n = nombre.toLowerCase();
+                if (n.includes('solar')) return 'fa-sun';
+                if (n.includes('water') || n.includes('agua')) return 'fa-droplet';
+                if (n.includes('home') || n.includes('casa') || n.includes('hogar')) return 'fa-house';
+                if (n.includes('hvac') || n.includes('aire')) return 'fa-wind';
+                return 'fa-bolt';
+            };
+
+            if (pipelines.length === 0) {
+                pipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aún.</p>';
+            } else {
+                pipBox.innerHTML = pipelines.map(pip => {
+                    const checked = userUnidades.includes(pip.nombre) ? 'checked' : '';
+                    return `
+                        <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 cursor-pointer hover:border-tealAccent/40 transition-all group" style="background: ${pip.color}08; border-color: ${pip.color}20">
+                            <input type="checkbox" class="pip-perm-chk w-4 h-4 rounded accent-teal-500" data-pip="${pip.nombre}" ${checked}>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: ${pip.color}15; color: ${pip.color}">
+                                <i class="fa-solid ${getPipIcon(pip.nombre)} text-xs"></i>
+                            </div>
+                            <span class="text-sm font-bold text-[#333] flex-1">${pip.nombre}</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest" style="color: ${pip.color}">${checked ? 'Autorizado' : 'Sin acceso'}</span>
+                        </label>
+                    `;
+                }).join('');
+
+                // Live update label on checkbox change
+                pipBox.querySelectorAll('.pip-perm-chk').forEach(chk => {
+                    chk.addEventListener('change', (e) => {
+                        const lbl = e.target.closest('label').querySelector('span:last-child');
+                        if (lbl) lbl.textContent = e.target.checked ? 'Autorizado' : 'Sin acceso';
+                    });
+                });
+            }
+        }
+    }
+    if (saveBar) saveBar.classList.remove('hidden');
+    if (gearBtn) {
+        gearBtn.classList.add('text-tealAccent', 'bg-tealAccent/10');
+        gearBtn.title = 'Cancelar edición';
+    }
+
+    // Back Arrow handler
+    const backArrow = document.getElementById('btn-back-edit-worker');
+    if (backArrow) {
+        // Remove old listeners
+        const newBack = backArrow.cloneNode(true);
+        backArrow.parentNode.replaceChild(newBack, backArrow);
+        newBack.addEventListener('click', () => {
+            exitDetailEditMode();
+            document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
+            document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
+            document.getElementById('det-usr-email').textContent = usr.email || '-';
+            document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+            document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
+            document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+        });
+    }
+
+    // Save button handler
+    const saveBtn = document.getElementById('det-btn-save');
+    if (saveBtn) {
+        // Clone to remove old listeners
+        const newSaveBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+        newSaveBtn.addEventListener('click', async () => {
+            const updatedId = document.getElementById('det-edit-id').value;
+            const nombre = document.getElementById('det-edit-nombre').value.trim();
+            const apellido = document.getElementById('det-edit-apellido').value.trim();
+            const email = document.getElementById('det-edit-email').value.trim();
+            const telEl = document.getElementById('det-edit-tel');
+            const ccEl = document.getElementById('det-edit-cc');
+            const telValDet = telEl ? telEl.value.trim() : '';
+            const ccValDet = ccEl ? ccEl.value : '';
+            const telefono = ccValDet && telValDet ? `${ccValDet} ${telValDet}` : telValDet;
+            
+            const rolEl = document.getElementById('det-edit-rol');
+            const deptEl = document.getElementById('det-edit-dept');
+            const passEl = document.getElementById('det-edit-pass');
+            const dobEl = document.getElementById('det-edit-dob');
+            
+            const rol = rolEl ? rolEl.value : (usr.rol || 'Vendedor');
+            const department = deptEl ? deptEl.value.trim() : (usr.department || '');
+            const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');
+            const dob = dobEl ? dobEl.value : (usr.dob || '');
+
+            // Read pipeline permissions
+            const checkedPips = Array.from(
+                document.querySelectorAll('.pip-perm-chk:checked')
+            ).map(chk => chk.dataset.pip);
+
+            if (!nombre || !apellido || !email) {
+                showToast('Nombre, apellido e email son obligatorios.', 'error');
+                return;
+            }
+
+            const originalText = newSaveBtn.textContent || 'Guardar cambios';
+            newSaveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Guardando...';
+            newSaveBtn.disabled = true;
+
+            try {
+                const initials = ((nombre[0] || '') + (apellido[0] || '')).toUpperCase();
+                
+                // --- LOGICA AUTOMATICA DE ONBOARDING ---
+                const hasAllDocs = state.detEditW9Url && state.detEditCarnetUrl && state.detEditContratoUrl;
+                let current_estatus = usr.estatus_rrhh || 'Inscrito';
+                
+                if (hasAllDocs && (current_estatus === 'Inscrito' || current_estatus === 'Faltan Documentos')) {
+                    current_estatus = 'Capacitacion';
+                } else if (!hasAllDocs && (current_estatus === 'Inscrito' || current_estatus === 'Capacitacion')) {
+                    current_estatus = 'Faltan Documentos';
+                }
+                
+                const updatedUsr = {
+                    ...usr,
+                    nombre, apellido, email, telefono, rol, department, password, initials, dob,
+                    unidades: checkedPips,
+                    foto: state.currentUsrFoto, 
+                    w9Url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9Url || null),
+                    w9_url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9_url || null),
+                    carnet_url: state.detEditCarnetUrl !== undefined ? state.detEditCarnetUrl : (usr.carnet_url || null),
+                    contrato_url: state.detEditContratoUrl !== undefined ? state.detEditContratoUrl : (usr.contrato_url || null),
+                    estatus_rrhh: current_estatus
+                };
+
+                await saveAdminWorker(updatedUsr);
+                
+                if (window.initHRModule) {
+                    try { await window.initHRModule(); } catch(e) {}
+                }
+
+                // Update view fields
+                document.getElementById('det-usr-nombre').textContent = nombre;
+                document.getElementById('det-usr-apellido').textContent = apellido;
+                document.getElementById('det-usr-email').textContent = email;
+                document.getElementById('det-usr-rol').textContent = rol;
+                document.getElementById('det-usr-dept').textContent = department || 'Grupo Renew';
+                document.getElementById('det-usr-tel').textContent = telefono || '-';
+                
+                const dobViewEl = document.getElementById('det-usr-dob-view');
+                if (dobViewEl) {
+                    if (dob) {
+                        const [y, m, d] = dob.split('-');
+                        dobViewEl.textContent = `${m}/${d}/${y}`;
+                    } else {
+                        dobViewEl.textContent = '-';
+                    }
+                }
+
+                // ── Update interactive docs in view panel ──
+                showWorkerDetail(updatedUsr.id);
+
+                exitDetailEditMode();
+                showToast('Perfil y permisos actualizados correctamente.', 'success');
+                await renderView();
+            } catch (error) {
+                console.error("Error updating worker:", error);
+                showToast("Ocurrió un error al guardar: " + (error.message || "Revisa la consola"), "error");
+            } finally {
+                newSaveBtn.innerHTML = originalText;
+                newSaveBtn.disabled = false;
+            }
+        });
+    }
+}
+
+window.handleInstantDocUpload = async function(event, usrId, docType) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const zone = event.target.parentElement;
+    const originalHTML = zone.innerHTML;
+    
+    // Bloquear UI y mostrar Spinner
+    zone.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-2">
+            <i class="fa-solid fa-circle-notch fa-spin text-tealAccent text-2xl mb-2"></i>
+            <p class="text-[9px] font-black text-tealAccent uppercase tracking-widest animate-pulse">Subiendo...</p>
+        </div>
+    `;
+    zone.classList.add('pointer-events-none', 'bg-tealAccent/5');
+
+    try {
+        // USAR UPLOAD REAL EN LUGAR DE BASE64 (Más estable para Supabase)
+        const fileUrl = await uploadFile(file, 'rrhh_docs');
+        
+        const workers = await getAdminWorkers();
+        const usr = workers.find(u => String(u.id) === String(usrId));
+        if (!usr) {
+            zone.innerHTML = originalHTML;
+            zone.classList.remove('pointer-events-none', 'bg-tealAccent/5');
+            return;
+        }
+
+        // Update field
+        if (docType === 'w9') usr.w9_url = fileUrl;
+        else if (docType === 'carnet') usr.carnet_url = fileUrl;
+        else if (docType === 'contrato') usr.contrato_url = fileUrl;
+
+        // Auto-status logic (Simplified & Robust)
+        const hasW9 = !!(usr.w9_url || usr.w9Url) && String(usr.w9_url || usr.w9Url).length > 5;
+        const hasCarnet = !!(usr.carnet_url || usr.carnetUrl) && String(usr.carnet_url || usr.carnetUrl).length > 5;
+        const hasContrato = !!(usr.contrato_url || usr.contratoUrl) && String(usr.contrato_url || usr.contratoUrl).length > 5;
+        const hasAllDocs = hasW9 && hasCarnet && hasContrato;
+
+        if (hasAllDocs) {
+            usr.estatus_rrhh = 'Capacitacion';
+        } else {
+            usr.estatus_rrhh = 'Faltan Documentos';
+        }
+
+        await saveAdminWorker(usr);
+        
+        if (window.initHRModule) {
+            try { await window.initHRModule(); } catch(err) {}
+        }
+        
+        showWorkerDetail(usrId);
+        showToast('Documento subido a la nube correctamente', 'success');
+        await renderView();
+    } catch (err) {
+        console.error('[Instant Upload] Error:', err);
+        zone.innerHTML = originalHTML;
+        zone.classList.remove('pointer-events-none', 'bg-tealAccent/5');
+        showToast('Error al subir a la nube', 'error');
+    }
+};
+
+init();
+
+function updateSidebarUser() {
+    const raw = localStorage.getItem('rs_user');
+    if (!raw) return;
+    try {
+        const user = JSON.parse(raw);
+        const nameEl = document.getElementById('footer-user-name');
+        const roleEl = document.getElementById('footer-user-role');
+        const avatarEl = document.getElementById('footer-user-avatar');
+
+        if (nameEl) nameEl.textContent = `${user.nombre} ${user.apellido || ''}`.trim();
+        if (roleEl) roleEl.textContent = user.rol || 'Staff';
+        if (avatarEl) {
+            if (user.foto) {
+                avatarEl.style.backgroundImage = `url(${user.foto})`;
+                avatarEl.style.backgroundSize = 'cover';
+                avatarEl.style.backgroundPosition = 'center';
+                avatarEl.textContent = '';
+                avatarEl.classList.remove('bg-gradient-to-tr');
+                avatarEl.classList.add('border-2', 'border-white/20');
+            } else {
+                avatarEl.style.backgroundImage = 'none';
+                avatarEl.classList.add('bg-gradient-to-tr');
+                const initials = (user.nombre[0] || '?') + (user.apellido ? user.apellido[0] : '');
+                avatarEl.textContent = initials.toUpperCase();
+            }
+        }
+    } catch(e) {
+        console.error("Error parsing rs_user for sidebar:", e);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  KANBAN PROJECT DETAIL DRAWER
+// ═══════════════════════════════════════════════════════════
+function openKanbanDrawer(projectId, targetPhaseId = null) {
+  window.openKanbanDrawer = openKanbanDrawer;
+  const db = getDB();
+  const p = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
+  if (!p) return;
+
+  const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || { nombre: 'Cliente', telefono: '-' };
+  const pipeline = (db.Admin_Pipelines || []).find(pip => pip.id === p.pipeline_id) || { nombre: 'N/A', color: '#0d9488' };
+  const fases = (db.Admin_Fases || []).filter(f => f.pipeline_id === p.pipeline_id).sort((a, b) => a.orden - b.orden);
+  const faseActual = fases.find(f => f.id === p.fase_id) || { nombre: 'Completado' };
+  const isProjectCompleted = cli.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+  const displayPhaseId = targetPhaseId || (isProjectCompleted && fases.length > 0 ? fases[fases.length - 1].id : p.fase_id);
+  const isCurrentPhase = !isProjectCompleted && displayPhaseId === p.fase_id;
+  const displayPhase = fases.find(f => f.id === displayPhaseId) || faseActual;
+  window._currentDrawerPhaseId = displayPhaseId;
+  const campos = db.Admin_Campos_Formulario || [];
+  const respuestas = (db.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === p.id);
+
+  // Build file gallery: file-type fields with real base64 data or URLs
+  const fileRespuestas = respuestas.filter(r => {
+    const campo = campos.find(c => c.id === r.campo_id);
+    return campo && campo.tipo === 'Archivo' && r.valor && (r.valor.startsWith('data:') || r.valor.startsWith('http'));
+  });
+
+    // Combine dynamic file responses with fixed office attachments
+  const combinedFiles = [...fileRespuestas.map(r => {
+      const campo = campos.find(c => c.id === r.campo_id);
+      return { url: r.valor, etiqueta: campo?.etiqueta || 'Archivo', id: r.campo_id };
+  })];
+  
+  if (cli.adjuntos_oficina) {
+      if (cli.adjuntos_oficina.orden_trabajo_url) combinedFiles.push({ url: cli.adjuntos_oficina.orden_trabajo_url, etiqueta: 'Orden de Trabajo', id: 'sys-orden' });
+      if (cli.adjuntos_oficina.contrato_url) combinedFiles.push({ url: cli.adjuntos_oficina.contrato_url, etiqueta: 'Contrato Firmado', id: 'sys-contrato' });
+      if (cli.adjuntos_oficina.app_url) combinedFiles.push({ url: cli.adjuntos_oficina.app_url, etiqueta: 'Hoja de Aplicación', id: 'sys-app' });
+      if (cli.adjuntos_oficina.recibo_url) combinedFiles.push({ url: cli.adjuntos_oficina.recibo_url, etiqueta: 'Recibo de Pago', id: 'sys-recibo' });
+  }
+
+  const filesHtml = combinedFiles.length > 0
+    ? combinedFiles.map(f => {
+        const isImage = f.url.startsWith('data:image') || f.url.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+        const etiqueta = (f.etiqueta || 'Archivo').replace(/'/g, "\\'");
+        const filename = etiqueta.replace(/\s+/g, '_');
+        return `
+          <div class="group relative">
+            ${isImage
+              ? `<div class="w-full aspect-video rounded-xl overflow-hidden border-2 border-gray-100 dark:border-white/10 group-hover:border-tealAccent transition-all shadow-sm relative">
+                  <img src="${f.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <!-- Action buttons overlay -->
+                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+                    <button
+                      onclick="window.openFilePreview('${f.id}', '${etiqueta}')"
+                      style="background:rgba(255,255,255,0.95);color:#0f172a;border:none;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:transform 0.15s;"
+                      title="Ver en pantalla completa"
+                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                      <i class="fas fa-expand" style="font-size:14px;"></i>
+                    </button>
+                    <a
+                      href="${f.url}"
+                      download="${filename}"
+                      style="background:rgba(13,148,136,0.95);color:white;text-decoration:none;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:transform 0.15s;"
+                      title="Descargar imagen"
+                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                      <i class="fas fa-download" style="font-size:13px;"></i>
+                    </a>
+                  </div>
+                </div>`
+              : `<div class="w-full aspect-video rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 group-hover:border-tealAccent transition-all flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-white/5 relative">
+                  <i class="fas fa-file-pdf text-4xl text-red-400"></i>
+                  <span class="text-[10px] font-bold text-gray-500 text-center px-2 truncate w-full">${etiqueta} PDF</span>
+                  <a href="${f.url}" target="_blank" download="${filename}" class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style="background:#ef4444;color:white;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:4px;">
+                    <i class="fas fa-download"></i> Ver PDF
+                  </a>
+                </div>`
+            }
+            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-1.5 text-center truncate">${f.etiqueta}</p>
+          </div>
+        `;
+      }).join('')
+    : `<div class="col-span-2 py-8 text-center">
+        <i class="fas fa-images text-3xl text-gray-200 dark:text-white/10 mb-2 block"></i>
+        <p class="text-xs text-gray-400 dark:text-gray-600">No hay archivos subidos aún</p>
+       </div>`;
+
+  // Activity log
+  const actividadHtml = (p.actividad && p.actividad.length > 0)
+    ? p.actividad.map(a => `
+        <div class="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-white/5 last:border-0">
+          <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs
+            ${a.tipo === 'ARCHIVO_SUBIDO' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' : 'bg-tealAccent/10 text-tealAccent'}">
+            <i class="fas ${a.tipo === 'ARCHIVO_SUBIDO' ? 'fa-paperclip' : 'fa-check'}"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">${a.campo}</p>
+            ${a.archivo ? `<p class="text-[10px] text-gray-400 truncate">${a.archivo}</p>` : ''}
+            <p class="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">${new Date(a.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+        </div>
+      `).join('')
+    : `<p class="text-xs text-gray-400 py-4 text-center">Sin actividad registrada</p>`;
+
+  // Initials avatar
+  const initials = cli.nombre ? cli.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+
+  // Build drawer
+  const existing = document.getElementById('kanban-drawer-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'kanban-drawer-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;justify-content:flex-end;';
+  overlay.innerHTML = `
+    <!-- backdrop -->
+    <div id="kanban-drawer-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);"></div>
+
+    <!-- drawer panel -->
+    <div id="kanban-drawer-panel" style="
+      position:relative; width:480px; max-width:95vw; height:100vh;
+      box-shadow:-20px 0 60px rgba(0,0,0,0.15);
+      display:flex; flex-direction:column; overflow:hidden;
+      animation:slideInRight 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    " class="bg-white dark:bg-darkBg">
+
+      <!-- Header -->
+      <div style="padding:24px 28px 20px; border-bottom:1px solid #f1f5f9; flex-shrink:0;" class="dark:border-white/5">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.2em; color:#94a3b8;">PROYECTO</span>
+            <button id="btn-delete-kanban-project" data-id="${p.id}" class="w-7 h-7 rounded-lg bg-red-500/5 text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/10 flex items-center justify-center" title="Eliminar Proyecto">
+                <i class="fa-solid fa-trash-can text-[10px]"></i>
+            </button>
+          </div>
+          <button id="kanban-drawer-close" style="width:36px;height:36px;border-radius:50%;border:none;background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:16px;" class="dark:bg-white/5 dark:text-gray-400 hover:text-red-400 transition-colors">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,${pipeline.color},${pipeline.color}99);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:white;flex-shrink:0;">
+            ${cli.foto ? `<img src="${cli.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;" />` : initials}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <h2 style="font-size:1.3rem;font-weight:900;color:#0f172a;margin:0;line-height:1.2;" class="dark:text-white">${cli.nombre}</h2>
+            <p style="font-size:12px;color:#64748b;margin:4px 0 0;" class="dark:text-gray-400">${cli.telefono || 'Sin teléfono'}</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center;">
+          <span style="padding:4px 12px;border-radius:99px;background:${pipeline.color}15;color:${pipeline.color};font-size:10px;font-weight:800;border:1px solid ${pipeline.color}30;">
+            ${pipeline.nombre}
+          </span>
+          <select style="padding:4px 24px 4px 12px;border-radius:99px;background:#f8fafc;color:#475569;font-size:10px;font-weight:700;border:1px solid #e2e8f0;appearance:none;cursor:pointer;outline:none;" class="dark:bg-white/5 dark:text-gray-400 dark:border-white/10" onchange="window.openKanbanDrawer('${p.id}', this.value)">
+            ${fases.map(f => `<option value="${f.id}" ${f.id === displayPhaseId ? 'selected' : ''}>${f.nombre}${f.id === p.fase_id ? ' (Fase Actual)' : ''}</option>`).join('')}
+          </select>
+          <span style="padding:4px 12px;border-radius:99px;background:#f8fafc;color:#94a3b8;font-size:10px;font-weight:700;" class="dark:bg-white/5 dark:text-gray-600">
+            ID: RENEW-${p.id.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      <!-- Scrollable content -->
+      <div style="flex:1;overflow-y:auto;padding:24px 28px;" class="hide-scrollbar" id="kanban-drawer-scrollable">
+
+        <!-- NEW: Phase Form Section (Sync with ProjectDetail) -->
+        <div id="kanban-phase-form-container" style="margin-bottom:32px;">
+           <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin-bottom:16px;">${isCurrentPhase ? 'FASE ACTUAL' : 'HISTORIAL DE FASE'}: ${displayPhase.nombre.toUpperCase()}</p>
+           <div id="drawer-dynamic-fields">
+              <!-- Rendered via JS below -->
+              <p style="font-size:11px; color:#64748b; font-style:italic;">Cargando campos de fase...</p>
+           </div>
+        </div>
+
+        <!-- Files section -->
+        <div style="margin-bottom:32px;">
+          <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin-bottom:16px;">ARCHIVOS Y DOCUMENTOS</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            ${filesHtml}
+          </div>
+        </div>
+
+        <!-- Activity section -->
+        <div>
+          <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin-bottom:12px;">HISTORIAL DE ACTIVIDAD</p>
+          <div style="background:#f8fafc;border-radius:16px;padding:8px 16px;border:1px solid #f1f5f9;" class="dark:bg-white/[0.02] dark:border-white/5">
+            ${actividadHtml}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // --- NEW: Render Phase Fields in Drawer ---
+  const fieldsContainer = document.getElementById('drawer-dynamic-fields');
+  const phaseCampos = campos.filter(c => c.fase_id === displayPhaseId);
+  
+  if (phaseCampos.length === 0) {
+    fieldsContainer.innerHTML = `
+      <div style="padding:20px; background:#f8fafc; border-radius:12px; border:1px dashed #e2e8f0; text-align:center;" class="dark:bg-white/5 dark:border-white/10">
+        <p style="font-size:11px; color:#94a3b8; font-weight:700;">ESTA FASE NO TIENE CAMPOS REQUERIDOS</p>
+        ${isCurrentPhase ? `<button id="btn-advance-drawer-empty" style="margin-top:12px; width:100%; background:${pipeline.color}; color:white; border:none; padding:10px; border-radius:8px; font-weight:800; font-size:11px; cursor:pointer; box-shadow:0 4px 12px ${pipeline.color}30;">
+           AVANZAR A LA SIGUIENTE FASE
+        </button>` : ''}
+      </div>
+    `;
+    const btnAdv = document.getElementById('btn-advance-drawer-empty');
+    if (btnAdv) {
+      btnAdv.onclick = async () => {
+         btnAdv.textContent = 'Espere...';
+         const res = await advanceDealPhase(p.id, {});
+         if (res.didAdvance) {
+            showToast('Fase completada', 'success');
+            closeDrawer();
+            renderView();
+         }
+      };
+    }
+  } else {
+    // Render fields similar to projectDetail.js but styled for Admin Drawer
+    const numFilled = respuestas.filter(r => phaseCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+    const isComplete = numFilled >= phaseCampos.length;
+
+    const inputsHtml = phaseCampos.map(c => {
+      const saved = respuestas.find(r => r.campo_id === c.id);
+      const val = saved ? saved.valor : '';
+      let fieldHtml = '';
+      
+      if (c.tipo === 'Archivo') {
+        const hasFile = val && (val.startsWith('data:') || val.startsWith('http'));
+        fieldHtml = `
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">${c.etiqueta}</label>
+            <div style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:10px;" class="dark:bg-white/5 dark:border-white/10">
+               <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'}"></i>
+               <span style="font-size:11px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? 'Cargado' : 'Pendiente'}</span>
+               <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
+               <label for="dfd_${c.id}" style="background:${hasFile ? '#64748b' : pipeline.color}; color:white; padding:4px 10px; border-radius:6px; font-size:9px; font-weight:800; cursor:pointer; text-transform:uppercase;">
+                 ${hasFile ? 'Actualizar' : 'Subir'}
+               </label>
+            </div>
+          </div>
+        `;
+      } else {
+        fieldHtml = `
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">${c.etiqueta}</label>
+            <input type="${c.tipo==='Número'?'number':'text'}" id="dfd_${c.id}" value="${val}" 
+                   style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; transition:all;"
+                   class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent" placeholder="Escribir...">
+          </div>
+        `;
+      }
+      return fieldHtml;
+    }).join('');
+
+    fieldsContainer.innerHTML = `
+      <style>
+        #kanban-phase-form-container input[type="text"],
+        #kanban-phase-form-container input[type="number"] {
+          color: #0f172a !important;
+        }
+        .dark #kanban-phase-form-container input[type="text"],
+        .dark #kanban-phase-form-container input[type="number"] {
+          color: #ffffff !important;
+        }
+      </style>
+      <div style="margin-bottom:16px;">
+        <p style="font-size:10px; color:#64748b; font-weight:600; margin-bottom:12px;">
+           ${isComplete ? '¡Estructura completa! Ya puedes avanzar.' : `Faltan <strong>${phaseCampos.length - numFilled}</strong> campos/archivos.`}
+        </p>
+        ${inputsHtml}
+      </div>
+      <button id="btn-save-drawer-phase" style="width:100%; height:48px; background:${isCurrentPhase ? pipeline.color : '#64748b'}; color:white; border:none; border-radius:12px; font-weight:900; font-size:12px; cursor:pointer; box-shadow:0 8px 24px ${isCurrentPhase ? pipeline.color + '30' : 'rgba(0,0,0,0.15)'}; display:flex; align-items:center; justify-content:center; gap:8px;">
+          <i class="fas ${isCurrentPhase ? 'fa-check-double' : 'fa-save'}"></i>
+          <span>${isCurrentPhase ? 'FINALIZAR FASE Y ENVIAR' : 'ACTUALIZAR HISTORIAL'}</span>
+      </button>
+    `;
+
+    // Handler for saving/advancing
+    const btnSave = document.getElementById('btn-save-drawer-phase');
+    if (btnSave) {
+      btnSave.onclick = async () => {
+        const resp = {};
+        // RE-FETCH latest responses from DB to avoid overwriting recent file uploads with old closure state
+        const freshDb = getDB();
+        const currentResps = (freshDb.Respuestas_Dinamicas || []).filter(r => String(r.proyecto_id) === String(p.id));
+
+        for (const c of phaseCampos) {
+          const el = document.getElementById(`dfd_${c.id}`);
+          let val = '';
+          if (c.tipo === 'Archivo') {
+             const existing = currentResps.find(r => String(r.campo_id) === String(c.id));
+             val = existing ? existing.valor : '';
+          } else {
+             val = (el?.value || "").trim();
+          }
+          resp[c.id] = val || "No provisto";
+        }
+        
+        btnSave.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Procesando...';
+        btnSave.disabled = true;
+
+        try {
+          if (!isCurrentPhase) {
+          // Just update historical answers without advancing phase
+          const db = getDB();
+          if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
+          for (const [cId, val] of Object.entries(resp)) {
+            const idx = db.Respuestas_Dinamicas.findIndex(r => String(r.proyecto_id) === String(p.id) && String(r.campo_id) === String(cId));
+            if (idx !== -1) {
+              db.Respuestas_Dinamicas[idx].valor = val;
+            } else {
+              db.Respuestas_Dinamicas.push({
+                id: genId('resp', db),
+                proyecto_id: p.id,
+                campo_id: cId,
+                valor: val
+              });
+            }
+          }
+          await saveDB(db);
+          showToast('Historial actualizado', 'success');
+          openKanbanDrawer(p.id, displayPhaseId);
+          return;
+        }
+
+        const res = await advanceDealPhase(p.id, resp);
+        if (res.didAdvance) {
+           showToast('¡Fase completada y enviada!', 'success');
+           closeDrawer();
+           renderView();
+        } else if (isCurrentPhase) {
+           showToast(`Avances guardados, pero faltan ${res.missingCount} campos para avanzar de fase.`, 'warning');
+           openKanbanDrawer(p.id, displayPhaseId);
+        }
+        } catch (e) {
+          console.error("Error al guardar o avanzar fase:", e);
+          showToast('Error al procesar los datos', 'error');
+          btnSave.innerHTML = `<i class="fas ${isCurrentPhase ? 'fa-check-double' : 'fa-save'}"></i> <span>REINTENTAR</span>`;
+          btnSave.disabled = false;
+        }
+      };
+    }
+  }
+
+  // --- Helper for File Upload in Drawer ---
+  window.handleDrawerFileUpload = async (projectId, campoId, input) => {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    const btn = input.nextElementSibling;
+    const originalText = btn.textContent;
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    try {
+      const url = await uploadFile(file, 'projects');
+      const db = getDB();
+      if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
+      
+      const idx = db.Respuestas_Dinamicas.findIndex(r => String(r.proyecto_id) === String(projectId) && String(r.campo_id) === String(campoId));
+      let updatedResp = null;
+      if (idx !== -1) {
+        db.Respuestas_Dinamicas[idx].valor = url;
+        updatedResp = db.Respuestas_Dinamicas[idx];
+      } else {
+        updatedResp = {
+          id: genId('resp', db),
+          proyecto_id: projectId,
+          campo_id: campoId,
+          valor: url
+        };
+        db.Respuestas_Dinamicas.push(updatedResp);
+      }
+      
+      // Fast granular save
+      await saveGranular('respuestas_dinamicas', [updatedResp]);
+      
+      // Log activity
+      const p = db.Proyectos_Dinamicos.find(x => String(x.id) === String(projectId));
+      const campo = db.Admin_Campos_Formulario.find(c => String(c.id) === String(campoId));
+      const user = getCurrentUser();
+      
+      if (p) {
+          if (!p.actividad) p.actividad = [];
+          const newAct = {
+            tipo: 'ARCHIVO_SUBIDO',
+            campo: campo?.etiqueta || 'Archivo',
+            archivo: file.name,
+            timestamp: new Date().toISOString(),
+            responsable: user?.nombre || 'Staff'
+          };
+          p.actividad.unshift(newAct);
+          // Sync with API
+          syncKanbanActivity({
+            proyecto_id: projectId,
+            evento: 'ARCHIVO_SUBIDO',
+            campo_etiqueta: campo?.etiqueta || 'Archivo',
+            archivo_nombre: file.name,
+            responsable_id: user?.id,
+            fase_nombre: p.fase_id
+          });
+      }
+
+      showToast('Archivo cargado correctamente', 'success');
+      // Re-invoke drawer to refresh UI
+      openKanbanDrawer(projectId, window._currentDrawerPhaseId);
+    } catch (e) {
+      console.error("Error en handleDrawerFileUpload:", e);
+      showToast('Error al subir archivo', 'error');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  };
+
+  document.body.appendChild(overlay);
+
+  // Store file data for preview access
+  window._kanbanFileCache = {};
+  fileRespuestas.forEach(r => { window._kanbanFileCache[r.campo_id] = { valor: r.valor, campo: campos.find(c => c.id === r.campo_id) }; });
+
+  // Close handlers
+  const closeDrawer = () => {
+    const panel = document.getElementById('kanban-drawer-panel');
+    if (panel) panel.style.animation = 'slideOutRight 0.25s cubic-bezier(0.4,0,1,1) both';
+    setTimeout(() => overlay.remove(), 250);
+  };
+  document.getElementById('kanban-drawer-close').addEventListener('click', closeDrawer);
+  document.getElementById('kanban-drawer-backdrop').addEventListener('click', closeDrawer);
+  
+  const btnDelProj = document.getElementById('btn-delete-kanban-project');
+  if (btnDelProj) {
+      btnDelProj.addEventListener('click', async () => {
+          if (confirm('¿ESTÁS SEGURO DE ELIMINAR ESTE PROYECTO COMPLETAMENTE?')) {
+              const db = getDB();
+              db.Proyectos_Dinamicos = (db.Proyectos_Dinamicos || []).filter(proj => proj.id !== p.id);
+              await saveDB(db);
+              closeDrawer();
+              showToast('Proyecto eliminado.', 'warning');
+              await renderView(); // Refresh Kanban view
+          }
+      });
+  }
+
+  document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeDrawer(); document.removeEventListener('keydown', esc); } });
+}
+
+function openFilePreview(campoId, label, directData) {
+  const cached = directData || window._kanbanFileCache?.[campoId];
+  if (!cached || !cached.valor) {
+    console.warn('[openFilePreview] No data found for', campoId);
+    showToast('No se encontró el archivo para previsualizar', 'error');
+    return;
+  }
+
+  const existing = document.getElementById('file-preview-lightbox');
+  if (existing) existing.remove();
+
+  const lightbox = document.createElement('div');
+  lightbox.id = 'file-preview-lightbox';
+  lightbox.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:overlayIn 0.2s ease both;backdrop-filter:blur(10px);';
+  
+  const isImage = cached.valor.startsWith('data:image') || cached.valor.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+  const filename = label.replace(/\s+/g, '_');
+  
+  lightbox.innerHTML = `
+    <div style="position:absolute;top:0;left:0;right:0;height:80px;background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);display:flex;justify-content:space-between;align-items:center;padding:0 30px;z-index:10;">
+      <div style="display:flex;align-items:center;gap:15px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(20,184,166,0.2);display:flex;align-items:center;justify-content:center;color:#14b8a6;border:1px solid rgba(20,184,166,0.3);">
+            <i class="fas ${isImage ? 'fa-image' : 'fa-file-pdf'}"></i>
+        </div>
+        <div>
+            <p style="color:white;font-weight:800;font-size:12px;margin:0;letter-spacing:1px;text-transform:uppercase;">${label}</p>
+            <p style="color:rgba(255,255,255,0.5);font-size:10px;margin:0;">Previsualización de Documento</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <a href="${cached.valor}" download="${filename}" style="background:#14b8a6;color:black;border:none;height:40px;padding:0 20px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:900;text-decoration:none;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:1px;transition:all 0.2s;">
+          <i class="fas fa-download"></i> Descargar
+        </a>
+        <button onclick="document.getElementById('file-preview-lightbox').remove()" style="background:rgba(255,255,255,0.1);color:white;border:none;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.1);transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)';this.style.borderColor='rgba(239,68,68,0.4)';this.style.color='#f87171';" onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='white';">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div id="lightbox-loader" style="position:absolute;display:flex;flex-direction:column;align-items:center;gap:15px;color:white;">
+        <div style="width:40px;height:40px;border:3px solid rgba(20,184,166,0.1);border-top-color:#14b8a6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <p style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:0.6;">Cargando Archivo...</p>
+    </div>
+
+    <div id="lightbox-content-area" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+        ${isImage
+          ? `<img id="preview-img" src="${cached.valor}" style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:12px;box-shadow:0 25px 80px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.3s ease;z-index:5;" onload="this.style.opacity='1';document.getElementById('lightbox-loader').style.display='none';" onerror="window.handlePreviewError(this)">`
+          : `<iframe id="preview-pdf" src="${cached.valor}" style="width:90vw;height:80vh;border:none;border-radius:12px;box-shadow:0 25px 80px rgba(0,0,0,0.5);z-index:5;" onload="document.getElementById('lightbox-loader').style.display='none';"></iframe>`
+        }
+    </div>
+  `;
+
+  window.handlePreviewError = (img) => {
+    img.style.display = 'none';
+    document.getElementById('lightbox-loader').style.display = 'none';
+    const area = document.getElementById('lightbox-content-area');
+    area.innerHTML = `
+        <div style="color:white;text-align:center;">
+            <i class="fas fa-exclamation-triangle" style="font-size:3rem;color:#facc15;margin-bottom:20px;"></i>
+            <p style="font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Error al cargar imagen</p>
+            <p style="opacity:0.6;font-size:12px;">El archivo podría no existir o la URL es inválida</p>
+        </div>
+    `;
+  };
+
+  document.body.appendChild(lightbox);
+
+  // Forzar que otros modales se pongan detrás (importante para evitar el conflicto con el z-index 2147483647 de showModal)
+  ['modal-client-detail', 'modal-project-detail', 'kanban-drawer-overlay'].forEach(id => {
+      const m = document.getElementById(id);
+      if (m) m.style.setProperty('z-index', '50', 'important');
+  });
+
+  const closeLightbox = () => {
+    lightbox.remove();
+    if (mainModal) mainModal.style.setProperty('z-index', '100', 'important');
+    document.removeEventListener('keydown', escLb);
+  };
+
+  lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target.id === 'lightbox-content-area') closeLightbox(); });
+  function escLb(e) { if (e.key === 'Escape') closeLightbox(); }
+  document.addEventListener('keydown', escLb);
+}
+
+// Expose globally for onclick attributes in dynamic HTML
+window.openFilePreview = openFilePreview;
+window.showClientDetail = showClientDetail;
+
+function _showContractSelectorModal(contracts) {
+    const existing = document.getElementById('contract-selector-modal');
+    if (existing) existing.remove();
+
+    // Forzar que otros modales se pongan detrás
+    ['modal-client-detail', 'modal-project-detail', 'kanban-drawer-overlay'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m) m.style.setProperty('z-index', '50', 'important');
+    });
+
+    const modal = document.createElement('div');
+    modal.id = 'contract-selector-modal';
+    modal.style.cssText = 'position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.8); backdrop-filter:blur(12px); animation:fadeIn 0.2s ease;';
+    
+    modal.innerHTML = `
+        <div style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:32px; width:100%; max-width:400px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); animation:zoomIn 0.2s ease;">
+            <div style="padding:28px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
+                <h3 style="color:white; font-weight:800; font-size:1.2rem; margin:0; letter-spacing:-0.5px;">Ver Contrato</h3>
+                <button onclick="this.closest('#contract-selector-modal').remove()" style="background:rgba(255,255,255,0.05); border:none; color:#9ca3af; cursor:pointer; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'; this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.color='#9ca3af'">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div style="padding:24px; display:flex; flex-direction:column; gap:12px;">
+                <p style="color:#475569; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; margin-left:4px;">Selecciona la versión:</p>
+                ${contracts.map(c => {
+                    const isSolar = c.label.toLowerCase().includes('solar');
+                    const isWater = c.label.toLowerCase().includes('water');
+                    const color = isSolar ? '#f59e0b' : (isWater ? '#0ea5e9' : '#a855f7');
+                    const bgColor = isSolar ? 'rgba(245,158,11,0.12)' : (isWater ? 'rgba(14,165,233,0.12)' : 'rgba(168,85,247,0.12)');
+                    const icon = isSolar ? 'fa-sun' : (isWater ? 'fa-water' : 'fa-home');
+                    
+                    return `
+                        <button onclick="window.openFilePreview('ofi-contrato', 'Contrato ${c.label}', { valor: '${c.url}' }); this.closest('#contract-selector-modal').remove()" 
+                                style="display:flex; align-items:center; gap:18px; padding:20px; border-radius:20px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); cursor:pointer; text-align:left; transition:all 0.2s; width:100%; position:relative; overflow:hidden;"
+                                onmouseover="this.style.background='rgba(255,255,255,0.06)'; this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(255,255,255,0.1)';"
+                                onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.transform='translateY(0)'; this.style.borderColor='rgba(255,255,255,0.05)';">
+                            <div style="width:48px; height:48px; border-radius:16px; background:${bgColor}; display:flex; align-items:center; justify-content:center; color:${color}; font-size:1.3rem; flex-shrink:0; box-shadow:inset 0 0 10px ${color}20;">
+                                <i class="fa-solid ${icon}"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <p style="color:white; font-weight:700; font-size:1rem; margin:0;">Renew ${c.label}</p>
+                                <p style="color:#64748b; font-size:0.65rem; text-transform:uppercase; font-weight:900; letter-spacing:0.5px; margin:0; margin-top:2px;">Previsualizar Documento</p>
+                            </div>
+                            <div style="width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:#334155;">
+                                <i class="fa-solid fa-chevron-right" style="font-size:0.7rem;"></i>
+                            </div>
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+            <div style="padding:16px 24px; background:rgba(0,0,0,0.2); text-align:center;">
+                <p style="color:#334155; font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Sistema de Gestión de Contratos © Renew</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+window.handleContractView = (clientId) => {
+    const db = getDB();
+    const cli = db.Clientes_Maestro.find(c => c.id === clientId);
+    if (!cli) return;
+
+    const contracts = [];
+    const adj = cli.adjuntos_oficina || {};
+
+    if (cli.contrato_solar_url || adj.contrato_solar_url) 
+        contracts.push({ label: 'Solar', url: cli.contrato_solar_url || adj.contrato_solar_url });
+    if (cli.contrato_water_url || adj.contrato_water_url) 
+        contracts.push({ label: 'Water', url: cli.contrato_water_url || adj.contrato_water_url });
+    if (cli.contrato_home_url || adj.contrato_home_url) 
+        contracts.push({ label: 'Home', url: cli.contrato_home_url || adj.contrato_home_url });
+
+    // Fallback if none found with prefixes but generic exists
+    if (contracts.length === 0 && (cli.contrato_url || adj.contrato_url)) {
+        contracts.push({ label: 'General', url: cli.contrato_url || adj.contrato_url });
+    }
+
+    if (contracts.length === 0) {
+        showToast('No se encontró ningún contrato para este cliente', 'info');
+        return;
+    }
+
+    if (contracts.length === 1) {
+        window.openFilePreview('ofi-contrato', 'Contrato ' + contracts[0].label, { valor: contracts[0].url });
+    } else {
+        _showContractSelectorModal(contracts);
+    }
+};
+
+// ── CLIENT PROFILE LOGIC ──────────────────────────────────────
+
+async function showClientDetail(id) {
+    const db = getDB();
+    const cli = (db.Clientes_Maestro || []).find(c => c.id === id);
+    if (!cli) return;
+    state.activeClientId = id;
+
+    exitClientEditMode();
+
+    // Population
+    if(document.getElementById('det-cli-nombre')) document.getElementById('det-cli-nombre').textContent = cli.nombre || '-';
+    if(document.getElementById('det-cli-email')) document.getElementById('det-cli-email').textContent = cli.email || '-';
+    if(document.getElementById('det-cli-tel')) document.getElementById('det-cli-tel').textContent = cli.telefono || '-';
+    // ── Multi-dept badges ──
+    const detDeptEl = document.getElementById('det-cli-dept');
+    if (detDeptEl) {
+      const _depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento || cli.empresa ? [cli.departamento || cli.empresa] : []);
+      if (_depts.length) {
+        detDeptEl.innerHTML = _depts.map(d => {
+          const _nm = d.replace('Renew ','');
+          const _cls = _nm.toLowerCase().includes('water') ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : _nm.toLowerCase().includes('solar') ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-lime-500/10 text-lime-500 border-lime-500/20';
+          return `<span class="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${_cls} border">${_nm}</span>`;
+        }).join('');
+      } else {
+        detDeptEl.innerHTML = '<span class="text-sm text-gray-300 italic">Sin departamento</span>';
+      }
+    }
+    // ── Macro estado ──
+    const detMacroEl = document.getElementById('det-cli-macro-estado');
+    if (detMacroEl) {
+      let _me = cli.macro_estado || 'Prospecto';
+      
+      // Safety recovery for UI consistency
+      if (cli.departamento === 'CANCELADO' || (cli.estado && cli.estado.toLowerCase() === 'cancelado')) {
+        _me = 'Cancelado';
+      }
+
+      const _meColors = { 'Prospecto': 'text-sky-400', 'En Proceso': 'text-amber-400', 'Cliente Fiel': 'text-tealAccent', 'Cancelado': 'text-red-400' };
+      detMacroEl.className = `text-sm font-black ${_meColors[_me] || 'text-gray-400'}`;
+      detMacroEl.textContent = _me;
+    }
+    if(document.getElementById('det-cli-fecha-inicio')) document.getElementById('det-cli-fecha-inicio').textContent = cli.fecha_inicio || 'No establecida';
+    if(document.getElementById('det-cli-direccion')) document.getElementById('det-cli-direccion').textContent = cli.direccion || '-';
+    if(document.getElementById('det-cli-state-id')) document.getElementById('det-cli-state-id').textContent = cli.state_id || '-';
+    if(document.getElementById('det-cli-dob')) document.getElementById('det-cli-dob').textContent = cli.dob || '-';
+    if(document.getElementById('det-cli-notas')) document.getElementById('det-cli-notas').textContent = cli.notas || '-';
+
+    // Reset Evidence State
+    state.currentDetAdjID = cli.adjunto_id_url || null;
+    state.currentDetAdjBill = cli.adjunto_bill_url || null;
+    state.currentDetAdjSeguro = cli.adjunto_seguro_url || null;
+    state.currentDetOfiApp = (cli.adjuntos_oficina && cli.adjuntos_oficina.app_url) || null;
+    state.currentDetOfiRecibo = (cli.adjuntos_oficina && cli.adjuntos_oficina.recibo_url) || null;
+    
+    // Contracts are now pipeline-aware
+    const adj = cli.adjuntos_oficina || {};
+    state.currentDetOfiContratoWater = adj.contrato_water_url || cli.contrato_water_url || null;
+    state.currentDetOfiContratoSolar = adj.contrato_solar_url || cli.contrato_solar_url || null;
+    state.currentDetOfiContratoHome  = adj.contrato_home_url  || cli.contrato_home_url  || null;
+    
+    // Fallback for generic contract
+    state.currentDetOfiContrato = adj.contrato_url || cli.contrato_url || null;
+
+    state.currentDetOfiOrden = (cli.adjuntos_oficina && cli.adjuntos_oficina.orden_trabajo_url) || null;
+
+    // Update Evidence Buttons Visuals
+    const updateBtn = (id, url, label, customViewHandler = null) => {
+        const btn = document.getElementById(`drop-det-${id}`);
+        const lbl = document.getElementById(`lbl-det-${id}`);
+        if (btn && lbl) {
+            if (url) {
+                btn.classList.add('border-tealAccent', 'bg-tealAccent/5');
+                const viewAction = customViewHandler || `window.openFilePreview('${id}', '${label}', { valor: '${url}' })`;
+                lbl.innerHTML = `
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-tealAccent font-black">ACTUALIZAR ${label}</span>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="event.stopPropagation(); ${viewAction}" class="w-8 h-8 rounded-full bg-tealAccent/10 text-tealAccent border border-tealAccent/20 flex items-center justify-center hover:bg-tealAccent hover:text-white transition-all" title="Visualizar">
+                                <i class="fa-solid fa-eye text-[10px]"></i>
+                            </button>
+                            <a href="${url}" download onclick="event.stopPropagation()" class="w-8 h-8 rounded-full bg-tealAccent/10 text-tealAccent border border-tealAccent/20 flex items-center justify-center hover:bg-tealAccent hover:text-white transition-all" title="Descargar">
+                                <i class="fa-solid fa-download text-[10px]"></i>
+                            </a>
+                            <button onclick="event.stopPropagation(); document.getElementById('inp-det-${id}').click()" class="w-8 h-8 rounded-full bg-amber-400/10 text-amber-600 border border-amber-400/20 flex items-center justify-center hover:bg-amber-400 hover:text-white transition-all" title="Cambiar Archivo">
+                                <i class="fa-solid fa-rotate text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                lbl.classList.replace('text-gray-400', 'text-tealAccent');
+            } else {
+                btn.classList.remove('border-tealAccent', 'bg-tealAccent/5');
+                lbl.innerHTML = label;
+                lbl.classList.replace('text-tealAccent', 'text-gray-400');
+            }
+        }
+    };
+
+    updateBtn('adj-id', state.currentDetAdjID, 'Foto ID');
+    updateBtn('adj-bill', state.currentDetAdjBill, 'Bill Eléctrico');
+    updateBtn('adj-seguro', state.currentDetAdjSeguro, 'Póliza Seguro');
+    updateBtn('ofi-app', state.currentDetOfiApp, 'Hoja Aplicación');
+    updateBtn('ofi-recibo', state.currentDetOfiRecibo, 'Recibo de Pago');
+    
+    // Handle specific contracts
+    const contractArea = document.getElementById('drop-det-ofi-contrato')?.parentElement;
+    if (contractArea) {
+        // Count total contracts
+        const contractUrls = [state.currentDetOfiContratoSolar, state.currentDetOfiContratoWater, state.currentDetOfiContratoHome, state.currentDetOfiContrato].filter(u => !!u);
+        
+        if (contractUrls.length > 1) {
+            // MULTIPLE: Show generic label and use the selector handler
+            updateBtn('ofi-contrato', contractUrls[0], 'CONTRATOS MULTIPLES', `window.handleContractView('${cli.id}')`);
+        } else if (contractUrls.length === 1) {
+            // SINGLE: Label it specifically if we know which one it is
+            let specificLabel = 'Contrato Firmado';
+            if (state.currentDetOfiContratoSolar) specificLabel = 'Contrato SOLAR';
+            else if (state.currentDetOfiContratoWater) specificLabel = 'Contrato WATER';
+            else if (state.currentDetOfiContratoHome) specificLabel = 'Contrato HOME';
+            
+            updateBtn('ofi-contrato', contractUrls[0], specificLabel);
+        } else {
+            // NONE:
+            updateBtn('ofi-contrato', null, 'Contrato Firmado');
+        }
+    }
+
+    updateBtn('ofi-orden', state.currentDetOfiOrden, 'Orden de Trabajo');
+    
+    // ID Photo View Logic
+    const btnViewId = document.getElementById('btn-view-cli-id-photo');
+    const noIdMsg = document.getElementById('det-cli-id-no-photo');
+    if (cli.id_photo) {
+        if(btnViewId) {
+            btnViewId.classList.remove('hidden');
+            btnViewId.classList.add('flex');
+            btnViewId.onclick = () => {
+                window.openFilePreview('id_photo_temp', 'Documento de Identidad del Cliente', { valor: cli.id_photo });
+            };
+        }
+        if(noIdMsg) noIdMsg.classList.add('hidden');
+    } else {
+        if(btnViewId) {
+            btnViewId.classList.add('hidden');
+            btnViewId.classList.remove('flex');
+        }
+        if(noIdMsg) noIdMsg.classList.remove('hidden');
+    }
+
+    // Status label
+    const statLbl = document.getElementById('det-cli-status-label');
+    if (statLbl) {
+        statLbl.innerHTML = `<span class="w-2 h-2 rounded-full ${cli.estado === 'Completado' ? 'bg-teal-400' : 'bg-tealAccent'}"></span> ${cli.estado || 'PROSPECTO'}`;
+    }
+
+    const avatarBox = document.getElementById('det-cli-avatar');
+    if (avatarBox) {
+        if (cli.foto) {
+            avatarBox.style.backgroundImage = `url(${cli.foto})`;
+            avatarBox.innerHTML = '';
+        } else {
+            avatarBox.style.backgroundImage = 'none';
+            avatarBox.innerHTML = `<i class="fa-solid fa-user text-6xl text-gray-200"></i>`;
+        }
+    }
+
+    // WA and Call Buttons
+    const btnWA = document.getElementById('btn-cli-whatsapp');
+    if (btnWA && cli.telefono) {
+        btnWA.onclick = () => window.open(`https://wa.me/${cli.telefono.replace(/\D/g, '')}`, '_blank');
+    }
+    const btnCall = document.getElementById('btn-cli-call');
+    if (btnCall && cli.telefono) {
+        btnCall.onclick = () => window.open(`tel:${cli.telefono}`, '_blank');
+    }
+    const btnEmail = document.getElementById('btn-cli-email');
+    if (btnEmail && cli.email) {
+        btnEmail.onclick = () => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${cli.email}`, '_blank');
+    }
+
+    if (UI.btnEditCliFromDetail) UI.btnEditCliFromDetail.dataset.id = id;
+
+    // --- ASSIGNMENT LOGIC ---
+    const workers = await getAdminWorkers();
+    const selAssigned = document.getElementById('sel-vendedor-asignar');
+    const selEditAssigned = document.getElementById('det-cli-edit-vendedor');
+    const assignedNameText = document.getElementById('det-cli-vendedor-nombre');
+    const assignedAvatar = document.getElementById('det-cli-vendedor-avatar');
+    const reassignBtn = document.getElementById('btn-reassign-vendedor');
+    const selectorWrap = document.getElementById('vendedor-selector-wrap');
+
+    if (selAssigned) {
+        selAssigned.innerHTML = '<option value="">-- Seleccionar Vendedor --</option>';
+        if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">No asignado</option>';
+        
+        // ── FILTRO DE PIPELINE: Solo mostrar vendedores con acceso al ecosistema del cliente ──
+        const clientePipeline = cli.empresa || cli.departamento || null;
+        const vendedorRoles = ['vendedor', 'admin', 'administrador', 'ceo', 'supervisor', 'supervisión'];
+        
+        const filteredWorkers = workers.filter(w => {
+            // Solo roles de venta
+            const isVendorRole = vendedorRoles.includes((w.rol || '').toLowerCase());
+            if (!isVendorRole) return false;
+            // Si hay un pipeline asignado al cliente, filtrar por acceso
+            if (clientePipeline && clientePipeline !== '-' && clientePipeline !== 'Lead (Nuevo)') {
+                const workerUnidades = w.unidades || [];
+                return workerUnidades.some(u => u.toLowerCase() === clientePipeline.toLowerCase());
+            }
+            return true; // Sin pipeline asignado, mostrar todos los vendedores
+        });
+
+        filteredWorkers.forEach(w => {
+            const name = `${w.nombre || ''} ${w.apellido || ''}`.trim();
+            const opt = `<option value="${w.id}">${name} (${w.rol || 'Staff'})</option>`;
+            selAssigned.innerHTML += opt;
+            if (selEditAssigned) selEditAssigned.innerHTML += opt;
+        });
+
+        // Si no hay vendedores disponibles para este pipeline, mostrar mensaje
+        if (filteredWorkers.length === 0) {
+            const msg = clientePipeline && clientePipeline !== '-'
+                ? `<option value="" disabled>No hay vendedores con acceso a ${clientePipeline}</option>`
+                : '<option value="" disabled>No hay vendedores disponibles</option>';
+            selAssigned.innerHTML += msg;
+        }
+
+        // Set current values
+        selAssigned.value = cli.vendedor_asignado_id || '';
+        if (selEditAssigned) selEditAssigned.value = cli.vendedor_asignado_id || '';
+
+        const currentWorker = workers.find(w => w.id === cli.vendedor_asignado_id);
+        if (currentWorker) {
+            assignedNameText.textContent = `${currentWorker.nombre} ${currentWorker.apellido || ''}`;
+            assignedNameText.classList.add('text-tealAccent');
+            assignedAvatar.textContent = (currentWorker.nombre[0] || '?').toUpperCase();
+            assignedAvatar.classList.replace('bg-tealAccent/20', 'bg-tealAccent');
+            assignedAvatar.classList.replace('text-tealAccent', 'text-white');
+        } else {
+            assignedNameText.textContent = 'Sin asignar';
+            assignedNameText.classList.remove('text-tealAccent');
+            assignedAvatar.textContent = '?';
+            assignedAvatar.classList.replace('bg-tealAccent', 'bg-tealAccent/20');
+            assignedAvatar.classList.replace('text-white', 'text-tealAccent');
+        }
+    }
+
+    if (reassignBtn && selectorWrap) {
+        reassignBtn.onclick = () => {
+            selectorWrap.classList.toggle('hidden');
+            reassignBtn.textContent = selectorWrap.classList.contains('hidden') ? 'Cambiar Asignación' : 'Cancelar';
+        };
+    }
+
+    if (selAssigned) {
+        selAssigned.onchange = async () => {
+            const newId = selAssigned.value;
+            cli.vendedor_asignado_id = newId || null;
+            await saveDB(db);
+            showToast('Asignación actualizada', 'success');
+            
+            // Refresh mini-view
+            const worker = workers.find(w => w.id === newId);
+            if (worker) {
+                assignedNameText.textContent = `${worker.nombre} ${worker.apellido || ''}`;
+                assignedNameText.classList.add('text-tealAccent');
+                assignedAvatar.textContent = worker.nombre[0].toUpperCase();
+                assignedAvatar.classList.replace('bg-tealAccent/20', 'bg-tealAccent');
+                assignedAvatar.classList.replace('text-tealAccent', 'text-white');
+                
+                // NOTIFICAR VIA WEBHOOK (n8n)
+                try {
+                    const payload = {
+                        cliente_id: cli.id,
+                        cliente_nombre: cli.nombre,
+                        cliente_telefono: cli.telefono || 'No registrado',
+                        cliente_email: cli.email || 'No registrado',
+                        cliente_direccion: cli.direccion || 'No registrada',
+                        pipeline: cli.empresa || cli.departamento || 'No asignado',
+                        vendedor_nombre: `${worker.nombre} ${worker.apellido || ''}`.trim(),
+                        vendedor_email: worker.email || ''
+                    };
+                    console.log('Enviando webhook a n8n (on change)...', payload);
+                    const params = new URLSearchParams();
+                    for(const key in payload) params.append(key, payload[key]);
+                    
+                    fetch('https://n8n.milian-app.online/webhook/avisar-vendedor-cliente-asignado', {
+                        method: 'POST',
+                        mode: 'no-cors', // Evita el error de CORS al enviar desde localhost
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    }).then(() => {
+                        console.log('Webhook n8n enviado exitosamente (modo no-cors)');
+                    }).catch(e => console.error('Error al enviar webhook n8n:', e));
+                } catch(e) {
+                    console.error(e);
+                }
+            } else {
+                assignedNameText.textContent = 'Sin asignar';
+                assignedNameText.classList.remove('text-tealAccent');
+                assignedAvatar.textContent = '?';
+                assignedAvatar.classList.replace('bg-tealAccent', 'bg-tealAccent/20');
+                assignedAvatar.classList.replace('text-white', 'text-tealAccent');
+            }
+            selectorWrap.classList.add('hidden');
+            reassignBtn.textContent = 'Cambiar Asignación';
+            await renderView(); // Refresh table background
+        };
+    }
+
+    // --- GALLERY & TABS ---
+    const galleryCont = document.getElementById('cli-evidence-gallery');
+    const badge = document.getElementById('evidence-count-badge');
+
+    if (galleryCont) {
+        galleryCont.innerHTML = '';
+
+        // Build unified gallery: id_photo + pipeline dynamic fields + archivos_adjuntos
+        const galleryItems = []; // { src, label, sublabel }
+
+        // 1. ID Photo (always first if present)
+        if (cli.id_photo) {
+            galleryItems.push({ src: cli.id_photo, label: 'Foto de Identificación', sublabel: 'ID / Licencia del Cliente' });
+        }
+
+        // 2. Dynamic pipeline field answers that are images
+        const db2 = getDB();
+        const proyecto = (db2.Proyectos_Dinamicos || []).find(p => p.cliente_id === cli.id);
+        if (proyecto) {
+            const respuestas = (db2.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === proyecto.id);
+            const camposMap = {};
+            (db2.Admin_Campos_Formulario || []).forEach(c => { camposMap[c.id] = c; });
+            respuestas.forEach(r => {
+                const val = r.valor;
+                if (val && typeof val === 'string' && val.startsWith('data:image')) {
+                    const campo = camposMap[r.campo_id];
+                    const fieldLabel = campo ? campo.etiqueta : 'Documento del Pipeline';
+                    galleryItems.push({ src: val, label: fieldLabel, sublabel: 'Archivo del proceso' });
+                }
+            });
+        }
+
+        // 3. Legacy archivos_adjuntos
+        (cli.archivos_adjuntos || []).forEach((src, idx) => {
+            galleryItems.push({ src, label: `Archivo #${idx + 1}`, sublabel: cli.nombre });
+        });
+
+        if (galleryItems.length > 0) {
+            badge.textContent = `${galleryItems.length} ARCHIVOS`;
+            galleryItems.forEach((item, idx) => {
+                const filename = `${item.label.replace(/\s+/g,'_')}_${cli.nombre.replace(/\s+/g,'_')}`;
+                const el = document.createElement('div');
+                el.className = 'group relative bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all';
+                el.style.cssText = 'cursor:pointer;';
+                el.innerHTML = `
+                    <div class="relative aspect-video overflow-hidden">
+                        <img src="${item.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="${item.label}">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button class="ev-zoom" data-idx="${idx}" title="Ampliar" style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.5);color:white;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;backdrop-filter:blur(4px);">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <a href="${item.src}" download="${filename}" title="Descargar" style="width:40px;height:40px;border-radius:50%;background:rgba(13,148,136,0.8);border:1.5px solid rgba(13,148,136,0.9);color:white;display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none;backdrop-filter:blur(4px);">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div style="padding:8px 10px;background:white;border-top:1px solid #f0f0f0;">
+                        <p style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;margin:0;">${item.label}</p>
+                        <p style="font-size:11px;font-weight:600;color:#111827;margin:0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.sublabel}</p>
+                    </div>
+                `;
+                el.querySelector('.ev-zoom').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.openFilePreview(`ev_${idx}`, item.label, { valor: item.src });
+                });
+                el.querySelector('img').addEventListener('click', () => {
+                    window.openFilePreview(`ev_${idx}`, item.label, { valor: item.src });
+                });
+                galleryCont.appendChild(el);
+            });
+        } else {
+            badge.textContent = `0 ARCHIVOS`;
+            galleryCont.innerHTML = `
+                <div class="col-span-full py-20 text-center opacity-30">
+                    <i class="fa-solid fa-camera text-4xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em]">No hay archivos adjuntos</p>
+                </div>
+            `;
+        }
+    }
+
+
+    // Default to main tab on open
+    document.querySelectorAll('.cli-tab-btn').forEach(b => {
+        b.classList.remove('active', 'border-tealAccent', 'text-tealAccent');
+        b.classList.add('border-transparent', 'text-gray-400');
+        if(b.dataset.tab === 'info') {
+            b.classList.add('active', 'border-tealAccent', 'text-tealAccent');
+            b.classList.remove('border-transparent', 'text-gray-400');
+        }
+    });
+    document.querySelectorAll('.cli-tab-content').forEach(c => c.classList.add('hidden'));
+    if(document.getElementById('cli-tab-info')) document.getElementById('cli-tab-info').classList.remove('hidden');
+
+    window.showModal(UI.modCliDetail);
+}
+
+// Global Tab Handler
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('cli-tab-btn')) {
+        const tab = e.target.dataset.tab;
+        
+        // Buttons UI
+        document.querySelectorAll('.cli-tab-btn').forEach(b => {
+            b.classList.remove('active', 'border-tealAccent', 'text-tealAccent');
+            b.classList.add('border-transparent', 'text-gray-400');
+        });
+        e.target.classList.add('active', 'border-tealAccent', 'text-tealAccent');
+        e.target.classList.remove('border-transparent', 'text-gray-400');
+
+        // Content Visibility
+        document.querySelectorAll('.cli-tab-content').forEach(c => c.classList.add('hidden'));
+        const targetCont = document.getElementById(`cli-tab-${tab}`);
+        if(targetCont) targetCont.classList.remove('hidden');
+    }
+});
+
+function exitClientEditMode() {
+    const editPanel = document.getElementById('det-cli-edit-panel');
+    const viewPanel = document.getElementById('det-cli-view-panel');
+    const saveBar = document.getElementById('det-cli-save-bar');
+    const gearBtn = document.getElementById('btn-edit-cli-from-detail');
+    if (editPanel) editPanel.classList.add('hidden');
+    if (viewPanel) viewPanel.classList.remove('hidden');
+    if (saveBar) saveBar.classList.add('hidden');
+    if (gearBtn) {
+        gearBtn.classList.remove('text-tealAccent', 'bg-tealAccent/10', 'rotate-45');
+    }
+}
+window.exitClientEditMode = exitClientEditMode;
+
+function toggleClientEditMode(id) {
+    const db = getDB();
+    const cli = (db.Clientes_Maestro || []).find(c => c.id === id);
+    if (!cli) return;
+
+    const editPanel = document.getElementById('det-cli-edit-panel');
+    const viewPanel = document.getElementById('det-cli-view-panel');
+    const saveBar = document.getElementById('det-cli-save-bar');
+    const gearBtn = document.getElementById('btn-edit-cli-from-detail');
+
+    if (editPanel && !editPanel.classList.contains('hidden')) {
+        exitClientEditMode();
+        return;
+    }
+
+    if (viewPanel) viewPanel.classList.add('hidden');
+    if (editPanel) {
+        editPanel.classList.remove('hidden');
+        if(document.getElementById('det-cli-edit-id')) document.getElementById('det-cli-edit-id').value = cli.id;
+        if(document.getElementById('det-cli-edit-nombre')) document.getElementById('det-cli-edit-nombre').value = cli.nombre || '';
+        if(document.getElementById('det-cli-edit-email')) document.getElementById('det-cli-edit-email').value = cli.email || '';
+        if(document.getElementById('det-cli-edit-tel')) document.getElementById('det-cli-edit-tel').value = cli.telefono || '';
+        // ── Populate multi-dept checkboxes ──
+        const _deptArr = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento || cli.empresa ? [(cli.departamento || cli.empresa).replace('Renew ','')] : []);
+        document.querySelectorAll('input[name="det-chk-dept"]').forEach(cb => { cb.checked = _deptArr.some(d => d.replace('Renew ','').toLowerCase() === cb.value.toLowerCase()); });
+        // ── Populate macro_estado ──
+        if(document.getElementById('det-cli-edit-macro-estado')) document.getElementById('det-cli-edit-macro-estado').value = cli.macro_estado || 'Prospecto';
+        if(document.getElementById('det-cli-edit-fecha-inicio')) document.getElementById('det-cli-edit-fecha-inicio').value = cli.fecha_inicio || '';
+        if(document.getElementById('det-cli-edit-direccion')) document.getElementById('det-cli-edit-direccion').value = cli.direccion || '';
+        if(document.getElementById('det-cli-edit-state-id')) document.getElementById('det-cli-edit-state-id').value = cli.state_id || '';
+        if(document.getElementById('det-cli-edit-dob')) document.getElementById('det-cli-edit-dob').value = cli.dob || '';
+        if(document.getElementById('det-cli-edit-notas')) document.getElementById('det-cli-edit-notas').value = cli.notas || '';
+        
+        // Populate edit photo preview
+        state.currentCliIdPhoto = cli.id_photo || null;
+        const editPrev = document.getElementById('cli-id-photo-preview');
+        if (editPrev) {
+            if (cli.id_photo) {
+                editPrev.querySelector('img').src = cli.id_photo;
+                editPrev.classList.remove('hidden');
+            } else {
+                editPrev.classList.add('hidden');
+            }
+        }
+    }
+    if (saveBar) saveBar.classList.remove('hidden');
+    if (gearBtn) gearBtn.classList.add('text-tealAccent', 'bg-tealAccent/10', 'rotate-45');
+}
+
+async function saveClientChanges() {
+    const id = document.getElementById('det-cli-edit-id').value;
+    const db = getDB();
+    const cliIdx = (db.Clientes_Maestro || []).findIndex(c => c.id === id);
+    if (cliIdx === -1) return;
+
+    const btn = document.getElementById('btn-save-cli-changes');
+    const btnText = document.getElementById('save-btn-text');
+    const btnSpinner = document.getElementById('save-btn-spinner');
+
+    const nombre = document.getElementById('det-cli-edit-nombre').value.trim();
+    if (!nombre) {
+        showToast('El nombre es obligatorio.', 'error');
+        return;
+    }
+
+    // Loading State
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = 'Guardando...';
+    if (btnSpinner) btnSpinner.classList.remove('hidden');
+
+    try {
+
+    const oldVendedorId = db.Clientes_Maestro[cliIdx].vendedor_asignado_id;
+    const newVendedorId = document.getElementById('det-cli-edit-vendedor').value || null;
+
+    const updated = {
+        ...db.Clientes_Maestro[cliIdx],
+        nombre,
+        email: document.getElementById('det-cli-edit-email').value.trim(),
+        telefono: document.getElementById('det-cli-edit-tel').value.trim(),
+        // ── Multi-dept from checkboxes ──
+        departamentos_activos: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value),
+        departamento: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value)[0] || null,
+        empresa: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value).join(', ') || null,
+        macro_estado: document.getElementById('det-cli-edit-macro-estado') ? document.getElementById('det-cli-edit-macro-estado').value : 'Prospecto',
+        fecha_inicio: document.getElementById('det-cli-edit-fecha-inicio').value,
+        direccion: document.getElementById('det-cli-edit-direccion').value.trim(),
+        state_id: document.getElementById('det-cli-edit-state-id').value.trim(),
+        dob: document.getElementById('det-cli-edit-dob').value,
+        notas: document.getElementById('det-cli-edit-notas').value.trim(),
+        vendedor_asignado_id: newVendedorId,
+        id_photo: state.currentCliIdPhoto,
+        adjunto_id_url: state.currentDetAdjID,
+        adjunto_bill_url: state.currentDetAdjBill,
+        adjunto_seguro_url: state.currentDetAdjSeguro,
+        adjuntos_oficina: {
+            app_url: state.currentDetOfiApp,
+            recibo_url: state.currentDetOfiRecibo
+        }
+    };
+
+    db.Clientes_Maestro[cliIdx] = updated;
+    await saveDB(db);
+
+                // If vendor changed, notify via webhook
+    if (newVendedorId && newVendedorId !== oldVendedorId) {
+        const workers = await getAdminWorkers();
+        const worker = workers.find(w => w.id === newVendedorId);
+        if (worker) {
+            try {
+                const payload = {
+                    cliente_id: updated.id,
+                    cliente_nombre: updated.nombre,
+                    cliente_telefono: updated.telefono || 'No registrado',
+                    cliente_email: updated.email || 'No registrado',
+                    cliente_direccion: updated.direccion || 'No registrada',
+                    pipeline: updated.empresa || updated.departamento || 'No asignado',
+                    vendedor_nombre: `${worker.nombre} ${worker.apellido || ''}`.trim(),
+                    vendedor_email: worker.email || ''
+                };
+                console.log('Enviando webhook a n8n (edit save)...', payload);
+                const params = new URLSearchParams();
+                for(const key in payload) params.append(key, payload[key]);
+
+                fetch('https://n8n.milian-app.online/webhook/avisar-vendedor-cliente-asignado', {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
+                }).then(() => console.log('Webhook enviado exitosamente (modo no-cors)'))
+                  .catch(e => console.error('Error al enviar webhook n8n:', e));
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    }
+
+    exitClientEditMode();
+    window.addNotification('CRM', 'Cliente actualizado correctamente.', 'success');
+    await showClientDetail(id); // Re-populate view
+    await renderView(); // Re-render table
+
+    } catch (err) {
+        console.error('Error saving client:', err);
+        showToast('Error al guardar los cambios.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'Guardar Cambios';
+        if (btnSpinner) btnSpinner.classList.add('hidden');
+    }
+}
+window.saveClientChanges = saveClientChanges;
+window.toggleClientEditMode = toggleClientEditMode;
+
+// ── NEW: EVENT LISTENERS FOR CLIENT PHOTO & EVIDENCE ──────────
+
+// 1. Photo Upload (ID Photo) in Edit Modal
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#btn-trigger-cli-edit-photo');
+    if (btn) {
+        const input = document.getElementById('cli-edit-photo-input');
+        if (input) input.click();
+    }
+});
+
+document.addEventListener('change', async (e) => {
+    // 1. Photo Upload (ID Photo) in Edit Modal
+    if (e.target.id === 'cli-edit-photo-input' || e.target.id === 'inp-cli-id-photo-file') {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const preview = document.getElementById('cli-id-photo-preview');
+        const img = preview?.querySelector('img');
+        
+        try {
+            showToast('Subiendo foto...', 'info');
+            const url = await uploadFile(file, 'profiles');
+            state.currentCliIdPhoto = url;
+            
+            if (img) img.src = url;
+            if (preview) preview.classList.remove('hidden');
+            showToast('Foto cargada.', 'success');
+        } catch (err) {
+            showToast('Error al subir foto', 'error');
+        }
+    }
+
+    // 2. Profile Photo in Detail Modal
+    if (e.target.id === 'det-cli-foto-file') {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            showToast('Actualizando perfil...', 'info');
+            const url = await uploadFile(file, 'profiles');
+            const avatar = document.getElementById('det-cli-avatar');
+            if (avatar) {
+                avatar.style.backgroundImage = `url(${url})`;
+                avatar.innerHTML = '';
+            }
+            if (state.activeClientId) {
+                const db = getDB();
+                const cli = db.Clientes_Maestro.find(c => c.id === state.activeClientId);
+                if (cli) {
+                    cli.foto = url;
+                    await saveDB(db);
+                    showToast('Foto de perfil guardada', 'success');
+                    renderView(); // Refresh table
+                }
+            }
+        } catch(err) {
+            console.error(err);
+            showToast('Error al actualizar perfil', 'error');
+        }
+    }
+});
+
+// 2. Add Evidence in Detail View
+document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('#btn-add-cli-evidence');
+    if (btn) {
+        const id = document.getElementById('det-cli-edit-id')?.value || UI.btnEditCliFromDetail?.dataset.id;
+        if (!id) return;
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            try {
+                showToast('Subiendo archivo...', 'info');
+                const url = await uploadFile(file, 'others');
+                
+                const db = getDB();
+                const cli = db.Clientes_Maestro.find(c => c.id === id);
+                if (cli) {
+                    if (!cli.archivos_adjuntos) cli.archivos_adjuntos = [];
+                    cli.archivos_adjuntos.push(url);
+                    await saveDB(db);
+                    showToast('Archivo guardado.', 'success');
+                    await showClientDetail(id); // Refresh gallery
+                }
+            } catch (err) {
+                showToast('Error al subir archivo', 'error');
+            }
+        };
+        input.click();
+    }
+});
+
+// 3. Detail Technical Documents & Office Uploads
+document.addEventListener('change', async (e) => {
+    const handlers = {
+        'inp-det-adj-id': { stateKey: 'currentDetAdjID', label: 'Foto ID', dropId: 'drop-det-adj-id', lblId: 'lbl-det-adj-id' },
+        'inp-det-adj-bill': { stateKey: 'currentDetAdjBill', label: 'Bill Eléctrico', dropId: 'drop-det-adj-bill', lblId: 'lbl-det-adj-bill' },
+        'inp-det-adj-seguro': { stateKey: 'currentDetAdjSeguro', label: 'Póliza Seguro', dropId: 'drop-det-adj-seguro', lblId: 'lbl-det-adj-seguro' },
+        'inp-det-ofi-app': { stateKey: 'currentDetOfiApp', label: 'Hoja Aplicación', dropId: 'drop-det-ofi-app', lblId: 'lbl-det-ofi-app' },
+        'inp-det-ofi-recibo': { stateKey: 'currentDetOfiRecibo', label: 'Recibo de Pago', dropId: 'drop-det-ofi-recibo', lblId: 'lbl-det-ofi-recibo' },
+        'inp-det-ofi-contrato': { stateKey: 'currentDetOfiContrato', label: 'Contrato Firmado', dropId: 'drop-det-ofi-contrato', lblId: 'lbl-det-ofi-contrato' }
+    };
+
+    const handler = handlers[e.target.id];
+    if (handler) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const drop = document.getElementById(handler.dropId);
+        const lbl = document.getElementById(handler.lblId);
+        const originalContent = lbl ? lbl.textContent : handler.label;
+
+        try {
+            if (lbl) lbl.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Subiendo...`;
+            const url = await uploadFile(file, 'evidences');
+            state[handler.stateKey] = url;
+            
+            if (drop) drop.classList.add('border-tealAccent', 'bg-tealAccent/5');
+            if (lbl) {
+                lbl.textContent = `ACTUALIZAR ${handler.label}`;
+                lbl.classList.replace('text-gray-400', 'text-tealAccent');
+            }
+            showToast(`${handler.label} listo`, 'success');
+            
+            // --- AUTOSAVE LOGIC ---
+            if (state.activeClientId) {
+                const db = getDB();
+                const cli = db.Clientes_Maestro.find(c => c.id === state.activeClientId);
+                if (cli) {
+                    if (handler.stateKey === 'currentDetAdjID') {
+                        cli.adjunto_id_url = url;
+                        cli.id_photo = url; // Sincronización crucial
+                    }
+                    else if (handler.stateKey === 'currentDetAdjBill') cli.adjunto_bill_url = url;
+                    else if (handler.stateKey === 'currentDetAdjSeguro') cli.adjunto_seguro_url = url;
+                    else if (handler.stateKey === 'currentDetOfiApp') {
+                        if (!cli.adjuntos_oficina) cli.adjuntos_oficina = {};
+                        cli.adjuntos_oficina.app_url = url;
+                    }
+                    else if (handler.stateKey === 'currentDetOfiRecibo') {
+                        if (!cli.adjuntos_oficina) cli.adjuntos_oficina = {};
+                        cli.adjuntos_oficina.recibo_url = url;
+                    }
+                    else if (handler.stateKey === 'currentDetOfiContrato') {
+                        if (!cli.adjuntos_oficina) cli.adjuntos_oficina = {};
+                        cli.adjuntos_oficina.contrato_url = url;
+                    }
+                    await saveDB(db);
+                    console.log(`Autosaved ${handler.label} for client ${state.activeClientId}`);
+                    
+                    // Refrescar la vista para sincronizar tabs
+                    await showClientDetail(state.activeClientId);
+                }
+            }
+            
+            // Mark save bar as visible if not already
+            const saveBar = document.getElementById('det-cli-save-bar');
+            if (saveBar) saveBar.classList.remove('hidden');
+        } catch (err) {
+            console.error('Upload error:', err);
+            if (lbl) lbl.textContent = originalContent;
+            showToast('Error al subir archivo', 'error');
+        }
+    }
+});
+
+// 4. Save Changes Button
+document.addEventListener('click', (e) => {
+    const saveBtn = e.target.closest('#btn-save-cli-changes');
+    if (saveBtn) {
+        saveClientChanges();
+    }
+});
+
+// ── Global Search Listener ──────────────────────────────────────
+window.globalSearchQuery = '';
+
+function initGlobalSearch() {
+    const searchInput = document.getElementById('global-search-input');
+    if (searchInput) {
+        // Ensure we don't attach multiple listeners
+        if (searchInput._hasListener) return;
+        searchInput._hasListener = true;
+
+        searchInput.addEventListener('input', (e) => {
+            window.globalSearchQuery = e.target.value.toLowerCase();
+            if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
+                 renderView();
+            }
+        });
+        console.log('[SEARCH] Listener initialized');
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGlobalSearch);
+} else {
+    initGlobalSearch();
+}
+
+// ── IFRAME FORM MESSAGE LISTENER ────────────────────────────────
+// Handles WORK_ORDER_SUBMITTED and CREDIT_APP_SUBMITTED messages
+// from embedded iframes (credit app, work order forms).
+// Updates the local cachedDB with the PDF URL and saves to Supabase.
+window.addEventListener('message', async (e) => {
+    const type = e.data?.type;
+    if (type !== 'WORK_ORDER_SUBMITTED' && type !== 'CREDIT_APP_SUBMITTED') return;
+
+    console.log(`[ADMIN] Received ${type} message. pdfUrl: ${e.data.pdfUrl}, proyectoId: ${e.data.proyectoId}`);
+    
+    const isWorkOrder = (type === 'WORK_ORDER_SUBMITTED');
+    const { proyectoId, pdfUrl } = e.data;
+
+    if (!pdfUrl) {
+        console.warn('[ADMIN] No pdfUrl in message - skipping client profile update.');
+        return;
+    }
+
+    try {
+        // Resolve which client this project belongs to
+        const db = getDB();
+        let proy = (db.Proyectos_Dinamicos || []).find(p => p.id === proyectoId);
+        
+        // Fallback: normalize ID (handles RENEW- prefixes, dashes, etc.)
+        if (!proy && proyectoId) {
+            const norm = String(proyectoId).toLowerCase().replace('renew-', '').replace(/-/g, '_');
+            proy = (db.Proyectos_Dinamicos || []).find(p => p.id === norm || p.id === `proy_${norm}`);
+        }
+
+        if (!proy?.cliente_id) {
+            console.warn(`[ADMIN] Could not resolve project "${proyectoId}" to a client - PDF URL not saved locally.`);
+            return;
+        }
+
+        const clientId = proy.cliente_id;
+        const cli = (db.Clientes_Maestro || []).find(c => c.id === clientId);
+        if (!cli) {
+            console.warn(`[ADMIN] Client "${clientId}" not found in local DB.`);
+            return;
+        }
+
+        // Build the updated adjuntos_oficina object (preserve existing keys)
+        if (!cli.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) {
+            cli.adjuntos_oficina = {};
+        }
+
+        if (isWorkOrder) {
+            cli.adjuntos_oficina.orden_trabajo_url = pdfUrl;
+            cli.adjuntos_oficina.ultima_orden_fecha = new Date().toISOString();
+        } else {
+            cli.adjuntos_oficina.app_url = pdfUrl;
+            cli.adjuntos_oficina.ultima_credit_fecha = new Date().toISOString();
+        }
+
+        // Persist both locally (cachedDB) and to Supabase
+        await updateClientMaestro(clientId, { adjuntos_oficina: cli.adjuntos_oficina });
+        console.log(`[ADMIN] Client "${clientId}" updated with ${isWorkOrder ? 'Work Order' : 'Credit App'} PDF URL.`);
+
+        // If the client detail modal is open for this client, refresh it
+        if (state.activeClientId === clientId) {
+            await showClientDetail(clientId);
+        }
+
+        showToast(`Documento vinculado al perfil del cliente correctamente.`, 'success');
+    } catch (err) {
+        console.error('[ADMIN] Error saving PDF URL to client profile:', err);
+    }
+});
+
+// -- RECIBOS DE PAGO: Popup en perfil del trabajador ----------
+window._verRecibosWorker = function(workerId, workerName) {
+    const existingModal = document.getElementById('modal-admin-recibos-worker');
+    if (existingModal) existingModal.remove();
+
+    const db = window.getDB ? window.getDB() : {};
+    const recibos = (db.Recibos_Pagos || []).filter(r => String(r.trabajador_id) === String(workerId));
+
+    const renderList = (filter) => {
+        const filtered = filter === 'all' ? recibos : recibos.filter(r => r.tipo === filter);
+        if (!filtered.length) return '<p style="text-align:center;color:#94a3b8;padding:40px 20px;font-size:0.85rem;">Sin recibos de este tipo.</p>';
+        return filtered.map(r => {
+            const isVendedor = r.tipo === 'vendedor';
+            const color = isVendedor ? '#3b82f6' : '#10b981';
+            const label = isVendedor ? 'Recibo de Pago (Vendedor)' : 'Recibo de Instalacion (Tecnico)';
+            const d = r.datos_json || {};
+            const monto = isVendedor
+                ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2}) : '-')
+                : (d.total_price  ? '$' + Number(d.total_price ).toLocaleString('en-US',{minimumFractionDigits:2}) : '-');
+            return '<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">' +
+                '<div style="background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;padding:10px;flex-shrink:0;font-size:1.2rem;">' + (isVendedor ? '??' : '??') + '</div>' +
+                '<div style="flex:1;min-width:0;">' +
+                '<p style="font-size:0.65rem;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:0;">' + label + '</p>' +
+                '<p style="font-size:0.9rem;font-weight:700;color:#1e293b;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (r.cliente_nombre || '-') + '</p>' +
+                '<p style="font-size:0.7rem;color:#94a3b8;margin:0;">' + (r.fecha_recibo || '-') + '</p>' +
+                '</div>' +
+                '<div style="text-align:right;flex-shrink:0;">' +
+                '<p style="font-size:1rem;font-weight:900;color:' + color + ';margin:0;">' + monto + '</p>' +
+                (r.pdf_url ? '<a href="' + r.pdf_url + '" target="_blank" style="font-size:0.65rem;font-weight:800;color:' + color + ';background:' + color + '15;padding:3px 8px;border-radius:6px;text-decoration:none;">Ver PDF</a>' : '') +
+                '</div></div>';
+        }).join('');
+    };
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-admin-recibos-worker';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = '<div style="background:white;border-radius:20px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.15);">' +
+        '<div style="padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;">' +
+        '<div><h3 style="font-size:1.05rem;font-weight:900;color:#1e293b;margin:0;">Recibos de Pago</h3>' +
+        '<p style="font-size:0.75rem;color:#94a3b8;margin:2px 0 0;">' + workerName + ' � ' + recibos.length + ' recibo' + (recibos.length !== 1 ? 's' : '') + '</p></div>' +
+        '<button id="btn-close-admin-recibos" style="background:#f1f5f9;border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#64748b;">?</button></div>' +
+        '<div style="padding:14px 20px 0;display:flex;gap:8px;">' +
+        '<button data-rf="all" class="rw-filter-btn" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>' +
+        '<button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>' +
+        '<button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Tecnico</button>' +
+        '</div><div id="rw-list-container" style="padding:16px 20px 24px;">' + renderList('all') + '</div></div>';
+
+    document.body.appendChild(modal);
+    modal.querySelector('#btn-close-admin-recibos').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelectorAll('.rw-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const f = btn.dataset.rf;
+            modal.querySelector('#rw-list-container').innerHTML = renderList(f);
+            modal.querySelectorAll('.rw-filter-btn').forEach(b => {
+                const active = b.dataset.rf === f;
+                b.style.borderColor = active ? '#8b5cf6' : '#e2e8f0';
+                b.style.background  = active ? '#8b5cf615' : 'white';
+                b.style.color       = active ? '#8b5cf6' : '#94a3b8';
+            });
+        });
+    });
+};

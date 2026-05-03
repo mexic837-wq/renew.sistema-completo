@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RENEW WATER — Portal de Contratos</title>
+  <meta name="description" content="Portal digital de contratos y formularios para el equipo de ventas de Renew Water." />
+
+  <!-- ── Stylesheet único ── -->
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+============================================================ -->
+<header class="app-header">
+  <div class="header-inner">
+    <img src="./assets/images/logo.png" alt="RENEW WATER Logo" class="logo-mark" />
+    <div class="header-text">
+      <h1>RENEW WATER</h1>
+      <p>Portal Comercial &amp; Contratos</p>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     TAB NAVIGATION
+============================================================ -->
+<nav class="tab-nav" role="tablist">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" role="tab" aria-selected="true"
+            onclick="switchTab('credit', this)" id="tab-credit">
+      <span class="tab-icon">📋</span>
+      Aplicación de Crédito
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false"
+            onclick="switchTab('workorder', this)" id="tab-workorder">
+      <span class="tab-icon">🔧</span>
+      Orden de Trabajo
+    </button>
+  </div>
+</nav>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<main class="main-content">
+
+  <!-- ══════════════════════════════════════════════════════════
+       FORMULARIO 1: APLICACIÓN DE CRÉDITO
+  ══════════════════════════════════════════════════════════ -->
+  <section class="form-panel active" id="panel-credit" role="tabpanel">
+
+    <div class="form-progress">
+      <div class="progress-step done"><div class="progress-dot"></div> Aplicante</div>
+      <div class="progress-arrow">›</div>
+      <div class="progress-step"><div class="progress-dot"></div> Co-Aplicante</div>
+      <div class="progress-arrow">›</div>
+      <div class="progress-step"><div class="progress-dot"></div> Empleo e Ingresos</div>
+    </div>
+
+    <!-- ── BARRA DE PROGRESO GLOBAL ── -->
+    <div class="global-progress-container">
+      <div class="global-progress-bar" id="credit-progress-bar"></div>
+    </div>
+
+    <form id="form-credit" novalidate>
+
+      <!-- ── SECCIÓN A: Datos del Aplicante ── -->
+      <div class="form-section">
+        <div class="section-header blue-grad">
+          <div class="section-icon">👤</div>
+          <div>
+            <h2>Sección A — Datos del Aplicante</h2>
+            <p>Información personal del solicitante principal</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+
+            <div class="field-group">
+              <label for="ca_amount">Monto (Amount) <span class="required">*</span></label>
+              <input type="text" id="ca_amount" name="amount" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group span-2">
+              <label for="ca_fullname">Nombre Completo (Full Name) <span class="required">*</span></label>
+              <input type="text" id="ca_fullname" name="fullName" placeholder="Ej. Juan Antonio Pérez García" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_dob">Fecha de Nacimiento (Date of Birth) <span class="required">*</span></label>
+              <input type="text" id="ca_dob" name="dateOfBirth" class="date-mask" placeholder="MM/DD/YYYY" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_ssn">Seguro Social (Social Security #) <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <input type="password" id="ca_ssn" name="ssn" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" required />
+                <button type="button" class="eye-toggle" onclick="togglePassword('ca_ssn')">👁️</button>
+              </div>
+            </div>
+
+            <!-- Driver's License -->
+            <div class="sub-section-title">🪪 Licencia de Conducir</div>
+
+            <div class="field-group">
+              <label for="ca_dl">Licencia de Conducir # <span class="required">*</span></label>
+              <input type="text" id="ca_dl" name="driversLicense" placeholder="Número de licencia" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_dl_state">Estado (State) <span class="required">*</span></label>
+              <input type="text" id="ca_dl_state" name="dlState" placeholder="CA, TX, FL…" maxlength="2" style="text-transform:uppercase" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_dl_issue">Expedición (Issue Date) <span class="required">*</span></label>
+              <input type="text" id="ca_dl_issue" name="dlIssueDate" class="date-mask" placeholder="MM/DD/YYYY" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_dl_exp">Expiración (Exp Date) <span class="required">*</span></label>
+              <input type="text" id="ca_dl_exp" name="dlExpDate" class="date-mask" placeholder="MM/DD/YYYY" required />
+            </div>
+
+            <!-- Contacto -->
+            <div class="sub-section-title">📞 Contacto</div>
+
+            <div class="field-group">
+              <label for="ca_phone">Número de Teléfono (Phone Number) <span class="required">*</span></label>
+              <input type="tel" id="ca_phone" name="phone" placeholder="(555) 000-0000" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_email">E-mail <span class="required">*</span></label>
+              <input type="email" id="ca_email" name="email" placeholder="correo@ejemplo.com" required />
+            </div>
+
+            <!-- Domicilio -->
+            <div class="sub-section-title">🏠 Domicilio</div>
+
+            <div class="field-group span-full">
+              <label for="ca_address">Dirección (Address) <span class="required">*</span></label>
+              <input type="text" id="ca_address" name="address" placeholder="Calle, número, colonia…" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_time_living">Tiempo viviendo ahí <span class="required">*</span></label>
+              <input type="text" id="ca_time_living" name="timeLiving" placeholder="Ej. 3 años 6 meses" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_mortgage_payment">Hipoteca / Renta Mensual <span class="required">*</span></label>
+              <input type="text" id="ca_mortgage_payment" name="mortgagePayment" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <!-- Tipo de vivienda -->
+            <div class="field-group span-full">
+              <label>Tipo de Vivienda</label>
+              <div class="pill-group">
+                <input type="radio" name="ca_housingType" id="ca_ht_house"   value="Casa" required>         <label for="ca_ht_house">🏡 Casa</label>
+                <input type="radio" name="ca_housingType" id="ca_ht_apt"     value="Departamento"> <label for="ca_ht_apt">🏢 Departamento</label>
+                <input type="radio" name="ca_housingType" id="ca_ht_condo"   value="Condo">        <label for="ca_ht_condo">🏙️ Condominio</label>
+                <input type="radio" name="ca_housingType" id="ca_ht_mobile"  value="Mobile Home">  <label for="ca_ht_mobile">🚐 Mobile Home</label>
+              </div>
+            </div>
+
+            <!-- Estatus de vivienda -->
+            <div class="field-group span-full">
+              <label>Estatus de Vivienda <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="ca_housingStatus" id="ca_hs_rent"     value="Rentado" required>    <label for="ca_hs_rent">🔑 Rentado</label>
+                <input type="radio" name="ca_housingStatus" id="ca_hs_paid"     value="Pagado">     <label for="ca_hs_paid">✅ Pagado</label>
+                <input type="radio" name="ca_housingStatus" id="ca_hs_mortgage" value="Hipotecado"> <label for="ca_hs_mortgage">🏦 Hipotecado</label>
+              </div>
+            </div>
+
+            <!-- Foto del ID -->
+            <div class="field-group span-full">
+              <label for="ca_id_photo">Foto de Identificación (ID Photo) <span class="required">*</span></label>
+              <div class="file-upload-wrapper">
+                <input type="file" id="ca_id_photo" name="idPhoto" accept="image/*" required style="display: none;" onchange="handleFileSelect(this, 'ca_id_photo_preview')" />
+                <button type="button" class="btn-secondary" onclick="document.getElementById('ca_id_photo').click()">
+                  📸 Tomar / Subir Foto ID
+                </button>
+                <div id="ca_id_photo_preview" class="file-preview"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Sección A -->
+
+
+      <!-- ── SECCIÓN B: Co-Aplicante ── -->
+      <div class="form-section">
+        <div class="section-header teal-grad">
+          <div class="section-icon">👥</div>
+          <div>
+            <h2>Sección B — Co-Aplicante <span class="optional-badge">Opcional</span></h2>
+            <p>Información del co-solicitante (si aplica)</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+
+            <div class="field-group">
+              <label for="cb_amount">Monto (Amount)</label>
+              <input type="text" id="cb_amount" name="co_amount" class="currency-mask" placeholder="$ 0.00" />
+            </div>
+
+            <div class="field-group span-2">
+              <label for="cb_fullname">Nombre Completo (Full Name)</label>
+              <input type="text" id="cb_fullname" name="co_fullName" placeholder="Ej. María López Hernández" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_dob">Fecha de Nacimiento</label>
+              <input type="text" id="cb_dob" name="co_dateOfBirth" class="date-mask" placeholder="MM/DD/YYYY" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_ssn">Seguro Social (Social Security #)</label>
+              <div class="input-with-icon">
+                <input type="password" id="cb_ssn" name="co_ssn" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" />
+                <button type="button" class="eye-toggle" onclick="togglePassword('cb_ssn')">👁️</button>
+              </div>
+            </div>
+
+            <div class="sub-section-title">🪪 Licencia de Conducir</div>
+
+            <div class="field-group">
+              <label for="cb_dl">Licencia de Conducir #</label>
+              <input type="text" id="cb_dl" name="co_driversLicense" placeholder="Número de licencia" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_dl_state">Estado (State)</label>
+              <input type="text" id="cb_dl_state" name="co_dlState" placeholder="CA, TX…" maxlength="2" style="text-transform:uppercase" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_dl_issue">Expedición (Issue Date)</label>
+              <input type="text" id="cb_dl_issue" name="co_dlIssueDate" class="date-mask" placeholder="MM/DD/YYYY" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_dl_exp">Expiración (Exp Date)</label>
+              <input type="text" id="cb_dl_exp" name="co_dlExpDate" class="date-mask" placeholder="MM/DD/YYYY" />
+            </div>
+
+            <div class="sub-section-title">📞 Contacto</div>
+
+            <div class="field-group">
+              <label for="cb_phone">Número de Teléfono</label>
+              <input type="tel" id="cb_phone" name="co_phone" placeholder="(555) 000-0000" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_email">E-mail</label>
+              <input type="email" id="cb_email" name="co_email" placeholder="correo@ejemplo.com" />
+            </div>
+
+            <div class="sub-section-title">🏠 Domicilio</div>
+
+            <div class="field-group span-full">
+              <label for="cb_address">Dirección (Address)</label>
+              <input type="text" id="cb_address" name="co_address" placeholder="Calle, número, colonia…" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_time_living">Tiempo viviendo ahí</label>
+              <input type="text" id="cb_time_living" name="co_timeLiving" placeholder="Ej. 2 años" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_mortgage_payment">Hipoteca / Renta Mensual</label>
+              <input type="text" id="cb_mortgage_payment" name="co_mortgagePayment" class="currency-mask" placeholder="$ 0.00" />
+            </div>
+
+            <div class="field-group span-full">
+              <label>Tipo de Vivienda (Co-Aplicante)</label>
+              <div class="pill-group">
+                <input type="radio" name="cb_housingType" id="cb_ht_house"  value="Casa">         <label for="cb_ht_house">🏡 Casa</label>
+                <input type="radio" name="cb_housingType" id="cb_ht_apt"    value="Departamento"> <label for="cb_ht_apt">🏢 Departamento</label>
+                <input type="radio" name="cb_housingType" id="cb_ht_condo"  value="Condo">        <label for="cb_ht_condo">🏙️ Condominio</label>
+                <input type="radio" name="cb_housingType" id="cb_ht_mobile" value="Mobile Home">  <label for="cb_ht_mobile">🚐 Mobile Home</label>
+              </div>
+            </div>
+
+            <div class="field-group span-full">
+              <label>Estatus de Vivienda (Co-Aplicante)</label>
+              <div class="pill-group">
+                <input type="radio" name="cb_housingStatus" id="cb_hs_rent"     value="Rentado">    <label for="cb_hs_rent">🔑 Rentado</label>
+                <input type="radio" name="cb_housingStatus" id="cb_hs_paid"     value="Pagado">     <label for="cb_hs_paid">✅ Pagado</label>
+                <input type="radio" name="cb_housingStatus" id="cb_hs_mortgage" value="Hipotecado"> <label for="cb_hs_mortgage">🏦 Hipotecado</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Sección B -->
+
+
+      <!-- ── SECCIÓN C: Empleo e Ingresos ── -->
+      <div class="form-section">
+        <div class="section-header green-grad">
+          <div class="section-icon">💼</div>
+          <div>
+            <h2>Sección C — Empleo e Ingresos</h2>
+            <p>Datos laborales del aplicante y co-aplicante</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+
+            <!-- Aplicante -->
+            <div class="sub-section-title">👤 Aplicante Principal</div>
+
+            <div class="field-group span-full">
+              <label>Tipo de Ingreso <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="ca_incomeType" id="ca_it_full" value="Tiempo Completo" required> <label for="ca_it_full">⏰ Tiempo Completo</label>
+                <input type="radio" name="ca_incomeType" id="ca_it_part" value="Medio Tiempo">    <label for="ca_it_part">🕐 Medio Tiempo</label>
+                <input type="radio" name="ca_incomeType" id="ca_it_self" value="Propio Negocio">  <label for="ca_it_self">🏪 Propio Negocio</label>
+                <input type="radio" name="ca_incomeType" id="ca_it_ret"  value="Pensionado">      <label for="ca_it_ret">🎖️ Pensionado</label>
+              </div>
+            </div>
+
+            <div class="field-group span-2">
+              <label for="ca_employer">Nombre de Empleo (Name of Work) <span class="required">*</span></label>
+              <input type="text" id="ca_employer" name="employerName" placeholder="Empresa o negocio" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_work_phone">Teléfono del Trabajo <span class="required">*</span></label>
+              <input type="tel" id="ca_work_phone" name="workPhone" placeholder="(555) 000-0000" required />
+            </div>
+
+            <div class="field-group span-full">
+              <label for="ca_work_address">Dirección del Trabajo</label>
+              <input type="text" id="ca_work_address" name="workAddress" placeholder="Dirección completa del empleo" />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_position">Posición / Rol (Employment Roll) <span class="required">*</span></label>
+              <input type="text" id="ca_position" name="employmentRole" placeholder="Ej. Gerente, Técnico…" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_time_job">Tiempo en el Trabajo Actual <span class="required">*</span></label>
+              <input type="text" id="ca_time_job" name="timeOnJob" placeholder="Ej. 5 años 2 meses" required />
+            </div>
+
+            <div class="field-group">
+              <label for="ca_monthly_income">Ingreso ($) <span class="required">*</span></label>
+              <input type="text" id="ca_monthly_income" name="monthlyIncome" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label>Frecuencia de Pago (Frequency) <span class="required">*</span></label>
+              <div class="pill-group" style="margin-top:0;">
+                <input type="radio" name="ca_incomeFreq" id="ca_if_monthly" value="Mensual" required> <label for="ca_if_monthly">📅 Mensual</label>
+                <input type="radio" name="ca_incomeFreq" id="ca_if_yearly"  value="Anual">   <label for="ca_if_yearly">📆 Anual</label>
+              </div>
+            </div>
+
+            <!-- Co-Aplicante -->
+            <div class="field-divider"></div>
+            <div class="sub-section-title">👥 Co-Aplicante</div>
+
+            <div class="field-group span-full">
+              <label>Tipo de Ingreso (Co-Aplicante)</label>
+              <div class="pill-group">
+                <input type="radio" name="cb_incomeType" id="cb_it_full" value="Tiempo Completo"> <label for="cb_it_full">⏰ Tiempo Completo</label>
+                <input type="radio" name="cb_incomeType" id="cb_it_part" value="Medio Tiempo">    <label for="cb_it_part">🕐 Medio Tiempo</label>
+                <input type="radio" name="cb_incomeType" id="cb_it_self" value="Propio Negocio">  <label for="cb_it_self">🏪 Propio Negocio</label>
+                <input type="radio" name="cb_incomeType" id="cb_it_ret"  value="Pensionado">      <label for="cb_it_ret">🎖️ Pensionado</label>
+              </div>
+            </div>
+
+            <div class="field-group span-2">
+              <label for="cb_employer">Nombre de Empleo</label>
+              <input type="text" id="cb_employer" name="co_employerName" placeholder="Empresa o negocio" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_work_phone">Teléfono del Trabajo</label>
+              <input type="tel" id="cb_work_phone" name="co_workPhone" placeholder="(555) 000-0000" />
+            </div>
+
+            <div class="field-group span-full">
+              <label for="cb_work_address">Dirección del Trabajo</label>
+              <input type="text" id="cb_work_address" name="co_workAddress" placeholder="Dirección completa" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_position">Posición / Rol</label>
+              <input type="text" id="cb_position" name="co_employmentRole" placeholder="Ej. Gerente, Técnico…" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_time_job">Tiempo en el Trabajo Actual</label>
+              <input type="text" id="cb_time_job" name="co_timeOnJob" placeholder="Ej. 3 años" />
+            </div>
+
+            <div class="field-group">
+              <label for="cb_monthly_income">Ingreso ($)</label>
+              <input type="text" id="cb_monthly_income" name="co_monthlyIncome" class="currency-mask" placeholder="$ 0.00" />
+            </div>
+
+            <div class="field-group">
+              <label>Frecuencia de Pago (Frequency)</label>
+              <div class="pill-group" style="margin-top:0;">
+                <input type="radio" name="cb_incomeFreq" id="cb_if_monthly" value="Mensual"> <label for="cb_if_monthly">📅 Mensual</label>
+                <input type="radio" name="cb_incomeFreq" id="cb_if_yearly"  value="Anual">   <label for="cb_if_yearly">📆 Anual</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Sección C -->
+
+      <!-- ── SECCIÓN D: Representante de Ventas ── -->
+      <div class="form-section">
+        <div class="section-header navy-grad">
+          <div class="section-icon">🤝</div>
+          <div>
+            <h2>Representante de Ventas</h2>
+            <p>Información del vendedor o agencia</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field-group span-full">
+              <label for="rep_name">Nombre del Representante (Dealer) <span class="required">*</span></label>
+              <input type="text" id="rep_name" name="dealerName" placeholder="Ej. Carlos Martínez" required />
+            </div>
+
+            <!-- Pregunta obligatoria: Negocio / Sección -->
+            <div class="field-group span-full">
+              <label>Negocio de Procedencia <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="ca_business_section" id="ca_bs_hi" value="Home Improvment" required>
+                <label for="ca_bs_hi">🏠 Home Improvment</label>
+                <input type="radio" name="ca_business_section" id="ca_bs_rw" value="Renew Water">
+                <label for="ca_bs_rw">💧 Renew Water</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /Dealer -->
+
+      <!-- ── SECCIÓN D: Firma ── -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">✍️</div>
+          <div>
+            <h2>Firma de los Aplicantes</h2>
+            <p>Por favor firme dentro de los recuadros correspondientes</p>
+          </div>
+        </div>
+        <div class="section-body text-center" style="display: flex; flex-direction: column; gap: 2rem; align-items: center; text-align: center;">
+          <!-- Aplicante Principal -->
+          <div>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #333;">Firma del Aplicante Principal <span class="required">*</span></h3>
+            <div class="signature-wrapper">
+              <span class="signature-placeholder" id="placeholder-aplicante">Firme aquí</span>
+              <canvas id="firma-aplicante" width="300" height="150" class="border border-gray-300 rounded bg-white touch-none mx-auto block" style="border: 1px solid #ccc; border-radius: 8px; background: #fff; margin: 0 auto; display: block; touch-action: none;"></canvas>
+            </div>
+            <button type="button" id="btn-limpiar-firma-aplicante" class="btn-secondary" style="margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;">Limpiar Firma Aplicante</button>
+          </div>
+
+          <!-- Co-Aplicante -->
+          <div>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #333;">Firma del Co-Aplicante <span class="optional-badge" style="font-size: 0.8rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Opcional</span></h3>
+            <div class="signature-wrapper">
+              <span class="signature-placeholder" id="placeholder-co-aplicante">Firme aquí</span>
+              <canvas id="firma-co-aplicante" width="300" height="150" class="border border-gray-300 rounded bg-white touch-none mx-auto block" style="border: 1px solid #ccc; border-radius: 8px; background: #fff; margin: 0 auto; display: block; touch-action: none;"></canvas>
+            </div>
+            <button type="button" id="btn-limpiar-firma-co-aplicante" class="btn-secondary" style="margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;">Limpiar Firma Co-Aplicante</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-zone">
+        <p>Al enviar confirma que toda la información y la firma proporcionada es verídica.</p>
+        <button type="submit" class="btn-submit" id="btn-submit-credit">
+          <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+          </svg>
+          <div class="spinner disable-anim"></div>
+          <span class="btn-text">Enviar Aplicación de Crédito</span>
+        </button>
+      </div>
+
+    </form>
+  </section><!-- /panel-credit -->
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       FORMULARIO 2: ORDEN DE TRABAJO
+  ══════════════════════════════════════════════════════════ -->
+  <section class="form-panel" id="panel-workorder" role="tabpanel">
+
+    <div class="form-progress">
+      <div class="progress-step done"><div class="progress-dot"></div> Comprador</div>
+      <div class="progress-arrow">›</div>
+      <div class="progress-step"><div class="progress-dot"></div> Equipos</div>
+      <div class="progress-arrow">›</div>
+      <div class="progress-step"><div class="progress-dot"></div> Instalación</div>
+      <div class="progress-arrow">›</div>
+      <div class="progress-step"><div class="progress-dot"></div> Finanzas</div>
+    </div>
+
+    <form id="form-workorder" novalidate>
+
+      <!-- ── SECCIÓN A: Datos del Comprador ── -->
+      <div class="form-section">
+        <div class="section-header blue-grad">
+          <div class="section-icon">🧾</div>
+          <div>
+            <h2>Sección A — Datos del Comprador</h2>
+            <p>Propuesta / Contrato de Servicio — Work Order</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+
+            <div class="field-group">
+              <label for="wo_date">Fecha (Date) <span class="required">*</span></label>
+              <input type="text" id="wo_date" name="date" class="date-mask" placeholder="MM/DD/YYYY" required />
+            </div>
+
+            <div class="field-group span-2">
+              <label for="wo_purchaser">Comprador (Purchaser) <span class="required">*</span></label>
+              <input type="text" id="wo_purchaser" name="purchaser" placeholder="Nombre completo del comprador" required />
+            </div>
+
+            <div class="field-group span-2">
+              <label for="wo_second_purchaser">Segundo Comprador (Co-titular) <span class="optional-badge">Opcional</span></label>
+              <input type="text" id="wo_second_purchaser" name="secondPurchaser" placeholder="Nombre del segundo comprador (si aplica)" />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_phone">Teléfono (Phone) <span class="required">*</span></label>
+              <input type="tel" id="wo_phone" name="buyerPhone" placeholder="(555) 000-0000" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_email">E-mail <span class="required">*</span></label>
+              <input type="email" id="wo_email" name="buyerEmail" placeholder="correo@ejemplo.com" required />
+            </div>
+
+            <div class="field-group span-full">
+              <label for="wo_address">Dirección (Address) <span class="required">*</span></label>
+              <input type="text" id="wo_address" name="buyerAddress" placeholder="Calle y número" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_city">Ciudad (City) <span class="required">*</span></label>
+              <input type="text" id="wo_city" name="buyerCity" placeholder="Ciudad" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_state">Estado (State) <span class="required">*</span></label>
+              <input type="text" id="wo_state" name="buyerState" placeholder="CA, TX…" maxlength="2" style="text-transform:uppercase" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_zip">Zip Code <span class="required">*</span></label>
+              <input type="text" id="wo_zip" name="buyerZip" placeholder="00000" maxlength="10" required />
+            </div>
+
+            <!-- Foto del ID -->
+            <div class="field-group span-full">
+              <label for="wo_id_photo">Foto de Identificación (ID Photo) <span class="required">*</span></label>
+              <div class="file-upload-wrapper">
+                <input type="file" id="wo_id_photo" name="wo_idPhoto" accept="image/*" required style="display: none;" onchange="handleFileSelect(this, 'wo_id_photo_preview')" />
+                <button type="button" class="btn-secondary" onclick="document.getElementById('wo_id_photo').click()">
+                  📸 Tomar / Subir Foto ID
+                </button>
+                <div id="wo_id_photo_preview" class="file-preview"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Sección A WO -->
+
+
+      <!-- ── SECCIÓN B: Equipos a Instalar ── -->
+      <div class="form-section">
+        <div class="section-header teal-grad">
+          <div class="section-icon">🔩</div>
+          <div>
+            <h2>Sección B — Equipos a Instalar</h2>
+            <p>Seleccione los equipos que se instalarán</p>
+          </div>
+        </div>
+        <div class="section-body">
+
+          <div class="equipment-list">
+            <div class="equipment-item">
+              <input type="checkbox" id="eq_softener" name="equipment_softener" value="Whole House Water Softener">
+              <label for="eq_softener">💧 Equipo de tratamiento para toda la casa (Whole House Water Softener)</label>
+            </div>
+            <div class="equipment-item">
+              <input type="checkbox" id="eq_ro" name="equipment_ro" value="Reverse Osmosis">
+              <label for="eq_ro">🏠 Osmosis Reverso para la cocina (Reverse Osmosis Equipment)</label>
+            </div>
+            <div class="equipment-item">
+              <input type="checkbox" id="eq_alkaline" name="equipment_alkaline" value="Alkaline Water Add-on">
+              <label for="eq_alkaline">✨ Añadir Agua Alcalina (Alkaline Water Add-on)</label>
+            </div>
+            <div class="equipment-item">
+              <input type="checkbox" id="eq_well" name="equipment_well" value="Well Water">
+              <label for="eq_well">🪣 Agua de Pozo (Well Water)</label>
+            </div>
+            <div class="equipment-item">
+              <input type="checkbox" id="eq_other" name="equipment_other" value="Other"
+                     onchange="toggleOtherEquipment(this)">
+              <label for="eq_other">📝 Otro (Other)</label>
+            </div>
+          </div>
+
+          <div class="other-input-wrapper" id="other_equipment_wrapper">
+            <label for="eq_other_text">Especifique el equipo</label>
+            <input type="text" id="eq_other_text" name="equipment_other_text" placeholder="Describa el equipo adicional…" />
+          </div>
+
+        </div>
+      </div><!-- /Sección B WO -->
+
+
+      <!-- ── SECCIÓN C: Instrucciones de Instalación ── -->
+      <div class="form-section">
+        <div class="section-header green-grad">
+          <div class="section-icon">🛠️</div>
+          <div>
+            <h2>Sección C — Instrucciones de Instalación</h2>
+            <p>Detalles técnicos y logísticos de la instalación</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+
+            <div class="field-group">
+              <label for="wo_install_date">Día Est. de Instalación <span class="required">*</span></label>
+              <input type="text" id="wo_install_date" name="installDate" class="date-mask" placeholder="MM/DD/YYYY" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_people">Número de Personas en Casa <span class="required">*</span></label>
+              <input type="number" id="wo_people" name="numberOfPeople" placeholder="0" min="1" max="20" required />
+            </div>
+
+            <div class="field-group span-full">
+              <label>El Piso Es <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="wo_floor" id="wo_floor_raised" value="Raised" required>         <label for="wo_floor_raised">⬆️ Elevado (Raised)</label>
+                <input type="radio" name="wo_floor" id="wo_floor_slab"   value="Concrete-slab"> <label for="wo_floor_slab">🏗️ Concreto (Concrete-slab)</label>
+                <input type="radio" name="wo_floor" id="wo_floor_other"  value="Otro" 
+                       onchange="toggleFloorOther(this)">                 <label for="wo_floor_other">❓ Otro</label>
+              </div>
+              <div class="other-input-wrapper" id="floor_other_wrapper">
+                <input type="text" id="wo_floor_other_text" name="floorOtherText" placeholder="Especifique el piso…" />
+              </div>
+            </div>
+
+            <div class="field-group span-full">
+              <label>Conexión para Refrigerador (Ice Maker hook-up) <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="wo_icemaker" id="wo_ice_yes" value="Yes" required> <label for="wo_ice_yes">✅ Sí</label>
+                <input type="radio" name="wo_icemaker" id="wo_ice_no"  value="No">  <label for="wo_ice_no">❌ No</label>
+              </div>
+            </div>
+
+            <div class="field-group span-full">
+              <label>Horario de Instalación <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="wo_schedule" id="wo_sch_am"    value="9:00am-2:00pm" required>  <label for="wo_sch_am">🌅 9:00am – 2:00pm</label>
+                <input type="radio" name="wo_schedule" id="wo_sch_pm"    value="2:00pm-6:00pm">  <label for="wo_sch_pm">☀️ 2:00pm – 6:00pm</label>
+                <input type="radio" name="wo_schedule" id="wo_sch_other" value="Otro"
+                       onchange="toggleScheduleOther(this)">                                      <label for="wo_sch_other">📅 Otro</label>
+              </div>
+              <div class="other-input-wrapper" id="schedule_other_wrapper">
+                <input type="text" id="wo_schedule_other_text" name="scheduleOtherText" placeholder="Especifique horario…" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="wo_hardness">Granos de Dureza (Hardness, Grains) <span class="required">*</span></label>
+              <input type="text" id="wo_hardness" name="hardnessGrains" placeholder="Ej. 25 GPG" required />
+            </div>
+
+            <div class="field-group span-full">
+              <label for="wo_special_instructions">Instrucciones Especiales</label>
+              <textarea id="wo_special_instructions" name="specialInstructions" rows="4"
+                        placeholder="Notas adicionales para el equipo de instalación…"></textarea>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Sección C WO -->
+
+
+      <!-- ── SECCIÓN D: Finanzas y Pago ── -->
+      <div class="form-section">
+        <div class="section-header navy-grad">
+          <div class="section-icon">💳</div>
+          <div>
+            <h2>Sección D — Finanzas y Pago</h2>
+            <p>Condiciones económicas del contrato</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+
+            <div class="field-group">
+              <label for="wo_cash_price">Precio al Contado (Cash Price) <span class="required">*</span></label>
+              <input type="text" id="wo_cash_price" name="cashPrice" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_installation">Instalación (Installation) <span class="required">*</span></label>
+              <input type="text" id="wo_installation" name="installationCost" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_total_cash_price">Total Precio al Contado (Total Cash-Price) <span class="required">*</span></label>
+              <input type="text" id="wo_total_cash_price" name="totalCashPrice" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_down_payment">Total Cuota Inicial (Down Payment) <span class="required">*</span></label>
+              <input type="text" id="wo_down_payment" name="downPayment" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_balance_financed">Saldo Financiado (Balance Financed) <span class="required">*</span></label>
+              <input type="text" id="wo_balance_financed" name="balanceFinanced" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_amount_financed">Cantidad a Financiar (Amount Financed) <span class="required">*</span></label>
+              <input type="text" id="wo_amount_financed" name="amountFinanced" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_finance_charge">Cargos Financieros (Finance Charge) <span class="required">*</span></label>
+              <input type="text" id="wo_finance_charge" name="financeCharge" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_total_payments">Total de Pagos (Total of Payments) <span class="required">*</span></label>
+              <input type="text" id="wo_total_payments" name="totalPayments" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_terms">Términos de Pago (Terms of payment) <span class="required">*</span></label>
+              <input type="text" id="wo_terms" name="paymentTerms" placeholder="Ej. 36 meses, 0% interés" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_apr">Porcentaje Anual (APR %) <span class="required">*</span></label>
+              <input type="number" id="wo_apr" name="apr" placeholder="0.00" min="0" step="0.01" max="100" required />
+            </div>
+
+            <div class="field-divider"></div>
+            <div class="sub-section-title">💳 Datos de Tarjeta de Crédito</div>
+
+            <div class="field-group">
+              <label for="wo_cc_amount">Monto a cobrar en Tarjeta (Credit Card Sale Amount) <span class="required">*</span></label>
+              <input type="text" id="wo_cc_amount" name="creditCardAmount" class="currency-mask" placeholder="$ 0.00" required />
+            </div>
+
+            <div class="field-group span-2">
+              <label for="wo_cc_number">Tarjeta de Crédito # <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <input type="password" id="wo_cc_number" name="creditCardNumber"
+                       placeholder="•••• •••• •••• ••••" maxlength="19" autocomplete="off" required />
+                <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_number')">👁️</button>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="wo_cc_exp">Expiración (Exp MM/YY) <span class="required">*</span></label>
+              <input type="text" id="wo_cc_exp" name="creditCardExp" placeholder="MM/YY" maxlength="5" required />
+            </div>
+
+            <div class="field-group">
+              <label for="wo_cc_cvv">CVV <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <input type="password" id="wo_cc_cvv" name="creditCardCVV"
+                       placeholder="•••" maxlength="4" autocomplete="off" required />
+                <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_cvv')">👁️</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Sección D WO -->
+
+      <!-- ── SECCIÓN E: Representante de Ventas ── -->
+      <div class="form-section">
+        <div class="section-header navy-grad">
+          <div class="section-icon">🤝</div>
+          <div>
+            <h2>Representante de Ventas</h2>
+            <p>Información del vendedor o agencia</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field-group span-full">
+              <label for="wo_rep_name">Nombre del Representante (Dealer) <span class="required">*</span></label>
+              <input type="text" id="wo_rep_name" name="wo_dealerName" placeholder="Ej. Carlos Martínez" required />
+            </div>
+
+            <!-- Pregunta obligatoria: Negocio / Sección -->
+            <div class="field-group span-full">
+              <label>Negocio de Procedencia <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="radio" name="wo_business_section" id="wo_bs_hi" value="Home Improvment" required>
+                <label for="wo_bs_hi">🏠 Home Improvment</label>
+                <input type="radio" name="wo_business_section" id="wo_bs_rw" value="Renew Water">
+                <label for="wo_bs_rw">💧 Renew Water</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /Dealer WO -->
+
+      <!-- ── SECCIÓN F: Firmas ── -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">✍️</div>
+          <div>
+            <h2>Firmas del Contrato</h2>
+            <p>Por favor firme dentro de los recuadros correspondientes</p>
+          </div>
+        </div>
+        <div class="section-body text-center" style="display: flex; flex-direction: column; gap: 2rem; align-items: center; text-align: center;">
+          
+          <!-- Firma Comprador -->
+          <div>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #333;">Firma del Comprador <span class="required">*</span></h3>
+            <div class="signature-wrapper">
+              <span class="signature-placeholder" id="placeholder-wo-firma-comprador">Firme aquí</span>
+              <canvas id="wo-firma-comprador" width="300" height="150" class="border border-gray-300 rounded bg-white touch-none mx-auto block" style="border: 1px solid #ccc; border-radius: 8px; background: #fff; margin: 0 auto; display: block; touch-action: none;"></canvas>
+            </div>
+            <button type="button" id="btn-limpiar-wo-firma-comprador" class="btn-secondary" style="margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;">Limpiar Firma</button>
+          </div>
+
+          <!-- Firma Segundo Comprador -->
+          <div>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #333;">Firma del Segundo Comprador <span class="optional-badge">Opcional</span></h3>
+            <div class="signature-wrapper">
+              <span class="signature-placeholder" id="placeholder-wo-firma-comprador-2">Firme aquí</span>
+              <canvas id="wo-firma-comprador-2" width="300" height="150" class="border border-gray-300 rounded bg-white touch-none mx-auto block" style="border: 1px solid #ccc; border-radius: 8px; background: #fff; margin: 0 auto; display: block; touch-action: none;"></canvas>
+            </div>
+            <button type="button" id="btn-limpiar-wo-firma-comprador-2" class="btn-secondary" style="margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;">Limpiar Firma</button>
+          </div>
+
+          <!-- Firma Representante -->
+          <div>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #333;">Firma del Representante (Dealer) <span class="required">*</span></h3>
+            <div class="signature-wrapper">
+              <span class="signature-placeholder" id="placeholder-wo-firma-rep">Firme aquí</span>
+              <canvas id="wo-firma-rep" width="300" height="150" class="border border-gray-300 rounded bg-white touch-none mx-auto block" style="border: 1px solid #ccc; border-radius: 8px; background: #fff; margin: 0 auto; display: block; touch-action: none;"></canvas>
+            </div>
+            <button type="button" id="btn-limpiar-wo-firma-rep" class="btn-secondary" style="margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;">Limpiar Firma</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-zone">
+        <p>Al enviar, se generará la Orden de Trabajo y se procesará en el sistema.</p>
+        <button type="submit" class="btn-submit">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+          </svg>
+          <span>Enviar Orden de Trabajo</span>
+        </button>
+      </div>
+
+    </form>
+  </section><!-- /panel-workorder -->
+
+</main>
+
+<!-- ── Toast ── -->
+<div id="toast" role="alert" aria-live="polite">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <span id="toast-message">Procesando documento…</span>
+</div>
+
+<!-- ── Módulos JS (orden: creditForm y workOrderForm antes que app.js) ── -->
+<script src="./js/creditForm.js" defer></script>
+<script src="./js/workOrderForm.js" defer></script>
+<script src="./js/app.js" defer></script>
+
+</body>
+</html>
