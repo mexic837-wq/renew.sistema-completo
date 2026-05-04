@@ -698,7 +698,9 @@ window.adminDeleteProject = async (id, e) => {
 
 const UI = {};
 function cacheElements() {
-  UI.canvas = document.getElementById('main-canvas');
+  UI.canvas = document.getElementById('main-canvas') || document.getElementById('view-canvas') || document.getElementById('canvas');
+  if (!UI.canvas) console.warn('[RENEW-WARN] No se encontró el contenedor principal (main-canvas/view-canvas)');
+
   UI.sidebar = document.getElementById('admin-sidebar');
   UI.hambBtn = document.getElementById('admin-hamburger-btn');
   UI.viewTitle = document.getElementById('view-title');
@@ -4658,14 +4660,23 @@ function renderTable(headers, rows) {
     </tr>
   `).join('');
 
-  UI.canvas.innerHTML = `
-    <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto custom-scrollbar">
-      <table class="w-full text-xs">
-        <thead class="bg-gray-50 dark:bg-white/[0.01]">${headHtml}</thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-white/5">${bodyHtml}</tbody>
-      </table>
-    </div>
-  `;
+  if (!UI.canvas) {
+    console.error('[RENEW-ERROR] UI.canvas no está definido. Re-intentando cacheElements...');
+    cacheElements();
+  }
+
+  if (UI.canvas) {
+    UI.canvas.innerHTML = `
+      <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto custom-scrollbar">
+        <table class="w-full text-xs">
+          <thead class="bg-gray-50 dark:bg-white/[0.01]">${headHtml}</thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-white/5">${bodyHtml}</tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    console.error('[RENEW-CRITICAL] No se pudo renderizar la tabla: UI.canvas sigue siendo null.');
+  }
 }
 
 function renderConstructor() {

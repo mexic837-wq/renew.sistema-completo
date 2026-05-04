@@ -1770,8 +1770,10 @@ const subirArchivo = async (file, folder) => {
             });
         
         if (uploadError) {
-            console.error('[STORAGE ERROR] Detalle completo:', JSON.stringify(uploadError, null, 2));
-            throw new Error(uploadError.message || 'Error en Supabase Storage');
+            console.error('[STORAGE ERROR] Status:', uploadError.status);
+            console.error('[STORAGE ERROR] Message:', uploadError.message);
+            console.error('[STORAGE ERROR] Full Object:', JSON.stringify(uploadError, null, 2));
+            throw new Error(`Supabase Storage Error (${uploadError.status}): ${uploadError.message}`);
         }
 
         const { data } = supabase.storage.from('archivos_renew').getPublicUrl(storagePath);
@@ -1798,8 +1800,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         console.log('[API] Subida exitosa:', url);
         res.json({ success: true, url });
     } catch (e) {
-        console.error('[API ERROR] /api/upload:', e.message);
-        res.status(500).json({ error: e.message });
+        console.error('Error subiendo contenido de academia:', e);
+        res.status(500).json({ success: false, error: e.message || 'Fallo subiendo material' });
     }
 });
 
@@ -1814,7 +1816,7 @@ app.post('/api/upload-academia', upload.fields([{ name: 'video', maxCount: 1 }, 
         res.json({ success: true, videoUrl, miniaturaUrl });
     } catch (e) {
         console.error('Error subiendo contenido de academia:', e);
-        res.status(500).json({ error: 'Fallo subiendo material' });
+        res.status(500).json({ success: false, error: e.message || 'Fallo subiendo material' });
     }
 });
 
