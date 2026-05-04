@@ -15,7 +15,7 @@ const TRANSLATIONS = {
     nav_menu:           'Menú',
 
     // ── Login ──────────────────────────────────────────────
-    login_tagline:      'Portal del Equipo de Ventas',
+    login_tagline:      'Portal del Equipo de Ventas Editado',
     login_welcome:      'Bienvenido 👋',
     login_subtitle:     'Ingresa tus credenciales para continuar.',
     login_email:        'Correo Electrónico',
