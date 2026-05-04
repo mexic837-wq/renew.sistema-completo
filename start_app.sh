@@ -1,4 +1,4 @@
 #!/bin/bash
 export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"
-cd /home/apps/renew-group-system && npm start
+cd /home/apps/renew-group-system && npm run dev:full
