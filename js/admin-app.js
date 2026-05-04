@@ -2632,14 +2632,14 @@ window.renderView = async function renderView() {
   if(sr) { sr.classList.add('opacity-0', 'pointer-events-none'); sr.classList.remove('opacity-100', 'pointer-events-auto'); }
 
   if (state.activeView === 'constructor') {
-    UI.viewTitle.textContent = "Workflow Constructor";
-    UI.viewDesc.textContent = "Engineer the phases and dynamic fields for the RENEW Ecosystem.";
+    if (UI.viewTitle) UI.viewTitle.textContent = "Workflow Constructor";
+    if (UI.viewDesc) UI.viewDesc.textContent = "Engineer the phases and dynamic fields for the RENEW Ecosystem.";
     setGlobalButton(true, '<i class="fa-solid fa-plus"></i> New Pipeline');
     renderConstructor();
   } 
   else if (state.activeView === 'crm' || state.activeView === 'crm_maestro') {
-    UI.viewTitle.textContent = t('crm_title');
-    UI.viewDesc.textContent = t('crm_desc');
+    if (UI.viewTitle) UI.viewTitle.textContent = t('crm_title');
+    if (UI.viewDesc) UI.viewDesc.textContent = t('crm_desc');
     setGlobalButton(true, `<i class="fa-solid fa-user-plus"></i> ${t('crm_btn_add')}`);
 
     // ── Build a responsable lookup: clienteId → worker name ─────────
@@ -2942,13 +2942,13 @@ window.renderView = async function renderView() {
       });
     }
   } else if (state.activeView === 'hrhub') {
-    UI.viewTitle.textContent = "HR Hub";
-    UI.viewDesc.textContent = "Centro de RRHH - Gestión de Talento y Onboarding";
+    if (UI.viewTitle) UI.viewTitle.textContent = "HR Hub";
+    if (UI.viewDesc) UI.viewDesc.textContent = "Centro de RRHH - Gestión de Talento y Onboarding";
     setGlobalButton(false, ''); 
     await renderHRHub();
   } else if (state.activeView === 'mapa-admin') {
-    UI.viewTitle.innerHTML = '<i class="fa-solid fa-map-location-dot text-tealAccent"></i> Mapa Clientes';
-    UI.viewDesc.textContent = 'Ubicación global de todos los clientes en Renew OS.';
+    if (UI.viewTitle) UI.viewTitle.innerHTML = '<i class="fa-solid fa-map-location-dot text-tealAccent"></i> Mapa Clientes';
+    if (UI.viewDesc) UI.viewDesc.textContent = 'Ubicación global de todos los clientes en Renew OS.';
     setGlobalButton(false, '');
     
     UI.canvas.innerHTML = `

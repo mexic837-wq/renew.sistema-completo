@@ -210,11 +210,6 @@ export async function deleteRecord(table, id, column) {
         console.error(`Error al eliminar en servidor (Tabla: ${table}, ID: ${id})`, data);
         throw new Error(data.error || `Error al eliminar en servidor (Tabla: ${table}, ID: ${id})`);
     } else {
-        if (data.count === 0) {
-            const msg = `No se encontró el registro con ID ${id} en la tabla ${table}.`;
-            console.warn(`[API] ${msg}`);
-            throw new Error(msg); // Throw instead of just warning to trigger UI error state
-        }
         console.log(`Eliminado exitosamente de ${table}: ${id} (Filas: ${data.count})`);
     }
   } catch (e) {
@@ -247,9 +242,6 @@ export async function deleteRecords(table, ids, column) {
     }
 
     const data = await res.json();
-    if (data.count === 0 && ids.length > 0) {
-        throw new Error(`El servidor no pudo encontrar ninguno de los registros seleccionados para eliminar.`);
-    }
     console.log(`Eliminados exitosamente de ${table}: ${data.count} registros.`);
     return data.count;
   } catch (e) {
@@ -538,22 +530,40 @@ export async function createAdminPipeline(nombre, color, rolesConAcceso) {
 export async function deleteAdminPipeline(pipelineId) {
   const db = getDB();
   try {
-    // 1. Delete phases and fields first (Supabase cascade might handle this, but let's be explicit)
+    // 1. Identify all related phases and fields
     const phases = (db.Admin_Fases || []).filter(f => f.pipeline_id === pipelineId);
     const phaseIds = phases.map(f => f.id);
     
+    // 2. Identify all related projects
+    const projects = (db.Proyectos_Dinamicos || []).filter(p => p.pipeline_id === pipelineId);
+    const projectIds = projects.map(p => p.id);
+
+    // 3. Delete answers associated with these projects
+    if (projectIds.length > 0) {
+      console.log(`[CASCADE] Cleaning answers for ${projectIds.length} projects`);
+      await deleteRecords('respuestas_dinamicas', projectIds, 'proyecto_id');
+      console.log(`[CASCADE] Deleting projects`);
+      await deleteRecords('proyectos_dinamicos', projectIds);
+    }
+
+    // 4. Delete fields and phases
     if (phaseIds.length > 0) {
+      console.log(`[CASCADE] Cleaning fields and phases`);
       await deleteRecords('admin_campos_formulario', phaseIds, 'fase_id');
       await deleteRecords('admin_fases', phaseIds);
     }
     
-    // 2. Delete pipeline
+    // 5. Delete pipeline
     await deleteRecord('admin_pipelines', pipelineId);
 
-    // 3. Local cleanup
+    // 6. Local cleanup
     db.Admin_Pipelines = (db.Admin_Pipelines || []).filter(p => p.id !== pipelineId);
     db.Admin_Fases = (db.Admin_Fases || []).filter(f => f.pipeline_id !== pipelineId);
     db.Admin_Campos_Formulario = (db.Admin_Campos_Formulario || []).filter(c => !phaseIds.includes(c.fase_id));
+    db.Proyectos_Dinamicos = (db.Proyectos_Dinamicos || []).filter(p => p.pipeline_id !== pipelineId);
+    if (projectIds.length > 0) {
+      db.Respuestas_Dinamicas = (db.Respuestas_Dinamicas || []).filter(r => !projectIds.includes(r.proyecto_id));
+    }
 
     cachedDB = db;
     localStorage.setItem('rs_admin_db', JSON.stringify(db));
@@ -595,14 +605,28 @@ export async function updateAdminFaseUsers(faseId, userIds) {
 export async function deleteAdminFase(faseId) {
   const db = getDB();
   try {
-    // 1. Delete fields in this phase
+    // 1. Identify fields in this phase
+    const fields = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === faseId);
+    const fieldIds = fields.map(c => c.id);
+
+    // 2. Delete answers associated with these fields
+    if (fieldIds.length > 0) {
+      console.log(`[CASCADE] Cleaning answers for ${fieldIds.length} fields in phase`);
+      await deleteRecords('respuestas_dinamicas', fieldIds, 'campo_id');
+    }
+
+    // 3. Delete fields in this phase
     await deleteRecord('admin_campos_formulario', faseId, 'fase_id');
-    // 2. Delete phase
+    
+    // 4. Delete phase
     await deleteRecord('admin_fases', faseId);
 
-    // 3. Local cleanup
+    // 5. Local cleanup
     db.Admin_Fases = (db.Admin_Fases || []).filter(f => f.id !== faseId);
     db.Admin_Campos_Formulario = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id !== faseId);
+    if (fieldIds.length > 0) {
+      db.Respuestas_Dinamicas = (db.Respuestas_Dinamicas || []).filter(r => !fieldIds.includes(r.campo_id));
+    }
 
     cachedDB = db;
     localStorage.setItem('rs_admin_db', JSON.stringify(db));

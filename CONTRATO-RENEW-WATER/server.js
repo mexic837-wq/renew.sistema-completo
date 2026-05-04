@@ -76,21 +76,12 @@ async function generarPDF(moldeFileName, datos) {
 import { createClient } from '@supabase/supabase-js';
 
 // ─── Configuración Supabase ──────────────────────────────────
-const SUPABASE_URL = 'https://api-renew.0f2zfh.easypanel.host';
+const SUPABASE_URL = 'https://gateway.renewgroup.site';
 // Using the service_role key to bypass RLS for server-side operations
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.LgwaO10yxM6SN8mDx5uxYyUhx_0jjA3CkfcVMY-AOB0';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MDQ4MDAwMDAsImV4cCI6MjUyODQ4MDAwMH0.KvxyKyMOZPu4RBhI_TKMsearLjskqC08kRj-krd6ZqI';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false },
-  global: {
-    fetch: (url, options) => {
-      let fixedUrl = url;
-      if (url.includes('/storage/v1/')) {
-          fixedUrl = url.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
-      }
-      return fetch(fixedUrl, options);
-    }
-  }
+  auth: { persistSession: false }
 });
 
 // ─── RUTA: POST /api/generar-contrato  (Contrato Renew Water) ────
@@ -126,7 +117,7 @@ app.post('/api/generar-contrato', async (req, res) => {
         console.error('[STORAGE ERROR]', uploadError);
     } else {
         const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-        finalUrl = publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
+        finalUrl = publicUrl;
         
         // 2. Actualizar la base de datos (Columna específica + Adjuntos Oficina)
         if (datos.proyectoId) {

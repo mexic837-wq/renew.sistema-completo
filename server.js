@@ -8,25 +8,11 @@ const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
-const SUPABASE_URL = 'https://api-renew.0f2zfh.easypanel.host';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.LgwaO10yxM6SN8mDx5uxYyUhx_0jjA3CkfcVMY-AOB0';
+const SUPABASE_URL = 'https://gateway.renewgroup.site';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MDQ4MDAwMDAsImV4cCI6MjUyODQ4MDAwMH0.KvxyKyMOZPu4RBhI_TKMsearLjskqC08kRj-krd6ZqI';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false },
-  global: {
-    fetch: (url, options) => {
-      let fixedUrl = url;
-      if (url.includes('/rest/v1/')) {
-          fixedUrl = url.replace('/rest/v1/', '/');
-      } else if (url.includes('/storage/v1/')) {
-          // Fix for custom Easypanel setup: redirect storage to files domain
-          // AND remove the /storage/v1 prefix if the files domain points directly to the storage service
-          fixedUrl = url.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
-          console.log(`[STORAGE REDIRECT] ${url} => ${fixedUrl}`);
-      }
-      return fetch(fixedUrl, options);
-    }
-  }
+  auth: { persistSession: false }
 });
 
 const app = express();
@@ -110,8 +96,8 @@ app.get('/api/db', async (req, res) => {
                 const clean = (u) => (u && u.includes('api-renew')) ? u.replace('api-renew', 'files-renew').replace('/storage/v1/', '/') : u;
                 return {
                     ...c,
-                    foto: clean(c.foto) || null,
-                    id_photo: clean(c.id_photo || c.foto_id) || null,
+                    foto: c.foto || null,
+                    id_photo: c.id_photo || c.foto_id || null,
                     origen_tipo: c.origen_tipo || null,
                     origen_nombre: c.origen_nombre || null,
                     origen_id: c.origen_id || null,
@@ -119,11 +105,11 @@ app.get('/api/db', async (req, res) => {
                     vendedor_asignado_nombre: c.vendedor_asignado_nombre || null,
                     // ── NUEVAS COLUMNAS (Módulo Clientes v2) ──
                     departamento:       c.departamento       || null,
-                    adjunto_id_url:     clean(c.adjunto_id_url)     || null,
-                    adjunto_bill_url:   clean(c.adjunto_bill_url)   || null,
-                    adjunto_seguro_url: clean(c.adjunto_seguro_url) || null,
+                    adjunto_id_url:     c.adjunto_id_url     || null,
+                    adjunto_bill_url:   c.adjunto_bill_url   || null,
+                    adjunto_seguro_url: c.adjunto_seguro_url || null,
                     adjuntos_oficina:   c.adjuntos_oficina   || null,
-                    contrato_water_url: clean(c.contrato_water_url) || null,
+                    contrato_water_url: c.contrato_water_url || null,
                     macro_estado:       c.macro_estado       || null,
                     departamentos_activos: c.departamentos_activos || [],
                     fecha_inicio:       c.fecha_inicio       || null,
@@ -231,12 +217,8 @@ app.get('/api/project-info', async (req, res) => {
             .single();
 
         // 3. Limpiar URLs si existen
-        const clean = (u) => (u && u.includes('api-renew')) ? u.replace('api-renew', 'files-renew').replace('/storage/v1/', '/') : u;
         if (cliente) {
-            cliente.foto = clean(cliente.foto);
-            cliente.adjunto_id_url = clean(cliente.adjunto_id_url);
-            cliente.adjunto_bill_url = clean(cliente.adjunto_bill_url);
-            cliente.contrato_water_url = clean(cliente.contrato_water_url);
+            // No cleaning needed for standard Supabase setup
         }
 
         res.json({ proyecto, cliente });
@@ -367,7 +349,7 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
             .from('archivos_renew')
             .getPublicUrl(`recibos/${fileName}`);
 
-        const cleanUrl = publicUrl.includes('api-renew') ? publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/') : publicUrl;
+        const cleanUrl = publicUrl;
 
         await supabase
             .from('recibos_pagos')
@@ -879,7 +861,7 @@ app.post('/api/generar-contrato', async (req, res) => {
             return res.status(500).json({ error: 'Error al subir el PDF al almacenamiento', details: uploadError });
         } else {
             const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-            finalUrl = publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
+            finalUrl = publicUrl;
             console.log('[STORAGE] Subido con éxito. URL pública:', finalUrl);
             
             // 2. Actualizar el registro del cliente
@@ -944,7 +926,7 @@ async function uploadBase64ToSupabase(base64Data, pathPrefix) {
     }
     
     const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-    return publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
+    return publicUrl;
   } catch (err) {
     console.error(`[UPLOAD ERROR - ${pathPrefix}]`, err);
     return null;
@@ -1085,7 +1067,7 @@ app.post('/api/generar-pdf', async (req, res) => {
     } else {
         console.log(`[STORAGE] PDF subido con éxito a ${fileName}. Generando URL pública...`);
         const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-        finalUrl = publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
+        finalUrl = publicUrl;
         console.log(`[STORAGE] URL Final para base de datos: ${finalUrl}`);
         
         // 2. Actualizar en Supabase (buscando el cliente_id primero)
@@ -1289,7 +1271,7 @@ app.post('/api/generar-orden', async (req, res) => {
             console.error('[STORAGE ERROR] Failed to upload:', uploadError);
         } else {
             const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-            finalUrl = publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
+            finalUrl = publicUrl;
             console.log('[STORAGE] Subido con éxito. URL pública:', finalUrl);
             
             // 2. Actualizar la base de datos (resolviendo cliente_id)
@@ -1794,9 +1776,8 @@ const subirArchivo = async (file, folder) => {
 
         const { data } = supabase.storage.from('archivos_renew').getPublicUrl(storagePath);
         
-        // Ensure the public URL also uses the correct files domain and path structure
+        // Use the public URL directly from Supabase
         let publicUrl = data.publicUrl;
-        publicUrl = publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
         
         console.log('[STORAGE] Subida exitosa:', publicUrl);
         return publicUrl;
