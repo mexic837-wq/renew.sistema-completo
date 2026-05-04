@@ -17,4 +17,4 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             # Aquí llamamos al script que ya tienes en el VPS
-            /home/apps/renew-water/deploy.sh
+            /home/apps/renew-group-system/deploy.sh
