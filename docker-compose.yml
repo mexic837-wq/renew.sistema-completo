@@ -1,0 +1,128 @@
+services:
+  # --- INFRAESTRUCTURA DE BASE DE DATOS ---
+  db:
+    image: supabase/postgres:15.1.0.117
+    container_name: supabase-db
+    environment:
+      POSTGRES_PASSWORD: '193003irM'
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  # --- AUTOMATIZACIÃ“N CON N8N ---
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-app
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://n8n.renewgroup.site/
+      # n8n usa la base de datos de Supabase internamente
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=postgres
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=193003irM
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- COMPONENTES DE SUPABASE ---
+  gateway:
+    image: caddy:2.7.6-alpine
+    container_name: supabase-gateway
+    ports:
+      - "8001:8000"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo ":8000 {
+          handle_path /rest/v1/* {
+            reverse_proxy rest:3000
+          }
+          handle_path /storage/v1/* {
+            reverse_proxy storage:5000
+          }
+          handle /* {
+            reverse_proxy rest:3000
+          }
+        }" > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile
+
+  studio:
+    image: supabase/studio:v0.23.10
+    container_name: supabase-studio
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:3000"
+    environment:
+      SUPABASE_URL: 'http://gateway:8000'
+      API_URL: 'http://gateway:8000'
+      STORAGE_API_URL: 'http://gateway:8000'
+      STUDIO_PG_META_URL: 'http://meta:8080'
+      SELF_HOSTED: 'true'
+      JWT_SECRET: 'RenewOS_2026_Master_Key_Secret_32'
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzEyODgwMDAwLCJleHAiOjIwMjg0MTYwMDB9.QJ7fQoOUjZQzVuDcEn6lZGRKjHNQuEm6ikya2eBNfLo'
+      SUPABASE_SERVICE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.LgwaO10yxM6SN8mDx5uxYyUhx_0jjA3CkfcVMY-AOB0'
+
+  storage:
+    image: supabase/storage-api:v0.43.0
+    container_name: supabase-storage
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzEyODgwMDAwLCJleHAiOjIwMjg0MTYwMDB9.QJ7fQoOUjZQzVuDcEn6lZGRKjHNQuEm6ikya2eBNfLo'
+      SERVICE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.LgwaO10yxM6SN8mDx5uxYyUhx_0jjA3CkfcVMY-AOB0'
+      JWT_SECRET: 'RenewOS_2026_Master_Key_Secret_32'
+      PGRST_JWT_SECRET: 'RenewOS_2026_Master_Key_Secret_32'
+      DATABASE_URL: 'postgres://postgres:193003irM@db:5432/postgres'
+      POSTGREST_URL: 'http://rest:3000'
+      STORAGE_BACKEND: 'file'
+      FILE_STORAGE_BACKEND_PATH: '/var/lib/storage'
+      TENANT_ID: 'default'
+      REGION: 'local'
+      PORT: '5000'
+    volumes:
+      - storage_data:/var/lib/storage
+
+  rest:
+    image: postgrest/postgrest:v12.0.1
+    container_name: supabase-rest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: 'postgres://postgres:193003irM@db:5432/postgres'
+      PGRST_JWT_SECRET: 'RenewOS_2026_Master_Key_Secret_32'
+      PGRST_DB_ANON_ROLE: 'anon'
+      PGRST_DB_SCHEMAS: 'public,storage,graphql_public'
+
+  meta:
+    image: supabase/postgres-meta:v0.84.2
+    container_name: supabase-meta
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_DB_URL: 'postgres://postgres:193003irM@db:5432/postgres'
+
+volumes:
+  storage_data:
+  db_data:
+  n8n_data: # Nuevo volumen para que tus flujos no se pierdan
