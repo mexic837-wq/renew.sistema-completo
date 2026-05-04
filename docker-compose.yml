@@ -13,8 +13,11 @@ services:
       retries: 10
     volumes:
       - db_data:/var/lib/postgresql/data
-      # --- AGREGA ESTA LÍNEA ---
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    
+    # --- AGREGA ESTA SECCIÓN ---
+    configs:
+      - source: init_n8n_db
+        target: /docker-entrypoint-initdb.d/init-db.sql
 
   # --- AUTOMATIZACIÃ“N CON N8N ---
   n8n:
@@ -132,3 +135,9 @@ volumes:
   storage_data:
   db_data:
   n8n_data: # Nuevo volumen para que tus flujos no se pierdan
+
+# --- AGREGA ESTO AL FINAL DE TODO TU ARCHIVO ---
+configs:
+  init_n8n_db:
+    content: |
+      CREATE DATABASE n8n;
