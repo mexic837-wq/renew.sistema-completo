@@ -19,7 +19,7 @@ const APP_CONFIG = {
    * Ejemplo:
    *   webhookUrl: 'https://n8n.tudominio.com/webhook/renew-water'
    */
-  webhookUrl: 'https://n8n.milian-app.online/webhook/aplicacion-credito-o-trabajo',
+  webhookUrl: 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo',
 
   /** Duración (ms) del toast antes de ocultarse */
   toastDuration: 4500,

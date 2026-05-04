@@ -71,7 +71,7 @@ async function crearLeadEnCRM(prospecto, ecosistema, notas, operador) {
   // Send webhook
   try {
     const asignacionUrl = `${window.location.origin}/admin.html#crmDetail?id=${newCliente.id}`;
-    await fetch('https://n8n.milian-app.online/webhook/aviso-nuevo-lead-call-center', {
+    await fetch('https://n8n.renewgroup.site/webhook/aviso-nuevo-lead-call-center', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

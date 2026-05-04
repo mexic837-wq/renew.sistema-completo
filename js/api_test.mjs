@@ -948,7 +948,7 @@ export const STAGE_CONFIG = {};
 
 // ─── WEBHOOK CONFIG ──────────────────────────────────────────────────────────
 // URL del webhook de n8n que recibe todos los cambios de fase del Kanban
-const N8N_WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/notificacion-flujo';
+const N8N_WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/notificacion-flujo';
 
 // ─── HELPER: Resolver destinatario(s) según el rol de la fase ────────────────
 /**

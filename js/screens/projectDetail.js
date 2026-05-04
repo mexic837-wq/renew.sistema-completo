@@ -11,7 +11,7 @@ import { showToast } from '../components/toast.js';
 import { navigate, getCurrentUser } from '../app.js';
 
 // ─── WEBHOOK CONFIG ─────────────────────────────────────────
-const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/notificacion-flujo';
+const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/notificacion-flujo';
 
 async function notifyWebhook(payload) {
   try {
@@ -498,7 +498,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${recColor}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                </div>
                <span style="color:${recColor};font-size:0.85rem;font-weight:700;">Recibo Completado ✓</span>
-               <button onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">Ver</button>
+                               <button onclick="${val && val.startsWith('http') ? `window.open('${val}','_blank')` : `window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')`}" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">${val && val.startsWith('http') ? '👁️ Ver PDF' : 'Ver'}</button>
              </div>
            ` : `
              <button type="button" onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')"

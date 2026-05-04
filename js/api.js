@@ -1006,6 +1006,16 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
   let newProyecto = null;
   let newProyId = null;
 
+  // Si el cliente ya existe, vamos a actualizar su vendedor asignado al responsable actual
+  // para que aparezca en "Mis Clientes" del usuario que está creando el proyecto.
+  const existingCli = db.Clientes_Maestro.find(c => c.id === finalClienteId);
+  if (existingCli) {
+    const sessionUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    existingCli.vendedor_asignado_id = responsable_id || sessionUser.id;
+    existingCli.vendedor_asignado_nombre = (sessionUser.nombre + ' ' + (sessionUser.apellido || '')).trim() || 'Vendedor';
+    existingCli.estado = 'En Proceso';
+  }
+
   if (pipeline) {
     newProyId = genId('proy', db);
     newProyecto = {
@@ -1017,11 +1027,8 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
       fecha: new Date().toISOString().split('T')[0]
     };
     db.Proyectos_Dinamicos.push(newProyecto);
-    const cliObj = db.Clientes_Maestro.find(c => c.id === finalClienteId);
-    if (cliObj) cliObj.estado = 'En Proceso';
-  } else {
-    const cliObj = db.Clientes_Maestro.find(c => c.id === finalClienteId);
-    if (cliObj) cliObj.estado = 'Lead';
+  } else if (existingCli) {
+    existingCli.estado = 'Lead';
   }
 
   if (newProyId) {
@@ -1283,9 +1290,9 @@ export const STAGE_CONFIG = {};
 
 // ─── WEBHOOK CONFIG ──────────────────────────────────────────────────────────
 // URL del webhook de n8n que recibe todos los cambios de fase del Kanban
-const N8N_WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/notificacion-flujo';
+const N8N_WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/notificacion-flujo';
 // Nuevo webhook para avisar específicamente al representante del proyecto
-const N8N_REP_WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/aviso-representante';
+const N8N_REP_WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aviso-representante';
 
 /**
  * Dado un objeto fase y el vendedor original del proyecto,

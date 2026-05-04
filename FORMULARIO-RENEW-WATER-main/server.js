@@ -222,7 +222,7 @@ app.post('/api/generar-pdf', async (req, res) => {
     }
 
     // Webhook Trigger a n8n para Administración
-    const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/aplicacion-credito-o-trabajo';
+    const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
     fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -371,7 +371,7 @@ app.post('/api/generar-orden', async (req, res) => {
     }
 
     // Webhook Trigger a n8n
-    const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/aplicacion-credito-o-trabajo';
+    const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
     fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

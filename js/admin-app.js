@@ -2170,7 +2170,7 @@ function bindGlobalEvents() {
       btnSend.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Activating...';
       btnSend.disabled = true;
 
-      fetch('https://n8n.milian-app.online/webhook/email-renew', {
+      fetch('https://n8n.renewgroup.site/webhook/email-renew', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -2268,7 +2268,7 @@ function bindGlobalEvents() {
       btnWaSend.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Transmitiendo...';
       btnWaSend.disabled = true;
 
-      fetch('https://n8n.milian-app.online/webhook/whatsapp-renew', {
+      fetch('https://n8n.renewgroup.site/webhook/whatsapp-renew', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -3665,13 +3665,13 @@ window.renderView = async function renderView() {
 
                let response;
                try {
-                   response = await fetch('http://localhost:3001/api/upload-academia', {
+                   response = await fetch('http://localhost:3010/api/upload-academia', {
                        method: 'POST',
                        body: formData
                    });
                } catch (fetchErr) {
                    console.error('Fetch check:', fetchErr);
-                   throw new Error('No se pudo conectar con el servidor de subida (puerto 3001). Asegúrate de realizar "npm run server" en una terminal aparte.');
+                   throw new Error('No se pudo conectar con el servidor de subida (puerto 3010). Asegúrate de realizar "npm run server" en una terminal aparte.');
                }
 
                const data = await response.json();
@@ -5647,7 +5647,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       if (cli.adjuntos_oficina.orden_trabajo_url) combinedFiles.push({ url: cli.adjuntos_oficina.orden_trabajo_url, etiqueta: 'Orden de Trabajo', id: 'sys-orden' });
       if (cli.adjuntos_oficina.contrato_url) combinedFiles.push({ url: cli.adjuntos_oficina.contrato_url, etiqueta: 'Contrato Firmado', id: 'sys-contrato' });
       if (cli.adjuntos_oficina.app_url) combinedFiles.push({ url: cli.adjuntos_oficina.app_url, etiqueta: 'Hoja de Aplicación', id: 'sys-app' });
-      if (cli.adjuntos_oficina.recibo_url) combinedFiles.push({ url: cli.adjuntos_oficina.recibo_url, etiqueta: 'Recibo de Pago', id: 'sys-recibo' });
+      const rUrl = cli.adjuntos_oficina.recibo_url || cli.adjuntos_oficina.recibo_vendedor_url || cli.adjuntos_oficina.recibo_tecnico_url;
+      if (rUrl) combinedFiles.push({ url: rUrl, etiqueta: 'Recibo de Pago', id: 'sys-recibo' });
   }
 
   const filesHtml = combinedFiles.length > 0
@@ -6290,7 +6291,7 @@ async function showClientDetail(id) {
     state.currentDetAdjBill = cli.adjunto_bill_url || null;
     state.currentDetAdjSeguro = cli.adjunto_seguro_url || null;
     state.currentDetOfiApp = (cli.adjuntos_oficina && cli.adjuntos_oficina.app_url) || null;
-    state.currentDetOfiRecibo = (cli.adjuntos_oficina && cli.adjuntos_oficina.recibo_url) || null;
+    state.currentDetOfiRecibo = (cli.adjuntos_oficina && (cli.adjuntos_oficina.recibo_url || cli.adjuntos_oficina.recibo_vendedor_url || cli.adjuntos_oficina.recibo_tecnico_url)) || null;
     
     // Contracts are now pipeline-aware
     const adj = cli.adjuntos_oficina || {};
@@ -6523,7 +6524,7 @@ async function showClientDetail(id) {
                     const params = new URLSearchParams();
                     for(const key in payload) params.append(key, payload[key]);
                     
-                    fetch('https://n8n.milian-app.online/webhook/avisar-vendedor-cliente-asignado', {
+                    fetch('https://n8n.renewgroup.site/webhook/avisar-vendedor-cliente-asignado', {
                         method: 'POST',
                         mode: 'no-cors', // Evita el error de CORS al enviar desde localhost
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -6802,7 +6803,7 @@ async function saveClientChanges() {
                 const params = new URLSearchParams();
                 for(const key in payload) params.append(key, payload[key]);
 
-                fetch('https://n8n.milian-app.online/webhook/avisar-vendedor-cliente-asignado', {
+                fetch('https://n8n.renewgroup.site/webhook/avisar-vendedor-cliente-asignado', {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

@@ -30,7 +30,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 const app = express();
-const port = 3001;
+const port = 3010;
 
 // Prevent process from crashing on unhandled errors
 process.on('unhandledRejection', (reason, promise) => {
@@ -282,9 +282,11 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
         const pages = pdfDoc.getPages();
         const firstPage = pages[0];
         const { width, height } = firstPage.getSize();
+        console.log(`[PDF-DIM] Template Size: ${width}x${height}`);
 
         const drawText = (text, x, y, size = 10, isBold = true) => {
             if (text === undefined || text === null || text === '') return;
+            console.log(`[PDF-DRAW] "${text}" at (x: ${x}, y_calc: ${height - y})`);
             firstPage.drawText(String(text), {
                 x,
                 y: height - y,
@@ -298,50 +300,57 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
 
         if (isVendedor) {
             // --- RECIBO PAGO ANALISTA (Landscape 842x595) ---
-            drawText(d.sales_representative, 260, 115);
-            drawText(d.check_number, 260, 138);
-            drawText(d.transfer_date, 260, 162);
-            drawText(d.customer_name || recibo.cliente_nombre, 260, 185);
-            drawText(d.finance_company, 260, 208);
+            // y=0 es arriba, y=595 es abajo.
+            drawText(d.sales_representative, 375, 205);
+            drawText(d.check_number, 550, 185, 9);
+            drawText(d.transfer_date, 660, 205, 9);
+            const customerName = d.customer_name || recibo.cliente_nombre || 'N/A';
+            drawText(customerName, 375, 230);
+            drawText(d.finance_company, 375, 255);
 
-            drawText(`$${Number(d.sales_amount || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 260, 248);
-            drawText(`${d.aprobacion_pct}%`, 530, 248);
-            drawText(`$${Number(d.monto_aprobacion || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 260, 271);
+            // Montos
+            drawText(`$${Number(d.sales_amount || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 450, 285);
+            drawText(`${d.aprobacion_pct}%`, 530, 310);
+            drawText(`$${Number(d.monto_aprobacion || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 450, 335);
 
-            drawText(`$${Number(d.cost || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 260, 310);
-            drawText(`${d.costo_plan_pct}%`, 530, 310);
-            drawText(`$${Number(d.total_costo || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 260, 333);
-            drawText(`$${Number(d.total_analista || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 530, 333);
-            drawText(d.linea_pozo, 260, 356);
+            // Costos (Columna derecha)
+            drawText(`$${Number(d.cost || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 680, 285);
+            drawText(`${d.costo_plan_pct}%`, 680, 310);
+            drawText(`$${Number(d.total_costo || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 680, 335);
+            drawText(`$${Number(d.total_analista || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 680, 420);
+            
+            drawText(d.linea_pozo, 375, 395, 8, false);
 
-            let ey = 395;
-            (d.extra_charges || []).forEach(ex => {
-                drawText(ex.concepto, 260, ey, 9, false);
-                drawText(`$${Number(ex.monto).toLocaleString('en-US',{minimumFractionDigits:2})}`, 530, ey, 9, false);
+            // Extra Charges
+            let ey = 460; 
+            (d.extra_charges || []).forEach((ex, idx) => {
+                if (idx > 2) return; 
+                drawText(ex.concepto, 375, ey, 8, false);
+                drawText(`$${Number(ex.monto).toLocaleString('en-US',{minimumFractionDigits:2})}`, 680, ey, 8, false);
                 ey += 18;
             });
 
-            drawText(d.instalador, 260, 480);
-            drawText(`$${Number(d.grand_total || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 530, 525, 14);
+            drawText(d.instalador, 375, 535);
+            drawText(`$${Number(d.grand_total || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 680, 565, 14);
 
         } else {
             // --- RECIBO INSTALACIÓN (Landscape 842x595) ---
-            drawText(d.installer_name || recibo.trabajador_nombre, 240, 145);
-            drawText(d.customer_name || recibo.cliente_nombre, 240, 185);
-            drawText(d.address || recibo.direccion, 240, 210, 9, false);
-            drawText(d.date, 115, 260);
+            // Bajamos todo unos 40-50 px más para que entre en los cuadros
+            drawText(d.installer_name || recibo.trabajador_nombre, 375, 245);
+            drawText(d.customer_name || recibo.cliente_nombre, 375, 275);
+            drawText(d.address || recibo.direccion, 375, 305, 9, false);
+            drawText(d.date, 175, 350); // Movido a la derecha para no tapar "DATE:"
 
-            let iy = 300;
-            (d.items || []).forEach(item => {
-                drawText(item.description, 260, iy, 9, false);
-                drawText(item.qty, 555, iy, 9, false);
-                drawText(item.model, 610, iy, 9, false);
-                drawText(`$${Number(item.total).toLocaleString('en-US',{minimumFractionDigits:2})}`, 720, iy, 9, false);
+            let iy = 415; // Los productos empiezan más abajo de la franja verde
+            (d.items || []).forEach((item, idx) => {
+                if (idx > 5) return;
+                drawText(item.description, 375, iy, 9, false);
+                drawText(item.qty, 680, iy, 9, false);
+                drawText(item.model, 740, iy, 9, false);
                 iy += 22;
             });
-
-            drawText(`${d.discount_pct}%`, 720, 508);
-            drawText(`$${Number(d.total_price || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 720, 532, 12);
+            drawText(`${d.discount_pct || 0}%`, 720, 530);
+            drawText(`$${Number(d.total_price || 0).toLocaleString('en-US',{minimumFractionDigits:2})}`, 720, 555, 12);
         }
 
         // 3. Generar y subir
@@ -405,6 +414,8 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
                 let adjuntos = cli?.adjuntos_oficina;
                 if (!adjuntos || Array.isArray(adjuntos)) adjuntos = {};
                 
+                // Guardar en múltiples llaves para asegurar compatibilidad con la UI
+                adjuntos.recibo_url = cleanUrl; 
                 if (isVendedor) {
                     adjuntos.recibo_vendedor_url = cleanUrl;
                     adjuntos.ultima_comision_fecha = new Date().toISOString();
@@ -417,11 +428,11 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
                     .update({ adjuntos_oficina: adjuntos })
                     .eq('id', proy.cliente_id);
                 
-                console.log(`[PDF-SYNC] ✅ Perfil del cliente ${proy.cliente_id} actualizado con el recibo.`);
+                console.log(`[PDF-SYNC] ✅ Perfil del cliente ${proy.cliente_id} actualizado con recibo_url y detalles.`);
             }
         }
 
-        console.log(`[PDF] Success: ${cleanUrl}`);
+        console.log(`[PDF] ✅ Generación exitosa: ${cleanUrl}`);
         res.json({ success: true, url: cleanUrl });
 
     } catch (error) {
@@ -1160,7 +1171,7 @@ app.post('/api/generar-pdf', async (req, res) => {
     }
 
     // Webhook Trigger a n8n para Administración
-    const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/aplicacion-credito-o-trabajo';
+    const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
     fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1359,7 +1370,7 @@ app.post('/api/generar-orden', async (req, res) => {
         }
 
         // Webhook Trigger a n8n
-        const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/aplicacion-credito-o-trabajo';
+        const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
         fetch(WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

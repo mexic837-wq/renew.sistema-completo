@@ -161,7 +161,7 @@ app.post('/api/generar-contrato', async (req, res) => {
     }
 
     // Webhook Trigger (Fire and Forget)
-    const WEBHOOK_URL = 'https://n8n.milian-app.online/webhook/contrato-renew-water';
+    const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/contrato-renew-water';
     fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
