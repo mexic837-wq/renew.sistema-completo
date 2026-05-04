@@ -13,6 +13,8 @@ services:
       retries: 10
     volumes:
       - db_data:/var/lib/postgresql/data
+      # --- AGREGA ESTA LÍNEA ---
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
 
   # --- AUTOMATIZACIÃ“N CON N8N ---
   n8n:
