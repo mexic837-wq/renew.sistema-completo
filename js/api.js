@@ -187,6 +187,24 @@ export async function saveGranular(table, records) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table, records: sanitized })
     });
+
+    // ── SIDE EFFECT: Sync Receipt Uploads to Client Profile ──
+    if (table === 'respuestas_dinamicas' && records.length > 0) {
+      for (const r of records) {
+        if (r.valor && (r.valor.startsWith('http') || r.valor.startsWith('data:'))) {
+           // We need to check if this field is a receipt
+           const db = getDB();
+           const campo = (db.Admin_Campos_Formulario || []).find(c => String(c.id) === String(r.campo_id));
+           if (campo) {
+             const label = (campo.etiqueta || '').toLowerCase();
+             if (label.includes('recibo') && (label.includes('pago') || label.includes('vendedor') || label.includes('tecnico') || label.includes('técnico'))) {
+               console.log(`[API-SYNC] Detecting receipt upload in field "${campo.etiqueta}". Syncing to client...`);
+               _syncReceiptToClient(r.proyecto_id, r.valor, label).catch(e => console.error("[API-SYNC] Failed to sync receipt:", e));
+             }
+           }
+        }
+      }
+    }
     if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         console.error(`[Granular Save Error] ${table}:`, errorData);
@@ -196,6 +214,59 @@ export async function saveGranular(table, records) {
     console.error(`[Network Error] Granular save on ${table}:`, e);
     throw e;
   }
+}
+
+/**
+ * Syncs a receipt URL to the client's adjuntos_oficina metadata
+ * @private
+ */
+async function _syncReceiptToClient(projectId, url, label) {
+  const db = getDB();
+  const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(projectId));
+  if (!proy || !proy.cliente_id) return;
+  
+  const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id));
+  if (!cli) return;
+  
+  // 1. Update Client Profile (adjuntos_oficina)
+  const updatedCli = { ...cli };
+  let adjuntos = updatedCli.adjuntos_oficina;
+  if (!adjuntos || Array.isArray(adjuntos)) adjuntos = {};
+  else adjuntos = { ...adjuntos };
+  
+  const isVendedor = label.includes('vendedor');
+  adjuntos.recibo_url = url;
+  if (isVendedor) {
+    adjuntos.recibo_vendedor_url = url;
+    adjuntos.ultima_comision_fecha = new Date().toISOString();
+  } else {
+    adjuntos.recibo_tecnico_url = url;
+    adjuntos.ultima_instalacion_fecha = new Date().toISOString();
+  }
+  updatedCli.adjuntos_oficina = adjuntos;
+  await saveGranular('clientes_maestro', [updatedCli]);
+
+  // 2. Create/Update Recibos_Pagos record for the "Mis Recibos" screen
+  // This allows technicians and vendors to see the uploaded PDF in their history
+  const trabajadorId = isVendedor ? (proy.responsable_id || proy.vendedor_asignado_id) : proy.tecnico_id;
+  const user = db.Usuarios.find(u => u.id === trabajadorId);
+  const trabajadorNom = user ? `${user.nombre} ${user.apellido || ''}`.trim() : 'Staff';
+
+  const newRecibo = {
+    id: `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`, // Deterministic ID to avoid duplicates
+    proyecto_id: projectId,
+    tipo: isVendedor ? 'vendedor' : 'tecnico',
+    trabajador_id: trabajadorId,
+    trabajador_nombre: trabajadorNom,
+    cliente_nombre: cli.nombre,
+    direccion: cli.direccion,
+    fecha_recibo: new Date().toISOString().split('T')[0],
+    pdf_url: url,
+    datos_json: { source: 'upload', label: label }
+  };
+
+  await saveGranular('recibos_pagos', [newRecibo]);
+  console.log(`[API-SYNC] ✅ Client and Receipt history updated for ${proy.cliente_id}`);
 }
 
 export async function deleteRecord(table, id, column) {
@@ -285,6 +356,52 @@ export function getRecibos(trabajadorId = null) {
   return all.filter(r => r.trabajador_id === trabajadorId);
 }
 
+// ─── LISTA DE PRECIOS (Renew Water) ─────────────────────────
+export async function getListaPrecios(sedeFilter = null) {
+  const db = getDB();
+  let items = db.Water_Productos || [];
+  if (sedeFilter) {
+    items = items.filter(p => p.sede === sedeFilter || p.sede === 'todas');
+  }
+  return items.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+}
+
+export async function saveListaPrecio(producto) {
+  const db = getDB();
+  if (!db.Water_Productos) db.Water_Productos = [];
+
+  if (!producto.id) producto.id = `wp_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+
+  const idx = db.Water_Productos.findIndex(p => p.id === producto.id);
+  if (idx > -1) {
+    db.Water_Productos[idx] = { ...db.Water_Productos[idx], ...producto };
+  } else {
+    db.Water_Productos.push(producto);
+  }
+
+  // Optimistic local update
+  cachedDB = db;
+  localStorage.setItem('rs_admin_db', JSON.stringify(db));
+
+  // Persist to Supabase via upsert
+  await saveGranular('water_productos', [producto]);
+  return producto;
+}
+
+export async function deleteListaPrecio(id) {
+  const db = getDB();
+  try {
+    await deleteRecord('water_productos', id);
+    db.Water_Productos = (db.Water_Productos || []).filter(p => p.id !== id);
+    cachedDB = db;
+    localStorage.setItem('rs_admin_db', JSON.stringify(db));
+    window.dispatchEvent(new CustomEvent('db_synced'));
+  } catch(err) {
+    console.error('[deleteListaPrecio]', err);
+    throw err;
+  }
+}
+
 export function getDB() {
     if (!cachedDB) {
         try {
@@ -302,7 +419,7 @@ export function getDB() {
         'Clientes_Maestro', 'Proyectos_Dinamicos', 'Respuestas_Dinamicas',
         'Usuarios', 'academiaContent', 'inventarioGlobal', 'historialInventario',
         'anuncios_corporativos', 'Deleted_Workers', 'calendario_eventos',
-        'Recibos_Pagos'
+        'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos'
     ];
     
     requiredTables.forEach(table => {
@@ -316,6 +433,33 @@ export function getDB() {
     }
 
     return cachedDB; 
+}
+
+// ─── CONFIGURACIÓN DE CATÁLOGOS (Cloud) ─────────────────────
+export async function getCatalogos() {
+  const db = getDB();
+  return db.Admin_Catalogos || [];
+}
+
+export async function saveCatalogo(id, pdf_url) {
+  const db = getDB();
+  if (!db.Admin_Catalogos) db.Admin_Catalogos = [];
+  
+  const rec = { id, pdf_url, updated_at: new Date().toISOString() };
+  const idx = db.Admin_Catalogos.findIndex(c => c.id === id);
+  
+  if (idx > -1) {
+    db.Admin_Catalogos[idx] = rec;
+  } else {
+    db.Admin_Catalogos.push(rec);
+  }
+
+  cachedDB = db;
+  localStorage.setItem('rs_admin_db', JSON.stringify(db));
+  
+  // Persist to Supabase
+  await saveGranular('admin_catalogos', [rec]);
+  return rec;
 }
 
 export function genId(type, db) { 
@@ -1484,6 +1628,12 @@ export async function updateProyectoFase(proyectoId, nuevaFaseId, extraContext =
       await saveGranular('respuestas_dinamicas', dynamicRecords);
   }
 
+  // ── PASO 4.5: Verificación de Ascenso Automático (Renew Water) ───────────
+  if (nuevaFaseId === 'Completado' || nuevaFase?.nombre === 'Completado') {
+     console.log(`[PROMOTION] Project ${proyectoId} completed. Checking promotion for vendor ${vendedor_original_id}...`);
+     _checkAndPromoteVendor(db, vendedor_original_id).catch(e => console.error("[PROMOTION] Error:", e));
+  }
+
   // ── PASO 5: Disparar webhooks a n8n (fire & forget) ───────────────────────
   (async () => {
     try {
@@ -1550,4 +1700,56 @@ export async function updateProyectoFase(proyectoId, nuevaFaseId, extraContext =
   })();
 
   return { success: true, proyecto };
+}
+
+/**
+ * Counts completed sales for a vendor and updates their role based on the Growth Staircase.
+ * @private
+ */
+async function _checkAndPromoteVendor(db, userId) {
+  if (!userId) return;
+
+  const waterPipeline = (db.Admin_Pipelines || []).find(p => p.nombre === 'Renew Water');
+  if (!waterPipeline) return;
+
+  // 1. Count completed sales in Renew Water
+  const salesCount = (db.Proyectos_Dinamicos || []).filter(p => 
+    p.responsable_id === userId && 
+    p.pipeline_id === waterPipeline.id &&
+    (p.fase_id === 'Completado' || p.estado === 'Completado')
+  ).length;
+
+  console.log(`[PROMOTION] Vendor ${userId} has ${salesCount} sales.`);
+
+  // 2. Define thresholds (Matching the Escalera de Crecimiento image)
+  // 0: Novato, 3: Subvendedor, 18: Iniciante, 33: Junior, 53: Vendedor, 73: Analista
+  const thresholds = [
+    { min: 73, role: 'analista' },
+    { min: 53, role: 'vendedor' },
+    { min: 33, role: 'junior' },
+    { min: 18, role: 'iniciante' },
+    { min: 3,  role: 'subvendedor' },
+    { min: 0,  role: 'novato' }
+  ];
+
+  const targetRole = thresholds.find(t => salesCount >= t.min)?.role || 'novato';
+
+  // 3. Update user role if changed
+  const user = (db.Usuarios || []).find(u => u.id === userId);
+  if (user && user.rol !== targetRole) {
+    // We only promote if the new role is "higher" or if it matches our ladder
+    // Note: We use lowercase keys to match admin_catalogos table
+    console.log(`[PROMOTION] Promoting user ${userId} from ${user.rol} to ${targetRole}`);
+    user.rol = targetRole;
+    await saveGranular('usuarios', [user]);
+    
+    // Also update local storage if it's the current user
+    const sessionUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    if (sessionUser.id === userId) {
+      sessionUser.rol = targetRole;
+      localStorage.setItem('rs_user', JSON.stringify(sessionUser));
+      // Trigger a refresh of the price list if open
+      window.dispatchEvent(new CustomEvent('user_promoted', { detail: { role: targetRole } }));
+    }
+  }
 }

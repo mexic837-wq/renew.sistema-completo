@@ -61,7 +61,7 @@ export async function renderMenu() {
 
     <div class="menu-body" style="padding: 0 24px 100px;">
 
-      <!-- BLOQUE 2: CONFIGURACIÓN (List) -->
+       <!-- BLOQUE 2: CONFIGURACIÓN (List) -->
       <p class="menu-section-label" style="margin-top:32px;">${t('menu_settings')}</p>
       <div class="menu-list">
         <div class="menu-list-item">
@@ -80,7 +80,17 @@ export async function renderMenu() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
 
-
+        ${canSeeWaterForms ? `
+        <div class="menu-list-item" id="btn-lista-precios" style="cursor:pointer;">
+          <div class="menu-item-left">
+            <div class="menu-item-icon" style="background:rgba(14,165,233,0.1); color:#0ea5e9;">
+              <i class="fas fa-tag" style="font-size:1rem;"></i>
+            </div>
+            <span>💧 Lista de Precios Water</span>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        ` : ''}
 
         <div class="menu-list-item" id="btn-theme-toggle-mobile">
           <div class="menu-item-left">
@@ -106,7 +116,7 @@ export async function renderMenu() {
 
         <div class="menu-list-item">
           <div class="menu-item-left">
-            <div class="menu-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z"/></svg></div>
+            <div class="menu-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z"/></svg></div>
             <span>${t('menu_support')}</span>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
@@ -142,6 +152,12 @@ export async function renderMenu() {
     btnNotifs.addEventListener('click', () => {
       mostrarModalNotificaciones(user);
     });
+  }
+
+  // Lista de Precios Renew Water
+  const btnListaPrecios = document.getElementById('btn-lista-precios');
+  if (btnListaPrecios) {
+    btnListaPrecios.addEventListener('click', () => navigate('lista-precios'));
   }
 
   // Re-render on language change

@@ -20,6 +20,7 @@ import { renderMiMapa } from './screens/mapa.js';
 import { renderMiEquipo } from './screens/equipo.js';
 import { renderPartners } from './screens/partners.js';
 import { renderMisRecibos } from './screens/recibos.js';
+import { renderListaPrecios } from './screens/listadeprecios.js';
 import { t, getLang } from './i18n.js';
 
 // expose for window.switchLang toast
@@ -318,7 +319,7 @@ window.verificarAnunciosNuevos = async function() {
 }
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios'];
 
 export function navigate(screen, param = null) {
   // Auth guard
@@ -388,6 +389,7 @@ export function navigate(screen, param = null) {
     case 'mi-equipo': renderMiEquipo();             break;
     case 'partners': renderPartners();               break;
     case 'mis-recibos': renderMisRecibos();          break;
+    case 'lista-precios': renderListaPrecios();      break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);
       break;
@@ -574,7 +576,8 @@ function handleHashChange() {
       case 'mi-mapa': renderMiMapa(); break;
       case 'mi-equipo': renderMiEquipo(); break;
       case 'partners': renderPartners(); break;
-      case 'credit-app': /* iframe */ break;
+      case 'mis-recibos': renderMisRecibos(); break;
+      case 'lista-precios': renderListaPrecios(); break;
       case 'contract-app': /* iframe */ break;
       case 'work-order': /* iframe */ break;
     }

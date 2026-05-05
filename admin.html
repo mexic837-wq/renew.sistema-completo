@@ -741,6 +741,12 @@
                     </div>
                     <span class="nav-text">Anuncios Globales</span>
                 </a>
+                <a href="#" data-view="lista-precios" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                    <div class="w-7 flex justify-center">
+                        <i class="fa-solid fa-tag text-sm"></i>
+                    </div>
+                    <span class="nav-text">Lista de Precios</span>
+                </a>
 
                 <!-- Inventario Group -->
                 <div class="px-0">
@@ -1289,8 +1295,13 @@
             </div>
 
             <select id="inp-usr-rol" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-6 focus:border-tealAccent focus:outline-none">
+                <option value="novato">Novato (Rango Inicial)</option>
+                <option value="subvendedor">Subvendedor (3+ Ventas)</option>
+                <option value="iniciante">Iniciante (18+ Ventas)</option>
+                <option value="junior">Junior (33+ Ventas)</option>
+                <option value="vendedor">Vendedor (53+ Ventas)</option>
+                <option value="analista">Analista (73+ Ventas)</option>
                 <option value="Call Center">Call Center</option>
-                <option value="Vendedor">Vendedor / Representante</option>
                 <option value="Procesador">Procesador</option>
                 <option value="Técnico">Técnico</option>
                 <option value="Diseñador">Diseñador</option>
@@ -1299,7 +1310,6 @@
                 <option value="Supervisión">Supervisión</option>
                 <option value="CEO">CEO</option>
                 <option value="Admin">Administrador (BackOffice)</option>
-                <option value="call_center">Call Center</option>
             </select>
 
             <!-- W-9 Upload -->
@@ -1508,7 +1518,7 @@
                             <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Departamento</label><input id="det-edit-dept" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="Call Center">Call Center</option><option value="Vendedor">Vendedor</option><option value="Procesador">Procesador</option><option value="Técnico">Técnico</option><option value="Diseñador">Diseñador</option><option value="Contabilidad">Contabilidad</option><option value="Finanzas">Finanzas</option><option value="Supervisión">Supervisión</option><option value="Admin">Admin</option><option value="CEO">CEO</option></select></div>
+                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="novato">Novato</option><option value="subvendedor">Subvendedor</option><option value="iniciante">Iniciante</option><option value="junior">Junior</option><option value="vendedor">Vendedor</option><option value="analista">Analista</option><option value="Call Center">Call Center</option><option value="Procesador">Procesador</option><option value="Técnico">Técnico</option><option value="Diseñador">Diseñador</option><option value="Contabilidad">Contabilidad</option><option value="Finanzas">Finanzas</option><option value="Supervisión">Supervisión</option><option value="Admin">Admin</option><option value="CEO">CEO</option></select></div>
                             <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Contraseña</label><input id="det-edit-pass" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]" placeholder="renew123"></div>
                         </div>
                         <div class="mb-6">
@@ -2015,6 +2025,159 @@
             <div class="flex gap-3 justify-end mt-2">
                 <button class="btn-cancel text-[10px] uppercase font-black text-gray-400 hover:text-gray-600 px-4 py-2">Cancelar</button>
                 <button id="btn-save-inv" class="bg-tealAccent text-black px-6 py-2 rounded-xl text-xs font-black hover:bg-teal-500 shadow-lg shadow-tealAccent/20 transition-all uppercase tracking-widest">Guardar Artículo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MODAL: LISTA DE PRECIOS (Add/Edit) ── -->
+    <div id="modal-nuclear-precios" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 w-full max-w-[700px] rounded-[2.5rem] shadow-2xl p-10 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn relative overflow-hidden group">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between mb-8 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-tealAccent/10 rounded-2xl flex items-center justify-center text-tealAccent shadow-inner border border-tealAccent/20">
+                        <i class="fa-solid fa-tag text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase">Producto de Precio</h3>
+                        <p class="text-[10px] text-gray-400 dark:text-white/40 mt-1 font-bold tracking-widest uppercase">Gestionar Catálogo Renew Water</p>
+                    </div>
+                </div>
+                <button onclick="window.closeModals()" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-6 relative z-10">
+                <input type="hidden" id="inp-prec-id">
+                
+                <!-- Info Básica -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">Nombre del Producto</label>
+                        <input type="text" id="inp-prec-nombre" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-sm font-bold dark:text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">Código / SKU</label>
+                        <input type="text" id="inp-prec-codigo" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-sm font-bold dark:text-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">Categoría</label>
+                        <input type="text" id="inp-prec-cat" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-sm font-bold dark:text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">Sede</label>
+                        <select id="sel-prec-sede" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-sm font-bold dark:text-white">
+                            <option value="todas">Todas las Sedes</option>
+                            <option value="orlando">Orlando</option>
+                            <option value="miami">Miami</option>
+                            <option value="dallas">Dallas</option>
+                            <option value="new_york">New York</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Specs -->
+                <div class="grid grid-cols-3 gap-4 bg-gray-50/30 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Medida</label>
+                        <input type="text" id="inp-prec-medida" class="w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg p-2.5 text-xs font-bold dark:text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Botón</label>
+                        <input type="text" id="inp-prec-boton" class="w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg p-2.5 text-xs font-bold dark:text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Color</label>
+                        <input type="text" id="inp-prec-color" class="w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg p-2.5 text-xs font-bold dark:text-white">
+                    </div>
+                </div>
+
+                <!-- Precios por Rango -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-tealAccent uppercase tracking-widest ml-1">Precio Junior</label>
+                        <input type="number" id="inp-prec-junior" class="w-full bg-gray-50 dark:bg-white/5 border border-tealAccent/20 rounded-xl p-3 text-xs font-bold text-tealAccent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-tealAccent uppercase tracking-widest ml-1">Precio Subvende</label>
+                        <input type="number" id="inp-prec-subvende" class="w-full bg-gray-50 dark:bg-white/5 border border-tealAccent/20 rounded-xl p-3 text-xs font-bold text-tealAccent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-tealAccent uppercase tracking-widest ml-1">Precio Vendedor</label>
+                        <input type="number" id="inp-prec-vendedor" class="w-full bg-gray-50 dark:bg-white/5 border border-tealAccent/20 rounded-xl p-3 text-xs font-bold text-tealAccent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-tealAccent uppercase tracking-widest ml-1">Precio Analista</label>
+                        <input type="number" id="inp-prec-analista" class="w-full bg-gray-50 dark:bg-white/5 border border-tealAccent/20 rounded-xl p-3 text-xs font-bold text-tealAccent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-tealAccent uppercase tracking-widest ml-1">Precio Oficina</label>
+                        <input type="number" id="inp-prec-oficina" class="w-full bg-gray-50 dark:bg-white/5 border border-tealAccent/20 rounded-xl p-3 text-xs font-bold text-tealAccent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-orange-500 uppercase tracking-widest ml-1">Solo Eq. Grande</label>
+                        <input type="number" id="inp-prec-grande" class="w-full bg-gray-50 dark:bg-white/5 border border-orange-500/20 rounded-xl p-3 text-xs font-bold text-orange-500">
+                    </div>
+                </div>
+
+                <!-- Precios Público -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Full</label>
+                        <input type="number" id="inp-prec-full" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">P. Mínimo</label>
+                        <input type="number" id="inp-prec-min" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">P. Máximo</label>
+                        <input type="number" id="inp-prec-max" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                    </div>
+                </div>
+
+                <!-- Otros -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Unidad</label>
+                        <input type="text" id="inp-prec-unidad" placeholder="Pza..." class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Garantía</label>
+                        <input type="text" id="inp-prec-garantia" placeholder="1 año..." class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">URL Foto</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="inp-prec-foto" class="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                            <button onclick="window.adminUploadPrecioFoto('foto')" class="px-4 bg-tealAccent/10 text-tealAccent rounded-xl hover:bg-tealAccent/20"><i class="fa-solid fa-camera"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">URL PDF</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="inp-prec-pdf" class="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold">
+                            <button onclick="window.adminUploadPrecioFoto('pdf')" class="px-4 bg-tealAccent/10 text-tealAccent rounded-xl hover:bg-tealAccent/20"><i class="fa-solid fa-file-pdf"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-tealAccent uppercase tracking-widest ml-1">Descripción</label>
+                    <textarea id="inp-prec-desc" rows="2" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl p-3 text-xs font-bold resize-none"></textarea>
+                </div>
+
+                <button id="btn-save-precio" class="w-full py-4 bg-tealAccent text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-tealAccent/20 hover:scale-[1.01] active:scale-95 transition-all">
+                    Guardar Cambios
+                </button>
             </div>
         </div>
     </div>

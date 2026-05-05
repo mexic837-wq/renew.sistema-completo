@@ -7,7 +7,8 @@ import {
   getAdminWorkers, saveAdminWorker, deleteAdminWorker,
   getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
   getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
-  syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser
+  syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
+  getCatalogos, saveCatalogo
 } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
@@ -189,6 +190,38 @@ window.handleGlobalAdd = async () => {
             window.showModal(modInv);
         }
     } 
+    else if (curView === 'lista-precios') {
+        const modPrec = document.getElementById('modal-nuclear-precios');
+        const btnSave = document.getElementById('btn-save-precio');
+        if(btnSave) delete btnSave.dataset.editId;
+
+        if(modPrec) {
+            // Reset fields
+            document.getElementById('inp-prec-nombre').value = '';
+            document.getElementById('inp-prec-codigo').value = '';
+            document.getElementById('inp-prec-cat').value = '';
+            document.getElementById('sel-prec-sede').value = 'todas';
+            document.getElementById('inp-prec-junior').value = '';
+            document.getElementById('inp-prec-subvende').value = '';
+            document.getElementById('inp-prec-vendedor').value = '';
+            document.getElementById('inp-prec-analista').value = '';
+            document.getElementById('inp-prec-oficina').value = '';
+            document.getElementById('inp-prec-full').value = '';
+            document.getElementById('inp-prec-grande').value = '';
+            document.getElementById('inp-prec-min').value = '';
+            document.getElementById('inp-prec-max').value = '';
+            document.getElementById('inp-prec-medida').value = '';
+            document.getElementById('inp-prec-boton').value = '';
+            document.getElementById('inp-prec-color').value = '';
+            document.getElementById('inp-prec-unidad').value = '';
+            document.getElementById('inp-prec-garantia').value = '';
+            document.getElementById('inp-prec-foto').value = '';
+            document.getElementById('inp-prec-pdf').value = '';
+            document.getElementById('inp-prec-desc').value = '';
+
+            window.showModal(modPrec);
+        }
+    }
     else if (curView === 'constructor') {
       UI.inpPipNom.value = '';
       if(document.getElementById('inp-pip-id')) document.getElementById('inp-pip-id').value = '';
@@ -241,7 +274,7 @@ window.handleGlobalAdd = async () => {
       if(document.getElementById('sel-usr-cc')) document.getElementById('sel-usr-cc').value = '+1';
       UI.inpUsrDob.value = '';
       UI.inpUsrPass.value = 'renew123';
-      UI.inpUsrRol.value = 'Vendedor';
+      UI.inpUsrRol.value = 'novato';
       
       state.currentUsrFoto = null;
       if(UI.previewUsrFoto) UI.previewUsrFoto.classList.add('hidden');
@@ -1048,7 +1081,7 @@ function bindGlobalEvents() {
         }
         UI.inpUsrDob.value = usr.dob || '';
         UI.inpUsrPass.value = usr.password || usr.pass || 'renew123';
-        UI.inpUsrRol.value = usr.rol || 'Vendedor';
+        UI.inpUsrRol.value = usr.rol || 'novato';
         if(UI.inpUsrDept) UI.inpUsrDept.value = usr.department || '';
         
         // Re-init date pickers to apply flatpickr to modal fields
@@ -2488,6 +2521,8 @@ window.closeModals = () => {
     // Reset Inventory Edit Data if present
     const btnSaveInv = document.getElementById('btn-save-inv');
     if(btnSaveInv) delete btnSaveInv.dataset.editId;
+    const btnSavePre = document.getElementById('btn-save-precio');
+    if(btnSavePre) delete btnSavePre.dataset.editId;
   });
   
   // Clean photo states
@@ -2639,6 +2674,12 @@ window.renderView = async function renderView() {
     setGlobalButton(true, '<i class="fa-solid fa-plus"></i> New Pipeline');
     renderConstructor();
   } 
+  else if (state.activeView === 'lista-precios') {
+    UI.viewTitle.textContent = "Lista de Precios - Renew Water";
+    UI.viewDesc.textContent = "Gestiona los productos, categorías y precios por rango para Renew Water.";
+    setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> Nuevo Producto`);
+    renderListaPreciosAdmin();
+  }
   else if (state.activeView === 'crm' || state.activeView === 'crm_maestro') {
     if (UI.viewTitle) UI.viewTitle.textContent = t('crm_title');
     if (UI.viewDesc) UI.viewDesc.textContent = t('crm_desc');
@@ -5223,7 +5264,7 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-id')) document.getElementById('det-edit-id').value = usr.id;
         if (document.getElementById('det-edit-dob')) document.getElementById('det-edit-dob').value = usr.dob || '';
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
-        if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'Vendedor';
+        if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'novato';
         if (document.getElementById('det-edit-pass')) document.getElementById('det-edit-pass').value = usr.password || usr.pass || 'renew123';
 
         // Apply flatpickr to the new edit field
@@ -7182,3 +7223,352 @@ window._verRecibosWorker = function(workerId, workerName) {
         });
     });
 };
+
+// ─── LISTA DE PRECIOS RENEW WATER ───────────────────────────
+async function renderListaPreciosAdmin() {
+  const db = getDB();
+  const allProducts = db.Water_Productos || [];
+  
+  // Rank Tab Logic (Instead of Sede)
+  const activeRank = state.activePreciosRank || 'vendedor';
+  const rankLabels = {
+    'junior': 'Junior',
+    'subvende': 'Subvendedor',
+    'vendedor': 'Vendedor',
+    'analista': 'Analista',
+    'oficina': 'Oficina/Admin'
+  };
+
+  const catalogos = await getCatalogos();
+  const pdfMap = {};
+  catalogos.forEach(c => { pdfMap[c.id] = c.pdf_url; });
+
+  const activePdf = pdfMap[activeRank] || '#';
+
+  const rowsHtml = allProducts.map(p => {
+    const foto = p.foto_url || 'https://via.placeholder.com/100?text=💧';
+    return `
+    <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="relative w-10 h-10 group/img cursor-pointer" onclick="window.adminUploadPrecioFoto('${p.id}')">
+            <img src="${foto}" class="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-white/5 group-hover/img:border-tealAccent transition-all">
+            <div class="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all">
+                <i class="fas fa-camera text-white text-[10px]"></i>
+            </div>
+        </div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <span class="px-2 py-1 rounded-lg bg-tealAccent/10 text-tealAccent text-[9px] font-black uppercase tracking-wider">
+            ${p.categoria || 'GENERAL'}
+        </span>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="text-xs font-bold text-gray-900 dark:text-white uppercase">${p.nombre}</div>
+        <div class="text-[9px] text-gray-400 font-bold tracking-widest">${p.codigo || 'S/C'}</div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex flex-col gap-0.5">
+            <span class="text-[9px] text-gray-400 font-bold">M: ${p.medida || '—'}</span>
+            <span class="text-[9px] text-gray-400 font-bold">B: ${p.boton || '—'}</span>
+            <span class="text-[9px] text-gray-400 font-bold">C: ${p.color || '—'}</span>
+        </div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-tealAccent">
+        $${(p['precio_' + activeRank] || 0).toLocaleString()}
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-orange-500">
+        $${(p.solo_equipo_grande || 0).toLocaleString()}
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-gray-400">$${(p.precio_minimo || 0).toLocaleString()}</span>
+            <div class="w-4 h-[1px] bg-gray-200 dark:bg-white/10"></div>
+            <span class="text-[10px] font-bold text-gray-400">$${(p.precio_maximo || 0).toLocaleString()}</span>
+        </div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-right">
+        <div class="flex items-center justify-end gap-2">
+          <button onclick="window.editListaPrecio('${p.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center">
+            <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+          </button>
+          <button onclick="window.deleteListaPrecioItem('${p.id}')" class="w-8 h-8 rounded-lg bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
+            <i class="fa-solid fa-trash text-[10px]"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `;}).join('');
+
+  UI.canvas.innerHTML = `
+    <div class="max-w-7xl mx-auto animate-fadeIn">
+      <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
+          <div class="flex flex-col gap-3">
+              <h2 class="text-xl font-black text-white uppercase tracking-tighter">Gestión de Precios</h2>
+              <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
+                 ${Object.entries(rankLabels).map(([key, label]) => `
+                    <button class="precios-rank-tab px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
+                        ${label}
+                    </button>
+                 `).join('')}
+              </div>
+          </div>
+          
+          <div class="flex items-center gap-3">
+              <div class="flex items-center">
+                  <button onclick="window.open('${activePdf}', '_blank')" class="flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-l-xl text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">
+                    <i class="fa-solid fa-file-pdf"></i> Lista ${rankLabels[activeRank].toUpperCase()} (PDF)
+                  </button>
+                  <button onclick="window.adminUploadCatalogo('${activeRank}')" class="flex items-center justify-center w-12 py-3 bg-red-600 text-white rounded-r-xl text-[10px] hover:bg-red-700 transition-all border border-red-600" title="Actualizar PDF">
+                    <i class="fa-solid fa-upload"></i>
+                  </button>
+              </div>
+              <button onclick="_showEditProducto({})" class="flex items-center gap-2 px-6 py-3 bg-tealAccent text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all">
+                <i class="fa-solid fa-plus"></i> Nuevo Producto
+              </button>
+          </div>
+      </div>
+      <input type="file" id="inp-catalog-pdf" class="hidden" accept="application/pdf">
+
+      <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
+          <table class="w-full text-xs">
+              <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                  <tr>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">FOTO</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">CATEGORÍA</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRODUCTO</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">SPECS</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRECIO ${rankLabels[activeRank].toUpperCase()}</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">EQ. GRANDE</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">RANGO SUG.</th>
+                      <th class="px-6 py-5 text-right text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">ACCIONES</th>
+                  </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                  ${rowsHtml.length ? rowsHtml : `<tr><td colspan="10" class="py-24 text-center"><i class="fa-solid fa-tag text-5xl text-gray-200 dark:text-white/5 mb-4 block"></i><span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">No hay productos registrados</span></td></tr>`}
+              </tbody>
+          </table>
+      </div>
+    </div>
+  `;
+
+  // Attach listeners to rank tabs
+  document.querySelectorAll('.precios-rank-tab').forEach(btn => {
+    btn.onclick = () => window.setPreciosRank(btn.dataset.rank);
+  });
+}
+
+window.setPreciosRank = function(rk) {
+    state.activePreciosRank = rk;
+    renderListaPreciosAdmin();
+};
+
+window.editListaPrecio = function(id) {
+    console.log("[DEBUG] editListaPrecio called for ID:", id);
+    const db = getDB();
+    // Try both casing just in case
+    const list = db.Water_Productos || db.water_productos || [];
+    const p = list.find(item => item.id === id);
+    
+    if (!p) {
+        console.warn("[DEBUG] Product not found for ID:", id);
+        return;
+    }
+
+    console.log("[DEBUG] Found product:", p);
+
+    const mod = document.getElementById('modal-nuclear-precios');
+    const btnSave = document.getElementById('btn-save-precio');
+    if (btnSave) btnSave.dataset.editId = id;
+
+    // Helper to safely set value
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal('inp-prec-id', id);
+    setVal('inp-prec-nombre', p.nombre);
+    setVal('inp-prec-codigo', p.codigo);
+    setVal('inp-prec-cat', p.categoria);
+    setVal('sel-prec-sede', p.sede || 'todas');
+    setVal('inp-prec-junior', p.precio_junior);
+    setVal('inp-prec-subvende', p.precio_subvende);
+    setVal('inp-prec-vendedor', p.precio_vendedor);
+    setVal('inp-prec-analista', p.precio_analista);
+    setVal('inp-prec-oficina', p.precio_oficina);
+    setVal('inp-prec-full', p.precio_full);
+    setVal('inp-prec-grande', p.solo_equipo_grande);
+    setVal('inp-prec-min', p.precio_minimo);
+    setVal('inp-prec-max', p.precio_maximo);
+    setVal('inp-prec-medida', p.medida);
+    setVal('inp-prec-boton', p.boton);
+    setVal('inp-prec-color', p.color);
+    setVal('inp-prec-unidad', p.unidad);
+    setVal('inp-prec-garantia', p.garantia);
+    setVal('inp-prec-foto', p.foto_url);
+    setVal('inp-prec-pdf', p.pdf_url);
+    setVal('inp-prec-desc', p.descripcion);
+    
+    if (mod) {
+        window.showModal(mod);
+    } else {
+        console.error("[DEBUG] Modal 'modal-nuclear-precios' not found in DOM");
+    }
+};
+
+window.adminUploadPrecioFoto = async function(id) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showToast('Subiendo imagen...', 'info');
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'productos');
+            formData.append('bucket', 'archivos_renew');
+            formData.append('path', `productos/${id}_${Date.now()}.jpg`);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                console.error("[UPLOAD-ERROR]", data);
+                showToast(`Error: ${data.error || 'Fallo en servidor'}`, 'error');
+                return;
+            }
+
+            if (data.url) {
+                // Update product in DB
+                const db = getDB();
+                const p = (db.Water_Productos || []).find(item => item.id === id);
+                if (p) {
+                    p.foto_url = data.url;
+                    const { saveListaPrecio } = await import('./api.js');
+                    await saveListaPrecio(p);
+                    showToast('Imagen actualizada', 'success');
+                    renderListaPreciosAdmin();
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Error al subir imagen', 'error');
+        }
+    };
+    input.click();
+};
+
+window.adminUploadCatalogo = async function(rank) {
+    const input = document.getElementById('inp-catalog-pdf');
+    if (!input) return;
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showToast(`Subiendo Lista ${rank.toUpperCase()}...`, 'info');
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'catalogos');
+            formData.append('bucket', 'archivos_renew');
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Fallo en servidor');
+
+            if (data.url) {
+                await saveCatalogo(rank, data.url);
+                showToast('Catálogo actualizado en la nube', 'success');
+                renderListaPreciosAdmin();
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Error al subir catálogo: ' + err.message, 'error');
+        }
+    };
+    input.click();
+};
+window.savePrecio = async function() {
+    const id = document.getElementById('inp-prec-id').value;
+    const producto = {
+        id: id || null,
+        nombre: document.getElementById('inp-prec-nombre').value,
+        codigo: document.getElementById('inp-prec-codigo').value,
+        categoria: document.getElementById('inp-prec-cat').value,
+        sede: document.getElementById('sel-prec-sede').value,
+        medida: document.getElementById('inp-prec-medida').value,
+        boton: document.getElementById('inp-prec-boton').value,
+        color: document.getElementById('inp-prec-color').value,
+        precio_junior: parseFloat(document.getElementById('inp-prec-junior').value) || 0,
+        precio_subvende: parseFloat(document.getElementById('inp-prec-subvende').value) || 0,
+        precio_vendedor: parseFloat(document.getElementById('inp-prec-vendedor').value) || 0,
+        precio_analista: parseFloat(document.getElementById('inp-prec-analista').value) || 0,
+        precio_oficina: parseFloat(document.getElementById('inp-prec-oficina').value) || 0,
+        precio_full: parseFloat(document.getElementById('inp-prec-full').value) || 0,
+        solo_equipo_grande: parseFloat(document.getElementById('inp-prec-grande').value) || 0,
+        precio_minimo: parseFloat(document.getElementById('inp-prec-min').value) || 0,
+        precio_maximo: parseFloat(document.getElementById('inp-prec-max').value) || 0,
+        unidad: document.getElementById('inp-prec-unidad').value,
+        garantia: document.getElementById('inp-prec-garantia').value,
+        foto_url: document.getElementById('inp-prec-foto').value,
+        pdf_url: document.getElementById('inp-prec-pdf').value,
+        descripcion: document.getElementById('inp-prec-desc').value,
+        es_activo: true
+    };
+
+    if (!producto.nombre) {
+        showToast('El nombre es obligatorio', 'error');
+        return;
+    }
+
+    showToast('Guardando producto...', 'info');
+    try {
+        const { saveListaPrecio } = await import('./api.js');
+        const success = await saveListaPrecio(producto);
+        if (success) {
+            showToast('Producto guardado correctamente', 'success');
+            closeNuclearModal('modal-nuclear-precios');
+            renderListaPreciosAdmin();
+        } else {
+            throw new Error('Save failed');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error al guardar el producto', 'error');
+    }
+};
+
+window.deleteListaPrecioItem = async function(id) {
+    if (!confirm('¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
+    try {
+        const { deleteListaPrecio } = await import('./api.js');
+        const success = await deleteListaPrecio(id);
+        if (success) {
+            showToast('Producto eliminado correctamente');
+            renderListaPreciosAdmin();
+        } else {
+            throw new Error('Delete failed');
+        }
+    } catch(err) {
+        console.error(err);
+        showToast('Error al eliminar producto', 'error');
+    }
+};
+
+// Event listener for Save Precio
+document.addEventListener('click', async e => {
+    if (e.target && (e.target.id === 'btn-save-precio' || e.target.closest('#btn-save-precio'))) {
+        window.savePrecio();
+    }
+});

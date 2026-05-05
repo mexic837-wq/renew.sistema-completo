@@ -73,7 +73,7 @@ app.get('/api/db', async (req, res) => {
             'admin_pipelines', 'admin_fases', 'admin_campos_formulario', 'clientes_maestro', 
             'proyectos_dinamicos', 'respuestas_dinamicas', 'usuarios', 'academia_content', 
             'inventario_global', 'historial_inventario', 'anuncios_corporativos', 'partners_directorio', 'calendario_eventos',
-            'recibos_pagos'
+            'recibos_pagos', 'water_productos', 'admin_catalogos'
         ];
         
         const results = await Promise.all(tables.map(t => fetchWithTimeout(t)));
@@ -172,6 +172,36 @@ app.get('/api/db', async (req, res) => {
                 pdf_url:          r.pdf_url       || null,
                 created_at:       r.created_at    || null
             })),
+            Water_Productos:         (results[14].data || []).map(p => ({
+                id:              p.id,
+                nombre:          p.nombre         || null,
+                codigo:          p.codigo         || null,
+                descripcion:     p.descripcion    || null,
+                categoria:       p.categoria      || null,
+                foto_url:        p.foto_url       || null,
+                sede:            p.sede           || 'todas',
+                medida:          p.medida         || null,
+                boton:           p.boton          || null,
+                color:           p.color          || null,
+                precio_junior:   p.precio_junior   ?? null,
+                precio_subvende: p.precio_subvende  ?? null,
+                precio_vendedor: p.precio_vendedor  ?? null,
+                precio_analista: p.precio_analista  ?? null,
+                precio_oficina:  p.precio_oficina   ?? null,
+                precio_full:     p.precio_full      ?? null,
+                solo_equipo_grande: p.solo_equipo_grande ?? null,
+                precio_minimo:   p.precio_minimo    ?? null,
+                precio_maximo:   p.precio_maximo    ?? null,
+                unidad:          p.unidad         || null,
+                garantia:        p.garantia       || null,
+                es_activo:       p.es_activo !== false,
+                orden:           p.orden          || 0,
+                notas:           p.notas          || null,
+                pdf_url:         p.pdf_url        || null,
+                created_at:      p.created_at     || null,
+                updated_at:      p.updated_at     || null
+            })),
+            Admin_Catalogos:         results[15].data || [],
             // Compute counters dynamically from real data — avoids collision bugs
             Counters: {
                 cli:   maxId(results[3].data,  'cli_'),
@@ -570,6 +600,9 @@ app.post('/api/db', async (req, res) => {
         }
         if (db.Admin_Fases?.length) {
             syncTasks.push(supabase.from('admin_fases').upsert(db.Admin_Fases, { onConflict: 'id' }));
+        }
+        if (db.Admin_Catalogos?.length) {
+            syncTasks.push(supabase.from('admin_catalogos').upsert(db.Admin_Catalogos, { onConflict: 'id' }));
         }
         if (db.Admin_Campos_Formulario?.length) {
             syncTasks.push(supabase.from('admin_campos_formulario').upsert(db.Admin_Campos_Formulario, { onConflict: 'id' }));
@@ -1748,7 +1781,10 @@ app.post('/api/delete-bulk', async (req, res) => {
 
 // ── 2. STORAGE MANAGEMENT (PRESERVED) ──
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+});
 
 // Helper function to upload to Supabase Storage
 const subirArchivo = async (file, folder) => {
@@ -1790,18 +1826,62 @@ const subirArchivo = async (file, folder) => {
     }
 };
 
-app.post('/api/upload', upload.single('file'), async (req, res) => {
-    console.log('[API] Petición de subida recibida:', req.file ? req.file.originalname : 'Sin archivo');
-    
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    
+// Startup check for storage bucket
+async function initStorage() {
     try {
-        const url = await subirArchivo(req.file, req.body.type || 'others');
-        console.log('[API] Subida exitosa:', url);
+        console.log('[STORAGE] Verificando bucket "archivos_renew"...');
+        const { data: buckets, error: bErr } = await supabase.storage.listBuckets();
+        if (bErr) throw bErr;
+
+        const exists = buckets.find(b => b.name === 'archivos_renew');
+        const bucketOptions = {
+            public: true,
+            allowedMimeTypes: ['image/*', 'application/pdf'],
+            fileSizeLimit: 5242880 // 5MB (Fix for project limits)
+        };
+
+        if (!exists) {
+            console.log('[STORAGE] El bucket "archivos_renew" no existe. Creándolo...');
+            const { error: cErr } = await supabase.storage.createBucket('archivos_renew', bucketOptions);
+            if (cErr) console.error('[STORAGE] ❌ Error creando bucket:', cErr.message);
+            else console.log('[STORAGE] ✅ Bucket "archivos_renew" creado exitosamente.');
+        } else {
+            console.log('[STORAGE] El bucket "archivos_renew" ya existe. Actualizando configuración (100MB)...');
+            const { error: uErr } = await supabase.storage.updateBucket('archivos_renew', bucketOptions);
+            if (uErr) {
+                console.warn('[STORAGE] ⚠️ No se pudo actualizar el límite del bucket desde el código:', uErr.message);
+                console.warn('[STORAGE] 💡 POR FAVOR: Ve a tu panel de Supabase -> Storage -> Buckets -> archivos_renew -> Settings y cambia "File size limit" a 100MB manualmente.');
+            }
+            else console.log('[STORAGE] ✅ Configuración de bucket actualizada con éxito.');
+        }
+    } catch (err) {
+        console.error('[STORAGE] Error inicializando bucket:', err.message);
+    }
+}
+initStorage();
+
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+    try {
+        console.log('[API-UPLOAD] Request received');
+        if (!req.file) {
+            console.error('[API-UPLOAD] No file in request');
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        
+        // Use 'type' or 'folder' from body, or fallback to 'others'
+        const folder = req.body.type || req.body.folder || 'others';
+        console.log(`[API-UPLOAD] Uploading ${req.file.originalname} to folder: ${folder}`);
+
+        const url = await subirArchivo(req.file, folder);
+        console.log('[API-UPLOAD] Success:', url);
         res.json({ success: true, url });
     } catch (e) {
-        console.error('Error subiendo contenido de academia:', e);
-        res.status(500).json({ success: false, error: e.message || 'Fallo subiendo material' });
+        console.error('[API-UPLOAD] Critical Error:', e);
+        res.status(500).json({ 
+            success: false, 
+            error: e.message || 'Fallo subiendo material',
+            details: e.toString()
+        });
     }
 });
 
