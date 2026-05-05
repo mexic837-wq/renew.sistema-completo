@@ -148,6 +148,42 @@ export async function renderListaPrecios() {
         cursor: pointer; transition: all 0.18s; white-space: nowrap;
       }
       .rank-tab.active { background: #0ea5e9; color: white; border-color: #0ea5e9; box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
+
+      /* Responsive Modal Detailed View */
+      .modal-overlay-custom {
+        position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px); z-index: 10000;
+        display: flex; align-items: flex-end; justify-content: center;
+        transition: all 0.3s ease;
+      }
+      .modal-sheet-custom {
+        background: var(--surface); width: 100%; max-width: 600px;
+        border-radius: 32px 32px 0 0; max-height: 92vh; overflow-y: auto;
+        box-shadow: 0 -20px 50px rgba(0,0,0,0.2);
+        animation: sheetUp .4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .product-detail-container { padding: 24px 24px 48px; }
+      .product-detail-grid { display: flex; flex-direction: column; gap: 20px; }
+      .detail-image-wrapper { width: 100%; border-radius: 20px; overflow: hidden; background: var(--surface-alt); }
+      .detail-image-wrapper img { width: 100%; height: 240px; object-fit: cover; display: block; }
+      .detail-placeholder { width: 100%; height: 180px; display: flex; align-items: center; justify-content: center; font-size: 4rem; background: linear-gradient(135deg, #0ea5e915, #0284c710); }
+
+      @media (min-width: 800px) {
+        .modal-overlay-custom { align-items: center; padding: 40px; }
+        .modal-sheet-custom {
+          max-width: 900px; border-radius: 32px; max-height: 85vh;
+          animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .product-detail-grid { flex-direction: row; gap: 40px; align-items: start; }
+        .product-detail-left { flex: 1; position: sticky; top: 0; }
+        .product-detail-right { flex: 1.3; }
+        .detail-image-wrapper img { height: 400px; }
+      }
+
+      @keyframes modalPop {
+        from { opacity: 0; transform: scale(0.92) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
     </style>
   `;
 
@@ -278,7 +314,7 @@ export async function renderListaPrecios() {
   }
 }
 
-// ── Product Detail Bottom Sheet ──────────────────────────────
+// ── Product Detail Responsive Modal ──────────────────────────
 function _showProductDetail(prod, priceKey, isAdmin) {
   const existing = document.getElementById('modal-precio-detail');
   if (existing) existing.remove();
@@ -295,100 +331,119 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   ];
 
   const ranksHTML = isAdmin ? `
-    <div style="margin-top:16px; background:var(--surface-alt); border-radius:14px; padding:16px;">
-      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px;">Precios por Rango</p>
-      ${allRanks.map(r => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-          <span style="font-size:0.78rem; color:var(--text-muted); font-weight:600;">${r.label}</span>
-          <span style="font-size:0.88rem; font-weight:900; color:var(--text-primary);">${formatPrice(prod[r.key])}</span>
-        </div>
-      `).join('')}
+    <div style="margin-top:20px; background:var(--surface-alt); border-radius:18px; padding:20px; border:1px solid var(--border);">
+      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 16px;">Precios por Rango</p>
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        ${allRanks.map(r => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.03);">
+            <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">${r.label}</span>
+            <span style="font-size:0.95rem; font-weight:900; color:var(--text-primary);">${formatPrice(prod[r.key])}</span>
+          </div>
+        `).join('')}
+      </div>
     </div>
   ` : `
-        <div style="margin-top:16px; background:linear-gradient(135deg,#0ea5e920,#0284c710); border:1.5px solid #0ea5e940; border-radius:14px; padding:20px; text-align:center;">
-          <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px;">Precio Full</p>
-          <p style="font-size:2rem; font-weight:900; color:#0ea5e9; margin:0;">${formatPrice(prod.precio_full)}</p>
-          ${prod.unidad ? `<p style="font-size:0.72rem; color:var(--text-muted); margin:4px 0 0;">por ${prod.unidad}</p>` : ''}
-        </div>
-      `;
+    <div style="margin-top:20px; background:linear-gradient(135deg,#0ea5e915,#0284c705); border:1.5px solid #0ea5e930; border-radius:18px; padding:24px; text-align:center;">
+      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 4px;">Precio Full</p>
+      <p style="font-size:2.2rem; font-weight:900; color:#0ea5e9; margin:0; letter-spacing:-1px;">${formatPrice(prod.precio_full)}</p>
+      ${prod.unidad ? `<p style="font-size:0.75rem; color:var(--text-muted); margin:6px 0 0; font-weight:600;">precio por ${prod.unidad}</p>` : ''}
+    </div>
+  `;
 
-  const imgHTML = prod.foto_url
-    ? `<img src="${prod.foto_url}" style="width:100%; height:200px; object-fit:cover; border-radius:14px; margin-bottom:16px;" alt="${prod.nombre}">`
-    : `<div style="width:100%; height:140px; border-radius:14px; background:linear-gradient(135deg,#0ea5e920,#0284c720); display:flex; align-items:center; justify-content:center; margin-bottom:16px; font-size:4rem;">💧</div>`;
+  const imgContent = prod.foto_url
+    ? `<img src="${prod.foto_url}" alt="${prod.nombre}">`
+    : `<div class="detail-placeholder">💧</div>`;
 
   const modal = document.createElement('div');
   modal.id = 'modal-precio-detail';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);z-index:10000;display:flex;align-items:flex-end;justify-content:center;';
+  modal.className = 'modal-overlay-custom';
   modal.innerHTML = `
-    <div style="background:var(--surface);width:100%;max-width:600px;border-radius:28px 28px 0 0;max-height:90vh;overflow-y:auto;animation:sheetUp .35s cubic-bezier(0.16,1,0.3,1) both;">
-      <div style="width:44px;height:6px;background:rgba(255,255,255,0.12);border-radius:99px;margin:14px auto 0;"></div>
-      <div style="padding:20px 20px 40px;">
-        ${imgHTML}
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-          <div style="flex:1; min-width:0;">
-            ${prod.categoria ? `<div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#0ea5e9;margin-bottom:4px;">${prod.categoria}</div>` : ''}
-            <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">${prod.nombre}</h2>
-            <p style="font-size:0.7rem;color:var(--text-muted);margin:4px 0 0;font-weight:700;">COD: ${prod.codigo || '—'}</p>
+    <div class="modal-sheet-custom">
+      <div style="width:40px; height:5px; background:rgba(255,255,255,0.1); border-radius:10px; margin:12px auto; display:block;" class="md:hidden"></div>
+      
+      <div class="product-detail-container">
+        <div class="product-detail-grid">
+          
+          <!-- Columna Izquierda: Imagen -->
+          <div class="product-detail-left">
+            <div class="detail-image-wrapper">
+              ${imgContent}
+            </div>
+            
+            <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+              ${prod.garantia ? `<div style="padding:10px 16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:14px;font-size:0.75rem;font-weight:700;color:#10b981;display:flex;align-items:center;gap:8px;"><i class="fas fa-shield-alt"></i>Garantía: ${prod.garantia}</div>` : ''}
+              ${prod.unidad ? `<div style="padding:10px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:14px;font-size:0.75rem;font-weight:700;color:#f59e0b;display:flex;align-items:center;gap:8px;"><i class="fas fa-box"></i>Unidad: ${prod.unidad}</div>` : ''}
+            </div>
           </div>
-          <button id="btn-close-precio-modal" style="background:var(--surface-alt);border:none;border-radius:50%;width:36px;height:36px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px;">✕</button>
-        </div>
 
-        ${prod.descripcion ? `<p style="font-size:0.85rem;color:var(--text-secondary);line-height:1.5;margin:12px 0;">${prod.descripcion}</p>` : ''}
-
-        <!-- New Specs Badges -->
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
-          ${prod.medida ? `
-            <div style="background:var(--surface-alt); padding:6px 12px; border-radius:10px; border:1px solid var(--border); display:flex; flex-direction:column;">
-              <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Medida</span>
-              <span style="font-size:0.75rem; color:var(--text-primary); font-weight:800;">${prod.medida}</span>
+          <!-- Columna Derecha: Información -->
+          <div class="product-detail-right">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+              <div style="flex:1; min-width:0;">
+                ${prod.categoria ? `<div style="font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#0ea5e9;margin-bottom:6px;">${prod.categoria}</div>` : ''}
+                <h2 style="font-size:1.6rem;font-weight:900;color:var(--text-primary);margin:0;line-height:1.1;">${prod.nombre}</h2>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:8px 0 0;font-weight:700;letter-spacing:1px;">COD: ${prod.codigo || '—'}</p>
+              </div>
+              <button id="btn-close-precio-modal" style="background:var(--surface-alt);border:none;border-radius:14px;width:40px;height:40px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:16px;transition:0.2s;" onmouseover="this.style.color='#fff';this.style.background='#ef444450'" onmouseout="this.style.color='var(--text-muted)';this.style.background='var(--surface-alt)'">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-          ` : ''}
-          ${prod.boton ? `
-            <div style="background:var(--surface-alt); padding:6px 12px; border-radius:10px; border:1px solid var(--border); display:flex; flex-direction:column;">
-              <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Botón</span>
-              <span style="font-size:0.75rem; color:var(--text-primary); font-weight:800;">${prod.boton}</span>
+
+            <!-- Specs Badges -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin:20px 0;">
+              ${prod.medida ? `
+                <div style="background:var(--surface-alt); padding:8px 16px; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column;">
+                  <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Medida</span>
+                  <span style="font-size:0.85rem; color:var(--text-primary); font-weight:800;">${prod.medida}</span>
+                </div>
+              ` : ''}
+              ${prod.boton ? `
+                <div style="background:var(--surface-alt); padding:8px 16px; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column;">
+                  <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Botón</span>
+                  <span style="font-size:0.85rem; color:var(--text-primary); font-weight:800;">${prod.boton}</span>
+                </div>
+              ` : ''}
+              ${prod.color ? `
+                <div style="background:var(--surface-alt); padding:8px 16px; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column;">
+                  <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Color</span>
+                  <span style="font-size:0.85rem; color:var(--text-primary); font-weight:800;">${prod.color}</span>
+                </div>
+              ` : ''}
             </div>
-          ` : ''}
-          ${prod.color ? `
-            <div style="background:var(--surface-alt); padding:6px 12px; border-radius:10px; border:1px solid var(--border); display:flex; flex-direction:column;">
-              <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Color</span>
-              <span style="font-size:0.75rem; color:var(--text-primary); font-weight:800;">${prod.color}</span>
+
+            ${prod.descripcion ? `
+              <div style="border-top:1px solid var(--border); padding-top:16px; margin-bottom:20px;">
+                <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6;margin:0;">${prod.descripcion}</p>
+              </div>
+            ` : ''}
+
+            ${ranksHTML}
+
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+              ${(prod.precio_minimo || prod.precio_maximo) ? `
+                <div style="background:rgba(14,165,233,0.05); border:1.5px solid rgba(14,165,233,0.1); border-radius:18px; padding:16px; text-align:center;">
+                  <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 6px;">Rango de Venta Sugerido</p>
+                  <p style="font-size:1.3rem; font-weight:900; color:var(--text-primary); margin:0;">
+                    ${formatPrice(prod.precio_minimo)} — ${formatPrice(prod.precio_maximo)}
+                  </p>
+                </div>
+              ` : ''}
+
+              ${(prod.solo_equipo_grande > 0) ? `
+                <div style="background:rgba(245,158,11,0.08); border:1.5px dashed rgba(245,158,11,0.25); border-radius:18px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+                   <span style="font-size:0.75rem; color:#f59e0b; font-weight:900; text-transform:uppercase; letter-spacing:1px;">Solo Eq. Grande</span>
+                   <span style="font-size:1.15rem; font-weight:900; color:#f59e0b;">${formatPrice(prod.solo_equipo_grande)}</span>
+                </div>
+              ` : ''}
+
+              ${prod.pdf_url ? `
+                <button onclick="window.open('${prod.pdf_url}', '_blank')" style="width:100%; padding:16px; background:#ef444410; border:2px solid #ef444430; border-radius:18px; color:#ef4444; font-size:0.9rem; font-weight:900; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; transition:0.2s; text-transform:uppercase; letter-spacing:1px;" onmouseover="this.style.background='#ef444420'" onmouseout="this.style.background='#ef444410'">
+                  <i class="fa-solid fa-file-pdf"></i> Catálogo Técnico (PDF)
+                </button>
+              ` : ''}
             </div>
-          ` : ''}
-        </div>
-
-        ${ranksHTML}
-
-        <div style="margin-top:16px; display:flex; flex-direction:column; gap:12px;">
-          <!-- Suggested Price Range (Visible for all) -->
-          ${(prod.precio_minimo || prod.precio_maximo) ? `
-            <div style="background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.15); border-radius:14px; padding:12px; text-align:center;">
-              <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px;">Precio Mínimo y Máximo</p>
-              <p style="font-size:1.1rem; font-weight:900; color:var(--text-primary); margin:0;">
-                ${formatPrice(prod.precio_minimo)} — ${formatPrice(prod.precio_maximo)}
-              </p>
-            </div>
-          ` : ''}
-
-          <!-- Large Equipment Price (Visible for all if defined) -->
-          ${(prod.solo_equipo_grande > 0) ? `
-            <div style="background:rgba(245,158,11,0.08); border:1px dashed rgba(245,158,11,0.3); border-radius:14px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
-               <span style="font-size:0.72rem; color:#f59e0b; font-weight:900; text-transform:uppercase;">Solo Eq. Grande</span>
-               <span style="font-size:1rem; font-weight:900; color:#f59e0b;">${formatPrice(prod.solo_equipo_grande)}</span>
-            </div>
-          ` : ''}
-
-          ${prod.pdf_url ? `
-            <button onclick="window.open('${prod.pdf_url}', '_blank')" style="width:100%; padding:14px; background:#ef444415; border:1.5px solid #ef444430; border-radius:16px; color:#ef4444; font-size:0.85rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='#ef444425'" onmouseout="this.style.background='#ef444415'">
-              <i class="fa-solid fa-file-pdf"></i> Ver Catálogo Técnico (PDF)
-            </button>
-          ` : ''}
-        </div>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            ${prod.garantia ? `<div style="padding:8px 14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:12px;font-size:0.75rem;font-weight:700;color:#10b981;display:flex;align-items:center;gap:6px;"><i class="fas fa-shield-alt"></i>Garantía: ${prod.garantia}</div>` : ''}
-            ${prod.unidad ? `<div style="padding:8px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:12px;font-size:0.75rem;font-weight:700;color:#f59e0b;display:flex;align-items:center;gap:6px;"><i class="fas fa-box"></i>Unidad: ${prod.unidad}</div>` : ''}
           </div>
+
         </div>
       </div>
     </div>
