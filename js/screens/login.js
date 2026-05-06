@@ -57,9 +57,6 @@ export function renderLogin() {
       </div>
     </div>
 
-    <div style="margin-top:28px; text-align:center; font-size:.75rem; color:var(--text-muted)">
-      Demo: <strong>demo@renew.com</strong> / <strong>demo</strong>
-    </div>
   `;
 
   // ── Event Listeners ──────────────────────────────────────
