@@ -3869,10 +3869,11 @@ window.renderView = async function renderView() {
     if(acaTipoSelect && thumbWrapCont) {
        // Mostrar/ocultar al cargar según valor inicial
        thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
-       acaTipoSelect.addEventListener('change', () => {
+        acaTipoSelect.addEventListener('change', () => {
           thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
-       });
-    }
+        });
+     }
+    } // Closing if (saveAcademiaBtn)
 
   }
   else if (state.activeView === 'inventario') {
