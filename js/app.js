@@ -3,11 +3,13 @@
    SPA Router + Auth State
    ============================================================ */
 window.appNavigate = (screen, param) => navigate(screen, param);
+import { initDB, getCurrentUser, logout } from './api.js';
+export { getCurrentUser, logout }; // Re-export for compatibility
 
-import { initDB } from './api.js';
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
 import { renderDashboard } from './screens/dashboard.js';
+import { renderMeetings } from './screens/meetings.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
 import { renderAcademy }    from './screens/academy.js';
@@ -232,17 +234,8 @@ window.addEventListener('message', async (e) => {
   }
 });
 
-// ── Auth State ──────────────────────────────────────────────
-export function getCurrentUser() {
-  const raw = localStorage.getItem('rs_user');
-  return raw ? JSON.parse(raw) : null;
-}
+// getCurrentUser and logout moved to api.js to break circular dependency
 
-export function logout() {
-  localStorage.removeItem('rs_user');
-  navigate('login');
-  import('./components/toast.js').then(m => m.showToast('Sesión cerrada correctamente.', 'info'));
-}
 
 // ── Interceptor de Anuncios GLOBALES ──────────────────────────
 import { saveDB, getDB } from './api.js';
@@ -319,7 +312,7 @@ window.verificarAnunciosNuevos = async function() {
 }
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'meetings'];
 
 export function navigate(screen, param = null) {
   // Auth guard
@@ -358,6 +351,7 @@ export function navigate(screen, param = null) {
     case 'login':       renderLogin();              break;
     case 'hub':         renderHub();                break;
     case 'dashboard':   renderDashboard();          break;
+    case 'meetings':    renderMeetings();           break;
     case 'new-client':  renderNewClient();          break;
     case 'detail':      renderDetail(param);        break;
     case 'academy':     renderAcademy();            break;
@@ -413,7 +407,7 @@ export function navigate(screen, param = null) {
   // Update Nav Highlight & Visibility
   // Toggle Navigation (Sidebar/Bottom-Nav)
   const bNav = document.getElementById('bottom-nav');
-  const isNavHidden = ['login', 'hub', 'credit-app', 'work-order', 'contract-app'].includes(screen);
+  const isNavHidden = ['login', 'credit-app', 'work-order', 'contract-app'].includes(screen);
   
   if (isNavHidden) {
     document.body.classList.add('no-nav');
@@ -429,8 +423,9 @@ export function navigate(screen, param = null) {
     
     if (bNav) {
       bNav.style.display = 'flex';
-      // Ensure visibility on desktop even if classes are lagging
-      if (window.innerWidth >= 768) {
+      // Force visibility on desktop
+      if (window.innerWidth >= 1024) {
+          bNav.style.display = 'flex';
           bNav.style.visibility = 'visible';
           bNav.style.opacity = '1';
       }

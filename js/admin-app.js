@@ -1,7 +1,7 @@
 import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,
-  createAdminPipeline, createAdminFase, createAdminCampo, 
+  createAdminPipeline, createAdminFase, createAdminCampo, updateAdminCampo,
   nukeAndResetDB, updateAdminFaseRole, updateAdminFaseUsers,
   deleteAdminPipeline, deleteAdminFase, deleteAdminCampo, reorderAdminCampos, reorderAdminFases,
   getAdminWorkers, saveAdminWorker, deleteAdminWorker,
@@ -33,9 +33,11 @@ let state = {
   activePipId: null,
   activeEcoFilter: null,
   activeInventorySede: 'orlando',
+  activeInventoryLine: 'all',
   currentCliIdPhoto: null,
   currentUsrFoto: null,
   currentUsrW9Url: null,
+  currentAnnFoto: null,
   crmKanbanActive: false
 };
 
@@ -504,6 +506,12 @@ window.addEventListener('db_synced', async () => {
     }
 });
 
+window.addEventListener('langchange', async () => {
+    if (typeof renderView === 'function') {
+        await renderView();
+    }
+});
+
 const updateAdminNavLabels = () => {
     document.querySelectorAll('#admin-nav a[data-view]').forEach(el => {
         const viewKey = el.dataset.view;
@@ -610,6 +618,37 @@ window.adminDeleteCampo = async (id, e) => {
       } finally {
         if (btn) btn.style.pointerEvents = 'auto';
       }
+    }
+};
+
+window.adminEditCampo = (id, e) => {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    const db = getDB();
+    const campo = db.Admin_Campos_Formulario.find(c => c.id === id);
+    if (!campo) return;
+    // Open the same modal but in edit mode
+    if (UI.modCam) {
+        // Mark modal as editing this campo
+        UI.modCam.dataset.editCampoId = id;
+        UI.lblFaseDest.textContent = 'Editando: ' + campo.etiqueta;
+        UI.inpCamFaseId.value = campo.fase_id;
+        UI.inpCamEtq.value = campo.etiqueta;
+        UI.inpCamTipo.value = campo.tipo;
+        // Show/hide opciones
+        if (campo.tipo === 'Desplegable') {
+            UI.wrpCamOpc.classList.remove('hidden');
+            UI.inpCamOpc.value = campo.opciones || '';
+        } else {
+            UI.wrpCamOpc.classList.add('hidden');
+            UI.inpCamOpc.value = '';
+        }
+        
+        const chkOpcional = document.getElementById('inp-cam-opcional');
+        if (chkOpcional) chkOpcional.checked = !!campo.es_opcional;
+
+        // Change button text
+        if (UI.btnSaveCam) UI.btnSaveCam.textContent = 'Guardar Cambios';
+        window.showModal(UI.modCam);
     }
 };
 
@@ -918,7 +957,14 @@ function bindGlobalEvents() {
         const btnSedeTab = e.target.closest('.inv-sede-tab');
         if (btnSedeTab) {
             state.activeInventorySede = btnSedeTab.dataset.sede;
-            console.log("Sede Tab Clicked:", state.activeInventorySede);
+            state.activeInventoryLine = 'all'; // Reset line when changing sede
+            await renderView();
+            return;
+        }
+
+        const btnLineTab = e.target.closest('.inv-line-tab');
+        if (btnLineTab) {
+            state.activeInventoryLine = btnLineTab.dataset.line;
             await renderView();
             return;
         }
@@ -981,12 +1027,6 @@ function bindGlobalEvents() {
     // centralized in the main Unified Delegation listener at the bottom of this file.
     // This prevents multiple confirmation dialogs and race conditions.
 
-    const btnSedeTab = e.target.closest('.inv-sede-tab');
-    if (btnSedeTab) {
-        state.activeInventorySede = btnSedeTab.dataset.sede;
-        await renderView();
-        return;
-    }
 
     // Modal Actions (Inventory)
     const btnSaveInv = e.target.closest('#btn-save-inv');
@@ -1307,6 +1347,7 @@ function bindGlobalEvents() {
         dob: UI.inpUsrDob.value,
         initials: initials,
         rol: UI.inpUsrRol.value,
+        rango: document.getElementById('inp-usr-rank').value,
         department: UI.inpUsrDept ? UI.inpUsrDept.value.trim() : '',
         password: UI.inpUsrPass.value.trim(),
         unidades: checkedPips,
@@ -1683,7 +1724,22 @@ function bindGlobalEvents() {
       const db = getDB();
       const p = db.Proyectos_Dinamicos.find(x => x.id === projectId);
       if (p && p.fase_id !== newFaseId) {
+        const oldFaseId = p.fase_id;
         p.fase_id = newFaseId;
+        
+        // AUTO-SET CLOSURE DATE IF FINISHED
+        const { isProjectFinished } = await import('./api.js');
+        const isNowFinished = isProjectFinished(p, db);
+        if (isNowFinished) {
+            p.fecha_cierre = new Date().toISOString().split('T')[0];
+            p.estado = 'Completado';
+            console.log(`[KANBAN] Project ${projectId} marked as closed today.`);
+        } else if (p.estado === 'Completado' || oldFaseId === 'Completado' || oldFaseId === null) {
+            // If moved BACK from finished to open
+            p.estado = 'En Proceso';
+            // p.fecha_cierre = null;
+        }
+
         await saveDB(db);
         await renderView();
       }
@@ -1997,23 +2053,37 @@ function bindGlobalEvents() {
       const etq = UI.inpCamEtq.value.trim();
       const tipo = UI.inpCamTipo.value;
       const opc = UI.inpCamOpc.value.trim();
+      const chkOpcional = document.getElementById('inp-cam-opcional');
+      const es_opcional = chkOpcional ? chkOpcional.checked : false;
+
       if(!etq) return alert("Define la etiqueta");
       if(tipo === 'Desplegable' && !opc) return alert("Define las opciones separadas por coma");
       
+      const editId = UI.modCam?.dataset?.editCampoId;
       const originalText = UI.btnSaveCam.innerHTML;
-      UI.btnSaveCam.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Agregando...';
+      UI.btnSaveCam.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
       UI.btnSaveCam.disabled = true;
       UI.btnSaveCam.classList.add('opacity-50', 'cursor-not-allowed');
 
       try {
-        await createAdminCampo(fn, etq, tipo, opc);
+        if (editId) {
+          // UPDATE existing campo
+          await updateAdminCampo(editId, etq, tipo, opc, es_opcional);
+          delete UI.modCam.dataset.editCampoId;
+        } else {
+          // CREATE new campo
+          await createAdminCampo(fn, etq, tipo, opc, es_opcional);
+        }
         window.closeModals();
+        if (chkOpcional) chkOpcional.checked = false; // reset
         await loadData();
         await renderView();
       } finally {
         UI.btnSaveCam.innerHTML = originalText;
         UI.btnSaveCam.disabled = false;
         UI.btnSaveCam.classList.remove('opacity-50', 'cursor-not-allowed');
+        // Reset button text when modal closes
+        if (UI.btnSaveCam) UI.btnSaveCam.textContent = 'Agregar a la UI';
       }
     });
   }
@@ -3105,7 +3175,7 @@ window.renderView = async function renderView() {
         });
     }
 
-    const headers = [`<button id="btn-bulk-delete-workers" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('team_col_worker'), t('team_col_division'), 'ECOSISTEMA', t('team_col_auth_email'), t('team_col_phone'), t('team_col_activity'), t('team_col_interface'), t('team_col_w9'), "ACCESO", ""];
+    const headers = [`<button id="btn-bulk-delete-workers" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('team_col_worker'), t('team_col_division'), 'RANGO', 'ECOSISTEMA', t('team_col_auth_email'), t('team_col_phone'), t('team_col_activity'), t('team_col_interface'), t('team_col_w9'), "ACCESO", ""];
     const rowsHtml = items.map(u => {
         const safeNombre = u.nombre || 'Worker';
         const safeApellido = u.apellido || '';
@@ -3131,6 +3201,11 @@ window.renderView = async function renderView() {
                 <td class="px-4 py-2.5 whitespace-nowrap">
                     <span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">
                         ${dept}
+                    </span>
+                </td>
+                <td class="px-4 py-2.5 whitespace-nowrap">
+                    <span class="px-2 py-0.5 bg-tealAccent/5 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">
+                        ${u.rango || 'novato'}
                     </span>
                 </td>
                 <td class="px-4 py-2.5">
@@ -3201,9 +3276,21 @@ window.renderView = async function renderView() {
         const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-7 h-7 rounded-lg object-cover border border-white/5">` : `<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]">${initial}</div>`;
         
         let servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">${u.servicio || 'General'}</span>`;
-        if (u.servicio === 'Fence') servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">🟩 Fence</span>`;
-        else if (u.servicio === 'Roof') servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">🟦 Roof</span>`;
-        else if (u.servicio === 'Solar') servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">🟧 Solar</span>`;
+        const s = (u.servicio || 'General').toLowerCase();
+        
+        if (s === 'fence') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">🟩 ${t('partner_cat_fence')}</span>`;
+        } else if (s === 'roofing' || s === 'roof') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">🟦 ${t('partner_cat_roofing')}</span>`;
+        } else if (s === 'solar') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">🟧 ${t('partner_cat_solar')}</span>`;
+        } else if (s === 'hvac' || s === 'aire') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">❄️ ${t('partner_cat_hvac')}</span>`;
+        } else if (s === 'painting' || s === 'pintura') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">🎨 ${t('partner_cat_painting')}</span>`;
+        } else {
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">⚙️ ${t('partner_cat_general')}</span>`;
+        }
 
         return `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
@@ -3808,18 +3895,28 @@ window.renderView = async function renderView() {
     setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> ${t('inv_btn_add')}`);
     
     const activeInventorySede = state.activeInventorySede;
+    const activeInventoryLine = state.activeInventoryLine || 'all';
     const invData = getInventario();
-    // Filter by ecosystem (if selected from sidebar) and location
-    const items = invData.filter(i => {
+
+    // 1. First filter by Warehouse (Sede) and Ecosystem (Solar/Water/Home)
+    const baseItems = invData.filter(i => {
         const matchesSede = i.locacion === activeInventorySede;
         if (!state.activeEcoFilter) return matchesSede;
         
-        // Match by category (new solid field) or by line text (fallback)
         const itemCat = i.category || '';
         const itemLine = i.ecosistema || '';
         const filter = state.activeEcoFilter.toLowerCase();
         
         return matchesSede && (itemCat.toLowerCase() === filter || itemLine.toLowerCase().includes(filter));
+    });
+
+    // 2. Extract unique lines available in this filtered set
+    const uniqueLines = [...new Set(baseItems.map(i => i.ecosistema).filter(Boolean))].sort();
+
+    // 3. Apply the specific Line filter
+    const items = baseItems.filter(i => {
+        if (activeInventoryLine === 'all') return true;
+        return i.ecosistema === activeInventoryLine;
     });
     
     const rowsHtml = items.map(ite => {
@@ -3902,11 +3999,19 @@ window.renderView = async function renderView() {
 
     UI.canvas.innerHTML = `
       <div class="max-w-6xl mx-auto animate-fadeIn">
-        <div class="mb-6 flex flex-wrap gap-4">
+        <div class="mb-4 flex flex-wrap gap-4">
            <button class="inv-sede-tab ${activeInventorySede === 'orlando' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="orlando">Sede Orlando</button>
            <button class="inv-sede-tab ${activeInventorySede === 'miami' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="miami">Sede Miami</button>
            <button class="inv-sede-tab ${activeInventorySede === 'dallas' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="dallas">Sede Dallas</button>
            <button class="inv-sede-tab ${activeInventorySede === 'new_york' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="new_york">Sede Nueva York</button>
+        </div>
+
+        <!-- NEW: Line Filters -->
+        <div class="mb-8 flex flex-wrap gap-2 animate-fadeInSlow">
+           <button class="inv-line-tab ${activeInventoryLine === 'all' ? 'bg-tealAccent text-black shadow-teal-glow' : 'bg-gray-100 dark:bg-white/5 text-gray-400'} text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all border border-transparent hover:border-tealAccent/30" data-line="all">Todos</button>
+           ${uniqueLines.map(line => `
+             <button class="inv-line-tab ${activeInventoryLine === line ? 'bg-tealAccent text-black shadow-teal-glow' : 'bg-gray-100 dark:bg-white/5 text-gray-400'} text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all border border-transparent hover:border-tealAccent/30" data-line="${line}">${line}</button>
+           `).join('')}
         </div>
 
         <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
@@ -3935,7 +4040,7 @@ window.renderView = async function renderView() {
           <div class="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
               <h2 class="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="fa-solid fa-clock-rotate-left text-orange-400"></i>
-                ${t('ann_hist')}
+                ${t('inv_history_title')}
               </h2>
             </div>
 
@@ -3979,7 +4084,14 @@ window.renderView = async function renderView() {
     
     const anunciosHtml = sortedAnuncios.map(an => {
       const isTodos = an.audiencia === 'todos';
-      const audBadge = isTodos ? 'bg-gray-100 text-gray-600' : 'bg-teal-500/10 text-teal-500 border border-teal-500/20';
+      const getTagBadge = (tag) => {
+          if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
+          // If it's a role (Vendedor, Técnico, etc), use blue
+          const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'];
+          if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
+          // Otherwise it's a pipeline, use teal
+          return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
+      };
       
       const totalLecturas = an.estado_lecturas ? an.estado_lecturas.filter(el => el.leido).length : 0;
       
@@ -3993,8 +4105,13 @@ window.renderView = async function renderView() {
            <div class="flex-1">
              <div class="flex justify-between items-start mb-3 pr-10">
                <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${an.titulo}</h4>
-               <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${audBadge} whitespace-nowrap">${an.audiencia.toUpperCase()}</span>
+               <div class="flex flex-wrap gap-1 justify-end">
+                 ${(an.audiencia_tags || [an.audiencia]).map(tag => `
+                    <span class="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${getTagBadge(tag)} whitespace-nowrap">${tag}</span>
+                 `).join('')}
+               </div>
              </div>
+             ${an.foto_url ? `<img src="${an.foto_url}" class="w-full h-32 object-cover rounded-xl mb-3 border border-gray-100 dark:border-white/5">` : ''}
              <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${an.mensaje}</p>
            </div>
 
@@ -4007,9 +4124,9 @@ window.renderView = async function renderView() {
     }).join('');
 
     UI.canvas.innerHTML = `
-      <div class="flex gap-8 h-full">
+      <div class="flex gap-8 min-h-full pb-20">
         <!-- FORMULARIO CREACIÓN -->
-        <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col overflow-hidden max-h-fit">
+        <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col h-fit">
           <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
             <div class="w-10 h-10 rounded-full bg-tealAccent/10 flex items-center justify-center text-tealAccent"><i class="fa-solid fa-bullhorn text-lg"></i></div>
             <div>
@@ -4025,16 +4142,56 @@ window.renderView = async function renderView() {
               </div>
               
               <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_aud')}</label>
-                <select id="anu-audiencia" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
-                  <option value="todos">Todos los Pipelines</option>
-                  ${dynPipelines.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
-                </select>
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
+                <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
+                    <!-- Global -->
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="aud-all" class="aud-check w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="todos">
+                        <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest group-hover:text-tealAccent transition-colors">Todos los Usuarios</span>
+                    </label>
+                    
+                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Pipelines</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${dynPipelines.map(p => `
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" class="aud-check aud-pipe w-3.5 h-3.5 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="${p.nombre}">
+                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-tealAccent transition-colors">${p.nombre}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'].map(r => `
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
+                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
               </div>
 
               <div class="space-y-1">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_msg')}</label>
                 <textarea id="ann-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none resize-none text-gray-900 dark:text-white"></textarea>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_photo')}</label>
+                <div id="drop-ann-foto" class="w-full h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent transition-all bg-gray-50 dark:bg-black/20 group relative overflow-hidden">
+                    <input type="file" id="inp-ann-foto-file" class="hidden" accept="image/*">
+                    <div id="ann-foto-placeholder" class="text-center">
+                        <i class="fa-solid fa-image text-gray-300 group-hover:text-tealAccent transition-colors text-xl"></i>
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
+                    </div>
+                    <img id="preview-ann-foto" class="absolute inset-0 w-full h-full object-cover hidden">
+                    <button id="btn-clear-ann-foto" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hidden hover:scale-110 transition-transform"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                </div>
               </div>
           </div>
           
@@ -4045,17 +4202,17 @@ window.renderView = async function renderView() {
         </div>
         
         <!-- PANEL DE MONITOREO Y LISTADO -->
-        <div class="w-2/3 flex gap-6 overflow-hidden">
+        <div class="w-2/3 flex gap-6 h-fit">
           
           <!-- Lista de Anuncios -->
-          <div class="flex-1 overflow-y-auto hide-scrollbar pr-2 flex flex-col">
+          <div class="flex-1 flex flex-col">
             <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Anuncios</h3>
             ${anunciosHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay anuncios enviados</div>'}
           </div>
           
           <!-- Visor / Reporte -->
-          <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col overflow-hidden">
-            <div id="anu-reporte-contenedor" class="w-full h-full flex flex-col p-6 items-center justify-center text-center">
+          <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col h-fit sticky top-0">
+            <div id="anu-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
               <div id="ann-report-placeholder" class="py-20 text-center">
                 <i class="fa-solid fa-chart-pie text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
                 <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">${t('ann_report_select')}</h4>
@@ -4073,11 +4230,19 @@ window.renderView = async function renderView() {
       if (btnPub) {
         btnPub.addEventListener('click', async () => {
           const tit = document.getElementById('ann-input-title').value.trim();
-          const aud = document.getElementById('anu-audiencia').value;
           const msj = document.getElementById('ann-input-msg').value.trim();
+          
+          // Collect selected audiences
+          const checked = Array.from(document.querySelectorAll('.aud-check:checked'));
+          const audTags = checked.map(c => c.value);
+          const isAll = audTags.includes('todos');
           
           if (!tit || !msj) {
             showToast('Título y mensaje obligatorios', 'error');
+            return;
+          }
+          if (audTags.length === 0) {
+            showToast('Selecciona al menos una audiencia', 'warning');
             return;
           }
           
@@ -4088,19 +4253,25 @@ window.renderView = async function renderView() {
             id: 'ann_' + Date.now().toString(36),
             titulo: tit,
             mensaje: msj,
-            audiencia: aud,
+            audiencia: isAll ? 'todos' : audTags.join(', '),
+            audiencia_tags: audTags,
+            foto_url: state.currentAnnFoto || null,
             fecha: new Date().toISOString(),
-            estado_lecturas: [] // se llena a medida que los trabajadores lo ven o se inicializa masivamente
+            estado_lecturas: [] 
           };
           
           // Initializar el estado_lecturas basado en los trabajadores que pertenecen a esa audiencia
           const todosTra = await getAdminWorkers();
           const targetW = todosTra.filter(w => {
-            if (aud === 'todos') return true;
-            if (w.unidades) {
-                return w.unidades.includes(aud);
-            }
-            return false;
+            if (isAll) return true;
+            
+            // Check if user matches any selected pipeline
+            const matchesPipe = audTags.some(tag => (w.unidades || []).includes(tag));
+            
+            // Check if user matches any selected role
+            const matchesRole = audTags.some(tag => (w.rol || '').toLowerCase() === tag.toLowerCase());
+            
+            return matchesPipe || matchesRole;
           });
           
           nuevoAnuncio.estado_lecturas = targetW.map(w => ({
@@ -4116,10 +4287,271 @@ window.renderView = async function renderView() {
           
           await saveDB(dbLoc);
           
+          state.currentAnnFoto = null; // reset state
           showToast('¡Anuncio publicado globalmente!', 'success');
           await renderView();
         });
       }
+
+      // Handle Image Upload for Announcement
+      const dropAnn = document.getElementById('drop-ann-foto');
+      const inpAnn = document.getElementById('inp-ann-foto-file');
+      const preAnn = document.getElementById('preview-ann-foto');
+      const plaAnn = document.getElementById('ann-foto-placeholder');
+      const clrAnn = document.getElementById('btn-clear-ann-foto');
+
+      if (dropAnn && inpAnn) {
+        dropAnn.onclick = () => inpAnn.click();
+        inpAnn.onchange = async () => {
+          if (inpAnn.files.length) {
+            const file = inpAnn.files[0];
+            plaAnn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-tealAccent"></i>';
+            try {
+              const url = await uploadFile(file, 'announcements');
+              state.currentAnnFoto = url;
+              preAnn.src = url;
+              preAnn.classList.remove('hidden');
+              plaAnn.classList.add('hidden');
+              clrAnn.classList.remove('hidden');
+            } catch (err) {
+              console.error(err);
+              showToast('Error al subir imagen', 'error');
+              plaAnn.innerHTML = '<i class="fa-solid fa-image text-gray-300 text-xl"></i>';
+            }
+          }
+        };
+
+        if (clrAnn) {
+          clrAnn.onclick = (e) => {
+            e.stopPropagation();
+            state.currentAnnFoto = null;
+            inpAnn.value = '';
+            preAnn.classList.add('hidden');
+            plaAnn.classList.remove('hidden');
+            clrAnn.classList.add('hidden');
+            plaAnn.innerHTML = `
+              <i class="fa-solid fa-image text-gray-300 group-hover:text-tealAccent transition-colors text-xl"></i>
+              <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
+            `;
+          };
+        }
+      }
+    }, 100);
+  }
+  else if (state.activeView === 'meetings') {
+    UI.viewTitle.textContent = t('mt_title').toUpperCase();
+    UI.viewDesc.textContent = t('mt_desc');
+    setGlobalButton(false);
+    
+    if (!db.admin_meetings) db.admin_meetings = [];
+    const sortedMeetings = [...db.admin_meetings].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    const dynPipelines = db.Admin_Pipelines || [];
+    
+    const meetingsHtml = sortedMeetings.map(mt => {
+      const totalLecturas = (db.admin_meetings_reads || []).filter(r => r.meeting_id === mt.id).length;
+      
+      return `
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:border-blue-400/30 transition-all cursor-pointer mb-5 relative group flex flex-col justify-between" onclick="mostrarReporteMeeting('${mt.id}')">
+           <button onclick="event.stopPropagation(); window.deleteMeeting('${mt.id}', this)" class="absolute top-4 right-4 w-9 h-9 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white z-20">
+              <i class="fa-solid fa-trash-can text-sm"></i>
+           </button>
+
+           <div class="flex-1">
+             <div class="flex justify-between items-start mb-3 pr-10">
+               <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'Reunión'}</h4>
+               <div class="flex flex-wrap gap-1 justify-end">
+                 ${(mt.audiencia_tags || [mt.audiencia || 'Todos']).map(tag => `
+                    <span class="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">${tag}</span>
+                 `).join('')}
+               </div>
+             </div>
+             ${mt.imagen_url ? `<img src="${mt.imagen_url}" class="w-full h-32 object-cover rounded-xl mb-3 border border-gray-100 dark:border-white/5">` : ''}
+             <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${mt.texto}</p>
+             ${mt.enlace ? `<div class="text-[10px] text-blue-400 font-bold truncate mb-2"><i class="fa-solid fa-link mr-1"></i> ${mt.enlace}</div>` : ''}
+           </div>
+
+           <div class="flex justify-between items-center text-[10px] uppercase font-bold text-gray-400 tracking-wider pt-4 border-t border-gray-50 dark:border-white/5 mt-auto">
+             <span><i class="fa-solid fa-calendar mr-1"></i> ${new Date(mt.created_at).toLocaleDateString()}</span>
+             <span class="text-blue-400 bg-blue-400/10 px-3 py-1.5 rounded-full"><i class="fa-solid fa-check-double mr-1"></i> ${totalLecturas} Confirmados</span>
+           </div>
+        </div>
+      `;
+    }).join('');
+
+    UI.canvas.innerHTML = `
+      <div class="flex gap-8 min-h-full pb-20">
+        <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col h-fit">
+          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+            <div class="w-10 h-10 rounded-full bg-blue-400/10 flex items-center justify-center text-blue-400"><i class="fa-solid fa-video text-lg"></i></div>
+            <div>
+              <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">${t('mt_title')}</h3>
+              <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Coordinar con equipo</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4 flex-1">
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título de la Reunión</label>
+                <input type="text" id="mt-input-title" placeholder="Ej: Weekly Sync" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
+                <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
+                    <!-- Global -->
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="mt-aud-all" class="mt-aud-check w-4 h-4 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="todos">
+                        <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest group-hover:text-blue-400 transition-colors">Todos los Usuarios</span>
+                    </label>
+                    
+                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Pipelines</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${dynPipelines.map(p => `
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="${p.nombre}">
+                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors">${p.nombre}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'].map(r => `
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
+                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('mt_field_link')}</label>
+                <input type="text" id="mt-input-link" placeholder="https://zoom.us/j/..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
+              </div>
+              
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('mt_field_msg')}</label>
+                <textarea id="mt-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none resize-none text-gray-900 dark:text-white focus:border-blue-400"></textarea>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('mt_field_image')}</label>
+                <div id="drop-mt-foto" class="w-full h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition-all bg-gray-50 dark:bg-black/20 group relative overflow-hidden">
+                    <input type="file" id="inp-mt-foto-file" class="hidden" accept="image/*">
+                    <div id="mt-foto-placeholder" class="text-center">
+                        <i class="fa-solid fa-image text-gray-300 group-hover:text-blue-400 transition-colors text-xl"></i>
+                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
+                    </div>
+                    <img id="preview-mt-foto" class="absolute inset-0 w-full h-full object-cover hidden">
+                </div>
+              </div>
+          </div>
+          
+          <button id="btn-publish-mt" class="mt-4 w-full py-3.5 bg-blue-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 flex justify-center items-center gap-2">
+            <i class="fa-solid fa-paper-plane text-[10px]"></i>
+            ${t('mt_btn_pub')}
+          </button>
+        </div>
+        
+        <div class="w-2/3 flex gap-6 h-fit">
+          <div class="flex-1 flex flex-col">
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Llamadas</h3>
+            ${meetingsHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay reuniones programadas</div>'}
+          </div>
+          
+          <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col h-fit sticky top-0">
+            <div id="mt-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
+              <div id="mt-report-placeholder" class="py-20 text-center">
+                <i class="fa-solid fa-users-viewfinder text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Confirmación</h4>
+                <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reunión para ver quiénes la han leído.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => {
+        const btnPub = document.getElementById('btn-publish-mt');
+        if (btnPub) {
+            btnPub.onclick = async () => {
+                const tit = document.getElementById('mt-input-title').value.trim();
+                const lnk = document.getElementById('mt-input-link').value.trim();
+                const msj = document.getElementById('mt-input-msg').value.trim();
+                
+                const checked = Array.from(document.querySelectorAll('.mt-aud-check:checked'));
+                const audTags = checked.map(c => c.value);
+                const isAll = audTags.includes('todos');
+                
+                if (!msj) {
+                    showToast('El texto es obligatorio', 'error');
+                    return;
+                }
+                if (audTags.length === 0) {
+                    showToast('Selecciona al menos una audiencia', 'warning');
+                    return;
+                }
+                
+                btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+                btnPub.disabled = true;
+                
+                const newMt = {
+                    titulo: tit,
+                    texto: msj,
+                    enlace: lnk,
+                    audiencia: isAll ? 'todos' : audTags.join(', '),
+                    audiencia_tags: audTags,
+                    imagen_url: state.currentMtFoto || null,
+                    active: true
+                };
+                
+                try {
+                    await saveGranular('admin_meetings', [newMt]);
+                    state.currentMtFoto = null;
+                    showToast('Reunión publicada correctamente', 'success');
+                    await initDB();
+                    renderView();
+                } catch (err) {
+                    console.error(err);
+                    showToast('Error al publicar reunión', 'error');
+                    btnPub.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Reunión';
+                    btnPub.disabled = false;
+                }
+            };
+        }
+
+        const dropMt = document.getElementById('drop-mt-foto');
+        const inpMt = document.getElementById('inp-mt-foto-file');
+        const preMt = document.getElementById('preview-mt-foto');
+        const plaMt = document.getElementById('mt-foto-placeholder');
+
+        if (dropMt && inpMt) {
+            dropMt.onclick = () => inpMt.click();
+            inpMt.onchange = async () => {
+                if (inpMt.files.length) {
+                    const file = inpMt.files[0];
+                    plaMt.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-blue-400"></i>';
+                    try {
+                        const url = await uploadFile(file, 'meetings');
+                        state.currentMtFoto = url;
+                        preMt.src = url;
+                        preMt.classList.remove('hidden');
+                        plaMt.classList.add('hidden');
+                    } catch (err) {
+                        console.error(err);
+                        showToast('Error al subir imagen', 'error');
+                        plaMt.innerHTML = '<i class="fa-solid fa-image text-gray-300 text-xl"></i>';
+                    }
+                }
+            };
+        }
     }, 100);
   }
 }
@@ -4134,7 +4566,6 @@ window.deleteAnuncio = async (id, btn) => {
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-[10px]"></i>';
         }
         
-        // 1. Eliminar permanentemente de Supabase
         const headers = { 'Content-Type': 'application/json' };
         await fetch('/api/delete', { 
             method: 'POST', 
@@ -4142,9 +4573,7 @@ window.deleteAnuncio = async (id, btn) => {
             body: JSON.stringify({ table: 'anuncios_corporativos', id }) 
         });
 
-        // 2. Refrescar DB desde el servidor para estar 100% seguros
         await initDB();
-        
         showToast('Anuncio eliminado permanentemente', 'warning');
         renderView();
     } catch (err) {
@@ -4155,6 +4584,73 @@ window.deleteAnuncio = async (id, btn) => {
             btn.innerHTML = '<i class="fa-solid fa-trash-can text-[10px]"></i>';
         }
     }
+};
+
+window.deleteMeeting = async (id, btn) => {
+    if (!confirm('¿Seguro que deseas eliminar esta reunión?')) return;
+    
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-[10px]"></i>';
+        }
+        
+        await fetch('/api/delete', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'admin_meetings', id }) 
+        });
+
+        await initDB();
+        showToast('Reunión eliminada', 'warning');
+        renderView();
+    } catch (err) {
+        console.error(err);
+        showToast('Error al eliminar reunión', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-trash-can text-[10px]"></i>';
+        }
+    }
+};
+
+window.mostrarReporteMeeting = async (id) => {
+    const db = getDB();
+    const mt = (db.admin_meetings || []).find(m => m.id === id);
+    if (!mt) return;
+    
+    const container = document.getElementById('mt-reporte-contenedor');
+    if (!container) return;
+    
+    const reads = (db.admin_meetings_reads || []).filter(r => r.meeting_id === id);
+    const workers = await getAdminWorkers();
+    
+    const confirmedWorkers = workers.filter(w => reads.some(r => r.user_id === w.id));
+    const pendingWorkers = workers.filter(w => !reads.some(r => r.user_id === w.id));
+    
+    container.innerHTML = `
+        <div class="w-full h-full flex flex-col p-6 overflow-y-auto hide-scrollbar">
+            <h4 class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-widest mb-4 border-b border-gray-100 dark:border-white/5 pb-2 text-left">Confirmados (${confirmedWorkers.length})</h4>
+            <div class="grid grid-cols-1 gap-2 mb-8">
+                ${confirmedWorkers.map(w => `
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                        <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${w.nombre} ${w.apellido}</span>
+                        <i class="fa-solid fa-check text-emerald-500 text-[8px]"></i>
+                    </div>
+                `).join('') || '<p class="text-[10px] text-gray-400 italic">Nadie ha confirmado aún</p>'}
+            </div>
+
+            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-100 dark:border-white/5 pb-2 text-left">Pendientes (${pendingWorkers.length})</h4>
+            <div class="grid grid-cols-1 gap-2">
+                ${pendingWorkers.map(w => `
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-gray-500/5 border border-gray-500/10 opacity-60">
+                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400">${w.nombre} ${w.apellido}</span>
+                        <i class="fa-solid fa-clock text-gray-400 text-[8px]"></i>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
 };
 
 window.mostrarReporteAnuncio = function(id) {
@@ -4752,17 +5248,26 @@ function renderConstructor() {
     const camposHtml = cCampos.map(c => `
       <div class="campo-card flex items-center justify-between bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 p-3 rounded-lg mb-2 hover:border-tealAccent/40 transition-all group shadow-sm" 
            draggable="true" data-id="${c.id}" data-faseid="${f.id}">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
           <i class="fa-solid fa-grip-vertical text-gray-400 dark:text-gray-700 group-hover:text-tealAccent transition-colors cursor-move text-xs"></i>
-          <div>
-            <p class="text-gray-900 dark:text-white text-xs font-bold tracking-tight">${c.etiqueta}</p>
+          <div class="min-w-0 flex-1">
+            <p class="text-gray-900 dark:text-white text-xs font-bold tracking-tight truncate flex items-center gap-2">
+                ${c.etiqueta}
+                ${c.es_opcional ? '<span class="px-1.5 py-0.5 rounded text-[8px] bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Opcional</span>' : ''}
+            </p>
             <p class="text-[8.5px] uppercase font-black text-gray-400 dark:text-gray-600 mt-0.5">Input: <span class="text-tealAccent/80">${c.tipo}</span></p>
           </div>
         </div>
-        <button class="btn-delete-campo text-gray-400 dark:text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1 cursor-pointer" 
-                onclick="adminDeleteCampo('${c.id}', event)" style="pointer-events: auto !important;">
-          <i class="fa-solid fa-trash-can text-[10px]" style="pointer-events: none;"></i>
-        </button>
+        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+          <button class="btn-edit-campo text-gray-400 dark:text-gray-600 hover:text-sky-400 p-1 cursor-pointer" 
+                  onclick="adminEditCampo('${c.id}', event)" title="Editar tipo" style="pointer-events: auto !important;">
+            <i class="fa-solid fa-pen text-[10px]" style="pointer-events: none;"></i>
+          </button>
+          <button class="btn-delete-campo text-gray-400 dark:text-gray-600 hover:text-red-500 p-1 cursor-pointer" 
+                  onclick="adminDeleteCampo('${c.id}', event)" style="pointer-events: auto !important;">
+            <i class="fa-solid fa-trash-can text-[10px]" style="pointer-events: none;"></i>
+          </button>
+        </div>
       </div>
     `).join('');
 
@@ -5109,8 +5614,14 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
     document.getElementById('det-usr-email').textContent = usr.email || '-';
     document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+    document.getElementById('det-usr-rank').textContent = usr.rango || 'novato';
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
     document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+    document.getElementById('det-usr-tel-emergencia').textContent = usr.tel_emergencia || '-';
+    document.getElementById('det-usr-direccion').textContent = usr.direccion || '-';
+    document.getElementById('det-usr-zelle-nombre').textContent = usr.zelle_nombre || '-';
+    document.getElementById('det-usr-zelle-cuenta').textContent = usr.zelle_cuenta || '-';
+    document.getElementById('det-usr-zelle-tel').textContent = usr.zelle_tel || '-';
 
     // Format DOB for view mode (mes dia año)
     const dobViewEl = document.getElementById('det-usr-dob-view');
@@ -5227,6 +5738,7 @@ async function toggleDetailEditMode(id) {
         document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
         document.getElementById('det-usr-email').textContent = usr.email || '-';
         document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+        document.getElementById('det-usr-rank').textContent = usr.rango || 'novato';
         document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
         document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
         return;
@@ -5264,8 +5776,16 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-id')) document.getElementById('det-edit-id').value = usr.id;
         if (document.getElementById('det-edit-dob')) document.getElementById('det-edit-dob').value = usr.dob || '';
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
-        if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'novato';
+        if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'Vendedor';
+        if (document.getElementById('det-edit-rank')) document.getElementById('det-edit-rank').value = usr.rango || 'novato';
         if (document.getElementById('det-edit-pass')) document.getElementById('det-edit-pass').value = usr.password || usr.pass || 'renew123';
+        
+        // Populate new fields
+        if (document.getElementById('det-edit-direccion')) document.getElementById('det-edit-direccion').value = usr.direccion || '';
+        if (document.getElementById('det-edit-tel-emergencia')) document.getElementById('det-edit-tel-emergencia').value = usr.tel_emergencia || '';
+        if (document.getElementById('det-edit-zelle-nombre')) document.getElementById('det-edit-zelle-nombre').value = usr.zelle_nombre || '';
+        if (document.getElementById('det-edit-zelle-cuenta')) document.getElementById('det-edit-zelle-cuenta').value = usr.zelle_cuenta || '';
+        if (document.getElementById('det-edit-zelle-tel')) document.getElementById('det-edit-zelle-tel').value = usr.zelle_tel || '';
 
         // Apply flatpickr to the new edit field
         if (window.initDatePickers) window.initDatePickers();
@@ -5478,14 +5998,22 @@ async function toggleDetailEditMode(id) {
             const telefono = ccValDet && telValDet ? `${ccValDet} ${telValDet}` : telValDet;
             
             const rolEl = document.getElementById('det-edit-rol');
+            const rankEl = document.getElementById('det-edit-rank');
             const deptEl = document.getElementById('det-edit-dept');
             const passEl = document.getElementById('det-edit-pass');
             const dobEl = document.getElementById('det-edit-dob');
             
             const rol = rolEl ? rolEl.value : (usr.rol || 'Vendedor');
+            const rango = rankEl ? rankEl.value : (usr.rango || 'novato');
             const department = deptEl ? deptEl.value.trim() : (usr.department || '');
             const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');
             const dob = dobEl ? dobEl.value : (usr.dob || '');
+
+            const tel_emergencia = document.getElementById('det-edit-tel-emergencia')?.value.trim() || '';
+            const direccion = document.getElementById('det-edit-direccion')?.value.trim() || '';
+            const zelle_nombre = document.getElementById('det-edit-zelle-nombre')?.value.trim() || '';
+            const zelle_cuenta = document.getElementById('det-edit-zelle-cuenta')?.value.trim() || '';
+            const zelle_tel = document.getElementById('det-edit-zelle-tel')?.value.trim() || '';
 
             // Read pipeline permissions
             const checkedPips = Array.from(
@@ -5516,14 +6044,15 @@ async function toggleDetailEditMode(id) {
                 
                 const updatedUsr = {
                     ...usr,
-                    nombre, apellido, email, telefono, rol, department, password, initials, dob,
+                    nombre, apellido, email, telefono, rol, rango, department, password, initials, dob,
                     unidades: checkedPips,
                     foto: state.currentUsrFoto, 
                     w9Url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9Url || null),
                     w9_url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9_url || null),
                     carnet_url: state.detEditCarnetUrl !== undefined ? state.detEditCarnetUrl : (usr.carnet_url || null),
                     contrato_url: state.detEditContratoUrl !== undefined ? state.detEditContratoUrl : (usr.contrato_url || null),
-                    estatus_rrhh: current_estatus
+                    estatus_rrhh: current_estatus,
+                    tel_emergencia, direccion, zelle_nombre, zelle_cuenta, zelle_tel
                 };
 
                 await saveAdminWorker(updatedUsr);
@@ -5884,8 +6413,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
     }
   } else {
     // Render fields similar to projectDetail.js but styled for Admin Drawer
-    const numFilled = respuestas.filter(r => phaseCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
-    const isComplete = numFilled >= phaseCampos.length;
+    // Render fields similar to projectDetail.js but styled for Admin Drawer
+    const requiredCampos = phaseCampos.filter(c => !c.es_opcional);
+    const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+    const isComplete = numRequiredFilled >= requiredCampos.length;
 
     const inputsHtml = phaseCampos.map(c => {
       const saved = respuestas.find(r => r.campo_id === c.id);
@@ -5896,7 +6427,9 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         const hasFile = val && (val.startsWith('data:') || val.startsWith('http'));
         fieldHtml = `
           <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">${c.etiqueta}</label>
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+            </label>
             <div style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:10px;" class="dark:bg-white/5 dark:border-white/10">
                <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'}"></i>
                <span style="font-size:11px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? 'Cargado' : 'Pendiente'}</span>
@@ -5907,10 +6440,66 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             </div>
           </div>
         `;
+      } else if (c.tipo === 'Desplegable') {
+        const options = (c.opciones || "").split(',').map(o => o.trim());
+        fieldHtml = `
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+            </label>
+            <select id="dfd_${c.id}" 
+                    style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; appearance:none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto;"
+                    class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent">
+              <option value="">Seleccionar...</option>
+              ${options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else if (c.tipo === 'Técnico') {
+        const technicians = (state.workers || []).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico');
+        fieldHtml = `
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+            </label>
+            <select id="dfd_${c.id}" 
+                    style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; appearance:none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto;"
+                    class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent">
+              <option value="">Seleccionar Técnico...</option>
+              ${technicians.map(w => `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${w.nombre} ${w.apellido || ''}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else if (c.tipo === 'Fecha y Hora') {
+        fieldHtml = `
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+            </label>
+            <input type="datetime-local" id="dfd_${c.id}" value="${val}" 
+                   style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none;"
+                   class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent"
+                   onclick="this.showPicker ? this.showPicker() : ''">
+          </div>
+        `;
+      } else if (c.tipo === 'Fecha') {
+        fieldHtml = `
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+            </label>
+            <input type="date" id="dfd_${c.id}" value="${val}" 
+                   style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none;"
+                   class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent"
+                   onclick="this.showPicker ? this.showPicker() : ''">
+          </div>
+        `;
       } else {
         fieldHtml = `
           <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">${c.etiqueta}</label>
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+            </label>
             <input type="${c.tipo==='Número'?'number':'text'}" id="dfd_${c.id}" value="${val}" 
                    style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; transition:all;"
                    class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent" placeholder="Escribir...">
@@ -5933,7 +6522,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       </style>
       <div style="margin-bottom:16px;">
         <p style="font-size:10px; color:#64748b; font-weight:600; margin-bottom:12px;">
-           ${isComplete ? '¡Estructura completa! Ya puedes avanzar.' : `Faltan <strong>${phaseCampos.length - numFilled}</strong> campos/archivos.`}
+           ${isComplete ? '¡Estructura completa! Ya puedes avanzar.' : `Faltan <strong>${requiredCampos.length - numRequiredFilled}</strong> campos obligatorios.`}
         </p>
         ${inputsHtml}
       </div>
@@ -7160,12 +7749,19 @@ window.addEventListener('message', async (e) => {
 });
 
 // -- RECIBOS DE PAGO: Popup en perfil del trabajador ----------
-window._verRecibosWorker = function(workerId, workerName) {
+window._verRecibosWorker = async function(workerId, workerName) {
     const existingModal = document.getElementById('modal-admin-recibos-worker');
     if (existingModal) existingModal.remove();
 
-    const db = window.getDB ? window.getDB() : {};
-    const recibos = (db.Recibos_Pagos || []).filter(r => String(r.trabajador_id) === String(workerId));
+    // Use centralized logic from api.js
+    const { getRecibos } = await import('./api.js');
+    const recibos = getRecibos(workerId);
+
+    const currentUser = (() => {
+        try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
+    })();
+    const currentRol = (currentUser.rol || '').toLowerCase();
+    const isAdmin = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(currentRol);
 
     const renderList = (filter) => {
         const filtered = filter === 'all' ? recibos : recibos.filter(r => r.tipo === filter);
@@ -7178,8 +7774,10 @@ window._verRecibosWorker = function(workerId, workerName) {
             const monto = isVendedor
                 ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2}) : '-')
                 : (d.total_price  ? '$' + Number(d.total_price ).toLocaleString('en-US',{minimumFractionDigits:2}) : '-');
+            
             return '<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">' +
-                '<div style="background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;padding:10px;flex-shrink:0;font-size:1.2rem;">' + (isVendedor ? '??' : '??') + '</div>' +
+                '<div style="width:40px;height:40px;background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;display:flex;align-items:center;justify-content:center;color:' + color + ';flex-shrink:0;">' + 
+                (isVendedor ? '<i class="fas fa-dollar-sign"></i>' : '<i class="fas fa-tools"></i>') + '</div>' +
                 '<div style="flex:1;min-width:0;">' +
                 '<p style="font-size:0.65rem;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:0;">' + label + '</p>' +
                 '<p style="font-size:0.9rem;font-weight:700;color:#1e293b;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (r.cliente_nombre || '-') + '</p>' +
@@ -7195,7 +7793,67 @@ window._verRecibosWorker = function(workerId, workerName) {
     const modal = document.createElement('div');
     modal.id = 'modal-admin-recibos-worker';
     modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
-    modal.innerHTML = '<div style="background:white;border-radius:20px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.15);">' +
+    modal.innerHTML = `
+        <div style="background:white;border-radius:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.15); border:1px solid #e2e8f0;">
+            <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">Recibos de Pago</h3>
+                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} \u2022 ${recibos.length} recibos</p>
+                </div>
+                <button id="btn-close-admin-recibos" style="background:#f1f5f9;border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#64748b;display:flex;align-items:center;justify-content:center;">&times;</button>
+            </div>
+            
+            ${isAdmin ? `
+            <div style="padding:16px 24px 0;display:flex;gap:8px;">
+                <button data-rf="all" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
+                <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
+                <button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">T\u00E9cnico</button>
+            </div>
+            ` : ''}
+            
+            <div id="rw-list-container" style="padding:16px 24px 32px;">
+                ${renderList('all')}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.querySelector('#btn-close-admin-recibos').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    if (isAdmin) {
+        modal.querySelectorAll('.rw-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const f = btn.dataset.rf;
+                modal.querySelector('#rw-list-container').innerHTML = renderList(f);
+                modal.querySelectorAll('.rw-filter-btn').forEach(b => {
+                    const active = b.dataset.rf === f;
+                    b.style.borderColor = active ? '#8b5cf6' : '#e2e8f0';
+                    b.style.background  = active ? '#8b5cf615' : 'white';
+                    b.style.color       = active ? '#8b5cf6' : '#94a3b8';
+                });
+            });
+        });
+    }
+};
+); });
+
+    if (isAdmin) {
+        modal.querySelectorAll('.rw-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const f = btn.dataset.rf;
+                modal.querySelector('#rw-list-container').innerHTML = renderList(f);
+                modal.querySelectorAll('.rw-filter-btn').forEach(b => {
+                    const active = b.dataset.rf === f;
+                    b.style.borderColor = active ? '#8b5cf6' : '#e2e8f0';
+                    b.style.background  = active ? '#8b5cf615' : 'white';
+                    b.style.color       = active ? '#8b5cf6' : '#94a3b8';
+                });
+            });
+        });
+    }
+};
+dius:20px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.15);">' +
         '<div style="padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;">' +
         '<div><h3 style="font-size:1.05rem;font-weight:900;color:#1e293b;margin:0;">Recibos de Pago</h3>' +
         '<p style="font-size:0.75rem;color:#94a3b8;margin:2px 0 0;">' + workerName + ' � ' + recibos.length + ' recibo' + (recibos.length !== 1 ? 's' : '') + '</p></div>' +

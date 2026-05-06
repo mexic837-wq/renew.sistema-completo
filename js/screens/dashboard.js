@@ -1,9 +1,10 @@
 /* ============================================================
    RENEW SOLAR \u2013 screens/dashboard.js
    ============================================================ */
-import { getDealsByUser, STAGE_CONFIG, formatDate, getAdminWorkers, getDB, getDeptArray } from '../api.js';
+import { getDealsByUser, STAGE_CONFIG, formatDate, getAdminWorkers, getDB, getDeptArray, getCurrentUser, logout, isProjectFinished, getProjectDate } from '../api.js';
 import { showToast } from '../components/toast.js';
-import { navigate, getCurrentUser, logout } from '../app.js';
+// Removed import from ../app.js to break circular dependency
+
 import { t } from '../i18n.js';
 
 
@@ -33,11 +34,10 @@ function computeUserRank(userId, activeUnit, db) {
 
   const pipeline   = (db.Admin_Pipelines || []).find(p => p.nombre === activeUnit);
   const myProjects = (db.Proyectos_Dinamicos || []).filter(p => {
-    if (p.responsable_id !== userId) return false;
+    // A project belongs to the user if they are the responsable OR the assigned vendor in the client record
+    const isResponsable = p.responsable_id === userId;
     if (pipeline && p.pipeline_id !== pipeline.id) return false;
-    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-    const isFinished = p.fase_id === 'Completado' || p.estado === 'Completado';
-    return isFinished;
+    return isProjectFinished(p, db);
   });
 
   const now        = new Date();
@@ -571,6 +571,13 @@ function _renderToolsForPipeline(user, activeUnit) {
 
   const commonTools = [
     {
+      name: 'Meetings', tag: null,
+      gradient: 'linear-gradient(90deg,#60a5fa,#3b82f6)',
+      iconBg: 'rgba(96,165,250,0.1)', iconColor: '#60a5fa',
+      icon: `<i class="fa-solid fa-video"></i>`,
+      action: () => window.appNavigate('meetings'), delay: '0.19s'
+    },
+    {
       name: 'Mi Mapa', tag: null,
       gradient: 'linear-gradient(90deg,#8b5cf6,#d946ef)',
       iconBg: 'rgba(139,92,246,0.1)', iconColor: '#a78bfa',
@@ -605,6 +612,7 @@ function _renderToolsForPipeline(user, activeUnit) {
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
       action: () => { window.location.href = 'admin.html'; }, delay: '0.24s'
     } : null
+
   ];
 
   const pipTools = (TOOLS[activeUnit] || TOOLS['Renew Solar']).filter(Boolean);
@@ -768,10 +776,15 @@ async function initRendimientoChart(user) {
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
   
   const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
-  const userProjects = allProjects.filter(p => 
-    (String(p.responsable_id) === String(user.id) || (isTecnico && String(p.tecnico_id) === String(user.id))) && 
-    (!pipeline || String(p.pipeline_id) === String(pipeline.id))
-  );
+  const userProjects = allProjects.filter(p => {
+    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
+    const isAssignedVendor = String(cli.vendedor_asignado_id) === String(user.id);
+    const isCreator = String(p.responsable_id) === String(user.id);
+    const isAssignedTech = isTecnico && String(p.tecnico_id) === String(user.id);
+
+    return (isCreator || isAssignedVendor || isAssignedTech) && 
+           (!pipeline || String(p.pipeline_id) === String(pipeline.id));
+  });
   
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -790,13 +803,10 @@ async function initRendimientoChart(user) {
 
   userProjects.forEach(p => {
     // A project counts as a "sale/venta" only when it has reached the terminal state
-    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-    const pFases = (db.Admin_Fases || []).filter(f => String(f.pipeline_id) === String(p.pipeline_id)).sort((a,b) => a.orden - b.orden);
-    const isCompleted = p.estado === 'Completado' || p.fase_id === 'Completado' || (pFases.length > 0 && String(p.fase_id) === String(pFases[pFases.length - 1].id));
+    const isCompleted = isProjectFinished(p, db);
+    if (!isCompleted) return;
 
-    if (!isCompleted) return; // Not closed yet — don't count as a sale
-
-    const dateToUse = p.fecha_cierre || p.fecha;
+    const dateToUse = getProjectDate(p, db);
     const pDate = dateToUse ? new Date(dateToUse + 'T12:00:00') : null;
     if (pDate && pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
       const day = pDate.getDate();
@@ -1371,18 +1381,25 @@ async function initLeaderboardChart(user) {
   allProjects.forEach(p => {
     if (pipeline && p.pipeline_id !== pipeline.id) return;
     
-    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-    const isFinished = p.fase_id === 'Completado' || p.estado === 'Completado';
+    const isFinished = isProjectFinished(p, db);
     const shouldCount = isCallCenter ? true : isFinished;
     if (!shouldCount) return;
 
-    const dateToUse = (isFinished ? (p.fecha_cierre || p.fecha) : p.fecha);
+    const dateToUse = getProjectDate(p, db);
     if (!dateToUse) return;
 
     const pDate = new Date(dateToUse + 'T12:00:00');
     if (pDate.getMonth() !== currentMonth || pDate.getFullYear() !== currentYear) return;
     
-    const targetUserId = isTecnico ? p.tecnico_id : p.responsable_id;
+    // Credit goes to tecnico if tecnico, otherwise to the assigned vendor in client OR the project creator
+    let targetUserId = null;
+    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
+    if (isTecnico) {
+      targetUserId = p.tecnico_id;
+    } else {
+      targetUserId = cli.vendedor_asignado_id || p.responsable_id;
+    }
+    
     if (!targetUserId) return;
 
     if (!projectCountByUserId[targetUserId]) projectCountByUserId[targetUserId] = 0;

@@ -6,6 +6,16 @@ const API_BASE = window.location.origin + '/api';
 let cachedDB = null;
 
 export const delay = ms => new Promise(r => setTimeout(r, ms));
+export function getCurrentUser() {
+  const raw = localStorage.getItem('rs_user');
+  return raw ? JSON.parse(raw) : null;
+}
+export function logout() {
+  localStorage.removeItem('rs_user');
+  if (window.appNavigate) window.appNavigate('login');
+  else window.location.hash = '#login';
+  import('./components/toast.js').then(m => m.showToast('Sesión cerrada correctamente.', 'info'));
+}
 
 // ─── DB INITIALIZATION ──────────────────────────────────────
 export async function initDB() {
@@ -52,12 +62,33 @@ export async function initDB() {
         localStorage.setItem('rs_admin_db', JSON.stringify(cacheData));
       } catch (e) {}
 
-      // ── DATA MIGRATION: Backfill fecha_cierre for completed projects ──
+      // ── DATA MIGRATION: Backfill dates and status for consistency ──
       let needsSave = false;
+      const today = new Date().toISOString().split('T')[0];
+
       (cachedDB.Proyectos_Dinamicos || []).forEach(p => {
-          if ((p.estado === 'Completado' || p.fase_id === 'Completado') && !p.fecha_cierre) {
-              p.fecha_cierre = p.fecha || new Date().toISOString().split('T')[0];
+          const isFinished = isProjectFinished(p, cachedDB);
+
+          if (isFinished) {
+              // Ensure estado is 'Completado'
+              if (p.estado !== 'Completado') {
+                  p.estado = 'Completado';
+                  needsSave = true;
+              }
+              // USER REQUEST: Force today's date for ALL finished projects for testing
+              p.fecha_cierre = today;
               needsSave = true;
+              console.log(`[DB MIGRATION] Forced today's closure date to project ${p.id} for month verification`);
+          }
+          
+          // Sync client's "Fecha de Inicio" if missing
+          if (p.cliente_id && p.fecha) {
+              const cli = (cachedDB.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+              if (cli && (!cli.fecha_inicio || cli.fecha_inicio === 'No establecida')) {
+                  cli.fecha_inicio = p.fecha;
+                  needsSave = true;
+                  console.log(`[DB MIGRATION] Assigned start date to client ${cli.id} based on project ${p.id}`);
+              }
           }
       });
       if (needsSave) {
@@ -82,7 +113,7 @@ export async function initDB() {
               Admin_Pipelines: [], Admin_Fases: [], Admin_Campos_Formulario: [],
               Clientes_Maestro: [], Proyectos_Dinamicos: [], Respuestas_Dinamicas: [],
               Usuarios: [], academiaContent: [], inventarioGlobal: [], historialInventario: [],
-              anuncios_corporativos: [], Admin_Proveedores: [], calendario_eventos: [],
+              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], Admin_Proveedores: [], calendario_eventos: [],
               Counters: { cli: 0, proy: 0, resp: 0, pip: 0, fase: 0, campo: 0 }
             };
         }
@@ -353,7 +384,20 @@ export function getRecibos(trabajadorId = null) {
   const db = getDB();
   const all = db.Recibos_Pagos || [];
   if (!trabajadorId) return all;
-  return all.filter(r => r.trabajador_id === trabajadorId);
+  
+  // A worker sees receipts if:
+  // 1. They are the 'trabajador_id' (the one the receipt is FOR)
+  // 2. They are the 'responsable_id' of the project associated with the receipt
+  return all.filter(r => {
+    if (r.trabajador_id === trabajadorId) return true;
+    
+    if (r.proyecto_id) {
+      const proy = (db.Proyectos_Dinamicos || []).find(p => p.id === r.proyecto_id);
+      if (proy && String(proy.responsable_id) === String(trabajadorId)) return true;
+    }
+    
+    return false;
+  });
 }
 
 // ─── LISTA DE PRECIOS (Renew Water) ─────────────────────────
@@ -418,7 +462,7 @@ export function getDB() {
         'Admin_Pipelines', 'Admin_Fases', 'Admin_Campos_Formulario',
         'Clientes_Maestro', 'Proyectos_Dinamicos', 'Respuestas_Dinamicas',
         'Usuarios', 'academiaContent', 'inventarioGlobal', 'historialInventario',
-        'anuncios_corporativos', 'Deleted_Workers', 'calendario_eventos',
+        'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'Deleted_Workers', 'calendario_eventos',
         'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos'
     ];
     
@@ -469,19 +513,62 @@ export function genId(type, db) {
     return type + '_' + db.Counters[type] + '_' + hash; 
 }
 
-export function getCurrentUser() {
-  try {
-    return JSON.parse(localStorage.getItem('rs_user') || '{}');
-  } catch (e) {
-    return {};
-  }
-}
+
+// Removed duplicate getCurrentUser declaration
+
 
 // ─── FILE UPLOAD HELPER ─────────────────────────────────────
 // Uploads file to the server, which stores it in Supabase Storage buckets
 export async function uploadFile(file, type = 'others') {
+    let finalFile = file;
+    
+    // Auto-compress images to avoid Supabase 413 Payload Too Large limits
+    if (file && file.type && file.type.startsWith('image/')) {
+        try {
+            finalFile = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 1200;
+                        
+                        if (width > height && width > maxDim) {
+                            height *= maxDim / width;
+                            width = maxDim;
+                        } else if (height > maxDim) {
+                            width *= maxDim / height;
+                            height = maxDim;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', 0.8);
+                    };
+                    img.onerror = () => resolve(file);
+                };
+                reader.onerror = () => resolve(file);
+            });
+        } catch (err) {
+            console.warn('[COMPRESSION] Failed, falling back to original file', err);
+        }
+    }
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', finalFile);
     formData.append('type', type);
 
     try {
@@ -782,10 +869,10 @@ export async function deleteAdminFase(faseId) {
 }
 
 export async function getAdminCampos() { return getDB().Admin_Campos_Formulario; }
-export async function createAdminCampo(fase_id, etiqueta, tipo, opciones) {
+export async function createAdminCampo(fase_id, etiqueta, tipo, opciones, es_opcional = false) {
   const db = getDB();
   const id = genId('campo', db);
-  const c = { id, fase_id, etiqueta, tipo, opciones };
+  const c = { id, fase_id, etiqueta, tipo, opciones, es_opcional };
   db.Admin_Campos_Formulario.push(c);
   await saveDB(db); 
   return c;
@@ -815,6 +902,19 @@ export async function deleteAdminCampo(campoId) {
     console.error('Error borrando campo en remoto:', e); 
     throw e;
   }
+}
+
+export async function updateAdminCampo(campoId, etiqueta, tipo, opciones, es_opcional = false) {
+  const db = getDB();
+  const campo = db.Admin_Campos_Formulario.find(c => c.id === campoId);
+  if (!campo) throw new Error('Campo no encontrado: ' + campoId);
+  campo.etiqueta = etiqueta;
+  campo.tipo = tipo;
+  campo.opciones = opciones || '';
+  campo.es_opcional = es_opcional;
+  await saveGranular('admin_campos_formulario', [campo]);
+  cachedDB = db;
+  return campo;
 }
 
 export async function reorderAdminCampos(faseId, newOrderIds) {
@@ -877,9 +977,11 @@ export async function saveAdminWorker(worker) {
   
   const idx = db.Usuarios.findIndex(u => u.id === worker.id);
   if (idx > -1) {
-    db.Usuarios[idx] = worker;
+    // Preserve old fields if not provided in the worker object (like rango if it's auto-managed)
+    db.Usuarios[idx] = { ...db.Usuarios[idx], ...worker };
   } else {
     if (!worker.id) worker.id = 'u' + Date.now();
+    if (!worker.rango) worker.rango = 'novato';
     db.Usuarios.push(worker);
   }
   
@@ -920,8 +1022,8 @@ export async function deleteAdminWorker(ids) {
 
 // ─── AUTHENTICATION ─────────────────────────────────────────
 export const MOCK_USERS = [
-  { id: 'u1', nombre: 'Carlos', apellido: 'Rodríguez', email: 'carlos@renewsolar.com', password: '1234', initials: 'CR', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Vendedor', telefono: '+1 (305) 555-1234' },
-  { id: 'u3', nombre: 'Demo',   apellido: 'Vendedor',  email: 'demo@renew.com',        password: 'demo', initials: 'DV', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Admin', telefono: '+1 (555) 123-4567' },
+  { id: 'u1', nombre: 'Carlos', apellido: 'Rodríguez', email: 'carlos@renewsolar.com', password: '1234', initials: 'CR', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Vendedor', rango: 'vendedor', telefono: '+1 (305) 555-1234' },
+  { id: 'u3', nombre: 'Demo',   apellido: 'Vendedor',  email: 'demo@renew.com',        password: 'demo', initials: 'DV', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Admin', rango: 'analista', telefono: '+1 (555) 123-4567' },
 ];
 
 export async function loginUser(email, password) {
@@ -1466,7 +1568,7 @@ const N8N_REP_WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aviso-represent
  * Dado un objeto fase y el vendedor original del proyecto,
  * devuelve la lista de destinatarios que n8n debe notificar.
  */
-function _resolverDestinatarios(db, fase, vendedor_original_id) {
+function _resolverDestinatarios(db, fase, vendedor_original_id, proyecto = null) {
   const rol_encargado = fase?.rol_encargado;
   const usuarios_especificos = fase?.usuarios_especificos || [];
   const deletedIds = db.Deleted_Workers || [];
@@ -1510,6 +1612,20 @@ function _resolverDestinatarios(db, fase, vendedor_original_id) {
       if (creador && !destinatarios.some(d => d.id === creador.id)) {
         destinatarios.push(toContact(creador));
       }
+    } else if (rol_encargado === 'Técnico' || rol_encargado === 'Tecnico') {
+      if (proyecto && proyecto.tecnico_id) {
+        const tec = workers.find(u => u.id === proyecto.tecnico_id);
+        if (tec && !destinatarios.some(d => d.id === tec.id)) {
+          destinatarios.push(toContact(tec));
+        }
+      } else {
+        const porRol = workers.filter(u => u.rol && u.rol.toLowerCase() === rol_encargado.toLowerCase());
+        porRol.forEach(u => {
+          if (!destinatarios.some(d => d.id === u.id)) {
+            destinatarios.push(toContact(u));
+          }
+        });
+      }
     } else {
       const porRol = workers.filter(u => u.rol && u.rol.toLowerCase() === rol_encargado.toLowerCase());
       porRol.forEach(u => {
@@ -1543,11 +1659,22 @@ export async function updateProyectoFase(proyectoId, nuevaFaseId, extraContext =
 
   if (!proyecto) throw new Error("Proyecto no encontrado");
 
-  // Lógica de persistencia de tecnico_id
+  // Lógica de persistencia de tecnico_id AL ASIGNARLO en fases previas
+  const respuestasProy = db.Respuestas_Dinamicas?.filter(r => r.proyecto_id === proyectoId) || [];
+  const camposTecnico = db.Admin_Campos_Formulario?.filter(c => c.tipo === 'Técnico') || [];
+  for (const c of camposTecnico) {
+    const r = respuestasProy.find(resp => resp.campo_id === c.id);
+    if (r && r.valor && r.valor !== 'No subido' && r.valor !== 'No provisto') {
+       proyecto.tecnico_id = r.valor;
+       console.log('[API] Técnico asignado dinámicamente:', proyecto.tecnico_id);
+    }
+  }
+
+  // Fallback a asignado_a si la fase actual es de Técnico y aún no hay tecnico_id
   if (nuevaFase && (nuevaFase.rol_encargado === 'Tecnico' || nuevaFase.rol_encargado === 'Técnico')) {
-     if (proyecto.asignado_a) {
+     if (proyecto.asignado_a && !proyecto.tecnico_id) {
         proyecto.tecnico_id = proyecto.asignado_a;
-        console.log('[API] Asociando técnico permanente:', proyecto.tecnico_id);
+        console.log('[API] Asociando técnico permanente desde asignado_a:', proyecto.tecnico_id);
      }
   }
 
@@ -1574,7 +1701,7 @@ export async function updateProyectoFase(proyectoId, nuevaFaseId, extraContext =
 
   // ── PASO 3: Resolver quién debe recibir la notificación ──────────────────
   let destinatarios = nuevaFase
-    ? _resolverDestinatarios(db, nuevaFase, vendedor_original_id)
+    ? _resolverDestinatarios(db, nuevaFase, vendedor_original_id, proyecto)
     : [];
 
   // Identificar usuarios independientes (los que están en usuarios_especificos)
@@ -1716,7 +1843,7 @@ async function _checkAndPromoteVendor(db, userId) {
   const salesCount = (db.Proyectos_Dinamicos || []).filter(p => 
     p.responsable_id === userId && 
     p.pipeline_id === waterPipeline.id &&
-    (p.fase_id === 'Completado' || p.estado === 'Completado')
+    isProjectFinished(p, db)
   ).length;
 
   console.log(`[PROMOTION] Vendor ${userId} has ${salesCount} sales.`);
@@ -1732,24 +1859,54 @@ async function _checkAndPromoteVendor(db, userId) {
     { min: 0,  role: 'novato' }
   ];
 
-  const targetRole = thresholds.find(t => salesCount >= t.min)?.role || 'novato';
+  const targetRank = thresholds.find(t => salesCount >= t.min)?.role || 'novato';
 
-  // 3. Update user role if changed
+  // 3. Update user rank if changed
   const user = (db.Usuarios || []).find(u => u.id === userId);
-  if (user && user.rol !== targetRole) {
-    // We only promote if the new role is "higher" or if it matches our ladder
-    // Note: We use lowercase keys to match admin_catalogos table
-    console.log(`[PROMOTION] Promoting user ${userId} from ${user.rol} to ${targetRole}`);
-    user.rol = targetRole;
+  if (user && user.rango !== targetRank) {
+    // We only promote if the new rank is "higher" or if it matches our ladder
+    console.log(`[PROMOTION] Promoting user ${userId} from rank ${user.rango || 'novato'} to ${targetRank}`);
+    user.rango = targetRank;
     await saveGranular('usuarios', [user]);
     
     // Also update local storage if it's the current user
     const sessionUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     if (sessionUser.id === userId) {
-      sessionUser.rol = targetRole;
+      sessionUser.rango = targetRank;
       localStorage.setItem('rs_user', JSON.stringify(sessionUser));
       // Trigger a refresh of the price list if open
-      window.dispatchEvent(new CustomEvent('user_promoted', { detail: { role: targetRole } }));
+      window.dispatchEvent(new CustomEvent('user_promoted', { detail: { rank: targetRank } }));
     }
   }
+}
+
+export function isProjectFinished(p, db) {
+  if (!p) return false;
+  
+  // STRICTER COMPLETION LOGIC:
+  // Only count if state or phase explicitly says Completed/Finished
+  const estado = String(p.estado || '').toLowerCase();
+  const faseId = String(p.fase_id || '').toLowerCase();
+
+  const finishedTerms = ['completado', 'finalizado', 'finished', 'cerrado', 'closed', 'venta', 'liquidado'];
+  
+  if (finishedTerms.some(term => estado === term || faseId === term)) return true;
+  
+  if (db && db.Admin_Fases) {
+    const faseObj = db.Admin_Fases.find(f => String(f.id).toLowerCase() === faseId);
+    if (faseObj) {
+      const faseNom = String(faseObj.nombre || '').toLowerCase();
+      if (finishedTerms.some(term => faseNom.includes(term)) || faseNom.includes('completado')) return true;
+    }
+  }
+  return false;
+}
+
+export function getProjectDate(p, db) {
+  if (!p) return null;
+  // Use fecha_cierre if finished, fallback to creation fecha
+  if (isProjectFinished(p, db)) {
+    return p.fecha_cierre || p.fecha;
+  }
+  return p.fecha;
 }

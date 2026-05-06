@@ -4,7 +4,7 @@
    ============================================================ */
 import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario } from '../api.js';
 import { showToast } from '../components/toast.js';
-import { navigate } from '../app.js';
+import { navigate, getCurrentUser } from '../app.js';
 
 let selectedSede = null;
 let selectedEcosistema = null;
@@ -12,6 +12,9 @@ let selectedEcosistema = null;
 export function renderInventoryTech() {
   const screen = document.getElementById('screen-inventory-tech');
   if (!screen) return;
+
+  const user = getCurrentUser();
+  const isAdmin = user && ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'].includes(user.rol);
 
   // Initial State: Paso 1
   screen.innerHTML = `
@@ -81,8 +84,9 @@ export function renderInventoryTech() {
               </div>
             </div>
     
-            <div class="mobile-submit-box">
+            <div class="mobile-submit-box" style="display: flex; flex-direction: column; gap: 8px;">
                 <button id="btn-submit-inv" class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; font-weight: 800; letter-spacing: 1px;">REGISTRAR USO</button>
+                ${isAdmin ? `<button id="btn-add-stock-inv" class="btn btn-outline" style="width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 800; border: 2px solid var(--tealAccent); color: var(--tealAccent); border-radius: 12px; background: transparent; cursor: pointer;">AGREGAR STOCK</button>` : ''}
             </div>
         </div>
       </div>
@@ -121,7 +125,12 @@ export function renderInventoryTech() {
     step2.style.display = 'block';
   });
 
-  document.getElementById('btn-submit-inv').addEventListener('click', handleWithdrawal);
+  document.getElementById('btn-submit-inv').addEventListener('click', () => handleInventoryChange('withdrawal'));
+
+  const btnAddStock = document.getElementById('btn-add-stock-inv');
+  if (btnAddStock) {
+    btnAddStock.addEventListener('click', () => handleInventoryChange('addition'));
+  }
 
   // Back Button to Dashboard
   const btnBackDash = document.getElementById('btn-inventory-back');
@@ -180,7 +189,10 @@ export function renderInventoryTech() {
       card.innerHTML = `
         <span style="font-size: 7px; font-weight: 900; color: var(--tealAccent); opacity: 0.8;">${item.id}</span>
         <span style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">${item.nombreItem}</span>
-        <span style="font-size: 8px; color: var(--text-muted); font-weight: 600;">${item.ecosistema || ''}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 8px; color: var(--text-muted); font-weight: 600;">${item.ecosistema || ''}</span>
+            ${isAdmin ? `<span style="font-size: 9px; font-weight: 900; color: var(--tealAccent); background: rgba(0, 245, 212, 0.1); padding: 2px 6px; border-radius: 4px;">STOCK: ${item.stockActual}</span>` : ''}
+        </div>
       `;
 
       card.addEventListener('click', () => {
@@ -192,6 +204,7 @@ export function renderInventoryTech() {
             <div style="display:flex; flex-direction:column; gap:2px;">
                 <span style="font-size: 7px; font-weight: 900; color: var(--tealAccent); opacity: 0.8;">${item.id}</span>
                 <span style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">${item.nombreItem}</span>
+                ${isAdmin ? `<span style="font-size: 10px; font-weight: 900; color: var(--tealAccent); margin-top: 4px;">DISPONIBLE: ${item.stockActual} unidades</span>` : ''}
             </div>
           `;
           
@@ -206,7 +219,7 @@ export function renderInventoryTech() {
     });
   }
 
-  function handleWithdrawal() {
+  function handleInventoryChange(mode = 'withdrawal') {
     const itemId = document.getElementById('inv-item-select').value;
     const qtyInput = document.getElementById('inv-item-qty').value;
     const qty = parseInt(qtyInput, 10);
@@ -224,46 +237,50 @@ export function renderInventoryTech() {
     const item = invData.find(i => i.id === itemId);
     if (!item) return;
 
-    if (qty > item.stockActual) {
-      // Alert with red notification without revealing true stock
-      showToast('Error: No hay suficiente material en la sede para este retiro', 'error');
+    if (mode === 'withdrawal') {
+        if (qty > item.stockActual) {
+          showToast('Error: No hay suficiente material en la sede para este retiro', 'error');
+          return;
+        }
+        item.stockActual -= qty;
     } else {
-      item.stockActual -= qty;
-      saveInventario(invData);
-
-      // ── Registro en historialInventario ──────────────────────────
-      try {
-        const loggedUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
-        const techName = [loggedUser.nombre, loggedUser.apellido].filter(Boolean).join(' ') || loggedUser.email || 'Técnico';
-
-        const historial = getHistorialInventario();
-        historial.unshift({
-          fecha: new Date().toISOString(),
-          tecnico_nombre: techName,
-          item_nombre: item.nombreItem,
-          item_id: item.id,
-          cantidad_retirada: qty,
-          sede: selectedSede,
-          ecosistema: selectedEcosistema
-        });
-        // Keep only last 500 entries to avoid bloating the DB
-        if (historial.length > 500) historial.length = 500;
-        saveHistorialInventario(historial);
-      } catch (histErr) {
-        console.warn('No se pudo guardar el historial de inventario:', histErr);
-      }
-      // ─────────────────────────────────────────────────────────────
-
-      showToast('Retiro registrado correctamente.', 'success');
-      
-      // Clear form
-      document.getElementById('inv-item-select').value = '';
-      document.getElementById('inv-item-qty').value = '';
-      
-      // Go back to Step 1 or stay? The prompt says: "limpia el formulario y muestra una notificación verde"
-      // So staying in step 3 but clearing form is fine, or go to step 1.
-      step3.style.display = 'none';
-      step1.style.display = 'block';
+        // Addition (Admin only)
+        item.stockActual += qty;
     }
+
+    saveInventario(invData);
+
+    // ── Registro en historialInventario ──────────────────────────
+    try {
+      const loggedUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+      const userName = [loggedUser.nombre, loggedUser.apellido].filter(Boolean).join(' ') || loggedUser.email || (mode === 'withdrawal' ? 'Técnico' : 'Admin');
+
+      const historial = getHistorialInventario();
+      historial.unshift({
+        fecha: new Date().toISOString(),
+        tecnico_nombre: userName,
+        item_nombre: item.nombreItem,
+        item_id: item.id,
+        cantidad_retirada: mode === 'withdrawal' ? qty : 0,
+        cantidad_surtida: mode === 'addition' ? qty : 0,
+        sede: selectedSede,
+        ecosistema: selectedEcosistema,
+        tipo_movimiento: mode === 'withdrawal' ? 'RETIRO' : 'SURTIDO'
+      });
+      if (historial.length > 500) historial.length = 500;
+      saveHistorialInventario(historial);
+    } catch (histErr) {
+      console.warn('No se pudo guardar el historial de inventario:', histErr);
+    }
+    // ─────────────────────────────────────────────────────────────
+
+    showToast(mode === 'withdrawal' ? 'Retiro registrado correctamente.' : 'Stock actualizado correctamente.', 'success');
+    
+    // Clear form
+    document.getElementById('inv-item-select').value = '';
+    document.getElementById('inv-item-qty').value = '';
+    
+    step3.style.display = 'none';
+    step1.style.display = 'block';
   }
 }

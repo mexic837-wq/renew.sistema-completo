@@ -31,7 +31,8 @@ export function renderMisRecibos() {
     </div>
 
     <div style="padding:16px 16px 100px;">
-      <!-- Filter tabs -->
+      <!-- Filter tabs (Admins Only) -->
+      ${isAdmin ? `
       <div style="display:flex;gap:8px;margin-bottom:20px;">
         <button data-filter="all"
           style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--primary);background:rgba(0,223,191,0.12);color:var(--primary);font-size:0.8rem;font-weight:800;cursor:pointer;"
@@ -43,6 +44,7 @@ export function renderMisRecibos() {
           style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-tecnico">Técnicos</button>
       </div>
+      ` : ''}
 
       <!-- Receipts list -->
       <div id="recibos-list">
@@ -212,7 +214,6 @@ function _showReciboModal(r) {
       </div>
     `;
   } else {
-    const items = d.items || [];
     html = `
       <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información</p>
@@ -220,24 +221,6 @@ function _showReciboModal(r) {
         ${field('Cliente', r.cliente_nombre || d.customer_name)}
         ${field('Dirección', d.address || r.direccion)}
         ${field('Fecha', d.date)}
-      </div>
-      <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
-        <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Items</p>
-        ${items.map(item => `
-          <div style="padding:10px 0;border-bottom:1px solid var(--border);">
-            <div style="display:flex;justify-content:space-between;">
-              <span style="font-size:0.82rem;color:var(--text-primary);font-weight:700;">${item.description}</span>
-              <span style="font-size:0.82rem;color:${color};font-weight:800;">${item.total ? `$${Number(item.total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—'}</span>
-            </div>
-            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">
-              Qty: ${item.qty || '—'} | Modelo: ${item.model || '—'}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">
-        ${field('Descuento', d.discount_pct ? `${d.discount_pct}% ($${Number(d.discount_amount||0).toLocaleString('en-US',{minimumFractionDigits:2})})` : '0%')}
-        ${field('TOTAL PRICE', d.total_price ? `$${Number(d.total_price).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—', true)}
       </div>
     `;
   }

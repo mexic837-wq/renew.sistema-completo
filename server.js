@@ -73,7 +73,7 @@ app.get('/api/db', async (req, res) => {
             'admin_pipelines', 'admin_fases', 'admin_campos_formulario', 'clientes_maestro', 
             'proyectos_dinamicos', 'respuestas_dinamicas', 'usuarios', 'academia_content', 
             'inventario_global', 'historial_inventario', 'anuncios_corporativos', 'partners_directorio', 'calendario_eventos',
-            'recibos_pagos', 'water_productos', 'admin_catalogos'
+            'recibos_pagos', 'water_productos', 'admin_catalogos', 'admin_meetings', 'admin_meetings_reads'
         ];
         
         const results = await Promise.all(tables.map(t => fetchWithTimeout(t)));
@@ -202,6 +202,8 @@ app.get('/api/db', async (req, res) => {
                 updated_at:      p.updated_at     || null
             })),
             Admin_Catalogos:         results[15].data || [],
+            admin_meetings:          results[16].data || [],
+            admin_meetings_reads:    results[17].data || [],
             // Compute counters dynamically from real data — avoids collision bugs
             Counters: {
                 cli:   maxId(results[3].data,  'cli_'),
@@ -578,9 +580,9 @@ app.post('/api/db', async (req, res) => {
         if (db.Proyectos_Dinamicos?.length) {
             // Strip fields that don't exist in the Supabase table (e.g. 'estado', 'asignado_a')
             // Sanitize fase_id so 'Completado' becomes null (to avoid invalid UUID error in Supabase)
-            const proy = db.Proyectos_Dinamicos.map(({ estado, fase_id, asignado_a, direccion, nombre_cliente, telefono_cliente, email_cliente, email, telefono, etapa, fase_orden, total_fases, zip, licencia, id_photo, is_locked, rol_fase, ultima_actividad_label, ultima_actividad, actividad, ...rest }) => ({
+            const proy = db.Proyectos_Dinamicos.map(({ asignado_a, direccion, nombre_cliente, telefono_cliente, email_cliente, email, telefono, etapa, fase_orden, total_fases, zip, licencia, id_photo, ...rest }) => ({
                 ...rest,
-                fase_id: fase_id === 'Completado' ? null : fase_id
+                fase_id: rest.fase_id === 'Completado' ? null : rest.fase_id
             }));
             console.log("PROYECTOS TO UPSERT:", JSON.stringify(proy).substring(0, 500));
             syncTasks.push(supabase.from('proyectos_dinamicos').upsert(proy, { onConflict: 'id' }));
@@ -728,8 +730,7 @@ app.post('/api/upsert', async (req, res) => {
         let sanitizedRecords = records;
         if (table === 'proyectos_dinamicos') {
             sanitizedRecords = records.map(({ 
-                asignado_a, estado, actividad, ultima_actividad, 
-                ultima_actividad_label, rol_fase, is_locked,
+                asignado_a,
                 direccion, nombre_cliente, telefono_cliente, email_cliente, email, telefono, etapa, fase_orden, total_fases, zip, licencia, id_photo, ...rest 
             }) => ({
                 ...rest,

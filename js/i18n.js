@@ -249,7 +249,7 @@ const TRANSLATIONS = {
     inv_col_storage:    'Storage',
     inv_col_stock:      'Existencia Actual',
     inv_col_actions:    'Acciones',
-    inv_history_title:  'Historial de Movimientos',
+    inv_history_title:  'Historial de Inventario',
     inv_history_desc:   'Retiros registrados por técnicos',
     inv_col_date:       'Fecha y Hora',
     inv_col_tech:       'Técnico',
@@ -268,6 +268,7 @@ const TRANSLATIONS = {
     ann_field_title:    'Título del Anuncio',
     ann_field_aud:      'Audiencia (Pipeline)',
     ann_field_msg:      'Mensaje (Obligatorio en App)',
+    ann_field_photo:    'Foto / Banner (Opcional)',
     ann_btn_pub:        'Publicar Anuncio',
     ann_hist:           'Historial de Anuncios',
     ann_report_select:  'Selecciona un anuncio',
@@ -292,6 +293,22 @@ const TRANSLATIONS = {
     aca_type_bank:      'Banco Financieras',
     aca_type_equipment: 'Detalles de equipo',
     aca_type_faq:       'FAQ',
+
+    // ── Partners ──────────────────────────────────────────
+    partner_cat_solar:    'Solar',
+    partner_cat_roofing:  'Techos (Roofing)',
+    partner_cat_hvac:     'Aire (HVAC)',
+    partner_cat_painting: 'Pintura',
+    partner_cat_fence:    'Cercas',
+    partner_cat_general:  'General',
+
+    // ── Meetings ───────────────────────────────────────────
+    mt_title:           'Coordinar Llamada',
+    mt_desc:            'Programa reuniones y llamadas importantes para el equipo.',
+    mt_field_link:      'Enlace de la Reunión (Zoom/Google Meet)',
+    mt_field_msg:       'Instrucciones / Texto',
+    mt_field_image:     'Imagen de Referencia',
+    mt_btn_pub:         'Publicar Reunión',
   },
 
   en: {
@@ -539,7 +556,7 @@ const TRANSLATIONS = {
     inv_col_storage:    'Storage',
     inv_col_stock:      'Current Stock',
     inv_col_actions:    'Actions',
-    inv_history_title:  'Movement History',
+    inv_history_title:  'Inventory History',
     inv_history_desc:   'Withdrawals recorded by technicians',
     inv_col_date:       'Date & Time',
     inv_col_tech:       'Technician',
@@ -558,6 +575,7 @@ const TRANSLATIONS = {
     ann_field_title:    'Announcement Title',
     ann_field_aud:      'Audience (Pipeline)',
     ann_field_msg:      'Message (Required in App)',
+    ann_field_photo:    'Photo / Banner (Optional)',
     ann_btn_pub:        'Publish Announcement',
     ann_hist:           'Announcement History',
     ann_report_select:  'Select an announcement',
@@ -582,6 +600,22 @@ const TRANSLATIONS = {
     aca_type_bank:      'Financial Banks',
     aca_type_equipment: 'Equipment Details',
     aca_type_faq:       'FAQ',
+
+    // ── Partners ──────────────────────────────────────────
+    partner_cat_solar:    'Solar',
+    partner_cat_roofing:  'Roofing',
+    partner_cat_hvac:     'HVAC / AC',
+    partner_cat_painting: 'Painting',
+    partner_cat_fence:    'Fence',
+    partner_cat_general:  'General',
+
+    // ── Meetings ───────────────────────────────────────────
+    mt_title:           'Coordinate Call',
+    mt_desc:            'Schedule important meetings and calls for the team.',
+    mt_field_link:      'Meeting Link (Zoom/Google Meet)',
+    mt_field_msg:       'Instructions / Text',
+    mt_field_image:     'Reference Image',
+    mt_btn_pub:         'Publish Meeting',
   }
 };
 

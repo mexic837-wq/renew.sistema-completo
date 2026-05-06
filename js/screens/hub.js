@@ -2,7 +2,8 @@
    RENEW SOLAR – screens/hub.js
    Screen: Selector de Ecosistema
    ============================================================ */
-import { navigate, getCurrentUser } from '../app.js';
+import { getCurrentUser, logout } from '../api.js';
+// Removed import from ../app.js to break circular dependency
 
 export function renderHub() {
   const screen = document.getElementById('screen-hub');
@@ -56,12 +57,17 @@ export function renderHub() {
   `;
 
   // Auto-select first unit and skip directly to dashboard
-  // (Pipeline selection is now done via the Dashboard home screen chips)
   const firstUnit = units[0] || 'Renew Solar';
   if (!localStorage.getItem('active_unit')) {
     localStorage.setItem('active_unit', firstUnit);
   }
-  navigate('dashboard');
+  
+  // Use setTimeout to avoid synchronous recursion in navigate()
+  setTimeout(() => {
+    if (window.location.hash.includes('hub')) {
+      window.appNavigate('dashboard');
+    }
+  }, 100);
 
 
   if (user.rol === 'Admin') {
@@ -69,8 +75,7 @@ export function renderHub() {
   }
 
   document.getElementById('hub-logout').addEventListener('click', () => {
-    localStorage.removeItem('rs_user');
     localStorage.removeItem('active_unit');
-    navigate('login');
+    logout();
   });
 }

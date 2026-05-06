@@ -2,7 +2,8 @@
    RENEW SOLAR – screens/newClient.js 
    (DYNAMIC DATA-DRIVEN RENDERER)
    ============================================================ */
-import { navigate, getCurrentUser } from '../app.js';
+import { getCurrentUser } from '../api.js';
+// Removed import from ../app.js to break circular dependency
 import { showToast } from '../components/toast.js';
 import { 
   getPipelineByName, 
@@ -34,7 +35,7 @@ export async function renderNewClient() {
       <div class="skeleton" style="height:200px;border-radius:16px;margin-bottom:24px"></div>
     </div>
   `;
-  document.getElementById('nc-back-btn').addEventListener('click', () => navigate('dashboard'));
+  document.getElementById('nc-back-btn').addEventListener('click', () => window.appNavigate('dashboard'));
 
   try {
     // 1. Fetch Configuration for current Ecosystem
@@ -249,19 +250,19 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
               <!-- Adjunto ID -->
-              <div id="nc-drop-adj-id" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('nc-inp-adj-id').click()">
+              <div id="nc-drop-adj-id" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;">
                 <input type="file" id="nc-inp-adj-id" accept="image/*,.pdf" capture="environment" style="display:none" />
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="1.5" style="margin:0 auto 6px;"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M3 16l4-4 4 4"/></svg>
                 <p id="nc-lbl-adj-id" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Foto ID</p>
               </div>
               <!-- Adjunto Bill -->
-              <div id="nc-drop-adj-bill" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('nc-inp-adj-bill').click()">
+              <div id="nc-drop-adj-bill" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;">
                 <input type="file" id="nc-inp-adj-bill" accept="image/*,.pdf" capture="environment" style="display:none" />
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5" style="margin:0 auto 6px;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                 <p id="nc-lbl-adj-bill" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Bill Eléctrico</p>
               </div>
               <!-- Adjunto Seguro -->
-              <div id="nc-drop-adj-seguro" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('nc-inp-adj-seguro').click()">
+              <div id="nc-drop-adj-seguro" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;">
                 <input type="file" id="nc-inp-adj-seguro" accept="image/*,.pdf" capture="environment" style="display:none" />
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" style="margin:0 auto 6px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 <p id="nc-lbl-adj-seguro" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Seguro</p>
@@ -278,7 +279,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
   `;
 
   // Attach Listeners
-  document.getElementById('nc-back-btn').addEventListener('click', () => navigate('dashboard'));
+  document.getElementById('nc-back-btn').addEventListener('click', () => window.appNavigate('dashboard'));
   document.getElementById('btn-submit').addEventListener('click', () => handleSubmit(pipeline.nombre, campos));
 
   // Buscador Relacional Logic
@@ -721,6 +722,11 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
     const drop = document.getElementById(dropId);
     const lbl = document.getElementById(labelId);
     if (!inp) return;
+    inp.addEventListener('click', (e) => e.stopPropagation());
+    if (drop) {
+      drop.addEventListener('click', () => inp.click());
+    }
+
     inp.addEventListener('change', () => {
       if (inp.files.length) {
         if (drop) { drop.style.borderColor = color; drop.style.background = color + '10'; }
@@ -945,8 +951,9 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
         const missing = [];
         if (!cli.nombre || cli.nombre === 'Desconocido') missing.push('Nombre');
         if (!cli.telefono || cli.telefono.length < 5) missing.push('Teléfono');
-        const hasPhoto = !!(cli.id_photo || cli.foto || cli.foto_id || cli.adjunto_id_url || photoInMemory);
-        if (!hasPhoto) missing.push('Foto del ID');
+        
+        const hasIdPhoto = !!(cli.adjunto_id_url || cli.id_photo || currentPhotoUrl);
+        if (!hasIdPhoto) missing.push('Foto del ID');
 
         if (missing.length > 0) {
             showToast(`Datos incompletos: ${missing.join(', ')}. Abre "Completar Perfil" para añadir la foto.`, 'error');
@@ -986,7 +993,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
       });
 
       showToast(`Pipeline ${pipelineName} creado exitosamente`, 'success');
-      setTimeout(() => navigate('dashboard'), 800);
+      setTimeout(() => window.appNavigate('dashboard'), 800);
     } catch(err) {
       showToast(err.message, 'error');
       btn.classList.remove('loading');

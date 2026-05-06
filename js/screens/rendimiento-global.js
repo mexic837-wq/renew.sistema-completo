@@ -1,7 +1,7 @@
 /* ============================================================
    RENEW OS – screens/rendimiento-global.js
    ============================================================ */
-import { getDB, formatDate } from '../api.js';
+import { getDB, formatDate, isProjectFinished, getProjectDate } from '../api.js';
 
 export async function renderRendimientoGlobal() {
     const canvas = document.getElementById('main-canvas');
@@ -17,6 +17,7 @@ export async function renderRendimientoGlobal() {
                     <button id="tab-home" onclick="window.filterGlobalEco('Home')" class="eco-tab active px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">Renew Home</button>
                     <button id="tab-solar" onclick="window.filterGlobalEco('Solar')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Solar</button>
                     <button id="tab-water" onclick="window.filterGlobalEco('Water')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Water</button>
+                    <button id="tab-group" onclick="window.filterGlobalEco('Group')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Group</button>
                 </div>
 
                 <!-- Time Range Toggle -->
@@ -27,18 +28,29 @@ export async function renderRendimientoGlobal() {
             </div>
 
             <!-- KPI Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white dark:bg-darkCard p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-premium">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Total Contacts -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-tealAccent/30 transition-all">
                     <p class="text-[10px] font-black text-tealAccent uppercase tracking-[0.2em] mb-2">Total Contactos</p>
-                    <h3 id="kpi-total-contactos" class="text-4xl font-black text-gray-900 dark:text-white">0</h3>
+                    <h3 id="kpi-total-contactos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
                 </div>
-                <div class="bg-white dark:bg-darkCard p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-premium">
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-2">Ventas Cerradas</p>
-                    <h3 id="kpi-ventas-totales" class="text-4xl font-black text-gray-900 dark:text-white">0</h3>
+
+                <!-- Open Projects -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-amber-400/30 transition-all">
+                    <p class="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] mb-2">En Proceso</p>
+                    <h3 id="kpi-proyectos-abiertos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
                 </div>
-                <div class="bg-white dark:bg-darkCard p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-premium">
-                    <p class="text-[10px] font-black text-purple-500 uppercase tracking-[0.2em] mb-2">Tasa de Cierre</p>
-                    <h3 id="kpi-tasa-cierre" class="text-4xl font-black text-gray-900 dark:text-white">0%</h3>
+
+                <!-- Closed Sales -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-emerald-400/30 transition-all">
+                    <p class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-2">Ventas Cerradas</p>
+                    <h3 id="kpi-ventas-totales" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                </div>
+
+                <!-- Conversion Rate -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-sky-400/30 transition-all">
+                    <p class="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em] mb-2">Tasa de Cierre</p>
+                    <h3 id="kpi-tasa-cierre" class="text-3xl font-black text-gray-900 dark:text-white">0%</h3>
                 </div>
             </div>
 
@@ -142,19 +154,21 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
     const clients = db.Clientes_Maestro || [];
     const projects = db.Proyectos_Dinamicos || [];
 
+    const isGroup = ecosystem.toLowerCase() === 'group';
     const ecosystemLower = ecosystem.toLowerCase();
 
     // 1. Correct "Total Contactos" calculation (Sync with mobile chip logic)
-    const ecoClients = clients.filter(c => {
+    const ecoClients = isGroup ? clients : clients.filter(c => {
         const deptsStr = (c.departamento || '').toLowerCase();
         // Check for "Solar", "Water", "Home" etc in the departamento string
         return deptsStr.includes(ecosystemLower);
     });
 
     // 2. Ecosystem Projects
-    const ecoProjects = projects.filter(p => {
+    const ecoProjects = isGroup ? projects : projects.filter(p => {
         const pipe = (db.Admin_Pipelines || []).find(pip => String(pip.id) === String(p.pipeline_id));
-        if (!pipe) return false;
+        if (!pipe) return false; // Strictly exclude projects without a pipeline from specific tabs
+        
         const pipeName = (pipe.nombre || '').toLowerCase();
         const ecoLower = ecosystemLower.replace('renew ', '').trim();
         return pipeName.includes(ecosystemLower) || pipeName.includes(ecoLower);
@@ -166,39 +180,47 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
     const currentYear = now.getFullYear();
 
     const filteredProjects = ecoProjects.filter(p => {
-        if (range === 'total') return true; // Include everything for historical
+        if (range === 'total') return true; 
         
-        const dateToUse = (p.estado === 'Completado' || p.fase_id === 'Completado') ? (p.fecha_cierre || p.fecha) : p.fecha;
+        const dateToUse = getProjectDate(p, db);
         if (!dateToUse) return false;
         const d = new Date(dateToUse + 'T12:00:00');
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
-    // We keep "Ventas Cerradas" as the final stage
     const closedSales = filteredProjects.filter(p => {
-        const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-        return p.fase_id === 'Completado' || p.estado === 'Completado';
+        const finished = isProjectFinished(p, db);
+        if (finished) console.log(`[AUDIT-GLOBAL] Project ${p.id} is FINISHED. Date: ${getProjectDate(p,db)}`);
+        return finished;
     });
 
+    console.log(`[AUDIT-GLOBAL] Total eco projects: ${ecoProjects.length}, Filtered by date: ${filteredProjects.length}, Closed sales: ${closedSales.length}`);
+
     // Update KPIs
+    const openProjects = filteredProjects.filter(p => !isProjectFinished(p, db));
+    
     document.getElementById('kpi-total-contactos').textContent = ecoClients.length;
+    document.getElementById('kpi-proyectos-abiertos').textContent = openProjects.length;
     document.getElementById('kpi-ventas-totales').textContent = closedSales.length;
     const closeRate = filteredProjects.length > 0 ? Math.round((closedSales.length / filteredProjects.length) * 100) : 0;
     document.getElementById('kpi-tasa-cierre').textContent = `${closeRate}%`;
 
     // Leaderboard data (Matching mobile dashboard.js logic)
     const leaderboardData = relevantVendors.map(v => {
-        // Only count projects that are 100% finished
-        const vProjects = filteredProjects.filter(p => String(p.responsable_id) === String(v.id));
-        const vClosed = vProjects.filter(p => {
-            const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-            return p.fase_id === 'Completado' || p.estado === 'Completado';
+        // Only count projects where the vendor is either the responsable or the assigned vendor in the client record
+        const vProjects = filteredProjects.filter(p => {
+            if (String(p.responsable_id) === String(v.id)) return true;
+            // Also check client record for assigned vendor
+            const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+            return cli && String(cli.vendedor_asignado_id) === String(v.id);
         });
+
+        const vClosed = vProjects.filter(p => isProjectFinished(p, db));
         const vCloseRate = vProjects.length > 0 ? Math.round((vClosed.length / vProjects.length) * 100) : 0;
         
-        // Match mobile "Ventas" count (ONLY 100% finished projects)
+        // Match mobile "Ventas" count (ONLY finished projects)
         const salesCount = vClosed.length; 
-        const vCommissions = vClosed.length * 1000; // Commissions usually on closed deals
+        const vCommissions = vClosed.length * 1000; // Commissions on closed deals
 
         return {
             ...v,
@@ -252,10 +274,13 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
         chartDataArr = Array.from({ length: daysInMonth }, () => 0);
 
         closedSales.forEach(p => {
-            const dateToUse = p.fecha_cierre || p.fecha;
+            const dateToUse = getProjectDate(p, db);
+            if (!dateToUse) return;
             const d = new Date(dateToUse + 'T12:00:00');
+            console.log(`[CHART-DEBUG] Project ${p.id} date: ${dateToUse}, parsed: ${d.toDateString()}`);
             if (d.getMonth() === currentMonth && d.getFullYear() === currentYear && d.getDate() <= daysInMonth) {
                 chartDataArr[d.getDate() - 1]++;
+                console.log(`[CHART-DEBUG] -> Added to day ${d.getDate()}`);
             }
         });
         document.querySelector('#globalPerformanceChart').parentElement.previousElementSibling.querySelector('p').textContent = 'Curva de ventas de toda la empresa este mes.';
@@ -266,7 +291,8 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
         chartDataArr = Array.from({ length: 12 }, () => 0);
 
         closedSales.forEach(p => {
-            const dateToUse = p.fecha_cierre || p.fecha;
+            const dateToUse = getProjectDate(p, db);
+            if (!dateToUse) return;
             const d = new Date(dateToUse + 'T12:00:00');
             if (d.getFullYear() === currentYear) {
                 chartDataArr[d.getMonth()]++;
@@ -274,6 +300,9 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
         });
         document.querySelector('#globalPerformanceChart').parentElement.previousElementSibling.querySelector('p').textContent = 'Crecimiento de ventas acumulado este año.';
     }
+
+    console.log(`[CHART-FINAL] Labels:`, labels);
+    console.log(`[CHART-FINAL] Data:`, chartDataArr);
 
     const canvas = document.getElementById('globalPerformanceChart');
     if (canvas) {

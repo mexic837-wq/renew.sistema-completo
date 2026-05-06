@@ -107,12 +107,8 @@ export function renderLogin() {
         return;
       }
 
-      if (user.unidades && user.unidades.length > 1) {
-        navigate('hub');
-      } else {
-        localStorage.setItem('active_unit', user.unidades ? user.unidades[0] : 'Renew Solar');
-        navigate('dashboard');
-      }
+      localStorage.setItem('active_unit', (user.unidades && user.unidades.length > 0) ? user.unidades[0] : 'Renew Solar');
+      window.appNavigate('dashboard');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {

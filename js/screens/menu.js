@@ -2,7 +2,8 @@
    RENEW SOLAR – screens/menu.js
    Full-screen Main Menu Section
    ============================================================ */
-import { getCurrentUser, logout, navigate } from '../app.js';
+import { getCurrentUser, logout } from '../api.js';
+// Removed import from ../app.js to break circular dependency
 import { t, getLang, setLang, langSwitcherHTML } from '../i18n.js';
 import { getDB } from '../api.js';
 
@@ -64,7 +65,7 @@ export async function renderMenu() {
        <!-- BLOQUE 2: CONFIGURACIÓN (List) -->
       <p class="menu-section-label" style="margin-top:32px;">${t('menu_settings')}</p>
       <div class="menu-list">
-        <div class="menu-list-item">
+        <div class="menu-list-item" id="btn-menu-account" style="cursor: pointer;">
           <div class="menu-item-left">
             <div class="menu-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <span>${t('menu_account')}</span>
@@ -80,17 +81,6 @@ export async function renderMenu() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
 
-        ${canSeeWaterForms ? `
-        <div class="menu-list-item" id="btn-lista-precios" style="cursor:pointer;">
-          <div class="menu-item-left">
-            <div class="menu-item-icon" style="background:rgba(14,165,233,0.1); color:#0ea5e9;">
-              <i class="fas fa-tag" style="font-size:1rem;"></i>
-            </div>
-            <span>💧 Lista de Precios Water</span>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        ` : ''}
 
         <div class="menu-list-item" id="btn-theme-toggle-mobile">
           <div class="menu-item-left">
@@ -114,9 +104,14 @@ export async function renderMenu() {
           ${langSwitcherHTML()}
         </div>
 
-        <div class="menu-list-item">
+        <div class="menu-list-item" id="btn-menu-support" style="cursor: pointer;">
           <div class="menu-item-left">
-            <div class="menu-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z"/></svg></div>
+            <div class="menu-item-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+              </svg>
+            </div>
             <span>${t('menu_support')}</span>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
@@ -146,6 +141,12 @@ export async function renderMenu() {
     });
   }
 
+  // Mi Cuenta
+  const btnAccount = document.getElementById('btn-menu-account');
+  if (btnAccount) {
+    btnAccount.addEventListener('click', () => mostrarModalCuenta(user));
+  }
+
   // Notificaciones
   const btnNotifs = document.getElementById('btn-menu-notifs');
   if (btnNotifs) {
@@ -154,10 +155,12 @@ export async function renderMenu() {
     });
   }
 
-  // Lista de Precios Renew Water
-  const btnListaPrecios = document.getElementById('btn-lista-precios');
-  if (btnListaPrecios) {
-    btnListaPrecios.addEventListener('click', () => navigate('lista-precios'));
+  // Soporte Técnico
+  const btnSupport = document.getElementById('btn-menu-support');
+  if (btnSupport) {
+    btnSupport.addEventListener('click', () => {
+      window.location.href = 'mailto:miguel@renewsolarus.com?subject=Soporte Técnico Renew OS';
+    });
   }
 
   // Re-render on language change
@@ -168,17 +171,16 @@ function mostrarModalNotificaciones(user) {
   const db = getDB();
   const anuncios = db.anuncios_corporativos || [];
   
-  // Filter announcements for this user
   const misAnuncios = anuncios.filter(an => {
     if (!an.estado_lecturas) return false;
-    const miLectura = an.estado_lecturas.find(l => l.worker_id === user.id);
-    return !!miLectura; // if it's in my reading list, it was sent to me
+    const miLectura = an.estado_lecturas.find(l => l.vendedor_id === user.id);
+    return !!miLectura; 
   }).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
 
   let listHtml = misAnuncios.map(an => {
     const d = new Date(an.fecha);
     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    const miLectura = an.estado_lecturas.find(l => l.worker_id === user.id);
+    const miLectura = an.estado_lecturas.find(l => l.vendedor_id === user.id);
     const readHtml = (miLectura && miLectura.leido) 
       ? '<i class="fa-solid fa-check-double text-tealAccent text-xs"></i>' 
       : '<span style="font-size: 10px; padding: 2px 6px; background: #ff475720; color: #ff4757; border-radius: 4px; font-weight: bold;">NUEVO</span>';
@@ -189,6 +191,7 @@ function mostrarModalNotificaciones(user) {
           <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text);">${an.titulo}</h4>
           ${readHtml}
         </div>
+        ${an.foto_url ? `<img src="${an.foto_url}" style="width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
         <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; white-space: pre-wrap;">${an.mensaje}</p>
         <div style="font-size: 10px; color: var(--text-muted); text-align: right; font-weight: 600;">
           📅 ${dateStr}
@@ -199,56 +202,96 @@ function mostrarModalNotificaciones(user) {
 
   if (misAnuncios.length === 0) {
     listHtml = `
-      <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-        <i class="fa-solid fa-bell-slash" style="font-size: 32px; opacity: 0.3; margin-bottom: 12px;"></i>
-        <p style="font-size: 12px; font-weight: 600;">No tienes notificaciones</p>
+      <div style="padding: 40px 20px; text-align: center; opacity: 0.5;">
+        <i class="fa-solid fa-bell-slash" style="font-size: 3rem; margin-bottom: 16px; display: block;"></i>
+        <p style="font-size: 14px; font-weight: 700;">No tienes notificaciones</p>
       </div>
     `;
   }
 
-  const modalHtml = `
-    <div id="modal-historial-notifs" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; padding: 20px; box-sizing: border-box;">
-      <div style="background: var(--surface); width: 100%; max-width: 480px; max-height: 85vh; border-radius: 24px; display: flex; flex-direction: column; transform: scale(0.95); opacity: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid var(--border);">
-        
-        <div style="padding: 24px 24px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 36px; height: 36px; border-radius: 12px; background: rgba(0, 245, 212, 0.1); display: flex; align-items: center; justify-content: center; color: #00f5d4;">
-              <i class="fa-solid fa-bell"></i>
-            </div>
-            <div>
-              <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text);">Centro de Notificaciones</h3>
-              <p style="margin: 0; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Historial de Anuncios</p>
-            </div>
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; display:flex; justify-content:center; align-items:center; padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--surface); width:100%; max-width:450px; border-radius:24px; border:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column; max-height:80vh;">
+      <div style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:rgba(0, 245, 212, 0.1); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-bell"></i>
           </div>
-          <button id="btn-close-notifs" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 50%; width: 32px; height: 32px; transition: background 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <h3 style="margin:0; font-size:16px; font-weight:900; color:var(--text); text-transform:uppercase; letter-spacing:0.5px;">Centro de Notificaciones</h3>
         </div>
-
-        <div style="padding: 20px; overflow-y: auto; flex: 1;">
-          ${listHtml}
-        </div>
+        <button id="close-notifs" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.5rem;">&times;</button>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:20px;">
+        ${listHtml}
       </div>
     </div>
   `;
+  document.body.appendChild(modal);
+  modal.querySelector('#close-notifs').onclick = () => modal.remove();
+}
 
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  const modal = document.getElementById('modal-historial-notifs');
-  const innerCard = modal.querySelector('div>div');
+function mostrarModalCuenta(user) {
+  const avatar = user.foto || 'assets/images/default-avatar.png';
+  const rank = user.rango || 'Novato';
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; display:flex; justify-content:center; align-items:center; padding:20px;';
+  modal.innerHTML = `
+    <div class="animate-bounce-in" style="background:var(--surface); width:100%; max-width:400px; border-radius:32px; border:1px solid var(--border); overflow:hidden; position:relative; box-shadow: 0 30px 60px rgba(0,0,0,0.5);">
+      
+      <div style="height:100px; background:linear-gradient(135deg, #00f5d4 0%, #00d2ff 100%); opacity:0.15;"></div>
+      
+      <div style="text-align:center; margin-top:-50px; position:relative; z-index:2;">
+        <div style="width:100px; height:100px; border-radius:30px; background:var(--surface); border:4px solid var(--surface); margin:0 auto; overflow:hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+          <img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='assets/images/default-avatar.png'">
+        </div>
+        <div style="margin-top:12px;">
+           <h3 style="margin:0; font-size:1.4rem; font-weight:900; color:var(--text-primary);">${user.nombre} ${user.apellido}</h3>
+           <span style="display:inline-block; margin-top:4px; padding:4px 12px; background:var(--primary); color:var(--bg); border-radius:100px; font-size:0.65rem; font-weight:950; text-transform:uppercase; letter-spacing:1px;">${rank}</span>
+        </div>
+      </div>
 
-  // Animate in
-  setTimeout(() => {
-    modal.style.opacity = '1';
-    innerCard.style.transform = 'scale(1)';
-    innerCard.style.opacity = '1';
-  }, 10);
+      <div style="padding:32px; display:flex; flex-direction:column; gap:20px;">
+        
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
+            <i class="fa-solid fa-envelope"></i>
+          </div>
+          <div>
+            <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Email Corporativo</p>
+            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${user.email}</p>
+          </div>
+        </div>
 
-  const closeFn = () => {
-    modal.style.opacity = '0';
-    innerCard.style.transform = 'scale(0.95)';
-    innerCard.style.opacity = '0';
-    setTimeout(() => modal.remove(), 300);
-  };
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
+            <i class="fa-solid fa-phone"></i>
+          </div>
+          <div>
+            <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Teléfono Móvil</p>
+            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${user.telefono || 'Sin registrar'}</p>
+          </div>
+        </div>
 
-  document.getElementById('btn-close-notifs').addEventListener('click', closeFn);
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
+            <i class="fa-solid fa-id-card-clip"></i>
+          </div>
+          <div>
+            <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Rol Organizacional</p>
+            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${user.rol}</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="padding:0 32px 32px;">
+        <button id="close-account" style="width:100%; padding:16px; border-radius:16px; border:none; background:var(--bg); color:var(--text-primary); font-weight:800; font-size:0.9rem; cursor:pointer;">Cerrar Detalles</button>
+      </div>
+
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector('#close-account').onclick = () => modal.remove();
 }

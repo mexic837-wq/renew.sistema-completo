@@ -426,7 +426,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
          </div>
         `;
     } else if (c.tipo === 'Archivo') {
-       let textLabel = (c.etiqueta || "").toLowerCase().includes('subir') ? c.etiqueta : `Subir ${c.etiqueta}`;
+       let textLabel = ((c.etiqueta || "").toLowerCase().includes('subir') ? c.etiqueta : `Subir ${c.etiqueta}`) + (c.es_opcional ? ' (Opcional)' : '');
 
        // A field is "done" if it has a previously saved value (any format: base64 or URL)
        const hasFile = !!(val && val !== 'No subido' && val !== 'No provisto' && (val.startsWith('data:') || val.startsWith('http')));
@@ -509,14 +509,47 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
            <input type="hidden" id="df_${c.id}" value="${val || ''}"/>
          </div>
        `;
+     } else if (c.tipo === 'Técnico') {
+       // Cargar técnicos desde la DB
+       const allUsers = getDB()?.Usuarios || [];
+       const technicians = allUsers.filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico');
+       const opts = technicians.map(w => {
+         const name = `${w.nombre} ${w.apellido || ''}`.trim();
+         return `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${name}</option>`;
+       }).join('');
+       html = `
+         <div class="input-wrap select-wrap no-icon">
+           <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary); appearance:none;">
+             <option value="" ${!val ? 'selected' : ''}>Escoger Técnico...</option>
+             ${opts}
+           </select>
+         </div>
+       `;
+     } else if (c.tipo === 'Fecha y Hora') {
+       html = `
+         <div class="input-wrap no-icon">
+           <input type="datetime-local" id="df_${c.id}" value="${val}" ${disabledAttr}
+                  style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
+                  onclick="this.showPicker ? this.showPicker() : ''">
+         </div>
+       `;
+     } else if (c.tipo === 'Fecha') {
+       html = `
+         <div class="input-wrap no-icon">
+           <input type="date" id="df_${c.id}" value="${val}" ${disabledAttr}
+                  style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
+                  onclick="this.showPicker ? this.showPicker() : ''">
+         </div>
+       `;
      } else {
        html = `<div class="input-wrap no-icon"><input type="${c.tipo==='Número'?'number':'text'}" id="df_${c.id}" class="w-full" placeholder="${c.etiqueta}..." value="${val}" ${disabledAttr} style="${lockedStyle}"></div>`;
      }
-    return c.tipo === 'Archivo' ? html : `<div class="field-group"><label>${c.etiqueta}</label>${html}</div>`;
+    return c.tipo === 'Archivo' ? html : `<div class="field-group"><label>${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic; font-size:0.85em; color:var(--text-muted);">(Opcional)</span>' : ''}</label>${html}</div>`;
   }).join('');
 
-  const numFilled = existingResp.filter(r => campos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
-  const isComplete = numFilled >= campos.length;
+  const requiredCampos = campos.filter(c => !c.es_opcional);
+  const numRequiredFilled = existingResp.filter(r => requiredCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+  const isComplete = numRequiredFilled >= requiredCampos.length;
 
   // Force special buttons if phase name matches but they are not in campos
   const actNomLower = actFase.nombre.toLowerCase();
@@ -601,7 +634,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       <h3 class="text-lg font-bold text-gray-800 mb-2">${isLocked ? 'Fase en Proceso' : `Acción: Llenar ${actFase.nombre}`}</h3>
       <p class="text-xs text-gray-500 mb-6" id="phase-status-desc">
         ${isLocked ? `Esta etapa debe ser completada por <strong>${deal.rol_fase}</strong>. Puedes ver los avances aquí.` : 
-          (isComplete ? '¡Todo listo! Ya puedes finalizar esta etapa.' : `Faltan <strong>${campos.length - numFilled}</strong> campos/archivos para poder avanzar.`)}
+          (isComplete ? '¡Todo listo! Ya puedes finalizar esta etapa.' : `Faltan <strong>${requiredCampos.length - numRequiredFilled}</strong> campos obligatorios para poder avanzar.`)}
       </p>
       
       <div id="form-fields-container" style="${isLocked ? 'pointer-events:none' : ''}">

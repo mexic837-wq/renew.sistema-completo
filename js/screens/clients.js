@@ -1,5 +1,5 @@
-import { getClientesMaestro, createDynamicDeal, updateClientMaestro, getDB, getDeptArray, uploadFile, getAdminWorkers } from '../api.js';
-import { getCurrentUser } from '../app.js';
+import { getClientesMaestro, createDynamicDeal, updateClientMaestro, getDB, getDeptArray, uploadFile, getAdminWorkers, getCurrentUser } from '../api.js';
+// Removed import from ../app.js to break circular dependency
 import { showToast } from '../components/toast.js';
 import { t } from '../i18n.js';
 
@@ -1178,19 +1178,70 @@ function _wireModalControls(user, container) {
 
         console.log('OCR Result:', text);
 
-        // 4. Parse data
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+        // 4. Parse data (Enhanced Smart Parsing)
+        const rawLines = text.split('\n').map(l => l.trim()).filter(l => l.length >= 2);
         
-        // DOB Match (MM/DD/YYYY or DD/MM/YYYY)
-        const dobMatch = text.match(/(\d{2}[/-]\d{2}[/-]\d{4})/);
+        let firstName = '';
+        let lastName = '';
+        
+        // Normalize lines for detection (handle Tesseract common errors like I for 1)
+        const processedLines = rawLines.map(l => {
+          let cleaned = l.replace(/^I\s+/i, '1 ').replace(/^Z\s+/i, '2 ').replace(/^S\s+/i, '5 ');
+          return cleaned;
+        });
+
+        // Pattern A: Florida/US Standard labels (1=Surname, 2=Given Names)
+        const flSurname = processedLines.find(l => /^1\s+[A-Z\s,.-]+$/i.test(l));
+        const flGiven = processedLines.find(l => /^2\s+[A-Z\s,.-]+$/i.test(l));
+        
+        if (flSurname) lastName = flSurname.replace(/^1\s+/i, '').trim();
+        if (flGiven) firstName = flGiven.replace(/^2\s+/i, '').trim();
+
+        // Pattern B: Heuristic fallback with better noise filtering
+        if (!firstName && !lastName) {
+          const ignoreTerms = [
+            'FLORIDA', 'DRIVER', 'LICENSE', 'IDENTIFICATION', 'CARD', 'USA', 'U.S.A', 'ORGAN', 'DONOR', 
+            'CLASS', 'EXPIRES', 'ISSUED', 'REST', 'END', 'NONE', 'SAFE', 'SEX', 'HGT', 'EYES', 'WGT', 'DOB',
+            'DD', 'MM', 'YYYY', 'STATE', 'OFFICIAL', 'TEMPORARY', 'VALID', 'CIS', 'LIC', 'LICENCIA', 'ID'
+          ];
+          
+          const nameCandidates = processedLines.filter(l => {
+            const up = l.toUpperCase();
+            // Skip ignored terms
+            if (ignoreTerms.some(term => up.includes(term))) return false;
+            // Skip lines with too many numbers
+            if ((l.match(/\d/g) || []).length > 2) return false;
+            // Skip very short words (potential noise)
+            if (l.replace(/[^a-zA-Z]/g, '').length < 3) return false;
+            return true;
+          });
+          
+          if (nameCandidates.length >= 1) {
+            const raw = nameCandidates[0].replace(/^[12]\s+/i, '').replace(/[^a-zA-Z\s]/g, '').trim();
+            const parts = raw.split(/\s+/);
+            firstName = parts[0] || '';
+            lastName = parts.slice(1).join(' ') || '';
+          }
+        }
+
+        // Apply results (and clean up common OCR junk)
+        const cleanStr = (s) => s.replace(/[^a-zA-Z\s]/g, '').trim().toUpperCase();
+        const nomInput = document.getElementById('quick-nombre');
+        const apeInput = document.getElementById('quick-apellido');
+        
+        if (nomInput && firstName) nomInput.value = cleanStr(firstName);
+        if (apeInput && lastName) apeInput.value = cleanStr(lastName);
+
+        // DOB Match (Prioritizing labels like DOB or 3 DOB)
+        const dobRegex = /(?:DOB|BIRTH|NACIMIENTO|3\s+DOB)[:\s]*(\d{2}[/-]\d{2}[/-]\d{4})/i;
+        const dobMatch = text.match(dobRegex) || text.match(/(\d{2}[/-]\d{2}[/-]\d{4})/);
+        
         if (dobMatch) {
           const dobEl = document.getElementById('quick-dob');
           if (dobEl) {
              const parts = dobMatch[1].split(/[/-]/);
              if (parts.length === 3 && parts[2].length === 4) {
-               // Try to normalize to YYYY-MM-DD
                let y = parts[2], m = parts[0], d = parts[1];
-               // Simple heuristic: if first part > 12, it's likely DD/MM/YYYY
                if (parseInt(m) > 12) { [m, d] = [d, m]; }
                dobEl.value = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
              }
@@ -1204,17 +1255,25 @@ function _wireModalControls(user, container) {
           if (idEl) idEl.value = idMatch[0].toUpperCase();
         }
 
-        // Name Heuristic
-        const ignoreTerms = ['FLORIDA', 'DRIVER', 'LICENSE', 'IDENTIFICATION', 'CARD', 'USA', 'U.S.A', 'ORGAN', 'DONOR', 'CLASS', 'EXPIRES', 'ISSUED'];
-        const nameCandidates = lines.filter(l => !ignoreTerms.some(term => l.toUpperCase().includes(term)) && !l.match(/\d/) && l.length > 3);
-        
-        if (nameCandidates.length >= 1) {
-          const fullName = nameCandidates[0].replace(/[^a-zA-Z\s]/g, '').trim();
-          const parts = fullName.split(' ');
-          const nomInput = document.getElementById('quick-nombre');
-          const apeInput = document.getElementById('quick-apellido');
-          if (nomInput) nomInput.value = parts[0] || '';
-          if (apeInput) apeInput.value = parts.slice(1).join(' ') || '';
+        // Update Scanner UI (Success State)
+        if (idleState) {
+          idleState.innerHTML = `
+            <div style="width:56px; height:56px; background:rgba(0, 245, 212, 0.2); border-radius:16px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; color:var(--primary);">
+              <i class="fa-solid fa-check-double" style="font-size:1.5rem;"></i>
+            </div>
+            <p style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin:0;">ID CARGADO Y ANALIZADO</p>
+            <p style="font-size:0.75rem; color:var(--primary); font-weight:600; margin-top:4px;">Toca para actualizar si es necesario</p>
+          `;
+          scanBtn.style.borderColor = 'var(--primary)';
+          scanBtn.style.background = 'rgba(0, 245, 212, 0.08)';
+        }
+
+        // Auto-expand details if extra info found
+        const panel = document.getElementById('quick-detalles-adicionales');
+        const toggleBtn = document.getElementById('btn-toggle-quick-detalles');
+        if (panel && panel.style.display === 'none' && (dobMatch || idMatch)) {
+            panel.style.display = 'flex';
+            if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-minus-circle mr-2"></i> Ver menos detalles';
         }
 
         showToast('ID Escaneado con éxito', 'success');
@@ -1272,7 +1331,10 @@ function _wireModalControls(user, container) {
     inpFoto.addEventListener('change', () => {
       if (inpFoto.files[0]) {
         const lbl = document.getElementById('lbl-quick-foto');
-        if (lbl) lbl.textContent = '✓ FOTO SELECCIONADA';
+        if (lbl) {
+          lbl.textContent = '✓ FOTO CARGADA - Actualizar si es necesario';
+          lbl.style.fontSize = '0.75rem';
+        }
         dropFoto.style.borderColor = 'var(--primary)';
         dropFoto.style.background = 'rgba(0,245,212,0.05)';
       }
@@ -1461,11 +1523,10 @@ function _wireModalControls(user, container) {
       const notas = document.getElementById('quick-notas')?.value.trim() || '';
       const fotoIdInput = document.getElementById('quick-foto-id');
 
-      // Validation (prospecto: nombre, apellido, tel, email, dirección)
+      // Validation (prospecto: nombre, apellido, tel, dirección)
       if (!nombre) { showToast('El Nombre es obligatorio', 'error'); return; }
       if (!apellido) { showToast('El Apellido es obligatorio', 'error'); return; }
       if (tel.length < 14) { showToast('El Teléfono es obligatorio (+1 y 10 dígitos)', 'error'); return; }
-      if (!email) { showToast('El Email es obligatorio', 'error'); return; }
       if (!dir) { showToast('La Dirección es obligatoria', 'error'); return; }
 
       try {
