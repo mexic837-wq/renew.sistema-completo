@@ -3733,7 +3733,7 @@ window.renderView = async function renderView() {
             <label class="aqua-label">${t('aca_field_vis')}</label>
             <p class="text-[10px] text-gray-400 mb-3 ml-1">Selecciona qué unidades pueden ver este recurso en la app móvil.</p>
             <div class="grid grid-cols-2 gap-3 mb-8">
-              ${pipsOptionsHtml}
+               ${pipsOptionsHtml}
             </div>
 
             <div class="flex gap-3">
@@ -3759,7 +3759,9 @@ window.renderView = async function renderView() {
       </div>
     `;
 
-    document.getElementById('btn-save-academia').addEventListener('click', async () => {
+    const saveAcademiaBtn = document.getElementById('btn-save-academia');
+    if (saveAcademiaBtn) {
+      saveAcademiaBtn.addEventListener('click', async () => {
        const btnSave = document.getElementById('btn-save-academia');
        const originalHtml = btnSave.innerHTML;
        const editId = btnSave.dataset.editId;
@@ -3789,29 +3791,14 @@ window.renderView = async function renderView() {
            let miniaturaUrl = null;
 
            if(file || miniaturaFile) {
-               const formData = new FormData();
-               if(file) formData.append('video', file);
-               if(miniaturaFile) formData.append('miniatura', miniaturaFile);
-
-               let response;
                try {
-                   response = await fetch('http://localhost:3010/api/upload-academia', {
-                       method: 'POST',
-                       body: formData
-                   });
-               } catch (fetchErr) {
-                   console.error('Fetch check:', fetchErr);
-                   throw new Error('No se pudo conectar con el servidor de subida (puerto 3010). Asegúrate de realizar "npm run server" en una terminal aparte.');
+                   const data = await uploadAcademia(file, miniaturaFile);
+                   if(data.videoUrl) videoUrl = data.videoUrl;
+                   if(data.miniaturaUrl) miniaturaUrl = data.miniaturaUrl;
+               } catch (err) {
+                   console.error('Upload Error:', err);
+                   throw new Error('No se pudo conectar con el servidor de subida. Asegúrate de que el backend esté en ejecución.');
                }
-
-               const data = await response.json();
-
-               if (!data.success) {
-                   throw new Error(data.message || 'Error al subir archivo');
-               }
-               
-               if(data.videoUrl) videoUrl = data.videoUrl;
-               if(data.miniaturaUrl) miniaturaUrl = data.miniaturaUrl;
            }
 
            const db = getDB();

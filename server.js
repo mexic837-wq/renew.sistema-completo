@@ -1784,7 +1784,7 @@ app.post('/api/delete-bulk', async (req, res) => {
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+    limits: { fileSize: 500 * 1024 * 1024 } // 500MB
 });
 
 // Helper function to upload to Supabase Storage
@@ -1837,8 +1837,8 @@ async function initStorage() {
         const exists = buckets.find(b => b.name === 'archivos_renew');
         const bucketOptions = {
             public: true,
-            allowedMimeTypes: ['image/*', 'application/pdf'],
-            fileSizeLimit: 5242880 // 5MB (Fix for project limits)
+            allowedMimeTypes: ['image/*', 'application/pdf', 'video/*'],
+            fileSizeLimit: 524288000 // 500MB
         };
 
         if (!exists) {
