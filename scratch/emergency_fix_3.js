@@ -2,9 +2,10 @@ const fs = require('fs');
 const path = 'c:/Users/LENOVO/Downloads/renew-sistema-completo-main/renew.sistema-completo-main/js/admin-app.js';
 let content = fs.readFileSync(path, 'utf8');
 
-// 1. Fix the message listener cutoff and worker function start
-const badListenerPart = "const isWorkOrder = (type === 'WORK_ORDER_SUBMITTED');window._verRecibosWorker = async function(workerId, workerName) {";
-const goodListenerPart = `    const isWorkOrder = (type === 'WORK_ORDER_SUBMITTED');
+// Regex to match the mangled line 7692 regardless of exact whitespace
+const badRegex = /const isWorkOrder = \(type === 'WORK_ORDER_SUBMITTED'\);window\._verRecibosWorker = async function\(workerId, workerName\) \{/;
+
+const goodLines = `    const isWorkOrder = (type === 'WORK_ORDER_SUBMITTED');
     const { proyectoId, pdfUrl } = e.data;
 
     if (!pdfUrl) {
@@ -66,36 +67,10 @@ const goodListenerPart = `    const isWorkOrder = (type === 'WORK_ORDER_SUBMITTE
 // -- RECIBOS DE PAGO: Popup en perfil del trabajador ----------
 window._verRecibosWorker = async function(workerId, workerName) {`;
 
-content = content.replace(badListenerPart, goodListenerPart);
-
-// 2. Fix the corrupted modal HTML block
-const badModalPart = /<h3 style="font-size:1\.1rem;font-weight:900;colo\s+dius:20px;[\s\S]+?renderList\('all'\) \+ '<\/div><\/div>';/g;
-const goodModalPart = `<h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">Recibos de Pago</h3>
-                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">\${workerName} \u2022 \${recibos.length} recibos</p>
-                </div>
-                <button id="btn-close-admin-recibos" style="background:#f1f5f9;border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#64748b;display:flex;align-items:center;justify-content:center;">&times;</button>
-            </div>
-            
-            \${isAdmin ? \`
-            <div style="padding:16px 24px 0;display:flex;gap:8px;">
-                <button data-rf="all" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
-                <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
-                <button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">T\u00E9cnico</button>
-            </div>
-            \` : ''}
-            
-            <div id="rw-list-container" style="padding:16px 24px 32px;">
-                \${renderList('all')}
-            </div>
-        </div>
-    \`;`;
-
-content = content.replace(badModalPart, goodModalPart);
-
-// 3. Remove the extra duplicate cleanup logic block
-const badCleanupPart = /document\.body\.appendChild\(modal\);[\s\S]+?b\.style\.color\s+=\s+active \? '#8b5cf6' : '#94a3b8';\s+?}\);\s+?}\);\s+?}\);\s+?};/g;
-// Wait, this might be too aggressive. Let's be careful.
-// Actually, I'll just look for the specific block that starts with dius:20px and ends with };
-
-fs.writeFileSync(path, content, 'utf8');
-console.log('Fixed admin-app.js');
+if (badRegex.test(content)) {
+    content = content.replace(badRegex, goodLines);
+    fs.writeFileSync(path, content, 'utf8');
+    console.log('Fixed line 7692 with regex');
+} else {
+    console.log('Could not find the mangled line with regex');
+}

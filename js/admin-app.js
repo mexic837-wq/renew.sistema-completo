@@ -7798,7 +7798,7 @@ window._verRecibosWorker = async function(workerId, workerName) {
             <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;">
                 <div>
                     <h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">Recibos de Pago</h3>
-                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} \u2022 ${recibos.length} recibos</p>
+                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} • ${recibos.length} recibos</p>
                 </div>
                 <button id="btn-close-admin-recibos" style="background:#f1f5f9;border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#64748b;display:flex;align-items:center;justify-content:center;">&times;</button>
             </div>
@@ -7807,7 +7807,7 @@ window._verRecibosWorker = async function(workerId, workerName) {
             <div style="padding:16px 24px 0;display:flex;gap:8px;">
                 <button data-rf="all" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
                 <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
-                <button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">T\u00E9cnico</button>
+                <button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Técnico</button>
             </div>
             ` : ''}
             
@@ -7816,53 +7816,6 @@ window._verRecibosWorker = async function(workerId, workerName) {
             </div>
         </div>
     `;
-
-    document.body.appendChild(modal);
-    modal.querySelector('#btn-close-admin-recibos').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-    if (isAdmin) {
-        modal.querySelectorAll('.rw-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const f = btn.dataset.rf;
-                modal.querySelector('#rw-list-container').innerHTML = renderList(f);
-                modal.querySelectorAll('.rw-filter-btn').forEach(b => {
-                    const active = b.dataset.rf === f;
-                    b.style.borderColor = active ? '#8b5cf6' : '#e2e8f0';
-                    b.style.background  = active ? '#8b5cf615' : 'white';
-                    b.style.color       = active ? '#8b5cf6' : '#94a3b8';
-                });
-            });
-        });
-    }
-};
-); });
-
-    if (isAdmin) {
-        modal.querySelectorAll('.rw-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const f = btn.dataset.rf;
-                modal.querySelector('#rw-list-container').innerHTML = renderList(f);
-                modal.querySelectorAll('.rw-filter-btn').forEach(b => {
-                    const active = b.dataset.rf === f;
-                    b.style.borderColor = active ? '#8b5cf6' : '#e2e8f0';
-                    b.style.background  = active ? '#8b5cf615' : 'white';
-                    b.style.color       = active ? '#8b5cf6' : '#94a3b8';
-                });
-            });
-        });
-    }
-};
-dius:20px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.15);">' +
-        '<div style="padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;">' +
-        '<div><h3 style="font-size:1.05rem;font-weight:900;color:#1e293b;margin:0;">Recibos de Pago</h3>' +
-        '<p style="font-size:0.75rem;color:#94a3b8;margin:2px 0 0;">' + workerName + ' � ' + recibos.length + ' recibo' + (recibos.length !== 1 ? 's' : '') + '</p></div>' +
-        '<button id="btn-close-admin-recibos" style="background:#f1f5f9;border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#64748b;">?</button></div>' +
-        '<div style="padding:14px 20px 0;display:flex;gap:8px;">' +
-        '<button data-rf="all" class="rw-filter-btn" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>' +
-        '<button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>' +
-        '<button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Tecnico</button>' +
-        '</div><div id="rw-list-container" style="padding:16px 20px 24px;">' + renderList('all') + '</div></div>';
 
     document.body.appendChild(modal);
     modal.querySelector('#btn-close-admin-recibos').addEventListener('click', () => modal.remove());
