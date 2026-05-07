@@ -589,23 +589,45 @@ export async function uploadFile(file, type = 'others') {
  * Especial para la sección de academia que maneja video y miniatura simultáneamente
  */
 export async function uploadAcademia(fileVideo, fileMiniatura) {
-    const formData = new FormData();
-    if (fileVideo) formData.append('video', fileVideo);
-    if (fileMiniatura) formData.append('miniatura', fileMiniatura);
-
     try {
-        const res = await fetch(`${API_BASE}/upload-academia`, {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-            return {
-                videoUrl: data.videoUrl,
-                miniaturaUrl: data.miniaturaUrl
-            };
+        let videoUrl = null;
+        let miniaturaUrl = null;
+
+        // 1. Upload Video via Signed URL (Bypasses 413 error on server)
+        if (fileVideo) {
+            console.log('[API] Requesting signed URL for video:', fileVideo.name);
+            const urlRes = await fetch(`${API_BASE}/get-upload-url`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileName: fileVideo.name, folder: 'academia' })
+            });
+            const urlData = await urlRes.json();
+            if (!urlData.success) throw new Error(urlData.error);
+
+            console.log('[API] Uploading video directly to cloud storage...');
+            const uploadRes = await fetch(urlData.uploadUrl, {
+                method: 'PUT', // Supabase signed URLs use PUT
+                body: fileVideo,
+                headers: { 'Content-Type': fileVideo.type }
+            });
+
+            if (!uploadRes.ok) throw new Error('Error al subir video directamente');
+            videoUrl = urlData.publicUrl;
         }
-        throw new Error(data.error || 'Fallo al subir material de academia');
+
+        // 2. Upload Miniatura via standard proxy (usually small, safe from 413)
+        if (fileMiniatura) {
+            const formData = new FormData();
+            formData.append('miniatura', fileMiniatura);
+            const res = await fetch(`${API_BASE}/upload-academia`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) miniaturaUrl = data.miniaturaUrl;
+        }
+
+        return { videoUrl, miniaturaUrl };
     } catch (e) {
         console.error('Upload Academia error:', e);
         throw e;

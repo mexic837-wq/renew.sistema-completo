@@ -1847,13 +1847,13 @@ async function initStorage() {
             if (cErr) console.error('[STORAGE] ❌ Error creando bucket:', cErr.message);
             else console.log('[STORAGE] ✅ Bucket "archivos_renew" creado exitosamente.');
         } else {
-            console.log('[STORAGE] El bucket "archivos_renew" ya existe. Actualizando configuración (100MB)...');
+            console.log('[STORAGE] El bucket "archivos_renew" ya existe. Asegurando configuración de 500MB...');
             const { error: uErr } = await supabase.storage.updateBucket('archivos_renew', bucketOptions);
             if (uErr) {
                 console.warn('[STORAGE] ⚠️ No se pudo actualizar el límite del bucket desde el código:', uErr.message);
-                console.warn('[STORAGE] 💡 POR FAVOR: Ve a tu panel de Supabase -> Storage -> Buckets -> archivos_renew -> Settings y cambia "File size limit" a 100MB manualmente.');
+                console.warn('[STORAGE] 💡 POR FAVOR: Ve a tu panel de Supabase -> Storage -> Buckets -> archivos_renew -> Settings y cambia "File size limit" a 500MB manualmente.');
             }
-            else console.log('[STORAGE] ✅ Configuración de bucket actualizada con éxito.');
+            else console.log('[STORAGE] ✅ Configuración de bucket (500MB) verificada con éxito.');
         }
     } catch (err) {
         console.error('[STORAGE] Error inicializando bucket:', err.message);
@@ -1898,6 +1898,35 @@ app.post('/api/upload-academia', upload.fields([{ name: 'video', maxCount: 1 }, 
     } catch (e) {
         console.error('Error subiendo contenido de academia:', e);
         res.status(500).json({ success: false, error: e.message || 'Fallo subiendo material' });
+    }
+});
+
+// New endpoint for Signed Upload URLs (Bypasses 413 Request Entity Too Large)
+app.post('/api/get-upload-url', async (req, res) => {
+    try {
+        const { fileName, folder } = req.body;
+        if (!fileName || !folder) throw new Error('Nombre de archivo y carpeta requeridos');
+
+        const path = `${folder}/${Date.now()}_${fileName.replace(/\s+/g, '_')}`;
+        
+        // Use createSignedUploadUrl if available in your Supabase version, 
+        // or just return the path to use with the public key if policies allow.
+        // For security, we'll use the signed URL approach.
+        const { data, error } = await supabase.storage
+            .from('archivos_renew')
+            .createSignedUploadUrl(path);
+
+        if (error) throw error;
+
+        res.json({ 
+            success: true, 
+            uploadUrl: data.signedUrl,
+            publicUrl: `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${path}`,
+            token: data.token
+        });
+    } catch (e) {
+        console.error('[API-SIGNED-URL] Error:', e);
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
