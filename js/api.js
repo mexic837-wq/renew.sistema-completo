@@ -593,29 +593,43 @@ export async function uploadAcademia(fileVideo, fileMiniatura) {
         let videoUrl = null;
         let miniaturaUrl = null;
 
-        // 1. Upload Video via Signed URL (Bypasses 413 error on server)
+        // 1. Upload Video via Chunked System (Bypasses 413 and CORS issues)
         if (fileVideo) {
-            console.log('[API] Requesting signed URL for video:', fileVideo.name);
-            const urlRes = await fetch(`${API_BASE}/get-upload-url`, {
+            console.log('[API] Starting Chunked Upload for video:', fileVideo.name);
+            const uploadId = 'up_' + Date.now();
+            const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+            const totalChunks = Math.ceil(fileVideo.size / chunkSize);
+
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, fileVideo.size);
+                const chunk = fileVideo.slice(start, end);
+
+                const formData = new FormData();
+                formData.append('chunk', chunk);
+                formData.append('uploadId', uploadId);
+                formData.append('chunkIndex', i);
+
+                console.log(`[API] Uploading chunk ${i + 1}/${totalChunks}...`);
+                const chunkRes = await fetch(`${API_BASE}/upload-chunk`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!chunkRes.ok) throw new Error(`Fallo en fragmento ${i}`);
+            }
+
+            console.log('[API] Completing upload assembly...');
+            const completeRes = await fetch(`${API_BASE}/complete-upload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileName: fileVideo.name, folder: 'academia' })
+                body: JSON.stringify({ uploadId, fileName: fileVideo.name, folder: 'academia', totalChunks })
             });
-            const urlData = await urlRes.json();
-            if (!urlData.success) throw new Error(urlData.error);
-
-            console.log('[API] Uploading video directly to cloud storage...');
-            const uploadRes = await fetch(urlData.uploadUrl, {
-                method: 'PUT', // Supabase signed URLs use PUT
-                body: fileVideo,
-                headers: { 'Content-Type': fileVideo.type }
-            });
-
-            if (!uploadRes.ok) throw new Error('Error al subir video directamente');
-            videoUrl = urlData.publicUrl;
+            const completeData = await completeRes.json();
+            if (!completeData.success) throw new Error(completeData.error);
+            videoUrl = completeData.url;
         }
 
-        // 2. Upload Miniatura via standard proxy (usually small, safe from 413)
+        // 2. Upload Miniatura via standard proxy (small file, safe)
         if (fileMiniatura) {
             const formData = new FormData();
             formData.append('miniatura', fileMiniatura);

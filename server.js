@@ -31,6 +31,12 @@ app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 app.use(express.static(path.join(__dirname)));
 
+// Chunked Upload State
+const fs = require('fs');
+const os = require('os');
+const CHUNK_DIR = path.join(os.tmpdir(), 'renew-uploads');
+if (!fs.existsSync(CHUNK_DIR)) fs.mkdirSync(CHUNK_DIR, { recursive: true });
+
 // Static files are served above via express.static(__dirname)
 // Explicit routes ensure SPAs load correctly for any non-API route
 app.get('/admin', (req, res) => {
@@ -1926,6 +1932,71 @@ app.post('/api/get-upload-url', async (req, res) => {
         });
     } catch (e) {
         console.error('[API-SIGNED-URL] Error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Chunked Upload Endpoints
+app.post('/api/upload-chunk', upload.single('chunk'), async (req, res) => {
+    try {
+        const { uploadId, chunkIndex } = req.body;
+        if (!uploadId || !req.file) throw new Error('Faltan datos de fragmento');
+
+        const uploadPath = path.join(CHUNK_DIR, uploadId);
+        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+
+        const chunkPath = path.join(uploadPath, `chunk-${chunkIndex}`);
+        fs.renameSync(req.file.path, chunkPath);
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error('[CHUNK] Error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/complete-upload', async (req, res) => {
+    try {
+        const { uploadId, fileName, folder, totalChunks } = req.body;
+        const uploadPath = path.join(CHUNK_DIR, uploadId);
+        const finalPath = path.join(CHUNK_DIR, `${uploadId}-final`);
+
+        const writeStream = fs.createWriteStream(finalPath);
+        for (let i = 0; i < totalChunks; i++) {
+            const chunkPath = path.join(uploadPath, `chunk-${i}`);
+            const data = fs.readFileSync(chunkPath);
+            writeStream.write(data);
+            fs.unlinkSync(chunkPath); // Clean up chunk
+        }
+        writeStream.end();
+
+        await new Promise((resolve, reject) => {
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+        });
+
+        // Upload final file to Supabase
+        const fileBuffer = fs.readFileSync(finalPath);
+        const finalFileName = `${Date.now()}_${fileName.replace(/\s+/g, '_')}`;
+        const storagePath = `${folder}/${finalFileName}`;
+
+        const { data, error } = await supabase.storage
+            .from('archivos_renew')
+            .upload(storagePath, fileBuffer, {
+                contentType: 'video/mp4', // Default for academia videos
+                upsert: true
+            });
+
+        if (error) throw error;
+
+        // Cleanup
+        fs.unlinkSync(finalPath);
+        fs.rmdirSync(uploadPath);
+
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${storagePath}`;
+        res.json({ success: true, url: publicUrl });
+    } catch (e) {
+        console.error('[COMPLETE] Error:', e);
         res.status(500).json({ success: false, error: e.message });
     }
 });
