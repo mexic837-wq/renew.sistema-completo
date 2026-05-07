@@ -1992,10 +1992,28 @@ app.post('/api/complete-upload', async (req, res) => {
             writeStream.on('error', reject);
         });
 
-        // ── Subir a Supabase Storage via streaming ──
-        const fileStream   = fs.createReadStream(finalPath);
         const finalFileName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
         const storagePath  = `${folder}/${finalFileName}`;
+
+        // ── Guardado Local para Academia (Bypass Supabase 50MB limit) ──
+        if (folder === 'academia') {
+            const localUploadsDir = path.join(__dirname, 'uploads', folder);
+            if (!fs.existsSync(localUploadsDir)) fs.mkdirSync(localUploadsDir, { recursive: true });
+            
+            const localFilePath = path.join(localUploadsDir, finalFileName);
+            fs.copyFileSync(finalPath, localFilePath);
+            
+            // Limpieza de temporales
+            try { fs.unlinkSync(finalPath); } catch (_) {}
+            try { if (fs.readdirSync(uploadPath).length === 0) fs.rmdirSync(uploadPath); } catch (_) {}
+
+            const publicUrl = `https://renewgroup.site/uploads/${folder}/${finalFileName}`;
+            console.log(`[LOCAL STORAGE] ✅ Upload exitoso a VPS: ${publicUrl}`);
+            return res.json({ success: true, url: publicUrl });
+        }
+
+        // ── Subir a Supabase Storage via streaming (para otros) ──
+        const fileStream   = fs.createReadStream(finalPath);
 
         // Determinar el tipo MIME dinámicamente (enviado por el cliente, con fallback)
         const mimeMap = { mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo', mkv: 'video/x-matroska', webm: 'video/webm', pdf: 'application/pdf' };
