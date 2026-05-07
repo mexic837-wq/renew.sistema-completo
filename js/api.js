@@ -597,7 +597,7 @@ export async function uploadAcademia(fileVideo, fileMiniatura) {
         if (fileVideo) {
             console.log('[API] Starting Chunked Upload for video:', fileVideo.name);
             const uploadId = 'up_' + Date.now();
-            const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+            const chunkSize = 1 * 1024 * 1024; // 1MB chunks (to bypass very restrictive server limits)
             const totalChunks = Math.ceil(fileVideo.size / chunkSize);
 
             for (let i = 0; i < totalChunks; i++) {
