@@ -595,9 +595,9 @@ export async function uploadAcademia(fileVideo, fileMiniatura) {
 
         // 1. Upload Video via Chunked System (Bypasses 413 and CORS issues)
         if (fileVideo) {
-            console.log('[API] Starting Chunked Upload for video:', fileVideo.name);
+            console.log('[API] Starting Binary Chunked Upload for video:', fileVideo.name);
             const uploadId = 'up_' + Date.now();
-            const chunkSize = 1 * 1024 * 1024; // 1MB chunks (to bypass very restrictive server limits)
+            const chunkSize = 512 * 1024; // 512KB chunks (ultra-safe for restrictive servers)
             const totalChunks = Math.ceil(fileVideo.size / chunkSize);
 
             for (let i = 0; i < totalChunks; i++) {
@@ -605,17 +605,13 @@ export async function uploadAcademia(fileVideo, fileMiniatura) {
                 const end = Math.min(start + chunkSize, fileVideo.size);
                 const chunk = fileVideo.slice(start, end);
 
-                const formData = new FormData();
-                formData.append('chunk', chunk);
-                formData.append('uploadId', uploadId);
-                formData.append('chunkIndex', i);
-
-                console.log(`[API] Uploading chunk ${i + 1}/${totalChunks}...`);
-                const chunkRes = await fetch(`${API_BASE}/upload-chunk`, {
+                console.log(`[API] Uploading binary chunk ${i + 1}/${totalChunks}...`);
+                const chunkRes = await fetch(`${API_BASE}/upload-chunk?uploadId=${uploadId}&chunkIndex=${i}`, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: chunk
                 });
-                if (!chunkRes.ok) throw new Error(`Fallo en fragmento ${i}`);
+                if (!chunkRes.ok) throw new Error(`Fallo en fragmento ${i} (Status: ${chunkRes.status})`);
             }
 
             console.log('[API] Completing upload assembly...');

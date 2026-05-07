@@ -1935,17 +1935,17 @@ app.post('/api/get-upload-url', async (req, res) => {
     }
 });
 
-// Chunked Upload Endpoints
-app.post('/api/upload-chunk', upload.single('chunk'), async (req, res) => {
+// Chunked Upload Endpoints (using binary body to bypass multipart limits)
+app.post('/api/upload-chunk', express.raw({ type: 'application/octet-stream', limit: '10mb' }), async (req, res) => {
     try {
-        const { uploadId, chunkIndex } = req.body;
-        if (!uploadId || !req.file) throw new Error('Faltan datos de fragmento');
+        const { uploadId, chunkIndex } = req.query;
+        if (!uploadId || !req.body) throw new Error('Faltan datos de fragmento');
 
         const uploadPath = path.join(CHUNK_DIR, uploadId);
         if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
 
         const chunkPath = path.join(uploadPath, `chunk-${chunkIndex}`);
-        fs.renameSync(req.file.path, chunkPath);
+        fs.writeFileSync(chunkPath, req.body);
 
         res.json({ success: true });
     } catch (e) {
