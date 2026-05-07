@@ -1995,6 +1995,8 @@ app.post('/api/complete-upload', async (req, res) => {
         const finalFileName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
         const storagePath  = `${folder}/${finalFileName}`;
 
+        console.log(`[COMPLETE UPLOAD] Procesando subida. Folder: "${folder}", FileName: "${fileName}"`);
+
         // ── Guardado Local para Academia (Bypass Supabase 50MB limit) ──
         if (folder === 'academia') {
             const localUploadsDir = path.join(__dirname, 'uploads', folder);
