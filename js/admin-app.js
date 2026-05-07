@@ -3736,6 +3736,16 @@ window.renderView = async function renderView() {
                ${pipsOptionsHtml}
             </div>
 
+            <!-- Barra de progreso -->
+            <div id="aca-upload-progress" class="hidden mb-4">
+              <div class="flex items-center justify-between mb-1">
+                <span id="aca-upload-progress-text" class="text-xs font-bold text-tealAccent">Iniciando...</span>
+                <span class="text-xs text-gray-400">No cierres esta pagina</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2.5">
+                <div id="aca-upload-progress-fill" class="bg-tealAccent h-2.5 rounded-full transition-all" style="width:0%"></div>
+              </div>
+            </div>
             <div class="flex gap-3">
                <button id="btn-save-academia" class="flex-1 btn-premium py-4 rounded-xl text-xs tracking-widest font-black uppercase">
                   <i class="fa-solid fa-save"></i> ${t('aca_btn_save')}
@@ -3786,18 +3796,31 @@ window.renderView = async function renderView() {
        btnSave.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
        btnSave.disabled = true;
 
+       // Barra de progreso en vivo para uploads de video
+       let progressBar = document.getElementById('aca-upload-progress');
+       let progressFill = document.getElementById('aca-upload-progress-fill');
+       let progressText = document.getElementById('aca-upload-progress-text');
+       if (progressBar) progressBar.classList.remove('hidden');
+
+       const onProgress = (pct, msg) => {
+           if (progressFill) progressFill.style.width = `${pct}%`;
+           if (progressText) progressText.textContent = msg;
+           btnSave.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${pct}% – ${msg}`;
+       };
+
        try {
            let videoUrl = null;
            let miniaturaUrl = null;
 
            if(file || miniaturaFile) {
                try {
-                   const data = await uploadAcademia(file, miniaturaFile);
+                   const data = await uploadAcademia(file, miniaturaFile, onProgress);
                    if(data.videoUrl) videoUrl = data.videoUrl;
                    if(data.miniaturaUrl) miniaturaUrl = data.miniaturaUrl;
                } catch (err) {
                    console.error('Upload Error:', err);
-                   throw new Error('No se pudo conectar con el servidor de subida. Asegúrate de que el backend esté en ejecución.');
+                   throw new Error('Error al subir el archivo: ' + (err.message || 'Verifica tu conexión y vuelve a intentarlo.'));
+
                }
            }
 
@@ -3835,6 +3858,7 @@ window.renderView = async function renderView() {
            document.getElementById('aca-cancel-edit').classList.add('hidden');
            btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Material';
            btnSave.disabled = false;
+           if (progressBar) { progressBar.classList.add('hidden'); if(progressFill) progressFill.style.width = '0%'; }
 
            await renderView();
            window.addNotification('Gestor Academia', editId ? 'Material actualizado exitosamente' : 'Material publicado exitosamente', 'success');
@@ -3843,6 +3867,7 @@ window.renderView = async function renderView() {
            window.addNotification('Gestor Academia', 'Error en guardado: ' + err.message, 'error');
            btnSave.innerHTML = originalHtml;
            btnSave.disabled = false;
+           if (progressBar) { progressBar.classList.add('hidden'); if(progressFill) progressFill.style.width = '0%'; }
        }
     });
 

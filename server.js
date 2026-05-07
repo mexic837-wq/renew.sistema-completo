@@ -1891,18 +1891,30 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-app.post('/api/upload-academia', upload.fields([{ name: 'video', maxCount: 1 }, { name: 'miniatura', maxCount: 1 }]), async (req, res) => {
+// /api/upload-academia – acepta los campos 'video' y/o 'miniatura'
+// También acepta 'file' genérico para compatibilidad con llamadas antiguas
+app.post('/api/upload-academia', upload.fields([
+    { name: 'video',     maxCount: 1 },
+    { name: 'miniatura', maxCount: 1 },
+    { name: 'file',      maxCount: 1 }
+]), async (req, res) => {
     try {
-        let videoUrl = null;
+        let videoUrl     = null;
         let miniaturaUrl = null;
 
-        if (req.files['video']) videoUrl = await subirArchivo(req.files['video'][0], 'academia');
-        if (req.files['miniatura']) miniaturaUrl = await subirArchivo(req.files['miniatura'][0], 'academia');
-        
+        const files = req.files || {};
+
+        // Soporte para campo 'video' o 'file' (compatibilidad)
+        const videoFile     = (files['video']     && files['video'][0])     || (files['file'] && files['file'][0])     || null;
+        const miniaturaFile = (files['miniatura'] && files['miniatura'][0]) || null;
+
+        if (videoFile)     videoUrl     = await subirArchivo(videoFile,     'academia');
+        if (miniaturaFile) miniaturaUrl = await subirArchivo(miniaturaFile, 'academia');
+
         res.json({ success: true, videoUrl, miniaturaUrl });
     } catch (e) {
-        console.error('Error subiendo contenido de academia:', e);
-        res.status(500).json({ success: false, error: e.message || 'Fallo subiendo material' });
+        console.error('[ACADEMIA-UPLOAD] Error:', e);
+        res.status(500).json({ success: false, error: e.message || 'Fallo subiendo material de academia' });
     }
 });
 
@@ -1956,16 +1968,22 @@ app.post('/api/upload-chunk', express.raw({ type: 'application/octet-stream', li
 
 app.post('/api/complete-upload', async (req, res) => {
     try {
-        const { uploadId, fileName, folder, totalChunks } = req.body;
-        const uploadPath = path.join(CHUNK_DIR, uploadId);
-        const finalPath = path.join(CHUNK_DIR, `${uploadId}-final`);
+        const { uploadId, fileName, folder, totalChunks, contentType } = req.body;
+        if (!uploadId || !fileName || !folder || !totalChunks) {
+            return res.status(400).json({ success: false, error: 'Faltan parámetros (uploadId, fileName, folder, totalChunks)' });
+        }
 
+        const uploadPath = path.join(CHUNK_DIR, uploadId);
+        const finalPath  = path.join(CHUNK_DIR, `${uploadId}-final`);
+
+        // ── Ensamblado de fragmentos ──
         const writeStream = fs.createWriteStream(finalPath);
         for (let i = 0; i < totalChunks; i++) {
             const chunkPath = path.join(uploadPath, `chunk-${i}`);
+            if (!fs.existsSync(chunkPath)) throw new Error(`Fragmento ${i} no encontrado en el servidor. Vuelve a intentar la subida.`);
             const data = fs.readFileSync(chunkPath);
             writeStream.write(data);
-            fs.unlinkSync(chunkPath); // Clean up chunk
+            fs.unlinkSync(chunkPath); // Liberar espacio inmediatamente
         }
         writeStream.end();
 
@@ -1974,31 +1992,38 @@ app.post('/api/complete-upload', async (req, res) => {
             writeStream.on('error', reject);
         });
 
-        // Upload final file to Supabase using a Stream (more efficient for large files)
-        const fileStream = fs.createReadStream(finalPath);
-        const finalFileName = `${Date.now()}_${fileName.replace(/\s+/g, '_')}`;
-        const storagePath = `${folder}/${finalFileName}`;
+        // ── Subir a Supabase Storage via streaming ──
+        const fileStream   = fs.createReadStream(finalPath);
+        const finalFileName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const storagePath  = `${folder}/${finalFileName}`;
 
-        console.log(`[STORAGE] Uploading assembled file to Supabase: ${storagePath}...`);
+        // Determinar el tipo MIME dinámicamente (enviado por el cliente, con fallback)
+        const mimeMap = { mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo', mkv: 'video/x-matroska', webm: 'video/webm', pdf: 'application/pdf' };
+        const ext = (fileName.split('.').pop() || '').toLowerCase();
+        const resolvedContentType = contentType || mimeMap[ext] || 'application/octet-stream';
+
+        console.log(`[STORAGE] Uploading assembled file to Supabase: ${storagePath} (${resolvedContentType})...`);
         const { data, error } = await supabase.storage
             .from('archivos_renew')
             .upload(storagePath, fileStream, {
-                contentType: 'video/mp4',
+                contentType: resolvedContentType,
                 upsert: true,
-                duplex: 'half' // Required for streaming in some environments
+                duplex: 'half'
             });
+
+        // ── Limpieza de temporales ──
+        try { fs.unlinkSync(finalPath); } catch (_) {}
+        try { if (fs.readdirSync(uploadPath).length === 0) fs.rmdirSync(uploadPath); } catch (_) {}
 
         if (error) {
             console.error('[STORAGE] Supabase Upload Error:', error);
-            throw error;
+            throw new Error(`Supabase Storage Error (${error.status || 'unknown'}): ${error.message || JSON.stringify(error)}`);
         }
 
-        // Cleanup
-        fs.unlinkSync(finalPath);
-        fs.rmdirSync(uploadPath);
-
         const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${storagePath}`;
+        console.log(`[STORAGE] ✅ Upload exitoso: ${publicUrl}`);
         res.json({ success: true, url: publicUrl });
+
     } catch (e) {
         console.error('[COMPLETE] Critical Error:', e);
         res.status(500).json({ 

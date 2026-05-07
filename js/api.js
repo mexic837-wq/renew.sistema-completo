@@ -586,63 +586,111 @@ export async function uploadFile(file, type = 'others') {
 }
 
 /**
- * Especial para la sección de academia que maneja video y miniatura simultáneamente
+ * Sube contenido de Academia (video + miniatura) a través del servidor proxy.
+ * Usa un sistema de fragmentos (chunks) para evitar límites de tamaño y errores de CORS
+ * que ocurrirían al intentar subir directamente al gateway de Supabase.
+ *
+ * @param {File|null} fileVideo  – Archivo de video
+ * @param {File|null} fileMiniatura – Imagen miniatura opcional
+ * @param {function} [onProgress] – Callback(pct, msg) para actualizar la UI
  */
-export async function uploadAcademia(fileVideo, fileMiniatura) {
+export async function uploadAcademia(fileVideo, fileMiniatura, onProgress) {
+    const report = (pct, msg) => {
+        console.log(`[API-ACADEMIA] ${pct}% – ${msg}`);
+        if (typeof onProgress === 'function') onProgress(pct, msg);
+    };
+
     try {
-        let videoUrl = null;
+        let videoUrl     = null;
         let miniaturaUrl = null;
 
-        // 1. Upload Video via Chunked System (Bypasses 413 and CORS issues)
+        // ─── 1. VIDEO via fragmentos (chunked) ───────────────────────
+        // NUNCA intentamos subir directamente al gateway de Supabase desde el browser
+        // porque el CORS lo bloqueará. Todo pasa por /api/* de nuestro servidor Node.
         if (fileVideo) {
-            console.log('[API] Starting Binary Chunked Upload for video:', fileVideo.name);
-            const uploadId = 'up_' + Date.now();
-            const chunkSize = 512 * 1024; // 512KB chunks (ultra-safe for restrictive servers)
-            const totalChunks = Math.ceil(fileVideo.size / chunkSize);
+            report(0, `Preparando fragmentos de "${fileVideo.name}"…`);
+
+            const uploadId   = 'aca_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            const CHUNK_SIZE = 1 * 1024 * 1024; // 1 MB por fragmento
+            const totalChunks = Math.ceil(fileVideo.size / CHUNK_SIZE);
 
             for (let i = 0; i < totalChunks; i++) {
-                const start = i * chunkSize;
-                const end = Math.min(start + chunkSize, fileVideo.size);
+                const start = i * CHUNK_SIZE;
+                const end   = Math.min(start + CHUNK_SIZE, fileVideo.size);
                 const chunk = fileVideo.slice(start, end);
+                const pct   = Math.round(((i + 1) / totalChunks) * 80); // 0-80%
 
-                console.log(`[API] Uploading binary chunk ${i + 1}/${totalChunks}...`);
-                const chunkRes = await fetch(`${API_BASE}/upload-chunk?uploadId=${uploadId}&chunkIndex=${i}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/octet-stream' },
-                    body: chunk
-                });
-                if (!chunkRes.ok) throw new Error(`Fallo en fragmento ${i} (Status: ${chunkRes.status})`);
+                report(pct, `Subiendo fragmento ${i + 1} de ${totalChunks}…`);
+
+                // Reintentos ante fallos transitorios de red
+                let attempt = 0;
+                let chunkOk = false;
+                while (attempt < 3 && !chunkOk) {
+                    try {
+                        const r = await fetch(`${API_BASE}/upload-chunk?uploadId=${uploadId}&chunkIndex=${i}`, {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/octet-stream' },
+                            body:    chunk
+                        });
+                        if (!r.ok) {
+                            const err = await r.text().catch(() => r.status);
+                            throw new Error(`Fragmento ${i} rechazado (HTTP ${r.status}): ${err}`);
+                        }
+                        chunkOk = true;
+                    } catch (netErr) {
+                        attempt++;
+                        if (attempt >= 3) throw netErr;
+                        console.warn(`[API-ACADEMIA] Reintentando fragmento ${i} (intento ${attempt})…`);
+                        await new Promise(r => setTimeout(r, 1000 * attempt));
+                    }
+                }
             }
 
-            console.log('[API] Completing upload assembly...');
+            report(85, 'Ensamblando video en el servidor…');
+
+            // Detectar tipo de contenido según extensión
+            const ext = fileVideo.name.split('.').pop().toLowerCase();
+            const mimeMap = { mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo', mkv: 'video/x-matroska', webm: 'video/webm' };
+            const contentType = mimeMap[ext] || 'video/mp4';
+
             const completeRes = await fetch(`${API_BASE}/complete-upload`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uploadId, fileName: fileVideo.name, folder: 'academia', totalChunks })
+                body:    JSON.stringify({ uploadId, fileName: fileVideo.name, folder: 'academia', totalChunks, contentType })
             });
+
+            if (!completeRes.ok) {
+                const errData = await completeRes.json().catch(() => ({}));
+                throw new Error(errData.error || `El servidor no pudo ensamblar el video (HTTP ${completeRes.status})`);
+            }
+
             const completeData = await completeRes.json();
-            if (!completeData.success) throw new Error(completeData.error);
+            if (!completeData.success) throw new Error(completeData.error || 'Fallo al completar el ensamblado');
             videoUrl = completeData.url;
+            report(90, 'Video subido correctamente ✓');
         }
 
-        // 2. Upload Miniatura via standard proxy (small file, safe)
+        // ─── 2. MINIATURA via proxy estándar ─────────────────────────
         if (fileMiniatura) {
+            report(92, 'Subiendo miniatura…');
             const formData = new FormData();
             formData.append('miniatura', fileMiniatura);
-            const res = await fetch(`${API_BASE}/upload-academia`, {
-                method: 'POST',
-                body: formData
-            });
+
+            const res  = await fetch(`${API_BASE}/upload-academia`, { method: 'POST', body: formData });
             const data = await res.json();
             if (data.success) miniaturaUrl = data.miniaturaUrl;
+            report(97, 'Miniatura subida ✓');
         }
 
+        report(100, 'Subida completa ✓');
         return { videoUrl, miniaturaUrl };
+
     } catch (e) {
-        console.error('Upload Academia error:', e);
+        console.error('[API-ACADEMIA] Error de subida:', e);
         throw e;
     }
 }
+
 
 // ─── API EXPORTS ────────────────────────────────────────────
 

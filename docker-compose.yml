@@ -104,7 +104,7 @@ services:
       REGION: 'local'
       PORT: '5000'
       # --- AGREGA ESTAS VARIABLES ---
-      FILE_SIZE_LIMIT: '52428800' # Límite de 50MB (en bytes)
+      FILE_SIZE_LIMIT: '524288000' # Límite de 500MB (en bytes) — soporte para videos de entrenamiento
       STORAGE_ID_ORM_MAPPED: 'true'
       GLOBAL_S3_BUCKET: 'supabase-storage'
     volumes:
