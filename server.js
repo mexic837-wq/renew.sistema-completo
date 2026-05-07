@@ -32,7 +32,6 @@ app.use(express.urlencoded({ limit: '500mb', extended: true }));
 app.use(express.static(path.join(__dirname)));
 
 // Chunked Upload State
-const fs = require('fs');
 const os = require('os');
 const CHUNK_DIR = path.join(os.tmpdir(), 'renew-uploads');
 if (!fs.existsSync(CHUNK_DIR)) fs.mkdirSync(CHUNK_DIR, { recursive: true });
