@@ -1974,19 +1974,24 @@ app.post('/api/complete-upload', async (req, res) => {
             writeStream.on('error', reject);
         });
 
-        // Upload final file to Supabase
-        const fileBuffer = fs.readFileSync(finalPath);
+        // Upload final file to Supabase using a Stream (more efficient for large files)
+        const fileStream = fs.createReadStream(finalPath);
         const finalFileName = `${Date.now()}_${fileName.replace(/\s+/g, '_')}`;
         const storagePath = `${folder}/${finalFileName}`;
 
+        console.log(`[STORAGE] Uploading assembled file to Supabase: ${storagePath}...`);
         const { data, error } = await supabase.storage
             .from('archivos_renew')
-            .upload(storagePath, fileBuffer, {
-                contentType: 'video/mp4', // Default for academia videos
-                upsert: true
+            .upload(storagePath, fileStream, {
+                contentType: 'video/mp4',
+                upsert: true,
+                duplex: 'half' // Required for streaming in some environments
             });
 
-        if (error) throw error;
+        if (error) {
+            console.error('[STORAGE] Supabase Upload Error:', error);
+            throw error;
+        }
 
         // Cleanup
         fs.unlinkSync(finalPath);
@@ -1995,8 +2000,13 @@ app.post('/api/complete-upload', async (req, res) => {
         const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${storagePath}`;
         res.json({ success: true, url: publicUrl });
     } catch (e) {
-        console.error('[COMPLETE] Error:', e);
-        res.status(500).json({ success: false, error: e.message });
+        console.error('[COMPLETE] Critical Error:', e);
+        res.status(500).json({ 
+            success: false, 
+            error: e.message || 'Fallo al completar la subida',
+            details: e.toString(),
+            source: 'complete-upload'
+        });
     }
 });
 
