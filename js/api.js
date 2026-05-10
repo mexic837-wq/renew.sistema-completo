@@ -809,7 +809,7 @@ export function syncClientStatuses(db) {
         cli.macro_estado = 'En Proceso';
       } else if (hasCompleted) {
         cli.estado = 'Completado';
-        cli.macro_estado = 'Cliente Fiel';
+        cli.macro_estado = 'Cliente';
       } else {
         // This case might happen if all projects are weird/missing pipelines
         // Fallback to existing or Prospecto
@@ -818,7 +818,7 @@ export function syncClientStatuses(db) {
     } else {
       // No projects -> keep existing macro_estado or set defaults
       if (!cli.macro_estado) {
-        cli.macro_estado = (cli.estado === 'Completado') ? 'Cliente Fiel' : (cli.estado === 'En Proceso' ? 'En Proceso' : 'Prospecto');
+        cli.macro_estado = (cli.estado === 'Completado') ? 'Cliente' : (cli.estado === 'En Proceso' ? 'En Proceso' : 'Prospecto');
       }
     }
   });
@@ -1585,7 +1585,7 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
       const cliObj = db.Clientes_Maestro.find(c => c.id === p.cliente_id);
       if (cliObj) {
         cliObj.estado = 'Completado';
-        cliObj.macro_estado = 'Cliente Fiel';
+        cliObj.macro_estado = 'Cliente';
         await saveGranular('clientes_maestro', [cliObj]);
       }
       p.estado = 'Completado';

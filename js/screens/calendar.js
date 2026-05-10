@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/calendar.js
    ============================================================ */
 import { getCurrentUser, navigate } from '../app.js';
-import { getDB } from '../api.js';
+import { getDB, saveGranular } from '../api.js';
 import { t } from '../i18n.js';
 
 export async function renderMiCalendario() {
@@ -62,8 +62,91 @@ export async function renderMiCalendario() {
           transform: translateY(-2px) !important;
           filter: brightness(1.1) !important;
         }
+
+        /* --- NUEVOS ESTILOS PARA PROPORCIONES DE TARJETAS --- */
+        .fc-event {
+          border: none !important;
+          border-radius: 20px !important; /* Estilo píldora */
+          padding: 4px 12px !important;
+          margin: 3px 8px !important; /* Márgenes laterales para evitar que se vea estirada de borde a borde */
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+          cursor: pointer !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          height: auto !important;
+          min-height: 24px !important;
+          display: flex !important;
+          align-items: center !important;
+        }
+        .fc-event:hover {
+          transform: translateY(-1px) scale(1.01) !important;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
+          filter: brightness(1.1);
+        }
+        .fc-event-main {
+          color: #000 !important;
+          font-weight: 900 !important;
+          font-size: 0.7rem !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          width: 100%;
+        }
+        .fc-event-time {
+          background: rgba(0,0,0,0.15);
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-size: 0.62rem !important;
+          font-weight: 900 !important;
+          color: rgba(0,0,0,0.8) !important;
+          flex-shrink: 0;
+        }
+        .fc-event-title {
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .fc-daygrid-event {
+          margin-top: 4px !important;
+          margin-bottom: 4px !important;
+        }
+        .fc-daygrid-day-number {
+          font-weight: 800 !important;
+          font-size: 0.85rem !important;
+          color: var(--text-muted) !important;
+          padding: 10px !important;
+          text-decoration: none !important;
+        }
+        .fc-col-header-cell-cushion {
+          font-size: 0.65rem !important;
+          font-weight: 900 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 1.5px !important;
+          color: var(--text-muted) !important;
+          padding: 14px 0 !important;
+          text-decoration: none !important;
+        }
+        .fc-theme-standard td, .fc-theme-standard th {
+          border: 1px solid rgba(255,255,255,0.03) !important;
+        }
+        .fc-daygrid-day-frame {
+          min-height: 95px !important;
+        }
+        .fc-scrollgrid {
+          border: none !important;
+          border-radius: 20px !important;
+          overflow: hidden !important;
+        }
+        .fc-day-today {
+          background: rgba(0,245,212,0.05) !important;
+        }
+        .fc-day-today .fc-daygrid-day-number {
+          color: var(--primary) !important;
+          font-size: 1.1rem !important;
+          font-weight: 900 !important;
+        }
       </style>
-      <div id="mi-calendario-container" style="background: var(--surface); border-radius: 24px; padding: 12px; box-shadow: var(--shadow-sm); min-height: 450px;"></div>
+      <div id="mi-calendario-container" style="background: var(--surface); border-radius: 32px; padding: 12px; box-shadow: var(--shadow-xl); min-height: 550px; border: 1px solid var(--border);"></div>
     </div>
     <button id="fab-add-event" style="position: fixed; bottom: 85px; right: 20px; width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: #000; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; box-shadow: 0 8px 30px rgba(0,223,191,0.5); z-index: 100; transition: transform 0.2s;">
       <i class="fa-solid fa-plus"></i>
@@ -91,7 +174,7 @@ export async function renderMiCalendario() {
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     locale: 'es',
-    initialView: 'listWeek',
+    initialView: 'dayGridMonth',
     customButtons: {
       addEvent: {
         text: '+ AÑADIR',
@@ -101,7 +184,7 @@ export async function renderMiCalendario() {
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
-      right: 'addEvent listWeek,dayGridMonth'
+      right: 'addEvent dayGridMonth,listWeek'
     },
     buttonText: {
       today: 'Hoy',
@@ -114,26 +197,47 @@ export async function renderMiCalendario() {
         const data = db.calendario_eventos || [];
         const userEvents = data.filter(ev => {
           if (!ev.colaboradores || !Array.isArray(ev.colaboradores)) return false;
-          return ev.colaboradores.some(c => c.id === user.id);
+          return ev.colaboradores.some(c => {
+            let colabObj = c;
+            if (typeof c === 'string') {
+              try { colabObj = JSON.parse(c); } catch(e) {}
+            }
+            return colabObj.id === user.id;
+          });
         });
 
         const mapped = userEvents.map(ev => {
+          const normalizedColab = (ev.colaboradores || []).map(c => {
+            if (typeof c === 'string') {
+              try { return JSON.parse(c); } catch(e) { return {}; }
+            }
+            return c;
+          });
           const colorMap = {
             'Verde': '#00ff88', 'Amarillo': '#fce803', 'Rojo': '#ff3366', 'Azul': '#00d4ff', 'Naranja': '#ff8c00'
           };
+          
+          // Fix: Ensure end date is passed correctly. If missing, default to 1h after start.
+          let end = ev.fecha_fin;
+          if (!end && ev.fecha_inicio) {
+             const d = new Date(ev.fecha_inicio);
+             d.setHours(d.getHours() + 1);
+             end = d.toISOString();
+          }
+
           return {
             id: ev.id,
             title: ev.nombre,
             start: ev.fecha_inicio,
-            end: ev.fecha_fin,
+            end: end,
             backgroundColor: colorMap[ev.color] || '#00f5d4',
             borderColor: 'transparent',
             extendedProps: {
-              telefono: ev.telefono,
+              real_end: ev.fecha_fin,
               direccion: ev.direccion,
               description: ev.descripcion,
               color: ev.color,
-              colaboradores: ev.colaboradores
+              colaboradores: normalizedColab
             }
           };
         });
@@ -179,22 +283,19 @@ export async function renderMiCalendario() {
         document.getElementById('ev-nombre').readOnly = true;
 
         document.getElementById('ev-fecha-inicio').value = toLocalISOString(event.start);
-        document.getElementById('ev-fecha-fin').value = toLocalISOString(event.end);
+        if (props.real_end) {
+            document.getElementById('ev-fecha-fin').value = toLocalISOString(new Date(props.real_end));
+        } else if (event.end) {
+            document.getElementById('ev-fecha-fin').value = toLocalISOString(event.end);
+        } else {
+            document.getElementById('ev-fecha-fin').value = toLocalISOString(event.start);
+        }
         document.getElementById('ev-fecha-inicio').readOnly = true;
         document.getElementById('ev-fecha-fin').readOnly = true;
 
         if (props.telefono) {
-            document.getElementById('ev-telefono').classList.add('nuclear-hidden');
-            const linkTel = document.getElementById('ev-telefono-link');
-            linkTel.classList.remove('nuclear-hidden');
-            linkTel.href = `tel:${props.telefono}`;
-            document.getElementById('ev-telefono-txt').textContent = props.telefono;
-        } else {
-            document.getElementById('ev-telefono').value = '';
-            document.getElementById('ev-telefono').readOnly = true;
-            document.getElementById('ev-telefono').classList.remove('nuclear-hidden');
-            document.getElementById('ev-telefono-link').classList.add('nuclear-hidden');
-        }
+            } else {
+            }
 
         if (props.direccion) {
             document.getElementById('ev-direccion').classList.add('nuclear-hidden');
@@ -232,10 +333,6 @@ export async function renderMiCalendario() {
         document.getElementById('ev-fecha-inicio').readOnly = false;
         document.getElementById('ev-fecha-fin').readOnly = false;
 
-        document.getElementById('ev-telefono').readOnly = false;
-        document.getElementById('ev-telefono').classList.remove('nuclear-hidden');
-        document.getElementById('ev-telefono-link').classList.add('nuclear-hidden');
-
         document.getElementById('ev-direccion').readOnly = false;
         document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
         document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
@@ -244,6 +341,85 @@ export async function renderMiCalendario() {
         document.getElementById('ev-colaboradores-wrapper').classList.add('nuclear-hidden');
 
         document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
+
+        // Google Places Autocomplete for address field
+        const evDirInput = document.getElementById('ev-direccion');
+        const evMapPreview = document.getElementById('ev-map-preview');
+        const evMapCanvas = document.getElementById('ev-map-canvas');
+
+        if (evDirInput && window.google && window.google.maps) {
+            const updateMiniMap = (lat, lng) => {
+                if (evMapPreview) evMapPreview.classList.remove('hidden');
+                if (!evDirInput._evMap) {
+                    evDirInput._evMap = new google.maps.Map(evMapCanvas, {
+                        center: { lat, lng },
+                        zoom: 15,
+                        mapTypeId: 'roadmap',
+                        disableDefaultUI: true,
+                        gestureHandling: 'none',
+                        styles: [
+                            { elementType: 'geometry', stylers: [{ color: '#1a2035' }] },
+                            { elementType: 'labels.text.fill', stylers: [{ color: '#00f5d4' }] },
+                            { elementType: 'labels.text.stroke', stylers: [{ color: '#0a1628' }] },
+                            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1e3a5f' }] },
+                            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1f3c' }] },
+                            { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+                        ]
+                    });
+                    evDirInput._evMarker = new google.maps.Marker({
+                        position: { lat, lng },
+                        map: evDirInput._evMap,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 8,
+                            fillColor: '#00f5d4',
+                            fillOpacity: 1,
+                            strokeColor: '#ffffff',
+                            strokeWeight: 2
+                        }
+                    });
+                } else {
+                    evDirInput._evMap.setCenter({ lat, lng });
+                    evDirInput._evMarker.setPosition({ lat, lng });
+                    google.maps.event.trigger(evDirInput._evMap, 'resize');
+                }
+            };
+
+            if (!evDirInput._placesInit && window.google.maps.places) {
+                evDirInput._placesInit = true;
+                const autocomplete = new google.maps.places.Autocomplete(evDirInput, {
+                    types: ['address'],
+                    fields: ['formatted_address', 'geometry', 'name']
+                });
+
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (place && place.geometry) {
+                        const loc = place.geometry.location;
+                        updateMiniMap(loc.lat(), loc.lng());
+                        evDirInput.value = place.formatted_address || place.name || evDirInput.value;
+                    }
+                });
+
+                evDirInput.addEventListener('input', () => {
+                    if (!evDirInput.value.trim() && evMapPreview) {
+                        evMapPreview.classList.add('hidden');
+                    }
+                });
+            }
+
+            if (evDirInput.value.trim()) {
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ address: evDirInput.value }, (results, status) => {
+                    if (status === 'OK' && results[0].geometry) {
+                        const loc = results[0].geometry.location;
+                        updateMiniMap(loc.lat(), loc.lng());
+                    }
+                });
+            } else if (evMapPreview) {
+                evMapPreview.classList.add('hidden');
+            }
+        }
     }
   }
 
@@ -265,7 +441,6 @@ export async function renderMiCalendario() {
         const fecha_fin_val = document.getElementById('ev-fecha-fin').value;
         const fecha_fin = fecha_fin_val ? new Date(fecha_fin_val).toISOString() : null;
         
-        const telefono = document.getElementById('ev-telefono').value;
         const direccion = document.getElementById('ev-direccion').value;
         const descripcion = document.getElementById('ev-descripcion').value;
         
@@ -283,50 +458,49 @@ export async function renderMiCalendario() {
         if (!db.calendario_eventos) db.calendario_eventos = [];
 
         const newEvent = {
-            id: 'ev-' + Date.now(),
+            id: 'ev_' + Date.now(),
             nombre,
             fecha_inicio,
             fecha_fin,
-            telefono,
             direccion,
             descripcion,
             color,
             colaboradores,
-            vendedor_id: user.id, // Track who created it
-            creado_por: user.id,
-            fecha_creacion: new Date().toISOString()
+            attendees: [],
+            created_at: new Date().toISOString()
         };
 
         db.calendario_eventos.push(newEvent);
-        await saveDB(db);
+        await saveGranular('calendario_eventos', [newEvent]);
 
-        // ── SYNC WITH GOOGLE CALENDAR (Service Account) ──
+        // ── SYNC WITH GOOGLE CALENDAR VIA N8N ──
         try {
-            const gEvent = {
-                summary: nombre,
-                location: direccion,
-                description: descripcion + (telefono ? `\nTel: ${telefono}` : ''),
-                start: {
-                    dateTime: fecha_inicio,
-                    timeZone: 'America/New_York'
-                },
-                end: {
-                    dateTime: fecha_fin || new Date(new Date(fecha_inicio).getTime() + 3600000).toISOString(),
-                    timeZone: 'America/New_York'
-                },
-                attendees: colaboradores.map(c => ({ email: c.email }))
-            };
-
-            fetch('/api/calendar/sync', {
+            fetch('https://n8n.renewgroup.site/webhook/calendario-renew', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    calendarId: 'c_0300a26935f9ffbe1772a440f9070fa95f02f551157e69bd0d71092777559943@group.calendar.google.com',
-                    event: gEvent 
+                    action: 'create_event',
+                    source: 'mobile_app',
+                    user: {
+                        id: user.id,
+                        nombre: `${user.nombre || ''} ${user.apellido || ''}`.trim(),
+                        email: user.email || ''
+                    },
+                    event: {
+                        id: newEvent.id,
+                        summary: nombre,
+                        location: direccion || '',
+                    direccion: direccion || '',
+                        description: descripcion,
+                        start: fecha_inicio,
+                        end: fecha_fin || new Date(new Date(fecha_inicio).getTime() + 3600000).toISOString(),
+                        color: color,
+                        colaboradores: colaboradores
+                    }
                 })
-            }).catch(e => console.error('[GCAL-SYNC-ERR]', e));
-        } catch (gcalErr) {
-            console.error('[GCAL-ERR]', gcalErr);
+            }).catch(e => console.error('[N8N-SYNC-ERR]', e));
+        } catch (n8nErr) {
+            console.error('[N8N-ERR]', n8nErr);
         }
 
         import('../components/toast.js').then(m => m.showToast('Evento guardado', 'success'));

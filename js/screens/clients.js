@@ -1526,7 +1526,7 @@ function _wireModalControls(user, container) {
       // Validation (prospecto: nombre, apellido, tel, dirección)
       if (!nombre) { showToast('El Nombre es obligatorio', 'error'); return; }
       if (!apellido) { showToast('El Apellido es obligatorio', 'error'); return; }
-      if (tel.length < 14) { showToast('El Teléfono es obligatorio (+1 y 10 dígitos)', 'error'); return; }
+      if (tel.length < 5) { showToast('El Teléfono es obligatorio', 'error'); return; }
       if (!dir) { showToast('La Dirección es obligatoria', 'error'); return; }
 
       try {

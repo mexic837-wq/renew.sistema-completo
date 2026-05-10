@@ -302,12 +302,12 @@ export function syncClientStatuses(db) {
         cli.macro_estado = 'En Proceso';
       } else if (hasCompleted) {
         cli.estado = 'Completado';
-        cli.macro_estado = 'Cliente Fiel';
+        cli.macro_estado = 'Cliente';
       }
     } else {
       // No projects -> keep existing macro_estado or set defaults
       if (!cli.macro_estado) {
-        cli.macro_estado = (cli.estado === 'Completado') ? 'Cliente Fiel' : (cli.estado === 'En Proceso' ? 'En Proceso' : 'Prospecto');
+        cli.macro_estado = (cli.estado === 'Completado') ? 'Cliente' : (cli.estado === 'En Proceso' ? 'En Proceso' : 'Prospecto');
       }
     }
   });

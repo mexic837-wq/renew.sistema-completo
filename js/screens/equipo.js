@@ -174,12 +174,28 @@ export async function renderMiEquipo() {
         <div class="team-card animate-fade-in" style="animation-delay: ${idx * 0.05}s">
           <div class="team-photo-wrapper">
             ${photoUrl 
-              ? `<img src="${photoUrl}" class="team-photo" alt="${w.nombre}">`
-              : `<div class="team-photo" style="display:flex; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem;">${initials}</div>`
+              ? `<img src="${photoUrl}" class="team-photo" alt="${w.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="team-photo" style="display:none; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem; background:var(--bg-secondary);">${initials}</div>`
+              : `<div class="team-photo" style="display:flex; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem; background:var(--bg-secondary);">${initials}</div>`
             }
           </div>
           <div class="team-name">${w.nombre} ${w.apellido || ''}</div>
           <div class="team-role">${w.rol || 'Colaborador'}</div>
+          
+          <div class="team-units" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:-8px; margin-bottom:15px; opacity: 0.8;">
+            ${(() => {
+              const units = w.unidades || w.ecosistemas_autorizados || [];
+              return units.map(u => {
+                const name = u.replace('Renew ', '').toLowerCase();
+                let icon = 'fa-circle';
+                let color = '#94a3b8';
+                if (name.includes('solar')) { icon = 'fa-sun'; color = '#f59e0b'; }
+                else if (name.includes('water')) { icon = 'fa-droplet'; color = '#0ea5e9'; }
+                else if (name.includes('home')) { icon = 'fa-house'; color = '#84cc16'; }
+                return `<i class="fa-solid ${icon}" style="font-size: 0.65rem; color: ${color};" title="${u}"></i>`;
+              }).join('');
+            })()}
+          </div>
           
           <div class="team-contact">
             ${w.email ? `

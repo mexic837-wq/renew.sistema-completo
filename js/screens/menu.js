@@ -73,10 +73,10 @@ export async function renderMenu() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
 
-        <div class="menu-list-item" id="btn-menu-notifs" style="cursor: pointer;">
+        <div class="menu-list-item" id="btn-menu-academy" style="cursor: pointer;">
           <div class="menu-item-left">
-            <div class="menu-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-            <span>${t('menu_notifs')}</span>
+            <div class="menu-item-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg></div>
+            <span>Academia</span>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
@@ -147,11 +147,11 @@ export async function renderMenu() {
     btnAccount.addEventListener('click', () => mostrarModalCuenta(user));
   }
 
-  // Notificaciones
-  const btnNotifs = document.getElementById('btn-menu-notifs');
-  if (btnNotifs) {
-    btnNotifs.addEventListener('click', () => {
-      mostrarModalNotificaciones(user);
+  // Academia
+  const btnAcademy = document.getElementById('btn-menu-academy');
+  if (btnAcademy) {
+    btnAcademy.addEventListener('click', () => {
+      if (window.appNavigate) window.appNavigate('academy');
     });
   }
 

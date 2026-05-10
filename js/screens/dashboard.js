@@ -571,13 +571,6 @@ function _renderToolsForPipeline(user, activeUnit) {
 
   const commonTools = [
     {
-      name: 'Meetings', tag: null,
-      gradient: 'linear-gradient(90deg,#60a5fa,#3b82f6)',
-      iconBg: 'rgba(96,165,250,0.1)', iconColor: '#60a5fa',
-      icon: `<i class="fa-solid fa-video"></i>`,
-      action: () => window.appNavigate('meetings'), delay: '0.19s'
-    },
-    {
       name: 'Mi Mapa', tag: null,
       gradient: 'linear-gradient(90deg,#8b5cf6,#d946ef)',
       iconBg: 'rgba(139,92,246,0.1)', iconColor: '#a78bfa',

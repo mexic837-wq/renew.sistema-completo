@@ -9,7 +9,7 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
 import { renderDashboard } from './screens/dashboard.js';
-import { renderMeetings } from './screens/meetings.js';
+import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
 import { renderAcademy }    from './screens/academy.js';
@@ -248,9 +248,13 @@ window.verificarAnunciosNuevos = async function() {
 
   const db = getDB();
   const anuncios = db.anuncios_corporativos || [];
+  const meetings = db.admin_meetings || [];
+  const meetingReads = db.admin_meetings_reads || [];
 
+  let unreadCount = 0;
+
+  // 1. Contar anuncios no leídos
   for (let an of anuncios) {
-    // Filtrar por audiencia
     let pertenece = false;
     if (an.audiencia === 'todos') {
       pertenece = true;
@@ -259,60 +263,50 @@ window.verificarAnunciosNuevos = async function() {
     }
     
     if (pertenece) {
-      // Ver si ya lo leyó
       let est = an.estado_lecturas.find(e => e.vendedor_id === user.id);
-      
-      // Si el trabajador se agregó después de publicar el anuncio (fallback)
       if (!est) {
          est = { vendedor_id: user.id, vendedor_nombre: `${user.nombre || ''} ${user.apellido || ''}`, leido: false, fecha_lectura: null };
          an.estado_lecturas.push(est);
-         // Guardar silenciosamente este nuevo estado a la bd
          await saveDB(db);
       }
-      
       if (!est.leido) {
-         const modal = document.getElementById('modal-anuncio-global');
-         const tit = document.getElementById('anuncio-global-titulo');
-         const msj = document.getElementById('anuncio-global-mensaje');
-         const btnBtn = document.getElementById('anuncio-global-entendido');
-         
-         if (modal && tit && msj && btnBtn) {
-            tit.textContent = an.titulo;
-            msj.textContent = an.mensaje;
-            modal.style.display = 'flex';
-            
-            // Reemplazar listener para no acumular eventos de otros anuncios
-            const newBtn = btnBtn.cloneNode(true);
-            btnBtn.parentNode.replaceChild(newBtn, btnBtn);
-            
-            newBtn.addEventListener('click', async () => {
-               // Cerrar modal de inmediato para feedback instantáneo
-               modal.style.display = 'none';
-
-               // Update local est (it's a reference)
-               est.leido = true;
-               est.fecha_lectura = new Date().toISOString();
-               
-               // Persist to server (background)
-               try {
-                 await saveDB(db);
-               } catch(e) { console.error('Error al marcar como leido:', e); }
-               
-               // Revisar si hay OTRO anuncio en cola
-               setTimeout(() => {
-                 if (window.verificarAnunciosNuevos) window.verificarAnunciosNuevos();
-               }, 300);
-            });
-         }
-         // Break out and wait for this modal to be closed before showing others
-         return;
+         unreadCount++;
       }
     }
+  }
+
+  // 2. Contar meetings no leídas
+  const misMeetings = meetings.filter(mt => {
+      const tags = mt.audiencia_tags || [mt.audiencia || 'Todos'];
+      const isAll = tags.includes('todos') || tags.includes('Todos');
+      if (isAll) return true;
+      const matchesRole = tags.some(tag => tag.toLowerCase() === (user.rol || '').toLowerCase());
+      const pipelinePerms = user.pipeline_perms || [];
+      const matchesPipe = tags.some(tag => pipelinePerms.includes(tag) || (user.unidades || []).includes(tag));
+      return matchesRole || matchesPipe;
+  });
+
+  for (let mt of misMeetings) {
+      const isRead = meetingReads.some(r => r.meeting_id === mt.id && r.user_id === user.id);
+      if (!isRead) {
+          unreadCount++;
+      }
+  }
+
+  // 3. Actualizar el badge en el menú de navegación inferior
+  const navBadge = document.getElementById('notif-badge');
+  if (navBadge) {
+      if (unreadCount > 0) {
+          navBadge.textContent = unreadCount;
+          navBadge.style.display = 'block';
+      } else {
+          navBadge.style.display = 'none';
+      }
   }
 }
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'meetings'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones'];
 
 export function navigate(screen, param = null) {
   // Auth guard
@@ -351,7 +345,7 @@ export function navigate(screen, param = null) {
     case 'login':       renderLogin();              break;
     case 'hub':         renderHub();                break;
     case 'dashboard':   renderDashboard();          break;
-    case 'meetings':    renderMeetings();           break;
+    case 'notificaciones':    renderNotificaciones();           break;
     case 'new-client':  renderNewClient();          break;
     case 'detail':      renderDetail(param);        break;
     case 'academy':     renderAcademy();            break;
@@ -540,6 +534,7 @@ function handleHashChange() {
       case 'login':      renderLogin();           break;
       case 'hub':        renderHub();             break;
       case 'dashboard':  renderDashboard();       break;
+      case 'notificaciones': renderNotificaciones(); break;
       case 'new-client': renderNewClient();       break;
       case 'detail':     renderDetail(param);     break;
       case 'academy':    renderAcademy();         break;
@@ -682,6 +677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'login':         renderLogin();           break;
       case 'hub':           renderHub();             break;
       case 'dashboard':     renderDashboard();       break;
+      case 'notificaciones': renderNotificaciones(); break;
       case 'new-client':    renderNewClient();       break;
       case 'academy':       renderAcademy();         break;
       case 'menu':          renderMenu();            break;
@@ -702,6 +698,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     switch (activeId) {
       case 'dashboard':     renderDashboard();       break;
+      case 'notificaciones': renderNotificaciones(); break;
       case 'new-client':    renderNewClient();       break;
       case 'inventory-tech':renderInventoryTech();   break;
       case 'clients':       renderClients();         break;
@@ -746,3 +743,5 @@ function _sizeIframeScreen(screenId, iframeId) {
     window.addEventListener('resize', section._resizeHandler);
   }
 }
+
+

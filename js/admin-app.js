@@ -4824,6 +4824,13 @@ function renderCalendario() {
             const filtered = data.filter(ev => ev.fecha_inicio >= fetchInfo.startStr && ev.fecha_inicio <= fetchInfo.endStr);
             
             const mapped = filtered.map(ev => {
+                const normalizedColab = (ev.colaboradores || []).map(c => {
+                    if (typeof c === 'string') {
+                        try { return JSON.parse(c); } catch(e) { return {}; }
+                    }
+                    return c;
+                });
+
                 const colorMap = {
                     'Verde': '#00ff88',
                     'Amarillo': '#fce803',
@@ -4835,17 +4842,17 @@ function renderCalendario() {
                     id: ev.id,
                     title: ev.nombre,
                     start: ev.fecha_inicio,
-                    end: ev.fecha_fin,
                     backgroundColor: colorMap[ev.color] || '#00f5d4',
                     borderColor: 'transparent',
                     extendedProps: {
+                        real_end: ev.fecha_fin,
                         isSupabase: true,
                         telefono: ev.telefono,
                         direccion: ev.direccion,
                         description: ev.descripcion,
                         adjunto_url: ev.adjunto_url,
                         color: ev.color,
-                        colaboradores: ev.colaboradores
+                        colaboradores: normalizedColab
                     }
                 };
              });
@@ -4942,8 +4949,12 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     if (event.start) {
         document.getElementById('ev-fecha-inicio').value = toLocalISOString(event.start);
     }
-    if (event.end) {
+    if (props.real_end) {
+        document.getElementById('ev-fecha-fin').value = toLocalISOString(new Date(props.real_end));
+    } else if (event.end) {
         document.getElementById('ev-fecha-fin').value = toLocalISOString(event.end);
+    } else if (event.start) {
+        document.getElementById('ev-fecha-fin').value = toLocalISOString(event.start);
     }
     document.getElementById('ev-fecha-inicio').readOnly = true;
     document.getElementById('ev-fecha-fin').readOnly = true;

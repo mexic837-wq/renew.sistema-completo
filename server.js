@@ -8,12 +8,15 @@ const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
-const SUPABASE_URL = 'https://gateway.renewgroup.site';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MDQ4MDAwMDAsImV4cCI6MjUyODQ4MDAwMH0.KvxyKyMOZPu4RBhI_TKMsearLjskqC08kRj-krd6ZqI';
+const SUPABASE_URL = 'http://31.97.102.243:8001'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.JlrSkGO6ZyAaaToY0xTLajbLsNuL8kn2QwCI3jrCeFs'; // secret: RenewJWTSuperSecret2026Key32Chars
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false }
 });
+
+// Alias para no romper las funciones que ya actualicé
+const supabaseStorage = supabase;
 
 const app = express();
 const port = 3010;
@@ -92,17 +95,27 @@ app.get('/api/db', async (req, res) => {
             return `${prefix}${Math.max(0, ...nums) + 1}`;
         };
 
+        const fixUrl = (url) => {
+            if (typeof url !== 'string') return url;
+            return url.replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?/, 'http://31.97.102.243:8001/storage/v1/object/public');
+        };
+
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
         const db = {
             Admin_Pipelines:         results[0].data || [],
             Admin_Fases:             results[1].data || [],
             Admin_Campos_Formulario: results[2].data || [],
             Clientes_Maestro:        (results[3].data || []).map(c => {
-                const clean = (u) => (u && u.includes('api-renew')) ? u.replace('api-renew', 'files-renew').replace('/storage/v1/', '/') : u;
+                let adjOficina = c.adjuntos_oficina || null;
+                if (adjOficina && typeof adjOficina === 'object') {
+                    Object.keys(adjOficina).forEach(k => {
+                        if (typeof adjOficina[k] === 'string') adjOficina[k] = fixUrl(adjOficina[k]);
+                    });
+                }
                 return {
                     ...c,
-                    foto: c.foto || null,
-                    id_photo: c.id_photo || c.foto_id || null,
+                    foto: fixUrl(c.foto),
+                    id_photo: fixUrl(c.id_photo || c.foto_id),
                     origen_tipo: c.origen_tipo || null,
                     origen_nombre: c.origen_nombre || null,
                     origen_id: c.origen_id || null,
@@ -110,11 +123,11 @@ app.get('/api/db', async (req, res) => {
                     vendedor_asignado_nombre: c.vendedor_asignado_nombre || null,
                     // ── NUEVAS COLUMNAS (Módulo Clientes v2) ──
                     departamento:       c.departamento       || null,
-                    adjunto_id_url:     c.adjunto_id_url     || null,
-                    adjunto_bill_url:   c.adjunto_bill_url   || null,
-                    adjunto_seguro_url: c.adjunto_seguro_url || null,
-                    adjuntos_oficina:   c.adjuntos_oficina   || null,
-                    contrato_water_url: c.contrato_water_url || null,
+                    adjunto_id_url:     fixUrl(c.adjunto_id_url),
+                    adjunto_bill_url:   fixUrl(c.adjunto_bill_url),
+                    adjunto_seguro_url: fixUrl(c.adjunto_seguro_url),
+                    adjuntos_oficina:   adjOficina,
+                    contrato_water_url: fixUrl(c.contrato_water_url),
                     macro_estado:       c.macro_estado       || null,
                     departamentos_activos: c.departamentos_activos || [],
                     fecha_inicio:       c.fecha_inicio       || null,
@@ -127,9 +140,10 @@ app.get('/api/db', async (req, res) => {
             Respuestas_Dinamicas:    results[5].data || [],
             Usuarios:                (results[6].data || []).map(u => ({
                     ...u,
-                    w9_url:   u.w9_url || u.w9Url || null,
-                    carnet_url: u.carnet_url || u.carnetUrl || null,
-                    contrato_url: u.contrato_url || u.contratoUrl || null
+                    foto:       fixUrl(u.foto),
+                    w9_url:     fixUrl(u.w9_url || u.w9Url),
+                    carnet_url: fixUrl(u.carnet_url || u.carnetUrl),
+                    contrato_url: fixUrl(u.contrato_url || u.contratoUrl)
             })),
             academiaContent:         (results[7].data || []).map(item => ({
                 id:             item.id,
@@ -163,7 +177,21 @@ app.get('/api/db', async (req, res) => {
                 seguroUrl:   p.seguro_url || null,
                 created_at:  p.fecha_registro || null
             })),
-            calendario_eventos:      results[12].data || [],
+            calendario_eventos:      (results[12].data || []).map(ev => {
+                let parsedColab = [];
+                if (Array.isArray(ev.colaboradores)) {
+                    parsedColab = ev.colaboradores.map(c => {
+                        try {
+                            let parsed = typeof c === 'string' ? JSON.parse(c) : c;
+                            if (typeof parsed === 'string') parsed = JSON.parse(parsed); // Double unwrap just in case
+                            return parsed;
+                        } catch(e) {
+                            return c;
+                        }
+                    });
+                }
+                return { ...ev, colaboradores: parsedColab };
+            }),
             Recibos_Pagos:           (results[13].data || []).map(r => ({
                 id:               r.id,
                 proyecto_id:      r.proyecto_id   || null,
@@ -627,7 +655,16 @@ app.post('/api/db', async (req, res) => {
             syncTasks.push(supabase.from('academia_content').upsert(mappedAca, { onConflict: 'id' }));
         }
         if (db.anuncios_corporativos?.length) {
-            syncTasks.push(supabase.from('anuncios_corporativos').upsert(db.anuncios_corporativos, { onConflict: 'id' }));
+            const mappedAnu = db.anuncios_corporativos.map(item => ({
+                id:              item.id,
+                titulo:          item.titulo          || null,
+                mensaje:         item.mensaje         || null,
+                audiencia:       item.audiencia       || null,
+                foto_url:        item.foto_url        || null,
+                fecha:           item.fecha           || null,
+                estado_lecturas: item.estado_lecturas || []
+            }));
+            syncTasks.push(supabase.from('anuncios_corporativos').upsert(mappedAnu, { onConflict: 'id' }));
         }
         if (db.inventarioGlobal?.length) {
             const mappedInv = db.inventarioGlobal.map(item => ({
@@ -647,17 +684,7 @@ app.post('/api/db', async (req, res) => {
         if (db.historialInventario?.length) {
             syncTasks.push(supabase.from('historial_inventario').upsert(db.historialInventario, { onConflict: 'fecha' })); 
         }
-        if (db.anuncios_corporativos?.length) {
-            const anu = db.anuncios_corporativos.map(item => ({
-                id:              item.id,
-                titulo:          item.titulo          || null,
-                mensaje:         item.mensaje         || null,
-                audiencia:       item.audiencia       || null,
-                fecha:           item.fecha           || null,
-                estado_lecturas: item.estado_lecturas || []
-            }));
-            syncTasks.push(supabase.from('anuncios_corporativos').upsert(anu, { onConflict: 'id' }));
-        }
+
         if (db.Admin_Proveedores?.length) {
             const mappedPrv = db.Admin_Proveedores.map(item => ({
                 id:                 item.id,
@@ -674,7 +701,30 @@ app.post('/api/db', async (req, res) => {
             syncTasks.push(supabase.from('partners_directorio').upsert(mappedPrv, { onConflict: 'id' }));
         }
         if (db.calendario_eventos?.length) {
-            syncTasks.push(supabase.from('calendario_eventos').upsert(db.calendario_eventos, { onConflict: 'id' }));
+            const mappedEv = db.calendario_eventos.map(ev => ({
+                id:            ev.id,
+                nombre:        ev.nombre || null,
+                fecha_inicio:  ev.fecha_inicio || null,
+                fecha_fin:     ev.fecha_fin || null,
+                direccion:     ev.direccion || null,
+                descripcion:   ev.descripcion || null,
+                color:         ev.color || null,
+                colaboradores: Array.isArray(ev.colaboradores) ? ev.colaboradores.map(c => typeof c === 'string' ? c : JSON.stringify(c)) : [],
+                attendees:     ev.attendees || [],
+                adjunto_url:   ev.adjunto_url || null,
+                created_at:    ev.created_at || ev.fecha_creacion || new Date().toISOString()
+            }));
+            
+            console.log('[DEBUG SUPABASE] Upserting calendario_eventos:', JSON.stringify(mappedEv[0]).substring(0, 200));
+            
+            const req = supabase.from('calendario_eventos').upsert(mappedEv, { onConflict: 'id' }).then(({data, error}) => {
+                if (error) {
+                    console.error('[CRITICAL] calendario_eventos Upsert Failed!', error);
+                    throw error;
+                }
+                return data;
+            });
+            syncTasks.push(req);
         }
         if (db.Recibos_Pagos?.length) {
             const mappedRec = db.Recibos_Pagos.map(r => ({
@@ -748,6 +798,12 @@ app.post('/api/upsert', async (req, res) => {
                 creador_id, responsable_id, id_photo, is_locked, 
                 foto_id, lat, lng, ...rest 
             }) => rest);
+        } else if (table === 'calendario_eventos') {
+            sanitizedRecords = records.map(ev => ({
+                ...ev,
+                colaboradores: Array.isArray(ev.colaboradores) ? ev.colaboradores.map(c => typeof c === 'string' ? c : JSON.stringify(c)) : [],
+                attendees: ev.attendees || []
+            }));
         }
         
         // El id es el identificador por defecto para el conflicto en la mayoría de tablas
@@ -1798,13 +1854,23 @@ const subirArchivo = async (file, folder) => {
         throw new Error('Archivo inválido o sin nombre');
     }
     const ext = path.extname(file.originalname);
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-    const storagePath = `${folder}/${fileName}`;
+    
+    // Aplanar subcarpetas (profiles/123 -> folder: profiles, filename: 123-timestamp)
+    let targetFolder = folder;
+    let filePrefix = '';
+    if (folder && folder.includes('/')) {
+        const parts = folder.split('/');
+        targetFolder = parts[0]; 
+        filePrefix = parts.slice(1).join('_') + '-';
+    }
+
+    const fileName = `${filePrefix}${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
+    const storagePath = `${targetFolder}/${fileName}`;
 
     console.log(`[STORAGE] Intentando subir a Supabase: ${storagePath}...`);
 
     try {
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabaseStorage.storage
             .from('archivos_renew')
             .upload(storagePath, file.buffer, { 
                 contentType: file.mimetype,
@@ -1818,7 +1884,7 @@ const subirArchivo = async (file, folder) => {
             throw new Error(`Supabase Storage Error (${uploadError.status}): ${uploadError.message}`);
         }
 
-        const { data } = supabase.storage.from('archivos_renew').getPublicUrl(storagePath);
+        const { data } = supabaseStorage.storage.from('archivos_renew').getPublicUrl(storagePath);
         
         // Use the public URL directly from Supabase
         let publicUrl = data.publicUrl;
@@ -1836,7 +1902,7 @@ const subirArchivo = async (file, folder) => {
 async function initStorage() {
     try {
         console.log('[STORAGE] Verificando bucket "archivos_renew"...');
-        const { data: buckets, error: bErr } = await supabase.storage.listBuckets();
+        const { data: buckets, error: bErr } = await supabaseStorage.storage.listBuckets();
         if (bErr) throw bErr;
 
         const exists = buckets.find(b => b.name === 'archivos_renew');
@@ -1848,12 +1914,12 @@ async function initStorage() {
 
         if (!exists) {
             console.log('[STORAGE] El bucket "archivos_renew" no existe. Creándolo...');
-            const { error: cErr } = await supabase.storage.createBucket('archivos_renew', bucketOptions);
+            const { error: cErr } = await supabaseStorage.storage.createBucket('archivos_renew', bucketOptions);
             if (cErr) console.error('[STORAGE] ❌ Error creando bucket:', cErr.message);
             else console.log('[STORAGE] ✅ Bucket "archivos_renew" creado exitosamente.');
         } else {
             console.log('[STORAGE] El bucket "archivos_renew" ya existe. Asegurando configuración de 500MB...');
-            const { error: uErr } = await supabase.storage.updateBucket('archivos_renew', bucketOptions);
+            const { error: uErr } = await supabaseStorage.storage.updateBucket('archivos_renew', bucketOptions);
             if (uErr) {
                 console.warn('[STORAGE] ⚠️ No se pudo actualizar el límite del bucket desde el código:', uErr.message);
                 console.warn('[STORAGE] 💡 POR FAVOR: Ve a tu panel de Supabase -> Storage -> Buckets -> archivos_renew -> Settings y cambia "File size limit" a 500MB manualmente.');
