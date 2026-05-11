@@ -267,7 +267,7 @@ window.handleGlobalAdd = async () => {
         window.open('https://calendar.google.com/', '_blank');
       }
     }
-    else if (curView === 'usuarios' || curView === 'equipo') {
+    else if (curView === 'usuarios' || curView === 'equipo' || curView === 'hrhub') {
       const title = document.getElementById('modal-usr-title');
       if(title) title.textContent = t('team_btn_add');
       UI.inpUsrId.value = '';
@@ -3075,7 +3075,7 @@ window.renderView = async function renderView() {
   } else if (state.activeView === 'hrhub') {
     if (UI.viewTitle) UI.viewTitle.textContent = "HR Hub";
     if (UI.viewDesc) UI.viewDesc.textContent = "Centro de RRHH - Gestión de Talento y Onboarding";
-    setGlobalButton(false, ''); 
+    setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator'); 
     await renderHRHub();
   } else if (state.activeView === 'mapa-admin') {
     if (UI.viewTitle) UI.viewTitle.innerHTML = '<i class="fa-solid fa-map-location-dot text-tealAccent"></i> Mapa Clientes';
