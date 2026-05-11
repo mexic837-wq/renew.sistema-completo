@@ -5158,16 +5158,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     document.getElementById('ev-fecha-inicio').readOnly = true;
     document.getElementById('ev-fecha-fin').readOnly = true;
 
-    if (props.telefono) {
-      document.getElementById('ev-telefono').classList.add('hidden');
-      const linkTel = document.getElementById('ev-telefono-link');
-      linkTel.classList.remove('hidden');
-      linkTel.href = `tel:${props.telefono}`;
-      document.getElementById('ev-telefono-txt').textContent = props.telefono;
-    } else {
-      document.getElementById('ev-telefono').value = '';
-      document.getElementById('ev-telefono').readOnly = true;
-    }
+
 
     if (props.direccion) {
       document.getElementById('ev-direccion').classList.add('hidden');
@@ -5192,7 +5183,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
       document.getElementById('ev-adjunto').parentElement.classList.add('hidden');
     }
 
-    document.getElementById('ev-recordatorio').parentElement.classList.add('hidden');
+
     document.getElementById('ev-colaboradores').parentElement.classList.add('hidden');
 
     if (props.color) {
@@ -5221,9 +5212,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         window.onStartDateChange(startInput); // auto-fill end date
     }
 
-    document.getElementById('ev-telefono').readOnly = false;
-    document.getElementById('ev-telefono').classList.remove('hidden');
-    document.getElementById('ev-telefono-link').classList.add('hidden');
+
 
     document.getElementById('ev-direccion').readOnly = false;
     document.getElementById('ev-direccion').classList.remove('hidden');
@@ -5235,7 +5224,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     document.getElementById('ev-adjunto-link').classList.add('hidden');
     document.getElementById('ev-adjunto').parentElement.classList.remove('hidden');
 
-    document.getElementById('ev-recordatorio').parentElement.classList.remove('hidden');
+
     document.getElementById('ev-colaboradores').parentElement.classList.remove('hidden');
 
     document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
@@ -5298,10 +5287,10 @@ window.guardarEventoCalendario = async function(e) {
     const fecha_fin_val = document.getElementById('ev-fecha-fin').value;
     const fecha_fin = fecha_fin_val ? new Date(fecha_fin_val).toISOString() : null;
     
-    const telefono = document.getElementById('ev-telefono').value;
+    const telefono = null;
     const direccion = document.getElementById('ev-direccion').value;
     const descripcion = document.getElementById('ev-descripcion').value;
-    const recordatorio = document.getElementById('ev-recordatorio').value;
+    const recordatorio = 'none';
     
     const colorNode = document.querySelector('input[name="ev-color"]:checked');
     const color = colorNode ? colorNode.value : 'Verde';
