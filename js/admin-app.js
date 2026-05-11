@@ -5267,14 +5267,82 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     }
   }
 
-  // ── Google Places Autocomplete for address field ──
+  // ── Google Places Autocomplete for address field (Exact match from mobile version) ──
   const evDirInput = document.getElementById('ev-direccion');
-  if (evDirInput && window.google && window.google.maps && window.google.maps.places) {
-      if (!evDirInput._autocompleteInit) {
-          evDirInput._autocompleteInit = true;
-          new google.maps.places.Autocomplete(evDirInput, {
-              types: ['address']
+  const evMapPreview = document.getElementById('ev-map-preview');
+  const evMapCanvas = document.getElementById('ev-map-canvas');
+
+  if (evDirInput && window.google && window.google.maps) {
+      const updateMiniMap = (lat, lng) => {
+          if (evMapPreview) evMapPreview.classList.remove('hidden');
+          if (!evDirInput._evMap) {
+              evDirInput._evMap = new google.maps.Map(evMapCanvas, {
+                  center: { lat, lng },
+                  zoom: 15,
+                  mapTypeId: 'roadmap',
+                  disableDefaultUI: true,
+                  gestureHandling: 'none',
+                  styles: [
+                      { elementType: 'geometry', stylers: [{ color: '#1a2035' }] },
+                      { elementType: 'labels.text.fill', stylers: [{ color: '#00f5d4' }] },
+                      { elementType: 'labels.text.stroke', stylers: [{ color: '#0a1628' }] },
+                      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1e3a5f' }] },
+                      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1f3c' }] },
+                      { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+                  ]
+              });
+              evDirInput._evMarker = new google.maps.Marker({
+                  position: { lat, lng },
+                  map: evDirInput._evMap,
+                  icon: {
+                      path: google.maps.SymbolPath.CIRCLE,
+                      scale: 8,
+                      fillColor: '#00f5d4',
+                      fillOpacity: 1,
+                      strokeColor: '#ffffff',
+                      strokeWeight: 2
+                  }
+              });
+          } else {
+              evDirInput._evMap.setCenter({ lat, lng });
+              evDirInput._evMarker.setPosition({ lat, lng });
+              google.maps.event.trigger(evDirInput._evMap, 'resize');
+          }
+      };
+
+      if (!evDirInput._placesInit && window.google.maps.places) {
+          evDirInput._placesInit = true;
+          const autocomplete = new google.maps.places.Autocomplete(evDirInput, {
+              types: ['address'],
+              fields: ['formatted_address', 'geometry', 'name']
           });
+
+          autocomplete.addListener('place_changed', () => {
+              const place = autocomplete.getPlace();
+              if (place && place.geometry) {
+                  const loc = place.geometry.location;
+                  updateMiniMap(loc.lat(), loc.lng());
+                  evDirInput.value = place.formatted_address || place.name || evDirInput.value;
+              }
+          });
+
+          evDirInput.addEventListener('input', () => {
+              if (!evDirInput.value.trim() && evMapPreview) {
+                  evMapPreview.classList.add('hidden');
+              }
+          });
+      }
+
+      if (evDirInput.value.trim()) {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ address: evDirInput.value }, (results, status) => {
+              if (status === 'OK' && results[0].geometry) {
+                  const loc = results[0].geometry.location;
+                  updateMiniMap(loc.lat(), loc.lng());
+              }
+          });
+      } else if (evMapPreview) {
+          evMapPreview.classList.add('hidden');
       }
   }
 
