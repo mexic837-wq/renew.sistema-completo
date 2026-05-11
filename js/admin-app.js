@@ -3544,6 +3544,14 @@ window.renderView = async function renderView() {
             servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">❄️ ${t('partner_cat_hvac')}</span>`;
         } else if (s === 'painting' || s === 'pintura') {
             servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">🎨 ${t('partner_cat_painting')}</span>`;
+        } else if (s === 'remodelacion') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20">🏗️ ${t('partner_cat_remodelacion')}</span>`;
+        } else if (s === 'dumpsters') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20">🗑️ ${t('partner_cat_dumpsters')}</span>`;
+        } else if (s === 'gutters') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20">🌧️ ${t('partner_cat_gutters')}</span>`;
+        } else if (s === 'screens') {
+            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">🪟 ${t('partner_cat_screens')}</span>`;
         } else {
             servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">⚙️ ${t('partner_cat_general')}</span>`;
         }

@@ -301,6 +301,10 @@ const TRANSLATIONS = {
     partner_cat_painting: 'Pintura',
     partner_cat_fence:    'Cercas',
     partner_cat_general:  'General',
+    partner_cat_remodelacion: 'Remodelación',
+    partner_cat_dumpsters: 'Dumpsters',
+    partner_cat_gutters: 'Gutters',
+    partner_cat_screens: 'Screens',
 
     // ── Meetings ───────────────────────────────────────────
     mt_title:           'Coordinar Llamada',
@@ -608,6 +612,10 @@ const TRANSLATIONS = {
     partner_cat_painting: 'Painting',
     partner_cat_fence:    'Fence',
     partner_cat_general:  'General',
+    partner_cat_remodelacion: 'Remodeling',
+    partner_cat_dumpsters: 'Dumpsters',
+    partner_cat_gutters: 'Gutters',
+    partner_cat_screens: 'Screens',
 
     // ── Meetings ───────────────────────────────────────────
     mt_title:           'Coordinate Call',
