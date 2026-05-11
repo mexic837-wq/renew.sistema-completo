@@ -2154,8 +2154,9 @@ app.post('/api/complete-upload', async (req, res) => {
 });
 
 // Proxy Route for Storage to avoid Mixed Content (HTTP on HTTPS)
-app.get('/api/storage-proxy/*', (req, res) => {
-    const filePath = req.params[0];
+app.use('/api/storage-proxy', (req, res) => {
+    // req.url will contain the rest of the path after /api/storage-proxy
+    const filePath = req.url.startsWith('/') ? req.url.substring(1) : req.url;
     const targetUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${filePath}`;
     
     console.log(`[PROXY] Fetching: ${targetUrl}`);
