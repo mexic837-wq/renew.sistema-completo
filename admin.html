@@ -45,7 +45,7 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/google-calendar@6.1.11/index.global.min.js'></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmuV4zmbor3JagjOJn2WKUcRA0SUGsh3U&libraries=places" defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmuV4zmbor3JagjOJn2WKUcRA0SUGsh3U&libraries=places"></script>
        <script>
         tailwind.config = {
             darkMode: "class",
@@ -109,6 +109,31 @@
       .flatpickr-calendar {
           z-index: 2147483647 !important;
           position: fixed !important;
+      }
+
+      /* Google Places Autocomplete Fix for Modals */
+      .pac-container {
+        z-index: 2147483647 !important;
+        border-radius: 12px;
+        margin-top: 5px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        background-color: #1e293b !important;
+        color: white !important;
+      }
+      .pac-item {
+        border-top: 1px solid rgba(255,255,255,0.05);
+        padding: 8px 12px;
+        color: #94a3b8 !important;
+      }
+      .pac-item:hover {
+        background-color: rgba(0,245,212,0.1) !important;
+      }
+      .pac-item-query {
+        color: white !important;
+      }
+      .pac-matched {
+        color: #00f5d4 !important;
       }
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
       
