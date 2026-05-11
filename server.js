@@ -2098,9 +2098,10 @@ app.post('/api/complete-upload', async (req, res) => {
 
 // ── PROXY para imágenes antiguas guardadas en Supabase con IP interna ──
 // Permite que URLs como /api/storage-proxy/announcements/... funcionen públicamente
-app.get('/api/storage-proxy/:path*', async (req, res) => {
+app.use('/api/storage-proxy', async (req, res) => {
     try {
-        const filePath = req.params.path; // everything after /api/storage-proxy/
+        const filePath = req.path.replace(/^\//, ''); // Quitamos la barra inicial
+        if (!filePath) return res.status(404).json({ error: 'Ruta de archivo no especificada' });
         const internalUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
         console.log(`[PROXY] Fetching: ${internalUrl}`);
         
