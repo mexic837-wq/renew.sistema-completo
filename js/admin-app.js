@@ -38,6 +38,8 @@ let state = {
   currentUsrFoto: null,
   currentUsrW9Url: null,
   currentAnnFoto: null,
+  currentMtFoto: null,
+  activeAnnTab: 'comunicados',
   crmKanbanActive: false
 };
 
@@ -921,6 +923,19 @@ function bindGlobalEvents() {
     });
   }
 
+  // ── Sidebar Toggle (Collapse) ──
+  if (UI.hambBtn && UI.sidebar) {
+    UI.hambBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      UI.sidebar.classList.toggle('collapsed');
+      
+      // Update kanban arrow positions if active
+      if (state.activeView === 'kanban') {
+          setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+      }
+    });
+  }
+
   // ── Global Action Button (Ensure reliability) ──
   if (UI.btnAddGlobal) {
       UI.btnAddGlobal.addEventListener('click', (e) => {
@@ -1351,7 +1366,10 @@ function bindGlobalEvents() {
         department: UI.inpUsrDept ? UI.inpUsrDept.value.trim() : '',
         password: UI.inpUsrPass.value.trim(),
         unidades: checkedPips,
-        is_suspended: existing ? (existing.is_suspended || false) : false
+        is_suspended: existing ? (existing.is_suspended || false) : false,
+        banco_nombre: document.getElementById('inp-usr-banco-nombre')?.value.trim() || '',
+        banco_cuenta: document.getElementById('inp-usr-banco-cuenta')?.value.trim() || '',
+        banco_ruta:   document.getElementById('inp-usr-banco-ruta')?.value.trim()   || ''
       };
 
       if (!newUsr.nombre || !newUsr.apellido || !newUsr.email) return showToast('Datos obligatorios incompletos', 'error');
@@ -3066,7 +3084,26 @@ window.renderView = async function renderView() {
     
     UI.canvas.innerHTML = `
       <div class="mt-6 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-premium transition-all animate-fadeIn">
-        <div id="admin-map" style="width: 100%; height: 750px; border-radius: 12px;"></div>
+        
+        <!-- Vendor Search Bar -->
+        <div id="rep-search-wrap" style="margin-bottom: 16px; position: relative;">
+          <div style="display: flex; align-items: center; gap: 12px; background: var(--surface-alt, #f1f5f9); border-radius: 14px; padding: 10px 16px; border: 1.5px solid transparent; transition: border-color 0.2s;" id="rep-search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input 
+              id="rep-search-input" 
+              type="text" 
+              placeholder="Buscar representante de ventas..." 
+              autocomplete="off"
+              style="border:none; background:transparent; outline:none; font-size:14px; color: var(--text-primary, #1e293b); width:100%; font-family:'Inter',sans-serif;"
+            />
+            <button id="rep-search-clear" style="display:none; background:none; border:none; cursor:pointer; color:#94a3b8; padding:0; line-height:1;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div id="rep-search-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:white; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.15); border:1px solid #e2e8f0; z-index:9999; max-height:220px; overflow-y:auto;"></div>
+        </div>
+
+        <div id="admin-map" style="width: 100%; height: 700px; border-radius: 12px;"></div>
       </div>
     `;
 
@@ -3077,83 +3114,302 @@ window.renderView = async function renderView() {
           center: { lat: 39.8283, lng: -98.5795 }, // USA center
           zoom: 4,
           mapTypeControl: false,
-          streetViewControl: false
+          streetViewControl: false,
+          styles: [
+            { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "road", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "transit", "stylers": [{ "visibility": "off" }] }
+          ]
         });
 
-        // Add Legend
+        const deptConfig = {
+          'all':   { label: 'Todos', color: '#00f5d4' },
+          'solar': { label: 'Solar', color: '#22c55e', icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png' },
+          'water': { label: 'Water', color: '#3b82f6', icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+          'home':  { label: 'Home',  color: '#eab308', icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
+          'otro':  { label: 'Otro',  color: '#ef4444', icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' }
+        };
+
+        const statusConfig = {
+          'all':      { label: 'Todos', color: '#64748b' },
+          'prospecto':{ label: 'Prospecto', color: '#f59e0b' },
+          'cliente':  { label: 'Cliente',   color: '#10b981' }
+        };
+
+        let activeDept = 'all';
+        let activeStatus = 'all';
+        let activeRepId = null;
+        const allMarkerMeta = [];
+
+        const applyFilters = () => {
+          allMarkerMeta.forEach(({ marker, deptKey, statusKey, repId }) => {
+            const matchDept = (activeDept === 'all' || activeDept === deptKey);
+            const matchStatus = (activeStatus === 'all' || activeStatus === statusKey);
+            const matchRep = (activeRepId === null || activeRepId === repId);
+            marker.setVisible(matchDept && matchStatus && matchRep);
+          });
+        };
+
         const legend = document.createElement('div');
+        legend.style.margin = '10px';
         legend.innerHTML = `
-          <div style="background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); font-size: 11px; font-weight: bold; margin: 10px;">
-            <div style="display:flex; align-items:center; margin-bottom:4px;"><img src="http://maps.google.com/mapfiles/ms/icons/yellow-dot.png" style="width:16px; margin-right:4px;"> Renew Home</div>
-            <div style="display:flex; align-items:center; margin-bottom:4px;"><img src="http://maps.google.com/mapfiles/ms/icons/green-dot.png" style="width:16px; margin-right:4px;"> Renew Solar</div>
-            <div style="display:flex; align-items:center; margin-bottom:4px;"><img src="http://maps.google.com/mapfiles/ms/icons/blue-dot.png" style="width:16px; margin-right:4px;"> Renew Water</div>
-            <div style="display:flex; align-items:center;"><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png" style="width:16px; margin-right:4px;"> Global / Otro</div>
+          <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 180px; font-family: 'Inter', sans-serif;">
+            <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Departamento</div>
+            <div id="admin-legend-depts" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 15px;">
+              ${Object.entries(deptConfig).map(([key, cfg]) => `
+                <div class="leg-item dept-item ${key === 'all' ? 'active' : ''}" data-val="${key}" style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:12px; transition:all 0.2s; border: 1px solid transparent; user-select:none; -webkit-user-select:none; ${key === 'all' ? 'background:#00f5d415; border-color:#00f5d450; font-weight:bold;' : ''}">
+                  ${key === 'all' 
+                    ? `<div style="width:14px; height:14px; border-radius:50%; background:conic-gradient(#22c55e, #3b82f6, #eab308, #ef4444); border: 1px solid #fff; box-shadow:0 0 2px rgba(0,0,0,0.2);"></div>`
+                    : `<img src="${cfg.icon}" style="width:16px; height:16px;">`
+                  }
+                  <span>${cfg.label}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Tipo de Registro</div>
+            <div id="admin-legend-status" style="display: flex; flex-direction: column; gap: 4px;">
+              ${Object.entries(statusConfig).map(([key, cfg]) => `
+                <div class="leg-item status-item ${key === 'all' ? 'active' : ''}" data-val="${key}" style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:12px; transition:all 0.2s; border: 1px solid transparent; user-select:none; -webkit-user-select:none; ${key === 'all' ? 'background:#f1f5f9; border-color:#cbd5e1; font-weight:bold;' : ''}">
+                  <div style="width:8px; height:8px; border-radius:50%; background:${cfg.color};"></div>
+                  <span>${cfg.label}</span>
+                </div>
+              `).join('')}
+            </div>
           </div>
+          <style>
+            .leg-item:hover { background: #f8fafc; }
+            .leg-item.active { font-weight: 800 !important; }
+          </style>
         `;
+
+        legend.querySelectorAll('.dept-item').forEach(el => {
+          google.maps.event.addDomListener(el, 'click', () => {
+            legend.querySelectorAll('.dept-item').forEach(x => {
+              x.style.background = 'transparent';
+              x.style.borderColor = 'transparent';
+              x.style.fontWeight = 'normal';
+              x.classList.remove('active');
+            });
+            activeDept = el.dataset.val;
+            el.classList.add('active');
+            el.style.background = deptConfig[activeDept].color + '15';
+            el.style.borderColor = deptConfig[activeDept].color + '50';
+            el.style.fontWeight = 'bold';
+            applyFilters();
+          });
+        });
+
+        legend.querySelectorAll('.status-item').forEach(el => {
+          google.maps.event.addDomListener(el, 'click', () => {
+            legend.querySelectorAll('.status-item').forEach(x => {
+              x.style.background = 'transparent';
+              x.style.borderColor = 'transparent';
+              x.style.fontWeight = 'normal';
+              x.classList.remove('active');
+            });
+            activeStatus = el.dataset.val;
+            el.classList.add('active');
+            el.style.background = '#f1f5f9';
+            el.style.borderColor = '#cbd5e1';
+            el.style.fontWeight = 'bold';
+            applyFilters();
+          });
+        });
+
         map.controls[google.maps.ControlPosition.RIGHT_TOP].push(legend);
 
         const geocoder = new google.maps.Geocoder();
         const bounds = new google.maps.LatLngBounds();
         let validMarkers = 0;
-
         let workers = [];
         try { workers = await getAdminWorkers(); } catch(e){}
 
         const db = getDB();
         const clientes = db.Clientes_Maestro || [];
-        const repByClientId = {};
-        (db.Proyectos_Dinamicos || []).forEach(p => {
-          const existing = repByClientId[p.cliente_id];
-          if (!existing || (p.fecha || '') >= (existing.fecha || '')) {
-            repByClientId[p.cliente_id] = p.responsable_id;
+        const proyectos = db.Proyectos_Dinamicos || [];
+        const pipelines = db.Admin_Pipelines || [];
+
+        // Helper: get dept key from a project using pipeline lookup
+        const getDeptFromProject = (p) => {
+          const pip = pipelines.find(pl => pl.id === p.pipeline_id);
+          const name = (pip ? pip.nombre : '').toLowerCase();
+          if (name.includes('solar')) return 'solar';
+          if (name.includes('water')) return 'water';
+          if (name.includes('home'))  return 'home';
+          return 'otro';
+        };
+
+        // Build repId lookup per (client, dept)
+        const repByClientDept = {};
+        proyectos.forEach(p => {
+          const dk = getDeptFromProject(p);
+          const key = `${p.cliente_id}::${dk}`;
+          if (!repByClientDept[key]) repByClientDept[key] = p.responsable_id;
+        });
+
+        // Build unique (client, dept) combos
+        const adminCombos = [];
+        const seenAdminCombo = new Set();
+
+        // Pass 1: clients with projects
+        proyectos.forEach(p => {
+          const c = clientes.find(cl => cl.id === p.cliente_id);
+          if (!c || !c.direccion) return;
+          const deptKey = getDeptFromProject(p);
+          const combo = `${c.id}::${deptKey}`;
+          if (!seenAdminCombo.has(combo)) {
+            seenAdminCombo.add(combo);
+            adminCombos.push({ c, deptKey, statusKey: 'cliente' });
           }
         });
 
+        // Pass 2: prospectos (no projects at all)
         clientes.forEach(c => {
-          if (c.direccion) {
-            geocoder.geocode({ address: c.direccion }, (results, status) => {
-              if (status === 'OK' && results[0]) {
-                let iconUrl = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
-                const dpto = (c.empresa || '').toLowerCase();
-                if (dpto.includes('home')) iconUrl = 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
-                else if (dpto.includes('solar')) iconUrl = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
-                else if (dpto.includes('water')) iconUrl = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
-
-                const marker = new google.maps.Marker({
-                  map: map,
-                  position: results[0].geometry.location,
-                  title: c.nombre || 'Cliente',
-                  icon: iconUrl
-                });
-                
-                let repName = 'Sin asignar';
-                let repId = c.vendedor_asignado_id || repByClientId[c.id];
-                if (repId) {
-                  const worker = workers.find(w => w.id === repId);
-                  if (worker) repName = `${worker.nombre} ${worker.apellido || ''}`.trim();
-                }
-
-                const infoWindow = new google.maps.InfoWindow({
-                  content: `<div style="color:black; padding:5px; font-family: 'Inter', sans-serif;">
-                              <strong style="font-size: 14px;">${c.nombre} ${c.apellido || ''}</strong><br>
-                              <span style="font-size: 12px; color: #666; font-weight: bold; text-transform: uppercase;">🏭 ${c.empresa || 'Global'}</span><br>
-                              <span style="font-size: 12px; color: #00f5d4; font-weight: bold;">🧑‍💼 Rep: ${repName}</span><br>
-                              <span style="font-size: 12px; color: #666;">📞 ${c.telefono || 'Sin teléfono'}</span><br>
-                              <span style="font-size: 12px; color: #666;">🆔 ${c.state_id || 'Sin State ID'}</span><br>
-                              <div style="margin-top: 8px; font-size: 11px; padding: 4px 8px; background: #00f5d420; border: 1px solid #00f5d450; border-radius: 4px; display: inline-block; color: #0f8b78;">📍 ${c.direccion}</div>
-                            </div>`
-                });
-                marker.addListener('click', () => {
-                  infoWindow.open(map, marker);
-                });
-
-                bounds.extend(results[0].geometry.location);
-                validMarkers++;
-                if (validMarkers > 0) map.fitBounds(bounds);
-              }
-            });
+          if (!c.direccion || proyectos.some(p => p.cliente_id === c.id)) return;
+          let deptKey = 'otro';
+          const dpto = (c.empresa || '').toLowerCase();
+          if (dpto.includes('solar')) deptKey = 'solar';
+          else if (dpto.includes('water')) deptKey = 'water';
+          else if (dpto.includes('home')) deptKey = 'home';
+          const combo = `${c.id}::${deptKey}`;
+          if (!seenAdminCombo.has(combo)) {
+            seenAdminCombo.add(combo);
+            adminCombos.push({ c, deptKey, statusKey: 'prospecto' });
           }
         });
+
+        // Pre-compute all depts per client (for showing all badges in InfoWindow)
+        const allClientDepts = {};
+        proyectos.forEach(p => {
+          const dk = getDeptFromProject(p);
+          if (!allClientDepts[p.cliente_id]) allClientDepts[p.cliente_id] = new Set();
+          allClientDepts[p.cliente_id].add(dk);
+        });
+
+        adminCombos.forEach(({ c, deptKey, statusKey }) => {
+          const statusCfg = statusConfig[statusKey];
+          const repId = c.vendedor_asignado_id || repByClientDept[`${c.id}::${deptKey}`];
+          let repName = 'Sin asignar';
+          if (repId) {
+            const worker = workers.find(w => w.id === repId);
+            if (worker) repName = `${worker.nombre} ${worker.apellido || ''}`.trim();
+          }
+
+          // All depts this client has (for badges)
+          const clientDepts = [...(allClientDepts[c.id] || new Set([deptKey]))];
+          const deptBadgesHtml = clientDepts.map(dk => {
+            const cfg = deptConfig[dk] || deptConfig['otro'];
+            return `<span style="font-size: 10px; background:${cfg.color}20; color:${cfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${cfg.color}40;">${cfg.label}</span>`;
+          }).join('');
+
+          geocoder.geocode({ address: c.direccion }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+              const marker = new google.maps.Marker({
+                map: map,
+                position: results[0].geometry.location,
+                title: `${c.nombre || 'Cliente'} (${deptConfig[deptKey].label})`,
+                icon: deptConfig[deptKey].icon
+              });
+              const infoWindow = new google.maps.InfoWindow({
+                content: `<div style="color:black; padding:6px; font-family: 'Inter', sans-serif; min-width:210px;">
+                            <strong style="font-size: 14px; display:block; margin-bottom:6px;">${c.nombre} ${c.apellido || ''}</strong>
+                            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">
+                              ${deptBadgesHtml}
+                              <span style="font-size: 10px; background:${statusCfg.color}20; color:${statusCfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${statusCfg.color}40;">${statusCfg.label}</span>
+                            </div>
+                            <div style="margin-top:8px; font-size:12px; color:#555; display:flex; flex-direction:column; gap:4px;">
+                              <span style="color:#00dfbf; font-weight:700;">🧑‍💼 Rep: ${repName}</span>
+                              <span>📞 ${c.telefono || 'Sin teléfono'}</span>
+                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">📍 ${c.direccion}</span>
+                              ${c.nota_mapa ? `<div style="margin-top:6px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; border-left:3px solid #00dfbf;">
+                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">📝 Nota del vendedor</div>
+                                <div style="font-size:12px; color:#374151;">${c.nota_mapa}</div>
+                              </div>` : ''}
+                            </div>
+                          </div>`
+              });
+              marker.addListener('click', () => { infoWindow.open(map, marker); });
+              allMarkerMeta.push({ marker, deptKey, statusKey, repId });
+              bounds.extend(results[0].geometry.location);
+              validMarkers++;
+              if (validMarkers > 0) map.fitBounds(bounds);
+            }
+          });
+        });
+
+        // ── Vendor Search Bar Logic ──
+        const searchInput = document.getElementById('rep-search-input');
+        const searchDropdown = document.getElementById('rep-search-dropdown');
+        const searchClear = document.getElementById('rep-search-clear');
+        const searchBox = document.getElementById('rep-search-box');
+
+        if (searchInput && workers.length > 0) {
+          searchInput.addEventListener('focus', () => {
+            searchBox.style.borderColor = '#00f5d4';
+          });
+          searchInput.addEventListener('blur', () => {
+            searchBox.style.borderColor = 'transparent';
+            setTimeout(() => { searchDropdown.style.display = 'none'; }, 200);
+          });
+
+          searchInput.addEventListener('input', () => {
+            const q = searchInput.value.toLowerCase().trim();
+            searchClear.style.display = q ? 'block' : 'none';
+            if (!q) {
+              searchDropdown.style.display = 'none';
+              return;
+            }
+            const matches = workers.filter(w => {
+              const fullName = `${w.nombre || ''} ${w.apellido || ''}`.toLowerCase();
+              return fullName.includes(q);
+            }).slice(0, 8);
+
+            if (matches.length === 0) {
+              searchDropdown.innerHTML = `<div style="padding:14px 16px; color:#94a3b8; font-size:13px; font-family:'Inter',sans-serif;">Sin resultados</div>`;
+            } else {
+              searchDropdown.innerHTML = matches.map(w => {
+                const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
+                const initials = ((w.nombre || '?')[0] + (w.apellido || '?')[0]).toUpperCase();
+                const dept = w.department || w.departamento || '';
+                const clientCount = allMarkerMeta.filter(m => m.repId === w.id).length;
+                return `<div class="rep-drop-item" data-id="${w.id}" data-name="${fullName}" style="display:flex; align-items:center; gap:12px; padding:10px 14px; cursor:pointer; transition:background 0.15s; border-bottom:1px solid #f1f5f9; font-family:'Inter',sans-serif;">
+                  <div style="width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#00dfbf,#0ea5e9); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:white; flex-shrink:0;">${initials}</div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:700; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${fullName}</div>
+                    <div style="font-size:11px; color:#94a3b8;">${dept} · ${clientCount} en mapa</div>
+                  </div>
+                </div>`;
+              }).join('');
+            }
+            searchDropdown.style.display = 'block';
+          });
+
+          searchDropdown.addEventListener('mousedown', e => {
+            const item = e.target.closest('.rep-drop-item');
+            if (!item) return;
+            const id = item.dataset.id;
+            const name = item.dataset.name;
+            activeRepId = id;
+            searchInput.value = name;
+            searchClear.style.display = 'block';
+            searchDropdown.style.display = 'none';
+            // Highlight search box in teal to indicate filter is active
+            searchBox.style.borderColor = '#00f5d4';
+            searchBox.style.background = '#00f5d408';
+            applyFilters();
+          });
+
+          searchClear.addEventListener('click', () => {
+            activeRepId = null;
+            searchInput.value = '';
+            searchClear.style.display = 'none';
+            searchDropdown.style.display = 'none';
+            searchBox.style.borderColor = 'transparent';
+            searchBox.style.background = 'var(--surface-alt, #f1f5f9)';
+            applyFilters();
+          });
+        }
       }
     }, 300);
   } else if (state.activeView === 'calendario') {
@@ -4081,489 +4337,430 @@ window.renderView = async function renderView() {
 
   }
   else if (state.activeView === 'anuncios') {
-    UI.viewTitle.textContent = t('ann_title').toUpperCase();
-    UI.viewDesc.textContent = t('ann_desc');
+    UI.viewTitle.textContent = "GESTOR DE ANUNCIOS GLOBALES";
+    UI.viewDesc.textContent = "Publica comunicados para la aplicación móvil y rastrea su lectura.";
     setGlobalButton(false);
     
-    // Safety check db
-    if (!db.anuncios_corporativos) db.anuncios_corporativos = [];
-    const dynPipelines = db.Admin_Pipelines || [];
-    
-    // Sort announcements by descending date
-    const sortedAnuncios = [...db.anuncios_corporativos].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
-
-    // Workers for the read report matching logic later
-    window._cachedAnunciosWorkers = await getAdminWorkers();
-    
-    const anunciosHtml = sortedAnuncios.map(an => {
-      const isTodos = an.audiencia === 'todos';
-      const getTagBadge = (tag) => {
-          if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
-          // If it's a role (Vendedor, Técnico, etc), use blue
-          const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'];
-          if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
-          // Otherwise it's a pipeline, use teal
-          return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
-      };
-      
-      const totalLecturas = an.estado_lecturas ? an.estado_lecturas.filter(el => el.leido).length : 0;
-      
-      return `
-        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:border-tealAccent/30 transition-all cursor-pointer mb-5 relative group min-h-[140px] flex flex-col justify-between" onclick="mostrarReporteAnuncio('${an.id}')">
-           <!-- Trash Button -->
-           <button onclick="event.stopPropagation(); window.deleteAnuncio('${an.id}', this)" class="absolute top-4 right-4 w-9 h-9 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white z-20" title="Eliminar Anuncio">
-              <i class="fa-solid fa-trash-can text-sm"></i>
-           </button>
-
-           <div class="flex-1">
-             <div class="flex justify-between items-start mb-3 pr-10">
-               <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${an.titulo}</h4>
-               <div class="flex flex-wrap gap-1 justify-end">
-                 ${(an.audiencia_tags || [an.audiencia]).map(tag => `
-                    <span class="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${getTagBadge(tag)} whitespace-nowrap">${tag}</span>
-                 `).join('')}
-               </div>
-             </div>
-             ${an.foto_url ? `<img src="${an.foto_url}" class="w-full h-32 object-cover rounded-xl mb-3 border border-gray-100 dark:border-white/5">` : ''}
-             <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${an.mensaje}</p>
-           </div>
-
-           <div class="flex justify-between items-center text-[10px] uppercase font-bold text-gray-400 tracking-wider pt-4 border-t border-gray-50 dark:border-white/5 mt-auto">
-             <span><i class="fa-solid fa-calendar mr-1"></i> ${new Date(an.fecha).toLocaleDateString('en-US')}</span>
-             <span class="text-tealAccent bg-tealAccent/10 px-3 py-1.5 rounded-full"><i class="fa-solid fa-eye mr-1"></i> ${totalLecturas} Vistos</span>
-           </div>
-        </div>
-      `;
-    }).join('');
-
-    UI.canvas.innerHTML = `
-      <div class="flex gap-8 min-h-full pb-20">
-        <!-- FORMULARIO CREACIÓN -->
-        <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col h-fit">
-          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
-            <div class="w-10 h-10 rounded-full bg-tealAccent/10 flex items-center justify-center text-tealAccent"><i class="fa-solid fa-bullhorn text-lg"></i></div>
-            <div>
-              <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Nuevo Comunicado</h3>
-              <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Envío Inmediato</p>
-            </div>
-          </div>
-          
-          <div class="space-y-4 flex-1">
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_title')}</label>
-                <input type="text" id="ann-input-title" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
-              </div>
-              
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
-                <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
-                    <!-- Global -->
-                    <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" id="aud-all" class="aud-check w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="todos">
-                        <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest group-hover:text-tealAccent transition-colors">Todos los Usuarios</span>
-                    </label>
-                    
-                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Pipelines</p>
-                        <div class="grid grid-cols-1 gap-2">
-                            ${dynPipelines.map(p => `
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" class="aud-check aud-pipe w-3.5 h-3.5 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="${p.nombre}">
-                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-tealAccent transition-colors">${p.nombre}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
-                        <div class="grid grid-cols-1 gap-2">
-                            ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'].map(r => `
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
-                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-              </div>
-
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_msg')}</label>
-                <textarea id="ann-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none resize-none text-gray-900 dark:text-white"></textarea>
-              </div>
-
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('ann_field_photo')}</label>
-                <div id="drop-ann-foto" class="w-full h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent transition-all bg-gray-50 dark:bg-black/20 group relative overflow-hidden">
-                    <input type="file" id="inp-ann-foto-file" class="hidden" accept="image/*">
-                    <div id="ann-foto-placeholder" class="text-center">
-                        <i class="fa-solid fa-image text-gray-300 group-hover:text-tealAccent transition-colors text-xl"></i>
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
-                    </div>
-                    <img id="preview-ann-foto" class="absolute inset-0 w-full h-full object-cover hidden">
-                    <button id="btn-clear-ann-foto" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hidden hover:scale-110 transition-transform"><i class="fa-solid fa-xmark text-[10px]"></i></button>
-                </div>
-              </div>
-          </div>
-          
-          <button id="btn-publish-ann" class="mt-4 w-full py-3.5 bg-tealAccent text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-tealAccent/90 transition-all shadow-md shadow-tealAccent/20 flex justify-center items-center gap-2">
-            <i class="fa-solid fa-paper-plane text-[10px]"></i>
-            ${t('ann_btn_pub')}
-          </button>
-        </div>
-        
-        <!-- PANEL DE MONITOREO Y LISTADO -->
-        <div class="w-2/3 flex gap-6 h-fit">
-          
-          <!-- Lista de Anuncios -->
-          <div class="flex-1 flex flex-col">
-            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Anuncios</h3>
-            ${anunciosHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay anuncios enviados</div>'}
-          </div>
-          
-          <!-- Visor / Reporte -->
-          <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col h-fit sticky top-0">
-            <div id="anu-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
-              <div id="ann-report-placeholder" class="py-20 text-center">
-                <i class="fa-solid fa-chart-pie text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
-                <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">${t('ann_report_select')}</h4>
-                <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">${t('ann_report_users_desc')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+    const annTabsHtml = `
+      <div class="flex gap-4 mb-8">
+        <button class="ann-sub-tab px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.activeAnnTab === 'comunicados' ? 'bg-tealAccent text-black shadow-teal-glow' : 'bg-gray-100 dark:bg-white/5 text-gray-400 hover:text-tealAccent'}" data-tab="comunicados">
+          <i class="fa-solid fa-bullhorn mr-2"></i> Comunicados
+        </button>
+        <button class="ann-sub-tab px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.activeAnnTab === 'llamadas' ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-gray-100 dark:bg-white/5 text-gray-400 hover:text-blue-400'}" data-tab="llamadas">
+          <i class="fa-solid fa-video mr-2"></i> Coordinar Llamadas
+        </button>
       </div>
     `;
 
-    // Lógica para enviar nuevo anuncio
-    setTimeout(() => {
-      const btnPub = document.getElementById('btn-publish-ann');
-      if (btnPub) {
-        btnPub.addEventListener('click', async () => {
-          const tit = document.getElementById('ann-input-title').value.trim();
-          const msj = document.getElementById('ann-input-msg').value.trim();
-          
-          // Collect selected audiences
-          const checked = Array.from(document.querySelectorAll('.aud-check:checked'));
-          const audTags = checked.map(c => c.value);
-          const isAll = audTags.includes('todos');
-          
-          if (!tit || !msj) {
-            showToast('Título y mensaje obligatorios', 'error');
-            return;
-          }
-          if (audTags.length === 0) {
-            showToast('Selecciona al menos una audiencia', 'warning');
-            return;
-          }
-          
-          btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
-          btnPub.disabled = true;
-          
-          const nuevoAnuncio = {
-            id: 'ann_' + Date.now().toString(36),
-            titulo: tit,
-            mensaje: msj,
-            audiencia: isAll ? 'todos' : audTags.join(', '),
-            audiencia_tags: audTags,
-            foto_url: state.currentAnnFoto || null,
-            fecha: new Date().toISOString(),
-            estado_lecturas: [] 
+    if (state.activeAnnTab === 'comunicados') {
+        // --- COMUNICADOS LOGIC ---
+        if (!db.anuncios_corporativos) db.anuncios_corporativos = [];
+        const dynPipelines = db.Admin_Pipelines || [];
+        const sortedAnuncios = [...db.anuncios_corporativos].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+        window._cachedAnunciosWorkers = await getAdminWorkers();
+        
+        const anunciosHtml = sortedAnuncios.map(an => {
+          const getTagBadge = (tag) => {
+              if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
+              const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'];
+              if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
+              return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
           };
-          
-          // Initializar el estado_lecturas basado en los trabajadores que pertenecen a esa audiencia
-          const todosTra = await getAdminWorkers();
-          const targetW = todosTra.filter(w => {
-            if (isAll) return true;
-            
-            // Check if user matches any selected pipeline
-            const matchesPipe = audTags.some(tag => (w.unidades || []).includes(tag));
-            
-            // Check if user matches any selected role
-            const matchesRole = audTags.some(tag => (w.rol || '').toLowerCase() === tag.toLowerCase());
-            
-            return matchesPipe || matchesRole;
-          });
-          
-          nuevoAnuncio.estado_lecturas = targetW.map(w => ({
-            vendedor_id: w.id,
-            vendedor_nombre: `${w.nombre} ${w.apellido}`,
-            leido: false,
-            fecha_lectura: null
-          }));
-          
-          const dbLoc = getDB();
-          if(!dbLoc.anuncios_corporativos) dbLoc.anuncios_corporativos = [];
-          dbLoc.anuncios_corporativos.push(nuevoAnuncio);
-          
-          await saveDB(dbLoc);
-          
-          state.currentAnnFoto = null; // reset state
-          showToast('¡Anuncio publicado globalmente!', 'success');
-          await renderView();
+          const totalLecturas = an.estado_lecturas ? an.estado_lecturas.filter(el => el.leido).length : 0;
+          return `
+            <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:border-tealAccent/30 transition-all cursor-pointer mb-5 relative group min-h-[140px] flex flex-col justify-between" onclick="mostrarReporteAnuncio('${an.id}')">
+               <button onclick="event.stopPropagation(); window.deleteAnuncio('${an.id}', this)" class="absolute top-4 right-4 w-9 h-9 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white z-20">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+               </button>
+               <div class="flex-1">
+                 <div class="flex justify-between items-start mb-3 pr-10">
+                   <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${an.titulo}</h4>
+                   <div class="flex flex-wrap gap-1 justify-end">
+                     ${(an.audiencia_tags || [an.audiencia]).map(tag => {
+                        const displayTag = tag === 'todos' ? 'Renew Group' : tag;
+                        return `<span class="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${getTagBadge(tag)} whitespace-nowrap">${displayTag}</span>`;
+                     }).join('')}
+                   </div>
+                 </div>
+                 ${an.foto_url ? `<img src="${an.foto_url}" class="w-full h-32 object-cover rounded-xl mb-3 border border-gray-100 dark:border-white/5">` : ''}
+                 <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${an.mensaje}</p>
+               </div>
+               <div class="flex justify-between items-center text-[10px] uppercase font-bold text-gray-400 tracking-wider pt-4 border-t border-gray-50 dark:border-white/5 mt-auto">
+                 <span><i class="fa-solid fa-calendar mr-1"></i> ${new Date(an.fecha).toLocaleDateString('en-US')}</span>
+                 <span class="text-tealAccent bg-tealAccent/10 px-3 py-1.5 rounded-full"><i class="fa-solid fa-eye mr-1"></i> ${totalLecturas} Vistos</span>
+               </div>
+            </div>
+          `;
+        }).join('');
+
+        UI.canvas.innerHTML = `
+          ${annTabsHtml}
+          <div class="flex gap-8 min-h-full pb-20 animate-fadeIn">
+            <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col h-fit">
+              <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+                <div class="w-10 h-10 rounded-full bg-tealAccent/10 flex items-center justify-center text-tealAccent"><i class="fa-solid fa-bullhorn text-lg"></i></div>
+                <div>
+                  <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Nuevo Comunicado</h3>
+                  <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Envío Inmediato</p>
+                </div>
+              </div>
+              <div class="space-y-4 flex-1">
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título del Anuncio</label>
+                    <input type="text" id="ann-input-title" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
+                    <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="aud-all" class="aud-check w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="todos">
+                            <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest group-hover:text-tealAccent transition-colors">Renew Group</span>
+                        </label>
+                        <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Pipelines</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${dynPipelines.map(p => `
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" class="aud-check aud-pipe w-3.5 h-3.5 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="${p.nombre}">
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-tealAccent transition-colors">${p.nombre}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'].map(r => `
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mensaje del Anuncio</label>
+                    <textarea id="ann-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none resize-none text-gray-900 dark:text-white"></textarea>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Imagen Adjunta (Opcional)</label>
+                    <div id="drop-ann-foto" class="w-full h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent transition-all bg-gray-50 dark:bg-black/20 group relative overflow-hidden">
+                        <input type="file" id="inp-ann-foto-file" class="hidden" accept="image/*">
+                        <div id="ann-foto-placeholder" class="text-center">
+                            <i class="fa-solid fa-image text-gray-300 group-hover:text-tealAccent transition-colors text-xl"></i>
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
+                        </div>
+                        <img id="preview-ann-foto" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <button id="btn-clear-ann-foto" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hidden hover:scale-110 transition-transform"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                    </div>
+                  </div>
+              </div>
+              <button id="btn-publish-ann" class="mt-4 w-full py-3.5 bg-tealAccent text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-tealAccent/90 transition-all shadow-md shadow-tealAccent/20 flex justify-center items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Comunicado
+              </button>
+            </div>
+            <div class="w-2/3 flex gap-6 h-fit">
+              <div class="flex-1 flex flex-col">
+                <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Anuncios</h3>
+                ${anunciosHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay anuncios enviados</div>'}
+              </div>
+              <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col h-fit sticky top-0">
+                <div id="anu-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
+                  <div id="ann-report-placeholder" class="py-20 text-center">
+                    <i class="fa-solid fa-chart-pie text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Lectura</h4>
+                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona un anuncio para ver quiénes lo han leído.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+    } else {
+        // --- LLAMADAS LOGIC ---
+        if (!db.admin_meetings) db.admin_meetings = [];
+        const sortedMeetings = [...db.admin_meetings].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        const dynPipelines = db.Admin_Pipelines || [];
+        
+        const meetingsHtml = sortedMeetings.map(mt => {
+          const totalLecturas = (db.admin_meetings_reads || []).filter(r => r.meeting_id === mt.id).length;
+          return `
+            <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:border-blue-400/30 transition-all cursor-pointer mb-5 relative group flex flex-col justify-between" onclick="mostrarReporteMeeting('${mt.id}')">
+               <button onclick="event.stopPropagation(); window.deleteMeeting('${mt.id}', this)" class="absolute top-4 right-4 w-9 h-9 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white z-20">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+               </button>
+               <div class="flex-1">
+                 <div class="flex justify-between items-start mb-3 pr-10">
+                   <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'Reunión'}</h4>
+                   <div class="flex flex-wrap gap-1 justify-end">
+                     ${(mt.audiencia_tags || [mt.audiencia || 'Todos']).map(tag => {
+                        const displayTag = (tag === 'todos' || tag === 'Todos') ? 'Renew Group' : tag;
+                        return `<span class="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">${displayTag}</span>`;
+                     }).join('')}
+                   </div>
+                 </div>
+                 ${mt.imagen_url ? `<img src="${mt.imagen_url}" class="w-full h-32 object-cover rounded-xl mb-3 border border-gray-100 dark:border-white/5">` : ''}
+                 <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${mt.texto}</p>
+                 ${mt.enlace ? `<div class="text-[10px] text-blue-400 font-bold truncate mb-2"><i class="fa-solid fa-link mr-1"></i> ${mt.enlace}</div>` : ''}
+               </div>
+               <div class="flex justify-between items-center text-[10px] uppercase font-bold text-gray-400 tracking-wider pt-4 border-t border-gray-50 dark:border-white/5 mt-auto">
+                 <span><i class="fa-solid fa-calendar mr-1"></i> ${new Date(mt.created_at).toLocaleDateString()}</span>
+                 <span class="text-blue-400 bg-blue-400/10 px-3 py-1.5 rounded-full"><i class="fa-solid fa-check-double mr-1"></i> ${totalLecturas} Confirmados</span>
+               </div>
+            </div>
+          `;
+        }).join('');
+
+        UI.canvas.innerHTML = `
+          ${annTabsHtml}
+          <div class="flex gap-8 min-h-full pb-20 animate-fadeIn">
+            <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col h-fit">
+              <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+                <div class="w-10 h-10 rounded-full bg-blue-400/10 flex items-center justify-center text-blue-400"><i class="fa-solid fa-video text-lg"></i></div>
+                <div>
+                  <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Coordinar Llamada</h3>
+                  <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Coordinar con equipo</p>
+                </div>
+              </div>
+              <div class="space-y-4 flex-1">
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título de la Reunión</label>
+                    <input type="text" id="mt-input-title" placeholder="Ej: Weekly Sync" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
+                    <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="mt-aud-all" class="mt-aud-check w-4 h-4 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="todos">
+                            <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest group-hover:text-blue-400 transition-colors">Renew Group</span>
+                        </label>
+                        <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Pipelines</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${dynPipelines.map(p => `
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="${p.nombre}">
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors">${p.nombre}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'].map(r => `
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Enlace (Zoom/Meet)</label>
+                    <input type="text" id="mt-input-link" placeholder="https://zoom.us/j/..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Instrucciones / Texto</label>
+                    <textarea id="mt-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none resize-none text-gray-900 dark:text-white focus:border-blue-400"></textarea>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Miniatura (Opcional)</label>
+                    <div id="drop-mt-foto" class="w-full h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition-all bg-gray-50 dark:bg-black/20 group relative overflow-hidden">
+                        <input type="file" id="inp-mt-foto-file" class="hidden" accept="image/*">
+                        <div id="mt-foto-placeholder" class="text-center">
+                            <i class="fa-solid fa-image text-gray-300 group-hover:text-blue-400 transition-colors text-xl"></i>
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
+                        </div>
+                        <img id="preview-mt-foto" class="absolute inset-0 w-full h-full object-cover hidden">
+                    </div>
+                  </div>
+              </div>
+              <button id="btn-publish-mt" class="mt-4 w-full py-3.5 bg-blue-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 flex justify-center items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Llamada
+              </button>
+            </div>
+            <div class="w-2/3 flex gap-6 h-fit">
+              <div class="flex-1 flex flex-col">
+                <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Llamadas</h3>
+                ${meetingsHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay reuniones programadas</div>'}
+              </div>
+              <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col h-fit sticky top-0">
+                <div id="mt-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
+                  <div id="mt-report-placeholder" class="py-20 text-center">
+                    <i class="fa-solid fa-users-viewfinder text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Confirmación</h4>
+                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reunión para ver quiénes la han leído.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+    }
+
+    // --- EVENT LISTENERS (Shared) ---
+    setTimeout(() => {
+        // Tab switching logic
+        UI.canvas.querySelectorAll('.ann-sub-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.activeAnnTab = btn.dataset.tab;
+                renderView();
+            });
         });
-      }
 
-      // Handle Image Upload for Announcement
-      const dropAnn = document.getElementById('drop-ann-foto');
-      const inpAnn = document.getElementById('inp-ann-foto-file');
-      const preAnn = document.getElementById('preview-ann-foto');
-      const plaAnn = document.getElementById('ann-foto-placeholder');
-      const clrAnn = document.getElementById('btn-clear-ann-foto');
-
-      if (dropAnn && inpAnn) {
-        dropAnn.onclick = () => inpAnn.click();
-        inpAnn.onchange = async () => {
-          if (inpAnn.files.length) {
-            const file = inpAnn.files[0];
-            plaAnn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-tealAccent"></i>';
-            try {
-              const url = await uploadFile(file, 'announcements');
-              state.currentAnnFoto = url;
-              preAnn.src = url;
-              preAnn.classList.remove('hidden');
-              plaAnn.classList.add('hidden');
-              clrAnn.classList.remove('hidden');
-            } catch (err) {
-              console.error(err);
-              showToast('Error al subir imagen', 'error');
-              plaAnn.innerHTML = '<i class="fa-solid fa-image text-gray-300 text-xl"></i>';
-            }
-          }
-        };
-
-        if (clrAnn) {
-          clrAnn.onclick = (e) => {
-            e.stopPropagation();
-            state.currentAnnFoto = null;
-            inpAnn.value = '';
-            preAnn.classList.add('hidden');
-            plaAnn.classList.remove('hidden');
-            clrAnn.classList.add('hidden');
-            plaAnn.innerHTML = `
-              <i class="fa-solid fa-image text-gray-300 group-hover:text-tealAccent transition-colors text-xl"></i>
-              <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
-            `;
-          };
-        }
-      }
-    }, 100);
-  }
-  else if (state.activeView === 'meetings') {
-    UI.viewTitle.textContent = t('mt_title').toUpperCase();
-    UI.viewDesc.textContent = t('mt_desc');
-    setGlobalButton(false);
-    
-    if (!db.admin_meetings) db.admin_meetings = [];
-    const sortedMeetings = [...db.admin_meetings].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-    const dynPipelines = db.Admin_Pipelines || [];
-    
-    const meetingsHtml = sortedMeetings.map(mt => {
-      const totalLecturas = (db.admin_meetings_reads || []).filter(r => r.meeting_id === mt.id).length;
-      
-      return `
-        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:border-blue-400/30 transition-all cursor-pointer mb-5 relative group flex flex-col justify-between" onclick="mostrarReporteMeeting('${mt.id}')">
-           <button onclick="event.stopPropagation(); window.deleteMeeting('${mt.id}', this)" class="absolute top-4 right-4 w-9 h-9 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white z-20">
-              <i class="fa-solid fa-trash-can text-sm"></i>
-           </button>
-
-           <div class="flex-1">
-             <div class="flex justify-between items-start mb-3 pr-10">
-               <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'Reunión'}</h4>
-               <div class="flex flex-wrap gap-1 justify-end">
-                 ${(mt.audiencia_tags || [mt.audiencia || 'Todos']).map(tag => `
-                    <span class="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">${tag}</span>
-                 `).join('')}
-               </div>
-             </div>
-             ${mt.imagen_url ? `<img src="${mt.imagen_url}" class="w-full h-32 object-cover rounded-xl mb-3 border border-gray-100 dark:border-white/5">` : ''}
-             <p class="text-[12px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3 mb-4">${mt.texto}</p>
-             ${mt.enlace ? `<div class="text-[10px] text-blue-400 font-bold truncate mb-2"><i class="fa-solid fa-link mr-1"></i> ${mt.enlace}</div>` : ''}
-           </div>
-
-           <div class="flex justify-between items-center text-[10px] uppercase font-bold text-gray-400 tracking-wider pt-4 border-t border-gray-50 dark:border-white/5 mt-auto">
-             <span><i class="fa-solid fa-calendar mr-1"></i> ${new Date(mt.created_at).toLocaleDateString()}</span>
-             <span class="text-blue-400 bg-blue-400/10 px-3 py-1.5 rounded-full"><i class="fa-solid fa-check-double mr-1"></i> ${totalLecturas} Confirmados</span>
-           </div>
-        </div>
-      `;
-    }).join('');
-
-    UI.canvas.innerHTML = `
-      <div class="flex gap-8 min-h-full pb-20">
-        <div class="w-1/3 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col h-fit">
-          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
-            <div class="w-10 h-10 rounded-full bg-blue-400/10 flex items-center justify-center text-blue-400"><i class="fa-solid fa-video text-lg"></i></div>
-            <div>
-              <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">${t('mt_title')}</h3>
-              <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Coordinar con equipo</p>
-            </div>
-          </div>
-          
-          <div class="space-y-4 flex-1">
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título de la Reunión</label>
-                <input type="text" id="mt-input-title" placeholder="Ej: Weekly Sync" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
-              </div>
-
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
-                <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
-                    <!-- Global -->
-                    <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" id="mt-aud-all" class="mt-aud-check w-4 h-4 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="todos">
-                        <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest group-hover:text-blue-400 transition-colors">Todos los Usuarios</span>
-                    </label>
-                    
-                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Pipelines</p>
-                        <div class="grid grid-cols-1 gap-2">
-                            ${dynPipelines.map(p => `
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="${p.nombre}">
-                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors">${p.nombre}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="pt-2 border-t border-gray-100 dark:border-white/5">
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
-                        <div class="grid grid-cols-1 gap-2">
-                            ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Procesador', 'Supervisión', 'CEO'].map(r => `
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
-                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-              </div>
-
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('mt_field_link')}</label>
-                <input type="text" id="mt-input-link" placeholder="https://zoom.us/j/..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
-              </div>
-              
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('mt_field_msg')}</label>
-                <textarea id="mt-input-msg" rows="3" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none resize-none text-gray-900 dark:text-white focus:border-blue-400"></textarea>
-              </div>
-
-              <div class="space-y-1">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">${t('mt_field_image')}</label>
-                <div id="drop-mt-foto" class="w-full h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition-all bg-gray-50 dark:bg-black/20 group relative overflow-hidden">
-                    <input type="file" id="inp-mt-foto-file" class="hidden" accept="image/*">
-                    <div id="mt-foto-placeholder" class="text-center">
-                        <i class="fa-solid fa-image text-gray-300 group-hover:text-blue-400 transition-colors text-xl"></i>
-                        <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>
-                    </div>
-                    <img id="preview-mt-foto" class="absolute inset-0 w-full h-full object-cover hidden">
-                </div>
-              </div>
-          </div>
-          
-          <button id="btn-publish-mt" class="mt-4 w-full py-3.5 bg-blue-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 flex justify-center items-center gap-2">
-            <i class="fa-solid fa-paper-plane text-[10px]"></i>
-            ${t('mt_btn_pub')}
-          </button>
-        </div>
-        
-        <div class="w-2/3 flex gap-6 h-fit">
-          <div class="flex-1 flex flex-col">
-            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Historial de Llamadas</h3>
-            ${meetingsHtml || '<div class="text-center p-8 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-2xl text-gray-400 text-xs font-bold uppercase tracking-widest">No hay reuniones programadas</div>'}
-          </div>
-          
-          <div class="flex-1 bg-gray-50 dark:bg-black/20 rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col h-fit sticky top-0">
-            <div id="mt-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
-              <div id="mt-report-placeholder" class="py-20 text-center">
-                <i class="fa-solid fa-users-viewfinder text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
-                <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Confirmación</h4>
-                <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reunión para ver quiénes la han leído.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    setTimeout(() => {
-        const btnPub = document.getElementById('btn-publish-mt');
-        if (btnPub) {
-            btnPub.onclick = async () => {
-                const tit = document.getElementById('mt-input-title').value.trim();
-                const lnk = document.getElementById('mt-input-link').value.trim();
-                const msj = document.getElementById('mt-input-msg').value.trim();
-                
-                const checked = Array.from(document.querySelectorAll('.mt-aud-check:checked'));
-                const audTags = checked.map(c => c.value);
-                const isAll = audTags.includes('todos');
-                
-                if (!msj) {
-                    showToast('El texto es obligatorio', 'error');
-                    return;
-                }
-                if (audTags.length === 0) {
-                    showToast('Selecciona al menos una audiencia', 'warning');
-                    return;
-                }
-                
-                btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
-                btnPub.disabled = true;
-                
-                const newMt = {
+        if (state.activeAnnTab === 'comunicados') {
+            const btnPub = document.getElementById('btn-publish-ann');
+            if (btnPub) {
+                btnPub.onclick = async () => {
+                  const tit = document.getElementById('ann-input-title').value.trim();
+                  const msj = document.getElementById('ann-input-msg').value.trim();
+                  const checked = Array.from(document.querySelectorAll('.aud-check:checked'));
+                  const audTags = checked.map(c => c.value);
+                  const isAll = audTags.includes('todos');
+                  
+                  if (!tit || !msj) return showToast('Título y mensaje obligatorios', 'error');
+                  if (audTags.length === 0) return showToast('Selecciona al menos una audiencia', 'warning');
+                  
+                  btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+                  btnPub.disabled = true;
+                  
+                  const nuevoAnuncio = {
+                    id: 'ann_' + Date.now().toString(36),
                     titulo: tit,
-                    texto: msj,
-                    enlace: lnk,
+                    mensaje: msj,
                     audiencia: isAll ? 'todos' : audTags.join(', '),
                     audiencia_tags: audTags,
-                    imagen_url: state.currentMtFoto || null,
-                    active: true
+                    foto_url: state.currentAnnFoto || null,
+                    fecha: new Date().toISOString(),
+                    estado_lecturas: [] 
+                  };
+                  
+                  const todosTra = await getAdminWorkers();
+                  nuevoAnuncio.estado_lecturas = todosTra.filter(w => {
+                    if (isAll) return true;
+                    const matchesPipe = audTags.some(tag => (w.unidades || []).includes(tag));
+                    const matchesRole = audTags.some(tag => (w.rol || '').toLowerCase() === tag.toLowerCase());
+                    return matchesPipe || matchesRole;
+                  }).map(w => ({
+                    vendedor_id: w.id,
+                    vendedor_nombre: `${w.nombre} ${w.apellido}`,
+                    leido: false,
+                    fecha_lectura: null
+                  }));
+                  
+                  const dbLoc = getDB();
+                  if(!dbLoc.anuncios_corporativos) dbLoc.anuncios_corporativos = [];
+                  dbLoc.anuncios_corporativos.push(nuevoAnuncio);
+                  await saveDB(dbLoc);
+                  state.currentAnnFoto = null;
+                  showToast('¡Anuncio publicado globalmente!', 'success');
+                  renderView();
                 };
-                
-                try {
-                    await saveGranular('admin_meetings', [newMt]);
-                    state.currentMtFoto = null;
-                    showToast('Reunión publicada correctamente', 'success');
-                    await initDB();
-                    renderView();
-                } catch (err) {
-                    console.error(err);
-                    showToast('Error al publicar reunión', 'error');
-                    btnPub.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Reunión';
-                    btnPub.disabled = false;
-                }
-            };
-        }
-
-        const dropMt = document.getElementById('drop-mt-foto');
-        const inpMt = document.getElementById('inp-mt-foto-file');
-        const preMt = document.getElementById('preview-mt-foto');
-        const plaMt = document.getElementById('mt-foto-placeholder');
-
-        if (dropMt && inpMt) {
-            dropMt.onclick = () => inpMt.click();
-            inpMt.onchange = async () => {
-                if (inpMt.files.length) {
-                    const file = inpMt.files[0];
-                    plaMt.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-blue-400"></i>';
+            }
+            const dropAnn = document.getElementById('drop-ann-foto');
+            const inpAnn = document.getElementById('inp-ann-foto-file');
+            const preAnn = document.getElementById('preview-ann-foto');
+            const plaAnn = document.getElementById('ann-foto-placeholder');
+            const clrAnn = document.getElementById('btn-clear-ann-foto');
+            if (dropAnn && inpAnn) {
+                dropAnn.onclick = () => inpAnn.click();
+                inpAnn.onchange = async () => {
+                  if (inpAnn.files.length) {
+                    const file = inpAnn.files[0];
+                    plaAnn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-tealAccent"></i>';
                     try {
-                        const url = await uploadFile(file, 'meetings');
-                        state.currentMtFoto = url;
-                        preMt.src = url;
-                        preMt.classList.remove('hidden');
-                        plaMt.classList.add('hidden');
+                      const url = await uploadFile(file, 'announcements');
+                      state.currentAnnFoto = url;
+                      preAnn.src = url;
+                      preAnn.classList.remove('hidden');
+                      plaAnn.classList.add('hidden');
+                      clrAnn.classList.remove('hidden');
                     } catch (err) {
-                        console.error(err);
-                        showToast('Error al subir imagen', 'error');
-                        plaMt.innerHTML = '<i class="fa-solid fa-image text-gray-300 text-xl"></i>';
+                      showToast('Error al subir imagen', 'error');
+                      plaAnn.innerHTML = '<i class="fa-solid fa-image text-gray-300 text-xl"></i>';
                     }
+                  }
+                };
+                if (clrAnn) {
+                  clrAnn.onclick = (e) => {
+                    e.stopPropagation();
+                    state.currentAnnFoto = null;
+                    inpAnn.value = '';
+                    preAnn.classList.add('hidden');
+                    plaAnn.classList.remove('hidden');
+                    clrAnn.classList.add('hidden');
+                    plaAnn.innerHTML = `<i class="fa-solid fa-image text-gray-300 text-xl"></i><p class="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Arrastra o haz clic</p>`;
+                  };
                 }
-            };
+            }
+        } else {
+            const btnPub = document.getElementById('btn-publish-mt');
+            if (btnPub) {
+                btnPub.onclick = async () => {
+                    const tit = document.getElementById('mt-input-title').value.trim();
+                    const lnk = document.getElementById('mt-input-link').value.trim();
+                    const msj = document.getElementById('mt-input-msg').value.trim();
+                    const checked = Array.from(document.querySelectorAll('.mt-aud-check:checked'));
+                    const audTags = checked.map(c => c.value);
+                    const isAll = audTags.includes('todos');
+                    
+                    if (!msj) return showToast('El texto es obligatorio', 'error');
+                    if (audTags.length === 0) return showToast('Selecciona al menos una audiencia', 'warning');
+                    
+                    btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+                    btnPub.disabled = true;
+                    
+                    const newMt = {
+                        titulo: tit,
+                        texto: msj,
+                        enlace: lnk,
+                        audiencia: isAll ? 'todos' : audTags.join(', '),
+                        audiencia_tags: audTags,
+                        imagen_url: state.currentMtFoto || null,
+                        active: true
+                    };
+                    
+                    try {
+                        await saveGranular('admin_meetings', [newMt]);
+                        state.currentMtFoto = null;
+                        showToast('Reunión publicada correctamente', 'success');
+                        await initDB();
+                        renderView();
+                    } catch (err) {
+                        showToast('Error al publicar reunión', 'error');
+                        btnPub.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Llamada';
+                        btnPub.disabled = false;
+                    }
+                };
+            }
+            const dropMt = document.getElementById('drop-mt-foto');
+            const inpMt = document.getElementById('inp-mt-foto-file');
+            const preMt = document.getElementById('preview-mt-foto');
+            const plaMt = document.getElementById('mt-foto-placeholder');
+            if (dropMt && inpMt) {
+                dropMt.onclick = () => inpMt.click();
+                inpMt.onchange = async () => {
+                    if (inpMt.files.length) {
+                        const file = inpMt.files[0];
+                        plaMt.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-blue-400"></i>';
+                        try {
+                            const url = await uploadFile(file, 'meetings');
+                            state.currentMtFoto = url;
+                            preMt.src = url;
+                            preMt.classList.remove('hidden');
+                            plaMt.classList.add('hidden');
+                        } catch (err) {
+                            showToast('Error al subir imagen', 'error');
+                            plaMt.innerHTML = '<i class="fa-solid fa-image text-gray-300 text-xl"></i>';
+                        }
+                    }
+                };
+            }
         }
     }, 100);
   }
@@ -4809,18 +5006,12 @@ function renderCalendario() {
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,listDay'
     },
-    googleCalendarApiKey: API_KEY,
     eventSources: [
-      {
-        googleCalendarId: CALENDAR_ID,
-        className: 'gcal-event'
-      },
+      // Single source of truth: Supabase (n8n also syncs to Google Calendar in background)
       function(fetchInfo, successCallback, failureCallback) {
         try {
             const db = getDB();
             const data = db.calendario_eventos || [];
-            // Optional: filter by fetchInfo.startStr and fetchInfo.endStr
-            // but for simplicity we can return all or filter in memory
             const filtered = data.filter(ev => ev.fecha_inicio >= fetchInfo.startStr && ev.fecha_inicio <= fetchInfo.endStr);
             
             const mapped = filtered.map(ev => {
@@ -5645,7 +5836,11 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-direccion').textContent = usr.direccion || '-';
     document.getElementById('det-usr-zelle-nombre').textContent = usr.zelle_nombre || '-';
     document.getElementById('det-usr-zelle-cuenta').textContent = usr.zelle_cuenta || '-';
-    document.getElementById('det-usr-zelle-tel').textContent = usr.zelle_tel || '-';
+    document.getElementById('det-usr-zelle-tel').textContent    = usr.zelle_tel    || '-';
+    // Bank info
+    if (document.getElementById('det-usr-banco-nombre')) document.getElementById('det-usr-banco-nombre').textContent = usr.banco_nombre || '-';
+    if (document.getElementById('det-usr-banco-cuenta')) document.getElementById('det-usr-banco-cuenta').textContent = usr.banco_cuenta || '-';
+    if (document.getElementById('det-usr-banco-ruta'))   document.getElementById('det-usr-banco-ruta').textContent   = usr.banco_ruta   || '-';
 
     // Format DOB for view mode (mes dia año)
     const dobViewEl = document.getElementById('det-usr-dob-view');
@@ -5687,7 +5882,7 @@ async function showWorkerDetail(id) {
             ${renderDocBtn('carnet', 'Carnet', (usr.carnet_url || usr.carnetUrl), 'fa-id-card')}
             ${renderDocBtn('contrato', 'Contrato', (usr.contrato_url || usr.contratoUrl), 'fa-file-signature')}
             <div class="doc-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-purple-200 cursor-pointer transition-all hover:border-purple-400 hover:bg-purple-50/50 min-h-[90px]"
-              onclick="window._verRecibosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}')">
+              onclick="window._verRecibosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}','${(usr.rol||'')}')">
               <i class="fa-solid fa-receipt text-xl text-purple-400 group-hover:text-purple-600 transition-colors mb-2"></i>
               <p class="text-[9px] font-black text-purple-400 group-hover:text-purple-600 uppercase tracking-widest">Recibos</p>
             </div>
@@ -5810,6 +6005,10 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-zelle-nombre')) document.getElementById('det-edit-zelle-nombre').value = usr.zelle_nombre || '';
         if (document.getElementById('det-edit-zelle-cuenta')) document.getElementById('det-edit-zelle-cuenta').value = usr.zelle_cuenta || '';
         if (document.getElementById('det-edit-zelle-tel')) document.getElementById('det-edit-zelle-tel').value = usr.zelle_tel || '';
+        // Bank info pre-fill
+        if (document.getElementById('det-edit-banco-nombre')) document.getElementById('det-edit-banco-nombre').value = usr.banco_nombre || '';
+        if (document.getElementById('det-edit-banco-cuenta')) document.getElementById('det-edit-banco-cuenta').value = usr.banco_cuenta || '';
+        if (document.getElementById('det-edit-banco-ruta'))   document.getElementById('det-edit-banco-ruta').value   = usr.banco_ruta   || '';
 
         // Apply flatpickr to the new edit field
         if (window.initDatePickers) window.initDatePickers();
@@ -6038,6 +6237,9 @@ async function toggleDetailEditMode(id) {
             const zelle_nombre = document.getElementById('det-edit-zelle-nombre')?.value.trim() || '';
             const zelle_cuenta = document.getElementById('det-edit-zelle-cuenta')?.value.trim() || '';
             const zelle_tel = document.getElementById('det-edit-zelle-tel')?.value.trim() || '';
+            const banco_nombre = document.getElementById('det-edit-banco-nombre')?.value.trim() || '';
+            const banco_cuenta = document.getElementById('det-edit-banco-cuenta')?.value.trim() || '';
+            const banco_ruta   = document.getElementById('det-edit-banco-ruta')?.value.trim()   || '';
 
             // Read pipeline permissions
             const checkedPips = Array.from(
@@ -6076,7 +6278,8 @@ async function toggleDetailEditMode(id) {
                     carnet_url: state.detEditCarnetUrl !== undefined ? state.detEditCarnetUrl : (usr.carnet_url || null),
                     contrato_url: state.detEditContratoUrl !== undefined ? state.detEditContratoUrl : (usr.contrato_url || null),
                     estatus_rrhh: current_estatus,
-                    tel_emergencia, direccion, zelle_nombre, zelle_cuenta, zelle_tel
+                    tel_emergencia, direccion, zelle_nombre, zelle_cuenta, zelle_tel,
+                    banco_nombre, banco_cuenta, banco_ruta
                 };
 
                 await saveAdminWorker(updatedUsr);
@@ -7722,11 +7925,9 @@ window.addEventListener('message', async (e) => {
     }
 
     try {
-        // Resolve which client this project belongs to
         const db = getDB();
         let proy = (db.Proyectos_Dinamicos || []).find(p => p.id === proyectoId);
         
-        // Fallback: normalize ID (handles RENEW- prefixes, dashes, etc.)
         if (!proy && proyectoId) {
             const norm = String(proyectoId).toLowerCase().replace('renew-', '').replace(/-/g, '_');
             proy = (db.Proyectos_Dinamicos || []).find(p => p.id === norm || p.id === `proy_${norm}`);
@@ -7744,7 +7945,6 @@ window.addEventListener('message', async (e) => {
             return;
         }
 
-        // Build the updated adjuntos_oficina object (preserve existing keys)
         if (!cli.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) {
             cli.adjuntos_oficina = {};
         }
@@ -7757,11 +7957,9 @@ window.addEventListener('message', async (e) => {
             cli.adjuntos_oficina.ultima_credit_fecha = new Date().toISOString();
         }
 
-        // Persist both locally (cachedDB) and to Supabase
         await updateClientMaestro(clientId, { adjuntos_oficina: cli.adjuntos_oficina });
         console.log(`[ADMIN] Client "${clientId}" updated with ${isWorkOrder ? 'Work Order' : 'Credit App'} PDF URL.`);
 
-        // If the client detail modal is open for this client, refresh it
         if (state.activeClientId === clientId) {
             await showClientDetail(clientId);
         }
@@ -7773,19 +7971,28 @@ window.addEventListener('message', async (e) => {
 });
 
 // -- RECIBOS DE PAGO: Popup en perfil del trabajador ----------
-window._verRecibosWorker = async function(workerId, workerName) {
+window._verRecibosWorker = async function(workerId, workerName, workerRol) {
     const existingModal = document.getElementById('modal-admin-recibos-worker');
     if (existingModal) existingModal.remove();
 
-    // Use centralized logic from api.js
     const { getRecibos } = await import('./api.js');
     const recibos = getRecibos(workerId);
 
-    const currentUser = (() => {
-        try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
-    })();
-    const currentRol = (currentUser.rol || '').toLowerCase();
-    const isAdmin = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(currentRol);
+    // Determine which tabs to show based on the WORKER'S role
+    const rol = (workerRol || '').toLowerCase();
+    const isVendedorRol = rol.includes('vendedor') || rol.includes('sales') || rol.includes('representante');
+    const isTecnicoRol  = rol.includes('tecnico') || rol.includes('técnico') || rol.includes('instalador') || rol.includes('installer');
+    const isAdminRol    = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(rol);
+
+    // showBoth: admin roles or if worker has both types of receipts
+    const hasBothReceipts = recibos.some(r => r.tipo === 'vendedor') && recibos.some(r => r.tipo === 'tecnico');
+    const showBoth = isAdminRol || (!isVendedorRol && !isTecnicoRol) || hasBothReceipts;
+
+    // Default filter: show based on role
+    let defaultFilter = 'all';
+    if (!showBoth) {
+      defaultFilter = isTecnicoRol ? 'tecnico' : 'vendedor';
+    }
 
     const renderList = (filter) => {
         const filtered = filter === 'all' ? recibos : recibos.filter(r => r.tipo === filter);
@@ -7798,9 +8005,8 @@ window._verRecibosWorker = async function(workerId, workerName) {
             const monto = isVendedor
                 ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2}) : '-')
                 : (d.total_price  ? '$' + Number(d.total_price ).toLocaleString('en-US',{minimumFractionDigits:2}) : '-');
-            
             return '<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">' +
-                '<div style="width:40px;height:40px;background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;display:flex;align-items:center;justify-content:center;color:' + color + ';flex-shrink:0;">' + 
+                '<div style="width:40px;height:40px;background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;display:flex;align-items:center;justify-content:center;color:' + color + ';flex-shrink:0;">' +
                 (isVendedor ? '<i class="fas fa-dollar-sign"></i>' : '<i class="fas fa-tools"></i>') + '</div>' +
                 '<div style="flex:1;min-width:0;">' +
                 '<p style="font-size:0.65rem;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:0;">' + label + '</p>' +
@@ -7814,33 +8020,37 @@ window._verRecibosWorker = async function(workerId, workerName) {
         }).join('');
     };
 
+    // Build tabs HTML based on role
+    const tabsHtml = showBoth ? `
+        <div style="padding:16px 24px 0;display:flex;gap:8px;">
+            <button data-rf="all"      class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
+            <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
+            <button data-rf="tecnico"  class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Técnico</button>
+        </div>` : '';
+
     const modal = document.createElement('div');
     modal.id = 'modal-admin-recibos-worker';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-        <div style="background:white;border-radius:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.15); border:1px solid #e2e8f0;">
+        <div style="background:white;border-radius:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.25); border:1px solid #e2e8f0;">
             <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;">
                 <div>
                     <h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">Recibos de Pago</h3>
-                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} • ${recibos.length} recibos</p>
+                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} &bull; ${recibos.length} recibos</p>
                 </div>
                 <button id="btn-close-admin-recibos" style="background:#f1f5f9;border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#64748b;display:flex;align-items:center;justify-content:center;">&times;</button>
             </div>
-            
-            ${isAdmin ? `
-            <div style="padding:16px 24px 0;display:flex;gap:8px;">
-                <button data-rf="all" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
-                <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
-                <button data-rf="tecnico" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Técnico</button>
-            </div>
-            ` : ''}
-            
+            ${tabsHtml}
             <div id="rw-list-container" style="padding:16px 24px 32px;">
-                ${renderList('all')}
+                ${renderList(defaultFilter)}
             </div>
         </div>
     `;
 
+    // Append last to guarantee top DOM order above any existing modal
+    document.body.appendChild(modal);
+    // Re-move to end to beat any stacking contexts created by other modals
+    document.body.removeChild(modal);
     document.body.appendChild(modal);
     modal.querySelector('#btn-close-admin-recibos').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });

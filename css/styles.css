@@ -1049,10 +1049,25 @@ body.no-nav #bottom-nav {
   transition: var(--transition);
   flex: 1;
   min-width: 0;
+  padding: 0 2px;
 }
 .nav-item span {
-  font-size: 0.62rem;
+  font-size: 0.55rem;
   font-weight: 700;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+/* Mobile-only centering for bottom nav */
+@media (max-width: 767px) {
+  .nav-item {
+    justify-content: center;
+  }
+  .nav-item span {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
 }
 .nav-item.active {
   color: var(--primary);
@@ -1367,6 +1382,8 @@ body.no-nav #bottom-nav {
     box-shadow: 4px 0 16px rgba(0,0,0,0.03);
     transform: none;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease !important;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .nav-group-top, .nav-group-bottom {

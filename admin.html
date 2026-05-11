@@ -629,6 +629,40 @@
 
     <style>
         #admin-preloader.fade-out { opacity: 0; visibility: hidden; transform: scale(1.1); pointer-events: none; }
+        
+        /* Sidebar Scroll & Collapse */
+        #admin-sidebar {
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none; /* Firefox */
+        }
+        #admin-sidebar::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+        /* Collapsed Sidebar State */
+        aside#admin-sidebar.collapsed {
+            width: 80px !important;
+        }
+        aside#admin-sidebar.collapsed .nav-text,
+        aside#admin-sidebar.collapsed #logo-container,
+        aside#admin-sidebar.collapsed .sidebar-header span {
+            display: none !important;
+        }
+        aside#admin-sidebar.collapsed .sidebar-header {
+            justify-content: center;
+            padding: 0;
+        }
+        aside#admin-sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        aside#admin-sidebar.collapsed .w-7 {
+            width: 100%;
+            margin: 0;
+        }
+        aside#admin-sidebar.collapsed .fa-chevron-down {
+            display: none !important;
+        }
     </style>
 
     
@@ -741,12 +775,7 @@
                     </div>
                     <span class="nav-text">Anuncios Globales</span>
                 </a>
-                <a href="#" data-view="meetings" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-video text-sm"></i>
-                    </div>
-                    <span class="nav-text">Coordinar Llamada</span>
-                </a>
+
                 <a href="#" data-view="lista-precios" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
                     <div class="w-7 flex justify-center">
                         <i class="fa-solid fa-tag text-sm"></i>
@@ -1312,7 +1341,7 @@
                 <div>
                     <label class="aqua-label">Rol / Cargo</label>
                     <select id="inp-usr-rol" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
-                        <option value="Vendedor">Vendedor</option>
+                        <option value="Vendedor">Representante de Ventas</option>
                         <option value="Call Center">Call Center</option>
                         <option value="Procesador">Procesador</option>
                         <option value="Técnico">Técnico</option>
@@ -1331,7 +1360,7 @@
                         <option value="subvendedor">Subvendedor</option>
                         <option value="iniciante">Iniciante</option>
                         <option value="junior">Junior</option>
-                        <option value="vendedor">Vendedor</option>
+                        <option value="vendedor">Representante de Ventas</option>
                         <option value="analista">Analista</option>
                     </select>
                 </div>
@@ -1360,7 +1389,31 @@
                 </div>
             </div>
 
-            <!-- Ecosistemas Autorizados -->
+            <!-- Información Bancaria -->
+            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fa-solid fa-building-columns text-emerald-500 text-[10px]"></i>
+                    </div>
+                    <label class="aqua-label mb-0">Información Bancaria</label>
+                    <span class="text-[9px] text-gray-400">(Opcional — requerido para avanzar a Capacitación)</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre del Banco</label>
+                        <input id="inp-usr-banco-nombre" type="text" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="Ej: Bank of America">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número de Cuenta</label>
+                        <input id="inp-usr-banco-cuenta" type="text" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="XXXXXXXXXX">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número de Ruta</label>
+                        <input id="inp-usr-banco-ruta" type="text" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" placeholder="XXXXXXXXX">
+                    </div>
+                </div>
+            </div>
+
             <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-2">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
@@ -1468,7 +1521,7 @@
             </div>
         </div>
     </div>
-    <div id="modal-worker-detail" class="fixed inset-0 bg-black/70 backdrop-blur-sm nuclear-hidden items-center justify-center z-[100]">
+    <div id="modal-worker-detail" class="fixed inset-0 bg-black/70 backdrop-blur-sm nuclear-hidden items-center justify-center z-[9000]">
         <!-- ... (worker modal content remains same, I'll just keep the structure for brevity in instruction if possible or replace the whole block) ... -->
         <div class="bg-surfaceLight dark:bg-[#121212] w-[950px] max-h-[90vh] rounded-xl shadow-2xl flex relative animate-fadeIn overflow-hidden">
             <!-- Botón Cerrar (Esquina) -->
@@ -1531,7 +1584,18 @@
                                     </div>
                                 </div>
 
-                                <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Fecha Nacimiento (Cumpleaños)</label><p id="det-usr-dob-view" class="text-sm font-bold text-[#333]">-</p></div>
+                                <!-- Información Bancaria View -->
+                                <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                                    <label class="block text-[9px] text-emerald-600 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <i class="fa-solid fa-building-columns"></i> Información Bancaria
+                                    </label>
+                                    <div class="grid grid-cols-3 gap-4">
+                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Banco</label><p id="det-usr-banco-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nº Cuenta</label><p id="det-usr-banco-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nº Ruta</label><p id="det-usr-banco-ruta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                    </div>
+                                </div>
+
                         <div class="pt-4 border-t border-gray-50 mt-4">
                           <label class="block text-[10px] text-gray-400 font-medium mb-3 uppercase tracking-widest flex items-center gap-2">
                               <i class="fa-solid fa-folder-open text-tealAccent"></i> DOCUMENTACIÓN (PDF O IMAGEN)
@@ -1613,6 +1677,27 @@
                                 <div>
                                     <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número Zelle</label>
                                     <input id="det-edit-zelle-tel" type="tel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="555-000-0000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Bancaria en Edición -->
+                        <div class="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl mb-6">
+                            <label class="block text-[9px] text-emerald-600 font-black mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <i class="fa-solid fa-building-columns"></i> Información Bancaria
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre del Banco</label>
+                                    <input id="det-edit-banco-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="Ej: Bank of America">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número de Cuenta</label>
+                                    <input id="det-edit-banco-cuenta" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="XXXXXXXXXX">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número de Ruta</label>
+                                    <input id="det-edit-banco-ruta" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="XXXXXXXXX">
                                 </div>
                             </div>
                         </div>

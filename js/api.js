@@ -831,7 +831,7 @@ export async function createAdminPipeline(nombre, color, rolesConAcceso) {
   const id = genId('pip', db);
   const roles = rolesConAcceso && rolesConAcceso.length > 0
     ? rolesConAcceso
-    : ['Vendedor', 'Procesador', 'Técnico', 'Diseñador', 'Contabilidad', 'Finanzas', 'Supervisión', 'CEO', 'Admin'];
+    : ['Representante de Ventas', 'Procesador', 'Técnico', 'Diseñador', 'Contabilidad', 'Finanzas', 'Supervisión', 'CEO', 'Admin'];
   const p = { id, nombre, icono: 'circle', color: color || '#8b5cf6', rolesConAcceso: roles };
   db.Admin_Pipelines.push(p);
   await saveDB(db); 
@@ -886,7 +886,7 @@ export async function deleteAdminPipeline(pipelineId) {
 }
 
 export async function getAdminFases() { return getDB().Admin_Fases; }
-export async function createAdminFase(pipeline_id, nombre, orden, rol_encargado = 'Vendedor') {
+export async function createAdminFase(pipeline_id, nombre, orden, rol_encargado = 'Representante de Ventas') {
   const db = getDB();
   const id = genId('fase', db);
   const f = { id, pipeline_id, orden: Number(orden) || 1, nombre, rol_encargado };
@@ -1102,7 +1102,7 @@ export async function deleteAdminWorker(ids) {
 
 // ─── AUTHENTICATION ─────────────────────────────────────────
 export const MOCK_USERS = [
-  { id: 'u1', nombre: 'Carlos', apellido: 'Rodríguez', email: 'carlos@renewsolar.com', password: '1234', initials: 'CR', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Vendedor', rango: 'vendedor', telefono: '+1 (305) 555-1234' },
+  { id: 'u1', nombre: 'Carlos', apellido: 'Rodríguez', email: 'carlos@renewsolar.com', password: '1234', initials: 'CR', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Representante de Ventas', rango: 'vendedor', telefono: '+1 (305) 555-1234' },
   { id: 'u3', nombre: 'Demo',   apellido: 'Vendedor',  email: 'demo@renew.com',        password: 'demo', initials: 'DV', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Admin', rango: 'analista', telefono: '+1 (555) 123-4567' },
 ];
 
@@ -1229,7 +1229,7 @@ export async function getDealsByUser(userId, pipelineName) {
         fecha: p.fecha,
         responsable_id: p.responsable_id,
         is_locked: isLocked,
-        rol_fase: fase.rol_encargado || 'Vendedor'
+        rol_fase: fase.rol_encargado || 'Representante de Ventas'
       };
     }).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
   } catch (err) {
@@ -1344,10 +1344,10 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
       dob: cliente.dob || '-',
       state_id: cliente.state_id || '-',
       vendedor_asignado_id: responsable_id,
-      vendedor_asignado_nombre: userName || 'Vendedor',
-      origen_tipo: 'vendedor',
+      vendedor_asignado_nombre: userName || 'Representante',
+      origen_tipo: 'representante',
       origen_id: responsable_id,
-      origen_nombre: userName || 'Vendedor'
+      origen_nombre: userName || 'Representante'
     };
     db.Clientes_Maestro.push(newCliente);
     finalClienteId = newCliente.id;
@@ -1362,7 +1362,7 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
   if (existingCli) {
     const sessionUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     existingCli.vendedor_asignado_id = responsable_id || sessionUser.id;
-    existingCli.vendedor_asignado_nombre = (sessionUser.nombre + ' ' + (sessionUser.apellido || '')).trim() || 'Vendedor';
+    existingCli.vendedor_asignado_nombre = (sessionUser.nombre + ' ' + (sessionUser.apellido || '')).trim() || 'Representante';
     existingCli.estado = 'En Proceso';
   }
 
@@ -1687,7 +1687,7 @@ function _resolverDestinatarios(db, fase, vendedor_original_id, proyecto = null)
 
   // 2. Agregar por rol si está definido
   if (rol_encargado) {
-    if (rol_encargado === 'Vendedor') {
+    if (rol_encargado === 'Vendedor' || rol_encargado === 'Representante de Ventas') {
       const creador = workers.find(u => u.id === vendedor_original_id);
       if (creador && !destinatarios.some(d => d.id === creador.id)) {
         destinatarios.push(toContact(creador));
