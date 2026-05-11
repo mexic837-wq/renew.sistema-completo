@@ -97,7 +97,16 @@ app.get('/api/db', async (req, res) => {
 
         const fixUrl = (url) => {
             if (typeof url !== 'string') return url;
-            return url.replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?/, 'http://31.97.102.243:8001/storage/v1/object/public');
+            // Detect if the URL points to our Supabase instance
+            const isSupabase = url.includes('31.97.102.243:8001') || url.includes('api-renew') || url.includes('files-renew');
+            if (isSupabase) {
+                // Return a relative path that will be handled by our proxy
+                const parts = url.split('/archivos_renew/');
+                if (parts.length > 1) {
+                    return `/api/storage-proxy/${parts[1]}`;
+                }
+            }
+            return url;
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
@@ -150,7 +159,7 @@ app.get('/api/db', async (req, res) => {
                 titulo:         item.titulo         || null,
                 tipo:           item.tipo           || null,
                 enlace:         item.enlace         || null,
-                miniaturaUrl:   item.miniatura_url  || item.miniaturaUrl || null,
+                miniaturaUrl:   fixUrl(item.miniatura_url  || item.miniaturaUrl) || null,
                 permisos:       item.permisos       || [],
                 fecha_creacion: item.fecha_creacion || null
             })),
@@ -164,7 +173,7 @@ app.get('/api/db', async (req, res) => {
                 stockActual: item.stock_actual || item.stockActual || 0
             })),
             historialInventario:     results[9].data || [],
-            anuncios_corporativos:   results[10].data || [],
+            anuncios_corporativos:   (results[10].data || []).map(an => ({ ...an, foto_url: fixUrl(an.foto_url) })),
             Admin_Proveedores:       (results[11].data || []).map(p => ({
                 id:          p.id,
                 empresa:     p.empresa_nombre || null,
@@ -202,7 +211,7 @@ app.get('/api/db', async (req, res) => {
                 direccion:        r.direccion     || null,
                 fecha_recibo:     r.fecha_recibo  || null,
                 datos_json:       r.datos_json    || {},
-                pdf_url:          r.pdf_url       || null,
+                pdf_url:          fixUrl(r.pdf_url)       || null,
                 created_at:       r.created_at    || null
             })),
             Water_Productos:         (results[14].data || []).map(p => ({
@@ -211,7 +220,7 @@ app.get('/api/db', async (req, res) => {
                 codigo:          p.codigo         || null,
                 descripcion:     p.descripcion    || null,
                 categoria:       p.categoria      || null,
-                foto_url:        p.foto_url       || null,
+                foto_url:        fixUrl(p.foto_url)       || null,
                 sede:            p.sede           || 'todas',
                 medida:          p.medida         || null,
                 boton:           p.boton          || null,
@@ -230,7 +239,7 @@ app.get('/api/db', async (req, res) => {
                 es_activo:       p.es_activo !== false,
                 orden:           p.orden          || 0,
                 notas:           p.notas          || null,
-                pdf_url:         p.pdf_url        || null,
+                pdf_url:         fixUrl(p.pdf_url)        || null,
                 created_at:      p.created_at     || null,
                 updated_at:      p.updated_at     || null
             })),
@@ -414,7 +423,7 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
             .from('archivos_renew')
             .getPublicUrl(`recibos/${fileName}`);
 
-        const cleanUrl = publicUrl;
+        const cleanUrl = `/api/storage-proxy/recibos/${fileName}`;
 
         await supabase
             .from('recibos_pagos')
@@ -1161,8 +1170,7 @@ app.post('/api/generar-pdf', async (req, res) => {
         console.error('[STORAGE ERROR - CREDIT] Falló la subida al bucket:', uploadError);
     } else {
         console.log(`[STORAGE] PDF subido con éxito a ${fileName}. Generando URL pública...`);
-        const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-        finalUrl = publicUrl;
+        const finalUrl = `/api/storage-proxy/${fileName}`;
         console.log(`[STORAGE] URL Final para base de datos: ${finalUrl}`);
         
         // 2. Actualizar en Supabase (buscando el cliente_id primero)
@@ -1887,10 +1895,11 @@ const subirArchivo = async (file, folder) => {
         const { data } = supabaseStorage.storage.from('archivos_renew').getPublicUrl(storagePath);
         
         // Use the public URL directly from Supabase
-        let publicUrl = data.publicUrl;
+        // Return the proxy URL instead of direct Supabase URL
+        const proxyUrl = `/api/storage-proxy/${storagePath}`;
         
-        console.log('[STORAGE] Subida exitosa:', publicUrl);
-        return publicUrl;
+        console.log('[STORAGE] Subida exitosa:', proxyUrl);
+        return proxyUrl;
 
     } catch (err) {
         console.error(`[STORAGE CRITICAL ERROR]:`, err.message);
@@ -2108,7 +2117,7 @@ app.post('/api/complete-upload', async (req, res) => {
 
         const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${storagePath}`;
         console.log(`[STORAGE] ✅ Upload exitoso: ${publicUrl}`);
-        res.json({ success: true, url: publicUrl });
+        res.json({ success: true, url: `/api/storage-proxy/${storagePath}` });
 
     } catch (e) {
         console.error('[COMPLETE] Critical Error:', e);
@@ -2118,6 +2127,52 @@ app.post('/api/complete-upload', async (req, res) => {
             details: e.toString(),
             source: 'complete-upload'
         });
+    }
+});
+
+// Proxy Route for Storage to avoid Mixed Content (HTTP on HTTPS)
+app.get('/api/storage-proxy/*', async (req, res) => {
+    try {
+        const filePath = req.params[0];
+        // We use localhost:8001 to talk to the gateway container directly if possible, 
+        // but here we use the SUPABASE_URL which is the external-facing one.
+        // Actually, since we are on the host, localhost:8001 is fine if the port is mapped.
+        const targetUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${filePath}`;
+        
+        console.log(`[PROXY] Fetching: ${targetUrl}`);
+        
+        const response = await fetch(targetUrl);
+        if (!response.ok) {
+            return res.status(response.status).send('File not found in storage');
+        }
+
+        // Forward headers
+        const contentType = response.headers.get('content-type');
+        const contentLength = response.headers.get('content-length');
+        if (contentType) res.setHeader('Content-Type', contentType);
+        if (contentLength) res.setHeader('Content-Length', contentLength);
+        res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+
+        // Stream the body
+        const reader = response.body.getReader();
+        const stream = new ReadableStream({
+            async start(controller) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    controller.enqueue(value);
+                }
+                controller.close();
+            }
+        });
+
+        // Convert web stream to node readable stream
+        const nodeStream = require('stream').Readable.from(stream);
+        nodeStream.pipe(res);
+
+    } catch (err) {
+        console.error('[PROXY ERROR]', err);
+        res.status(500).send('Error proxying file');
     }
 });
 

@@ -131,10 +131,10 @@ export async function renderMiMapa() {
       // ── Dept config ────────────────────────────────────────
       const DEPTS = [
         { key: 'todos', label: 'Todos',  color: '#00dfbf', iconUrl: null },
-        { key: 'solar', label: 'Solar',  color: '#f59e0b', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
-        { key: 'water', label: 'Water',  color: '#0ea5e9', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
-        { key: 'home',  label: 'Home',   color: '#a855f7', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png' },
-        { key: 'otro',  label: 'Otro',   color: '#ef4444', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' },
+        { key: 'solar', label: 'Solar',  color: '#f59e0b', iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
+        { key: 'water', label: 'Water',  color: '#0ea5e9', iconUrl: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+        { key: 'home',  label: 'Home',   color: '#a855f7', iconUrl: 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png' },
+        { key: 'otro',  label: 'Otro',   color: '#ef4444', iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' },
       ];
 
       // ── Status config ──────────────────────────────────────
@@ -304,10 +304,10 @@ export async function renderMiMapa() {
       });
 
       const deptIconMap = {
-        solar: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-        water: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-        home:  'http://maps.google.com/mapfiles/ms/icons/purple-dot.png',
-        otro:  'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        solar: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+        water: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+        home:  'https://maps.google.com/mapfiles/ms/icons/purple-dot.png',
+        otro:  'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
       };
 
       // Pre-compute all depts per client (for showing all badges in panel)
