@@ -5267,6 +5267,17 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     }
   }
 
+  // ── Google Places Autocomplete for address field ──
+  const evDirInput = document.getElementById('ev-direccion');
+  if (evDirInput && window.google && window.google.maps && window.google.maps.places) {
+      if (!evDirInput._autocompleteInit) {
+          evDirInput._autocompleteInit = true;
+          new google.maps.places.Autocomplete(evDirInput, {
+              types: ['address']
+          });
+      }
+  }
+
   window.showModal(modal);
 };
 
