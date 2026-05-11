@@ -260,7 +260,14 @@ app.get('/api/db', async (req, res) => {
             }
         };
 
-        res.json(db);
+        // Final Global Fix: Stringify everything and replace internal URLs globally
+        const jsonString = JSON.stringify(db);
+        const fixedJson = jsonString
+            .replace(/https?:\/\/31\.97\.102\.243:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.send(fixedJson);
     } catch (error) {
         console.error('[SUPABASE ERROR] getDB:', error.message);
         res.status(500).json({ error: 'Fallo al recuperar datos de Supabase', details: error.message });
