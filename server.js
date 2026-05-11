@@ -157,7 +157,7 @@ app.get('/api/db', async (req, res) => {
                 titulo:         item.titulo         || null,
                 tipo:           item.tipo           || null,
                 enlace:         item.enlace         || null,
-                miniaturaUrl:   item.miniatura_url  || item.miniaturaUrl || null,
+                miniaturaUrl:   fixUrl(item.miniatura_url  || item.miniaturaUrl),
                 permisos:       item.permisos       || [],
                 fecha_creacion: item.fecha_creacion || null
             })),
@@ -171,7 +171,10 @@ app.get('/api/db', async (req, res) => {
                 stockActual: item.stock_actual || item.stockActual || 0
             })),
             historialInventario:     results[9].data || [],
-            anuncios_corporativos:   results[10].data || [],
+            anuncios_corporativos:   (results[10].data || []).map(an => ({
+                ...an,
+                foto_url: fixUrl(an.foto_url)
+            })),
             Admin_Proveedores:       (results[11].data || []).map(p => ({
                 id:          p.id,
                 empresa:     p.empresa_nombre || null,
@@ -197,7 +200,7 @@ app.get('/api/db', async (req, res) => {
                         }
                     });
                 }
-                return { ...ev, colaboradores: parsedColab };
+                return { ...ev, colaboradores: parsedColab, adjunto_url: fixUrl(ev.adjunto_url) };
             }),
             Recibos_Pagos:           (results[13].data || []).map(r => ({
                 id:               r.id,
@@ -209,7 +212,7 @@ app.get('/api/db', async (req, res) => {
                 direccion:        r.direccion     || null,
                 fecha_recibo:     r.fecha_recibo  || null,
                 datos_json:       r.datos_json    || {},
-                pdf_url:          r.pdf_url       || null,
+                pdf_url:          fixUrl(r.pdf_url),
                 created_at:       r.created_at    || null
             })),
             Water_Productos:         (results[14].data || []).map(p => ({
@@ -218,7 +221,7 @@ app.get('/api/db', async (req, res) => {
                 codigo:          p.codigo         || null,
                 descripcion:     p.descripcion    || null,
                 categoria:       p.categoria      || null,
-                foto_url:        p.foto_url       || null,
+                foto_url:        fixUrl(p.foto_url),
                 sede:            p.sede           || 'todas',
                 medida:          p.medida         || null,
                 boton:           p.boton          || null,
@@ -237,7 +240,7 @@ app.get('/api/db', async (req, res) => {
                 es_activo:       p.es_activo !== false,
                 orden:           p.orden          || 0,
                 notas:           p.notas          || null,
-                pdf_url:         p.pdf_url        || null,
+                pdf_url:         fixUrl(p.pdf_url),
                 created_at:      p.created_at     || null,
                 updated_at:      p.updated_at     || null
             })),
