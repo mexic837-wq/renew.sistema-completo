@@ -3125,10 +3125,10 @@ window.renderView = async function renderView() {
 
         const deptConfig = {
           'all':   { label: 'Todos', color: '#00f5d4' },
-          'solar': { label: 'Solar', color: '#22c55e', icon: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png' },
-          'water': { label: 'Water', color: '#3b82f6', icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
-          'home':  { label: 'Home',  color: '#eab308', icon: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
-          'otro':  { label: 'Otro',  color: '#ef4444', icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' }
+          'solar': { label: 'Solar', color: '#22c55e', icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png' },
+          'water': { label: 'Water', color: '#3b82f6', icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+          'home':  { label: 'Home',  color: '#eab308', icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
+          'otro':  { label: 'Otro',  color: '#ef4444', icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' }
         };
 
         const statusConfig = {

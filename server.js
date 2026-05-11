@@ -3,25 +3,15 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
-const SUPABASE_URL = 'http://31.97.102.243:8001'; 
+const SUPABASE_URL = 'http://31.97.102.243:8001';
+// URL pública del servidor (para generar URLs de archivos accesibles desde internet)
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://renewgroup.site';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.JlrSkGO6ZyAaaToY0xTLajbLsNuL8kn2QwCI3jrCeFs'; // secret: RenewJWTSuperSecret2026Key32Chars
-
-// Helper: converts any internal Supabase storage URL to a proxied /api/img path
-// so browsers on renewgroup.site can load images without hitting the private VPS IP.
-const STORAGE_PUB_BASE = `${SUPABASE_URL}/storage/v1/object/public/`;
-function toProxyUrl(url) {
-    if (typeof url !== 'string') return url;
-    if (url.startsWith(STORAGE_PUB_BASE)) {
-        return '/api/img?path=' + encodeURIComponent(url.replace(STORAGE_PUB_BASE, ''));
-    }
-    return url;
-}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false }
@@ -45,6 +35,8 @@ app.use(cors());
 app.use(express.json({ limit: '500mb' })); 
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 app.use(express.static(path.join(__dirname)));
+// Servir archivos subidos localmente (fotos de clientes, anuncios, etc.)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Chunked Upload State
 const os = require('os');
@@ -58,40 +50,6 @@ app.get('/admin', (req, res) => {
 });
 app.get('/app', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// ── STORAGE IMAGE PROXY ──────────────────────────────────────────────────────
-// Browsers cannot reach the private Supabase IP (31.97.102.243:8001) directly.
-// This endpoint fetches the image server-side and streams it to the browser,
-// making images work from any public domain (renewgroup.site, localhost, etc.)
-app.get('/api/img', async (req, res) => {
-    const storagePath = req.query.path;
-    if (!storagePath) return res.status(400).send('Missing path parameter');
-
-    const targetUrl = `http://31.97.102.243:8001/storage/v1/object/public/${decodeURIComponent(storagePath)}`;
-
-    try {
-        const proxyReq = http.get(targetUrl, (proxyRes) => {
-            // Forward status and content-type
-            const contentType = proxyRes.headers['content-type'] || 'application/octet-stream';
-            res.setHeader('Content-Type', contentType);
-            res.setHeader('Cache-Control', 'public, max-age=86400'); // cache 24h
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.status(proxyRes.statusCode);
-            proxyRes.pipe(res);
-        });
-        proxyReq.on('error', (err) => {
-            console.error('[IMG PROXY] Error fetching:', targetUrl, err.message);
-            res.status(502).send('Error fetching image from storage');
-        });
-        proxyReq.setTimeout(15000, () => {
-            proxyReq.destroy();
-            res.status(504).send('Timeout fetching image from storage');
-        });
-    } catch (err) {
-        console.error('[IMG PROXY] Unexpected error:', err.message);
-        res.status(500).send('Internal error');
-    }
 });
 
 // ── 1. DATABASE ENDPOINTS (100% SUPABASE) ──
@@ -141,19 +99,12 @@ app.get('/api/db', async (req, res) => {
             return `${prefix}${Math.max(0, ...nums) + 1}`;
         };
 
-        const STORAGE_BASE = 'http://31.97.102.243:8001/storage/v1/object/public';
         const fixUrl = (url) => {
             if (typeof url !== 'string') return url;
-            // Normalize any old easypanel URLs or raw IP URLs to a /api/img proxy path
-            // so browsers can load them from the public domain (renewgroup.site)
-            let normalized = url
-                .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?/, STORAGE_BASE)
-                .replace(/http:\/\/31\.97\.102\.243:8001\/storage\/v1\/object\/public/, STORAGE_BASE);
-            if (normalized.startsWith(STORAGE_BASE)) {
-                const storagePath = normalized.replace(STORAGE_BASE + '/', '');
-                return '/api/img?path=' + encodeURIComponent(storagePath);
-            }
-            return normalized;
+            // Imágenes antiguas guardadas con IP interna → usar proxy público del servidor
+            return url
+                .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//, '/api/storage-proxy/')
+                .replace(/https?:\/\/31\.97\.102\.243:\d+\/storage\/v1\/object\/public\//, '/api/storage-proxy/');
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
@@ -470,7 +421,7 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
             .from('archivos_renew')
             .getPublicUrl(`recibos/${fileName}`);
 
-        const cleanUrl = toProxyUrl(publicUrl);
+        const cleanUrl = publicUrl;
 
         await supabase
             .from('recibos_pagos')
@@ -1012,8 +963,8 @@ app.post('/api/generar-contrato', async (req, res) => {
             return res.status(500).json({ error: 'Error al subir el PDF al almacenamiento', details: uploadError });
         } else {
             const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-            finalUrl = toProxyUrl(publicUrl);
-            console.log('[STORAGE] Subido con éxito. URL proxy:', finalUrl);
+            finalUrl = publicUrl;
+            console.log('[STORAGE] Subido con éxito. URL pública:', finalUrl);
             
             // 2. Actualizar el registro del cliente
             let clienteId = datos.clienteId;
@@ -1077,7 +1028,7 @@ async function uploadBase64ToSupabase(base64Data, pathPrefix) {
     }
     
     const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-    return toProxyUrl(publicUrl);
+    return publicUrl;
   } catch (err) {
     console.error(`[UPLOAD ERROR - ${pathPrefix}]`, err);
     return null;
@@ -1218,8 +1169,8 @@ app.post('/api/generar-pdf', async (req, res) => {
     } else {
         console.log(`[STORAGE] PDF subido con éxito a ${fileName}. Generando URL pública...`);
         const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-        finalUrl = toProxyUrl(publicUrl);
-        console.log(`[STORAGE] URL Final (proxy) para base de datos: ${finalUrl}`);
+        finalUrl = publicUrl;
+        console.log(`[STORAGE] URL Final para base de datos: ${finalUrl}`);
         
         // 2. Actualizar en Supabase (buscando el cliente_id primero)
         if (datos.proyectoId) {
@@ -1422,8 +1373,8 @@ app.post('/api/generar-orden', async (req, res) => {
             console.error('[STORAGE ERROR] Failed to upload:', uploadError);
         } else {
             const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
-            finalUrl = toProxyUrl(publicUrl);
-            console.log('[STORAGE] Subido con éxito. URL proxy:', finalUrl);
+            finalUrl = publicUrl;
+            console.log('[STORAGE] Subido con éxito. URL pública:', finalUrl);
             
             // 2. Actualizar la base de datos (resolviendo cliente_id)
             const proyId = rawData.proyectoId;
@@ -1904,7 +1855,7 @@ const upload = multer({
     limits: { fileSize: 500 * 1024 * 1024 } // 500MB
 });
 
-// Helper function to upload to Supabase Storage
+// Helper function to upload — saves locally and returns public URL accessible from anywhere
 const subirArchivo = async (file, folder) => {
     if (!file || !file.originalname) {
         throw new Error('Archivo inválido o sin nombre');
@@ -1921,40 +1872,17 @@ const subirArchivo = async (file, folder) => {
     }
 
     const fileName = `${filePrefix}${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-    const storagePath = `${targetFolder}/${fileName}`;
-
-    console.log(`[STORAGE] Intentando subir a Supabase: ${storagePath}...`);
+    const localDir = path.join(__dirname, 'uploads', targetFolder);
+    if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
+    const localFilePath = path.join(localDir, fileName);
+    
+    console.log(`[STORAGE] Guardando localmente: ${localFilePath}`);
 
     try {
-        const { error: uploadError } = await supabaseStorage.storage
-            .from('archivos_renew')
-            .upload(storagePath, file.buffer, { 
-                contentType: file.mimetype,
-                upsert: true 
-            });
-        
-        if (uploadError) {
-            console.error('[STORAGE ERROR] Status:', uploadError.status);
-            console.error('[STORAGE ERROR] Message:', uploadError.message);
-            console.error('[STORAGE ERROR] Full Object:', JSON.stringify(uploadError, null, 2));
-            throw new Error(`Supabase Storage Error (${uploadError.status}): ${uploadError.message}`);
-        }
-
-        const { data } = supabaseStorage.storage.from('archivos_renew').getPublicUrl(storagePath);
-        
-        // Convert internal Supabase URL to a proxied path accessible from the public domain.
-        // This is needed because the raw Supabase URL uses a private IP (31.97.102.243:8001)
-        // that browsers on renewgroup.site cannot reach directly.
-        let publicUrl = data.publicUrl;
-        const STORAGE_PUB_BASE = 'http://31.97.102.243:8001/storage/v1/object/public/';
-        if (publicUrl && publicUrl.startsWith(STORAGE_PUB_BASE)) {
-            const relPath = publicUrl.replace(STORAGE_PUB_BASE, '');
-            publicUrl = '/api/img?path=' + encodeURIComponent(relPath);
-        }
-        
-        console.log('[STORAGE] Subida exitosa. URL proxy:', publicUrl);
+        fs.writeFileSync(localFilePath, file.buffer);
+        const publicUrl = `${PUBLIC_BASE_URL}/uploads/${targetFolder}/${fileName}`;
+        console.log('[STORAGE] ✅ Guardado exitoso:', publicUrl);
         return publicUrl;
-
     } catch (err) {
         console.error(`[STORAGE CRITICAL ERROR]:`, err.message);
         throw err;
@@ -2067,7 +1995,7 @@ app.post('/api/get-upload-url', async (req, res) => {
         res.json({ 
             success: true, 
             uploadUrl: data.signedUrl,
-            publicUrl: toProxyUrl(`${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${path}`),
+            publicUrl: `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${path}`,
             token: data.token
         });
     } catch (e) {
@@ -2143,34 +2071,18 @@ app.post('/api/complete-upload', async (req, res) => {
             return res.json({ success: true, url: publicUrl });
         }
 
-        // ── Subir a Supabase Storage via streaming (para otros) ──
-        const fileStream   = fs.createReadStream(finalPath);
-
-        // Determinar el tipo MIME dinámicamente (enviado por el cliente, con fallback)
-        const mimeMap = { mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo', mkv: 'video/x-matroska', webm: 'video/webm', pdf: 'application/pdf' };
-        const ext = (fileName.split('.').pop() || '').toLowerCase();
-        const resolvedContentType = contentType || mimeMap[ext] || 'application/octet-stream';
-
-        console.log(`[STORAGE] Uploading assembled file to Supabase: ${storagePath} (${resolvedContentType})...`);
-        const { data, error } = await supabase.storage
-            .from('archivos_renew')
-            .upload(storagePath, fileStream, {
-                contentType: resolvedContentType,
-                upsert: true,
-                duplex: 'half'
-            });
+        // ── Guardar localmente (todos los tipos, no solo academia) ──
+        const localUploadsDir2 = path.join(__dirname, 'uploads', folder);
+        if (!fs.existsSync(localUploadsDir2)) fs.mkdirSync(localUploadsDir2, { recursive: true });
+        const localFilePath2 = path.join(localUploadsDir2, finalFileName);
+        fs.copyFileSync(finalPath, localFilePath2);
 
         // ── Limpieza de temporales ──
         try { fs.unlinkSync(finalPath); } catch (_) {}
         try { if (fs.readdirSync(uploadPath).length === 0) fs.rmdirSync(uploadPath); } catch (_) {}
 
-        if (error) {
-            console.error('[STORAGE] Supabase Upload Error:', error);
-            throw new Error(`Supabase Storage Error (${error.status || 'unknown'}): ${error.message || JSON.stringify(error)}`);
-        }
-
-        const publicUrl = toProxyUrl(`${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${storagePath}`);
-        console.log(`[STORAGE] ✅ Upload exitoso. URL proxy: ${publicUrl}`);
+        const publicUrl = `${PUBLIC_BASE_URL}/uploads/${folder}/${finalFileName}`;
+        console.log(`[STORAGE] ✅ Upload exitoso (local): ${publicUrl}`);
         res.json({ success: true, url: publicUrl });
 
     } catch (e) {
@@ -2184,10 +2096,40 @@ app.post('/api/complete-upload', async (req, res) => {
     }
 });
 
+// ── PROXY para imágenes antiguas guardadas en Supabase con IP interna ──
+// Permite que URLs como /api/storage-proxy/announcements/... funcionen públicamente
+app.get('/api/storage-proxy/*', async (req, res) => {
+    try {
+        const filePath = req.params[0]; // everything after /api/storage-proxy/
+        const internalUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
+        console.log(`[PROXY] Fetching: ${internalUrl}`);
+        
+        const https = require('https');
+        const http = require('http');
+        const protocol = internalUrl.startsWith('https') ? https : http;
+        
+        protocol.get(internalUrl, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode, {
+                'Content-Type': proxyRes.headers['content-type'] || 'application/octet-stream',
+                'Cache-Control': 'public, max-age=31536000',
+                'Access-Control-Allow-Origin': '*'
+            });
+            proxyRes.pipe(res);
+        }).on('error', (err) => {
+            console.error('[PROXY ERROR]', err.message);
+            res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
+        });
+    } catch (e) {
+        console.error('[PROXY CRITICAL]', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(port, '0.0.0.0', () => {
     console.log(`\n🚀 RENEW CLOUD SERVER RUNNING`);
     console.log(`📡 Admin Panel : http://localhost:${port}/admin.html`);
     console.log(`📱 Mobile App  : http://localhost:${port}/index.html`);
-    console.log(`🔐 Database    : SUPABASE (Live Connection)\n`);
+    console.log(`🔐 Database    : SUPABASE (Live Connection)`);
+    console.log(`🖼️  Public URL  : ${PUBLIC_BASE_URL}\n`);
 });
 
