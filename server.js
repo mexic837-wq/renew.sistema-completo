@@ -8,7 +8,7 @@ const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
-const SUPABASE_URL = 'http://31.97.108.243:8001';
+const SUPABASE_URL = 'http://31.97.102.243:8001';
 // URL pública del servidor (para generar URLs de archivos accesibles desde internet)
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://renewgroup.site';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.JlrSkGO6ZyAaaToY0xTLajbLsNuL8kn2QwCI3jrCeFs'; // secret: RenewJWTSuperSecret2026Key32Chars
@@ -103,8 +103,8 @@ app.get('/api/db', async (req, res) => {
             if (typeof url !== 'string') return url;
             // Imágenes antiguas guardadas con IP interna → usar proxy público del servidor
             return url
-                .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//, '/api/storage-proxy/')
-                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//, '/api/storage-proxy/');
+                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//, '/api/storage-proxy/')
+                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//, '/api/storage-proxy/');
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
@@ -264,6 +264,7 @@ app.get('/api/db', async (req, res) => {
         const jsonString = JSON.stringify(db);
         const fixedJson = jsonString
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+            .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         
         res.setHeader('Content-Type', 'application/json');

@@ -30,7 +30,19 @@ export async function initDB() {
 
       if (!res.ok) throw new Error('Servidor de nube no disponible.');
       
-      const freshDB = await res.json();
+      let freshDB = await res.json();
+      
+      // ── CLIENT-SIDE URL FIX (Fail-safe for Mixed Content) ──
+      // If the server hasn't proxied some URLs, we do it here to avoid browser blocking
+      const dbStr = JSON.stringify(freshDB);
+      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host')) {
+        console.log('[DB] Applying client-side URL fixes for Mixed Content...');
+        const fixedStr = dbStr
+          .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+          .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
+          .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+        freshDB = JSON.parse(fixedStr);
+      }
       
       // POST-PROCESSING
       if (freshDB.Respuestas_Dinamicas) {
