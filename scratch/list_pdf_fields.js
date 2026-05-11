@@ -2,23 +2,22 @@ const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
 
-async function listFields(pdfPath) {
-    const bytes = fs.readFileSync(pdfPath);
-    const pdfDoc = await PDFDocument.load(bytes);
+async function listFields() {
+    const folder = 'c:\\Users\\LENOVO\\Downloads\\renew-sistema-completo-main\\renew.sistema-completo-main\\CONTRATO-RENEW-WATER';
+    const pdfPath = path.join(folder, 'molde_contrato.pdf');
+    
+    const pdfBuffer = fs.readFileSync(pdfPath);
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
     const form = pdfDoc.getForm();
     const fields = form.getFields();
-    console.log(`Fields for ${path.basename(pdfPath)}:`);
-    fields.forEach(f => console.log(`- ${f.getName()}`));
+
+    console.log(`Fields in molde_contrato.pdf:`);
+    fields.forEach(field => {
+        const name = field.getName();
+        let value = '';
+        try { value = field.getText() || ''; } catch(e) {}
+        console.log(`- ${name}: "${value}"`);
+    });
 }
 
-async function run() {
-    try {
-        await listFields('RECIBO_PAGO_ANALISTA.pdf');
-        console.log('\n');
-        await listFields('RECIBO_INSTALACION.pdf');
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-run();
+listFields().catch(err => console.error(err));

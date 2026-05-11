@@ -13,22 +13,34 @@ let selectedClienteId = null;
  * Recolecta los datos del formulario de contrato.
  */
 function collectContractData(formEl) {
+  const clientName = document.getElementById('ct_fullname').value;
+  const repName = document.getElementById('ct_rep_name').value;
+  const contractDate = document.getElementById('ct_date').value;
+  const address = document.getElementById('ct_address').value;
+
   const data = {
-    // Campos planos para mapeo directo a PDF
-    ct_fullname: document.getElementById('ct_fullname').value,
-    ct_address: document.getElementById('ct_address').value,
-    ct_date: document.getElementById('ct_date').value,
-    ct_rep_name: document.getElementById('ct_rep_name').value,
+    // Campos planos para mapeo directo a PDF (Compatibilidad)
+    ct_fullname: clientName,
+    ct_address: address,
+    ct_date: contractDate,
+    ct_rep_name: repName,
+
+    // Mapeo DIRECTO a los campos del molde PDF (molde_contrato.pdf y molde_contrato_solar.pdf)
+    nombre_cliente: clientName,
+    nombre_cliente_pag1: clientName,
+    nombre_representante: repName,
+    fecha_cliente: contractDate,
+    fecha_representante: contractDate,
 
     cliente: {
-      nombre: document.getElementById('ct_fullname').value,
-      direccion: document.getElementById('ct_address').value,
-      fecha: document.getElementById('ct_date').value
+      nombre: clientName,
+      direccion: address,
+      fecha: contractDate
     },
     firmas: {
       cliente: "",
       representante: "",
-      nombreRepresentante: document.getElementById('ct_rep_name').value
+      nombreRepresentante: repName
     },
     _tipo: 'contrato_instalacion',
     _timestamp: new Date().toISOString()
@@ -38,14 +50,14 @@ function collectContractData(formEl) {
   if (canvas && typeof checkSignatureDrawn === 'function' && checkSignatureDrawn('firma-contract-client')) {
     const b64 = canvas.toDataURL('image/png');
     data.firmas.cliente = b64;
-    data.firma_cliente = b64; // Flat mapping
+    data.firma_cliente = b64; // Mapping for PDF field 'firma_cliente'
   }
 
   const canvasRep = document.getElementById('firma-contract-rep');
   if (canvasRep && typeof checkSignatureDrawn === 'function' && checkSignatureDrawn('firma-contract-rep')) {
     const b64 = canvasRep.toDataURL('image/png');
     data.firmas.representante = b64;
-    data.firma_rep = b64; // Flat mapping
+    data.firma_representante = b64; // Mapping for PDF field 'firma_representante'
   }
 
   return data;
