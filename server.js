@@ -1257,16 +1257,26 @@ app.post('/api/generar-pdf', async (req, res) => {
 
     // Webhook Trigger a n8n para Administración
     const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
-    fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+    const webhookData = JSON.stringify({ 
         evento: "aplicacion_credito_generada", 
         pdf_url: finalUrl, 
         id_photo_url: idPhotoUrl,
         datos: { ...rawData, aplicante: { ...rawData.aplicante, fotoId: "[BASE64_REMOVED]" } } 
-      })
-    }).catch(err => console.error("Error al disparar webhook crédito:", err));
+    });
+
+    const https = require('https');
+    const reqW = https.request(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(webhookData)
+        }
+    }, (resW) => {
+        resW.on('data', () => {});
+    });
+    reqW.on('error', (err) => console.error("Error al disparar webhook crédito:", err));
+    reqW.write(webhookData);
+    reqW.end();
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="aplicacion_credito.pdf"');
@@ -1456,16 +1466,26 @@ app.post('/api/generar-orden', async (req, res) => {
 
         // Webhook Trigger a n8n
         const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
-        fetch(WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            evento: "orden_trabajo_generada", 
-            orden_url: finalUrl, 
-            id_photo_url: idPhotoUrl,
-            datos: { ...rawData, comprador: { ...rawData.comprador, fotoId: "[BASE64_REMOVED]" } } 
-          })
-        }).catch(err => console.error("Error al disparar webhook:", err));
+        const webhookData = JSON.stringify({ 
+          evento: "orden_trabajo_generada", 
+          orden_url: finalUrl, 
+          id_photo_url: idPhotoUrl,
+          datos: { ...rawData, comprador: { ...rawData.comprador, fotoId: "[BASE64_REMOVED]" } } 
+        });
+
+        const https = require('https');
+        const reqW = https.request(WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(webhookData)
+            }
+        }, (resW) => {
+            resW.on('data', () => {});
+        });
+        reqW.on('error', (err) => console.error("Error al disparar webhook:", err));
+        reqW.write(webhookData);
+        reqW.end();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="orden_trabajo.pdf"');
@@ -1785,7 +1805,10 @@ app.delete('/api/cc-prospectos/:id', async (req, res) => {
         const { error } = await supabase.from('call_center_prospectos').delete().eq('id', id);
         if (error) throw error;
         // Al eliminar, procesar la cola por si hay capacidad liberada
-        fetch(`http://localhost:${port}/api/cc-prospectos/procesar-cola`, { method: 'POST' }).catch(() => {});
+        const http = require('http');
+        const reqQ = http.request(`http://localhost:${port}/api/cc-prospectos/procesar-cola`, { method: 'POST' });
+        reqQ.on('error', () => {});
+        reqQ.end();
         res.json({ success: true });
     } catch (e) {
         console.error('[CC-PROSPECTOS] DELETE error:', e.message);
@@ -2131,49 +2154,30 @@ app.post('/api/complete-upload', async (req, res) => {
 });
 
 // Proxy Route for Storage to avoid Mixed Content (HTTP on HTTPS)
-app.get('/api/storage-proxy/*', async (req, res) => {
-    try {
-        const filePath = req.params[0];
-        // We use localhost:8001 to talk to the gateway container directly if possible, 
-        // but here we use the SUPABASE_URL which is the external-facing one.
-        // Actually, since we are on the host, localhost:8001 is fine if the port is mapped.
-        const targetUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${filePath}`;
-        
-        console.log(`[PROXY] Fetching: ${targetUrl}`);
-        
-        const response = await fetch(targetUrl);
-        if (!response.ok) {
-            return res.status(response.status).send('File not found in storage');
+app.get('/api/storage-proxy/*', (req, res) => {
+    const filePath = req.params[0];
+    const targetUrl = `${SUPABASE_URL}/storage/v1/object/public/archivos_renew/${filePath}`;
+    
+    console.log(`[PROXY] Fetching: ${targetUrl}`);
+
+    const http = targetUrl.startsWith('https') ? require('https') : require('http');
+
+    http.get(targetUrl, (proxyRes) => {
+        if (proxyRes.statusCode !== 200) {
+            console.error(`[PROXY ERROR] Status ${proxyRes.statusCode} for ${targetUrl}`);
+            return res.status(proxyRes.statusCode).send('File not found in storage');
         }
 
         // Forward headers
-        const contentType = response.headers.get('content-type');
-        const contentLength = response.headers.get('content-length');
-        if (contentType) res.setHeader('Content-Type', contentType);
-        if (contentLength) res.setHeader('Content-Length', contentLength);
+        if (proxyRes.headers['content-type']) res.setHeader('Content-Type', proxyRes.headers['content-type']);
+        if (proxyRes.headers['content-length']) res.setHeader('Content-Length', proxyRes.headers['content-length']);
         res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
-        // Stream the body
-        const reader = response.body.getReader();
-        const stream = new ReadableStream({
-            async start(controller) {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    controller.enqueue(value);
-                }
-                controller.close();
-            }
-        });
-
-        // Convert web stream to node readable stream
-        const nodeStream = require('stream').Readable.from(stream);
-        nodeStream.pipe(res);
-
-    } catch (err) {
+        proxyRes.pipe(res);
+    }).on('error', (err) => {
         console.error('[PROXY ERROR]', err);
         res.status(500).send('Error proxying file');
-    }
+    });
 });
 
 app.listen(port, '0.0.0.0', () => {
