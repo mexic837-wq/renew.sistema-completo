@@ -64,40 +64,81 @@ export async function renderMiCalendario() {
         }
 
         /* --- NUEVOS ESTILOS PARA PROPORCIONES DE TARJETAS --- */
-        .fc-event {
+        /* Estilo píldora específico para la cuadrícula del mes */
+        .fc-daygrid-event {
           border: none !important;
-          border-radius: 20px !important; /* Estilo píldora */
-          padding: 4px 12px !important;
-          margin: 3px 8px !important; /* Márgenes laterales para evitar que se vea estirada de borde a borde */
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+          border-radius: 100px !important;
+          padding: 2px 10px !important;
+          margin: 2px auto !important;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
           cursor: pointer !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-          height: auto !important;
-          min-height: 24px !important;
+          transition: all 0.2s ease !important;
+          height: 24px !important;
           display: flex !important;
           align-items: center !important;
+          overflow: hidden !important;
+          width: fit-content !important;
+          min-width: 60px !important;
+          max-width: 95% !important;
+          background-color: var(--fc-event-bg-color, #00f5d4) !important;
         }
-        .fc-event:hover {
-          transform: translateY(-1px) scale(1.01) !important;
+        .fc-daygrid-event-harness {
+          display: flex !important;
+          justify-content: center !important;
+        }
+        .fc-daygrid-event:hover {
+          transform: translateY(-1px) scale(1.02) !important;
           box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
           filter: brightness(1.1);
         }
-        .fc-event-main {
-          color: #000 !important;
-          font-weight: 900 !important;
-          font-size: 0.7rem !important;
+        .fc-daygrid-event .fc-event-main {
+          color: inherit !important;
+          font-weight: 800 !important;
+          font-size: 0.68rem !important;
           display: flex !important;
           align-items: center !important;
           gap: 6px !important;
           width: 100%;
+          overflow: hidden;
+        }
+        /* Ajustes para la vista de lista (semanal) */
+        .fc-list-event {
+          cursor: pointer !important;
+        }
+        .fc-list-event-title {
+          font-weight: 800 !important;
+          font-size: 0.85rem !important;
+        }
+        .fc-list-event-time {
+          font-weight: 900 !important;
+          color: var(--primary) !important;
+        }
+        .fc-list-day-cushion {
+          background-color: var(--surface-alt) !important;
+          color: var(--text-primary) !important;
+          padding: 12px 16px !important;
+        }
+        .fc-list-day-text, .fc-list-day-side-text {
+          font-weight: 800 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 1px !important;
+          font-size: 0.7rem !important;
+          color: var(--text-primary) !important;
+        }
+        .fc-list-table {
+          background-color: transparent !important;
+        }
+        .fc-list-empty {
+          background-color: var(--surface) !important;
+          color: var(--text-muted) !important;
         }
         .fc-event-time {
-          background: rgba(0,0,0,0.15);
-          padding: 2px 6px;
-          border-radius: 10px;
-          font-size: 0.62rem !important;
+          background: rgba(0,0,0,0.1);
+          padding: 1px 6px;
+          border-radius: 8px;
+          font-size: 0.6rem !important;
           font-weight: 900 !important;
-          color: rgba(0,0,0,0.8) !important;
+          color: rgba(0,0,0,0.7) !important;
           flex-shrink: 0;
         }
         .fc-event-title {
@@ -107,8 +148,8 @@ export async function renderMiCalendario() {
           text-overflow: ellipsis;
         }
         .fc-daygrid-event {
-          margin-top: 4px !important;
-          margin-bottom: 4px !important;
+          margin-top: 2px !important;
+          margin-bottom: 2px !important;
         }
         .fc-daygrid-day-number {
           font-weight: 800 !important;
@@ -123,14 +164,14 @@ export async function renderMiCalendario() {
           text-transform: uppercase !important;
           letter-spacing: 1.5px !important;
           color: var(--text-muted) !important;
-          padding: 14px 0 !important;
+          padding: 10px 0 !important;
           text-decoration: none !important;
         }
         .fc-theme-standard td, .fc-theme-standard th {
           border: 1px solid rgba(255,255,255,0.03) !important;
         }
         .fc-daygrid-day-frame {
-          min-height: 95px !important;
+          min-height: 80px !important;
         }
         .fc-scrollgrid {
           border: none !important;
@@ -206,7 +247,8 @@ export async function renderMiCalendario() {
           });
         });
 
-        const mapped = userEvents.map(ev => {
+        const mapped = [];
+        userEvents.forEach(ev => {
           const normalizedColab = (ev.colaboradores || []).map(c => {
             if (typeof c === 'string') {
               try { return JSON.parse(c); } catch(e) { return {}; }
@@ -217,29 +259,71 @@ export async function renderMiCalendario() {
             'Verde': '#00ff88', 'Amarillo': '#fce803', 'Rojo': '#ff3366', 'Azul': '#00d4ff', 'Naranja': '#ff8c00'
           };
           
-          // Fix: Ensure end date is passed correctly. If missing, default to 1h after start.
-          let end = ev.fecha_fin;
-          if (!end && ev.fecha_inicio) {
-             const d = new Date(ev.fecha_inicio);
+          let startStr = ev.fecha_inicio;
+          let endStr = ev.fecha_fin;
+          if (!endStr && startStr) {
+             const d = new Date(startStr);
              d.setHours(d.getHours() + 1);
-             end = d.toISOString();
+             endStr = d.toISOString();
           }
 
-          return {
-            id: ev.id,
-            title: ev.nombre,
-            start: ev.fecha_inicio,
-            end: end,
-            backgroundColor: colorMap[ev.color] || '#00f5d4',
-            borderColor: 'transparent',
-            extendedProps: {
-              real_end: ev.fecha_fin,
-              direccion: ev.direccion,
-              description: ev.descripcion,
-              color: ev.color,
-              colaboradores: normalizedColab
+          const startDate = new Date(startStr);
+          const endDate = new Date(endStr);
+          
+          // Helper to check if same day
+          const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+          const mappedColor = colorMap[ev.color] || '#00f5d4';
+          const textColor = (ev.color === 'Azul' || ev.color === 'Verde' || ev.color === 'Amarillo') ? '#000' : '#fff';
+
+          if (!isSameDay(startDate, endDate)) {
+            let current = new Date(startDate);
+            while (current <= endDate) {
+              const dayStart = new Date(current);
+              dayStart.setHours(0,0,0,0);
+              const dayEnd = new Date(current);
+              dayEnd.setHours(23,59,59,999);
+
+              mapped.push({
+                id: ev.id + '_' + current.getTime(),
+                title: ev.nombre,
+                start: isSameDay(current, startDate) ? startStr : dayStart.toISOString(),
+                end: isSameDay(current, endDate) ? endStr : dayEnd.toISOString(),
+                backgroundColor: mappedColor,
+                textColor: textColor,
+                borderColor: 'transparent',
+                display: 'block', // Forzar modo bloque
+                allDay: !isSameDay(current, startDate),
+                extendedProps: {
+                  originalId: ev.id,
+                  real_end: ev.fecha_fin,
+                  direccion: ev.direccion,
+                  description: ev.descripcion,
+                  color: ev.color,
+                  colaboradores: normalizedColab
+                }
+              });
+              current.setDate(current.getDate() + 1);
             }
-          };
+          } else {
+            mapped.push({
+              id: ev.id,
+              title: ev.nombre,
+              start: startStr,
+              end: endStr,
+              backgroundColor: mappedColor,
+              textColor: textColor,
+              borderColor: 'transparent',
+              display: 'block',
+              extendedProps: {
+                real_end: ev.fecha_fin,
+                direccion: ev.direccion,
+                description: ev.descripcion,
+                color: ev.color,
+                colaboradores: normalizedColab
+              }
+            });
+          }
         });
         successCallback(mapped);
       } catch (error) { failureCallback(error); }
@@ -525,16 +609,6 @@ export async function renderMiCalendario() {
   }
 }
 
-// Global helper for modal closing if not defined
-if (!window.closeModals) {
-    window.closeModals = function() {
-        const modal = document.getElementById('modal-calendar-event');
-        if (modal) {
-            modal.classList.add('nuclear-hidden');
-            modal.style.display = 'none';
-        }
-    };
-}
 
 if (!window.onStartDateChange) {
     window.onStartDateChange = function(el) {

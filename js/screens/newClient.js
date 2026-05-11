@@ -135,8 +135,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
                </div>
              </div>
              <div id="sc-details-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:14px; padding-top:12px; border-top:1px dashed var(--border);">
-               <div><p style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px">${t('nc_field_state_id')}</p><p id="sc-state" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin:0">-</p></div>
-               <div><p style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px">${t('nc_field_dob')}</p><p id="sc-dob" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin:0">-</p></div>
+               <div style="grid-column: span 1"><p style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px">${t('nc_field_dob')}</p><p id="sc-dob" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin:0">-</p></div>
                <div style="grid-column: span 2"><p style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px">${t('nc_field_address')}</p><p id="sc-dir" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin:0">-</p></div>
              </div>
              <button id="btn-edit-selected-client" style="width:100%; margin-top:14px; padding:10px; border-radius:10px; border:1px solid ${pipeline.color}40; background:${pipeline.color}10; color:${pipeline.color}; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; justify-content:center; gap:8px;">
@@ -182,22 +181,9 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
 
         <!-- Scrollable Content -->
         <div class="modal-scroll-area" style="flex:1; overflow-y:auto; padding:24px 20px 160px 20px; -webkit-overflow-scrolling: touch;">
-          <div class="field-group"><label style="color:var(--text-secondary)">${t('nc_field_state_id')}</label><div class="input-wrap no-icon"><input type="text" id="nc-state" placeholder="${t('nc_placeholder_id')}" style="background:var(--bg)" /></div></div>
-          
           <div style="display:flex; gap:16px">
              <div class="field-group" style="flex:1"><label style="color:var(--text-secondary)">${t('nc_field_name')} *</label><div class="input-wrap no-icon"><input type="text" id="nc-nombre" placeholder="${t('nc_placeholder_name')}" style="background:var(--bg)" /></div></div>
              <div class="field-group" style="flex:1"><label style="color:var(--text-secondary)">${t('nc_field_last')} *</label><div class="input-wrap no-icon"><input type="text" id="nc-apellido" placeholder="${t('nc_placeholder_last')}" style="background:var(--bg)" /></div></div>
-          </div>
-          
-          <div class="field-group">
-            <label style="color:var(--text-secondary)">${t('nc_field_id_photo')}</label>
-            <div class="upload-area" id="nc-foto-box" style="margin-top:8px; padding:20px; border:2px dashed var(--border); border-radius:12px; text-align:center; cursor:pointer;">
-              <input type="file" id="nc-foto" accept="image/*" capture="environment" style="display:none" />
-              <div id="nc-icon-foto"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
-              <div id="nc-preview-foto" style="display:none; width:100%; height:120px; background-size:cover; background-position:center; border-radius:8px;"></div>
-              <p id="label-foto-nc" style="font-size:0.85rem; font-weight:700; color:${pipeline.color}; margin-top:8px;">${t('nc_btn_upload_photo')}</p>
-              <p style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">${t('nc_capture_id')}</p>
-            </div>
           </div>
           
           <div class="field-group"><label style="color:var(--text-secondary)">${t('nc_field_dob')}</label><div class="input-wrap no-icon"><input type="date" id="nc-dob-input" style="background:var(--bg)" /></div></div>
@@ -259,13 +245,13 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
               <div id="nc-drop-adj-bill" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;">
                 <input type="file" id="nc-inp-adj-bill" accept="image/*,.pdf" capture="environment" style="display:none" />
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5" style="margin:0 auto 6px;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                <p id="nc-lbl-adj-bill" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Bill Eléctrico</p>
+                <p id="nc-lbl-adj-bill" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Bill Eléctrico <br><span style="color:var(--primary); opacity:0.7; font-size:0.55rem">(Opcional)</span></p>
               </div>
               <!-- Adjunto Seguro -->
               <div id="nc-drop-adj-seguro" style="border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s;">
                 <input type="file" id="nc-inp-adj-seguro" accept="image/*,.pdf" capture="environment" style="display:none" />
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" style="margin:0 auto 6px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <p id="nc-lbl-adj-seguro" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Seguro</p>
+                <p id="nc-lbl-adj-seguro" style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Seguro <br><span style="color:var(--primary); opacity:0.7; font-size:0.55rem">(Opcional)</span></p>
               </div>
             </div>
           </div>
@@ -409,7 +395,6 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
         document.getElementById('nc-nombre').value = nameParts[0] || '';
         document.getElementById('nc-apellido').value = nameParts.slice(1).join(' ') || '';
         
-        document.getElementById('nc-state').value = cli.state_id || '';
         const dobEl = document.getElementById('nc-dob-input');
         if (dobEl) dobEl.value = cli.dob || '';
         document.getElementById('nc-telefono').value = cli.telefono || '+1 ';
@@ -464,7 +449,6 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
         selectedClientId = client.id;
         document.getElementById('sc-nombre').textContent = client.nombre;
         document.getElementById('sc-tel').textContent = client.telefono;
-        document.getElementById('sc-state').textContent = client.state_id || '-';
         document.getElementById('sc-dob').textContent = client.dob || '-';
         document.getElementById('sc-dir').textContent = client.direccion || '-';
         
@@ -629,48 +613,6 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
   };
   initPlaces();
 
-  // Photo Input UI Logic for the Modal
-  const inputModalFoto = document.getElementById('nc-foto');
-  const areaModalFoto = document.getElementById('nc-foto-box');
-  const labelModalFoto = document.getElementById('label-foto-nc');
-  const previewModalFoto = document.getElementById('nc-preview-foto');
-  const iconModalFoto = document.getElementById('nc-icon-foto');
-
-  let currentPhotoUrl = null;
-
-  if (areaModalFoto) {
-    areaModalFoto.addEventListener('click', (e) => {
-      if (e.target === inputModalFoto) return;
-      inputModalFoto.click();
-    });
-  }
-
-  if (inputModalFoto) {
-    inputModalFoto.addEventListener('change', async () => {
-      if (inputModalFoto.files.length) {
-        const file = inputModalFoto.files[0];
-        try {
-          showToast('Subiendo foto del ID...', 'info');
-          currentPhotoUrl = await uploadFile(file, 'clients');
-          
-          areaModalFoto.style.borderColor = pipeline.color;
-          areaModalFoto.style.background = pipeline.color + '05';
-          
-          previewModalFoto.style.backgroundImage = `url(${currentPhotoUrl})`;
-          previewModalFoto.style.display = 'block';
-          iconModalFoto.style.display = 'none';
-          
-          labelModalFoto.textContent = "ACTUALIZAR FOTO";
-          labelModalFoto.style.color = pipeline.color;
-          showToast('Foto cargada correctamente', 'success');
-        } catch (err) {
-          console.error('Error subiendo foto:', err);
-          showToast('Error al subir la foto. Intenta de nuevo.', 'error');
-        }
-      }
-    });
-  }
-
   // Modal Save Logic
   const closeModalNC = () => {
     const sheet = modalNC.querySelector('.modal-sheet-nc');
@@ -740,7 +682,6 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
 
   btnSaveModal.addEventListener('click', async () => {
     try {
-        const state_id = document.getElementById('nc-state').value.trim();
         const firstNom = document.getElementById('nc-nombre').value.trim();
         const apellido = document.getElementById('nc-apellido').value.trim();
         const dobInput = document.getElementById('nc-dob-input');
@@ -769,9 +710,6 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
 
         btnSaveModal.disabled = true;
         btnSaveModal.textContent = "Procesando...";
-
-        // ── 1. UPLOAD MAIN PROFILE PHOTO ────────
-        const finalPhotoUrl = currentPhotoUrl || null;
 
         // ── 2. UPLOAD DOCUMENTS (ID, Bill, Seguro) ────────
         const uploadIfFile = async (inputId, folder) => {
@@ -805,9 +743,8 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
                     direccion: dir || "Pendiente",
                     lat: lat || existing.lat || null,
                     lng: lng || existing.lng || null,
-                    state_id, 
                     dob: dob || existing.dob || '', 
-                    id_photo: finalPhotoUrl || existing.id_photo || existing.foto || null,
+                    id_photo: existing.id_photo || existing.foto || null,
                     // ── MULTI-DEPT & LIFECYCLE ──
                     departamento: departamento || existing.departamento || null,
                     departamentos_activos: departamentos_activos.length > 0 ? departamentos_activos : (existing.departamentos_activos || []),
@@ -832,10 +769,9 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
               lat: lat,
               lng: lng,
               zip: "Pendiente",
-              state_id, 
               dob, 
               estado: 'Lead', 
-              id_photo: finalPhotoUrl,
+              id_photo: null,
               // ── ORIGEN: Vendedor que lo creó ──
               origen_tipo:   currentUser ? 'vendedor' : null,
               origen_nombre: currentUser ? `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() : null,
@@ -863,7 +799,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
         selectedClientId = finalId;
         if(document.getElementById('sc-nombre')) document.getElementById('sc-nombre').textContent = fullNombre;
         if(document.getElementById('sc-tel')) document.getElementById('sc-tel').textContent = tel;
-        if(document.getElementById('sc-state')) document.getElementById('sc-state').textContent = state_id || '-';
+
         if(document.getElementById('sc-dob')) document.getElementById('sc-dob').textContent = dob || '-';
         if(document.getElementById('sc-dir')) document.getElementById('sc-dir').textContent = dir || '-';
         

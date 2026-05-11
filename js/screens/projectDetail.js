@@ -98,20 +98,32 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
 
     <div class="progress-section" style="margin-top:0; border-radius:0 0 24px 24px; box-shadow:0 8px 16px rgba(0,0,0,0.1)">
       <div class="progress-steps" style="padding-top:16px; overflow-x:auto; display:flex; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; padding-bottom:20px; gap:8px">
-        ${fases.map((f, i) => `
-          <div class="progress-step ${isCompleted || i < curFidx ? 'done' : i === curFidx ? 'active' : ''}" style="min-width: 90px; flex: 0 0 auto;">
-            <div class="step-circle" style="${isCompleted || i < curFidx ? `background:${pipeline.color}; border-color:${pipeline.color}` : (i === curFidx ? `border-color:${pipeline.color}; color:${pipeline.color}` : '')}">
-              ${isCompleted || i < curFidx
+      <div class="progress-steps" style="padding-top:16px; overflow-x:auto; display:flex; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; padding-bottom:20px; gap:8px">
+        ${fases.map((f, i) => {
+          const isDone = isCompleted || i < curFidx;
+          const isActive = !isCompleted && i === curFidx;
+          const isClickable = isDone || isActive;
+          return `
+          <div class="progress-step ${isDone ? 'done' : isActive ? 'active' : ''}" 
+               data-fase-id="${f.id}" data-fase-nombre="${f.nombre}" data-fase-idx="${i}"
+               style="min-width: 90px; flex: 0 0 auto; ${isClickable ? 'cursor:pointer;' : ''}"
+               ${isClickable ? `onclick="window._previewFase('${f.id}','${encodeURIComponent(f.nombre)}','${deal.id}')"` : ''}>
+            <div class="step-circle" style="${isDone ? `background:${pipeline.color}; border-color:${pipeline.color}` : (isActive ? `border-color:${pipeline.color}; color:${pipeline.color}` : '')}"
+                 title="${isClickable ? 'Ver detalles de esta fase' : ''}">
+              ${isDone
                 ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
                 : (i + 1)}
             </div>
             <div class="step-label" style="white-space:normal; line-height:1.2">${f.nombre}</div>
-          </div>
-        `).join('')}
+            ${isClickable ? `<div style="font-size:0.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:${isDone ? pipeline.color : pipeline.color}; opacity:0.7; margin-top:2px;">Ver</div>` : ''}
+          </div>`;
+        }).join('')}
       </div>
     </div>
 
     <div style="padding: 16px; padding-bottom: 40px;">
+      <div id="dynamic-action-section"></div>
+
       <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>
         <div style="display:flex; flex-direction:column; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
@@ -136,8 +148,6 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           </div>
         </div>
       </div>
-
-      <div id="dynamic-action-section"></div>
 
       <div class="info-card slide-in-bottom" style="margin-bottom:120px; margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
@@ -233,15 +243,35 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   
   if (curFidx === -1) {
     container.innerHTML = `
-      <div class="form-card slide-in-bottom" style="background:${pipeline.color}10; border:1px solid ${pipeline.color}30; margin-top:24px;">
-        <div class="flex items-center gap-4">
-          <div class="text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg" style="background:${pipeline.color}">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="slide-in-bottom" style="margin-top:24px; border-radius:24px; overflow:hidden; box-shadow:0 8px 32px ${pipeline.color}25;">
+        <!-- Hero gradient banner -->
+        <div style="background:linear-gradient(135deg,${pipeline.color},${pipeline.color}cc); padding:32px 24px; text-align:center; position:relative; overflow:hidden;">
+          <div style="position:absolute;inset:0;background:radial-gradient(circle at 70% 30%,rgba(255,255,255,.15),transparent 60%);pointer-events:none;"></div>
+          <!-- Big check icon -->
+          <div style="width:72px;height:72px;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 0 12px rgba(255,255,255,.08);">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
-          <div>
-            <h3 class="text-lg font-bold" style="color:${pipeline.color}">¡Proyecto Finalizado!</h3>
-            <p class="text-sm text-gray-600">Todas las fases han sido procesadas.</p>
+          <h2 style="font-size:1.5rem;font-weight:900;color:#fff;margin:0 0 6px;letter-spacing:-0.5px;">¡Proyecto Finalizado!</h2>
+          <p style="font-size:0.8rem;color:rgba(255,255,255,.8);font-weight:600;margin:0;text-transform:uppercase;letter-spacing:1px;">${pipeline.nombre || 'Todas las fases completadas'}</p>
+        </div>
+        <!-- Stats / Info row -->
+        <div style="background:var(--surface,#fff);padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;border-bottom:1px solid var(--border,#f0f0f0);">
+          <div style="text-align:center;padding:12px;background:${pipeline.color}08;border-radius:14px;">
+            <p style="font-size:1.4rem;font-weight:900;color:${pipeline.color};margin:0;">${fases.length}</p>
+            <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin:4px 0 0;">Fases</p>
           </div>
+          <div style="text-align:center;padding:12px;background:#10b98108;border-radius:14px;">
+            <p style="font-size:1.4rem;font-weight:900;color:#10b981;margin:0;">100%</p>
+            <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin:4px 0 0;">Completado</p>
+          </div>
+        </div>
+        <!-- Action -->
+        <div style="background:var(--surface,#fff);padding:16px 24px;border-radius:0 0 24px 24px;">
+          <p style="font-size:0.75rem;color:#64748b;margin:0 0 14px;text-align:center;">Puedes revisar cualquier fase tocando los círculos del progreso.</p>
+          <button onclick="window.appNavigate('dashboard')"
+                  style="width:100%;background:${pipeline.color};color:#fff;border:none;border-radius:14px;padding:14px;font-size:0.9rem;font-weight:800;cursor:pointer;letter-spacing:0.5px;box-shadow:0 6px 20px ${pipeline.color}40;">
+            ← Volver al Dashboard
+          </button>
         </div>
       </div>
     `;
@@ -486,8 +516,9 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
          `;
        }
      } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Tecnico') {
-       const isVendedor = c.tipo === 'Recibo Vendedor';
-       const recColor   = isVendedor ? '#3b82f6' : '#10b981';
+      } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante' || c.tipo === 'Recibo Tecnico') {
+        const isRepresentante = c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante';
+        const recColor   = isRepresentante ? '#3b82f6' : '#10b981';
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
        html = `
          <div style="margin-bottom:16px;" id="recibo-wrap-${c.id}">
@@ -503,7 +534,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
            ` : `
              <button type="button" onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')"
                style="width:100%;background:${recColor};color:white;border:none;padding:14px;border-radius:12px;font-size:0.9rem;font-weight:800;cursor:pointer;box-shadow:0 4px 16px ${recColor}30;" ${disabledAttr}>
-               ${isVendedor ? '💵 Llenar Recibo de Pago – Vendedor' : '🔧 Llenar Recibo de Instalación – Técnico'}
+               ${isRepresentante ? '💵 Llenar Recibo de Pago – Representante de Ventas' : '🔧 Llenar Recibo de Instalación – Técnico'}
              </button>
            `}
            <input type="hidden" id="df_${c.id}" value="${val || ''}"/>
@@ -758,10 +789,10 @@ async function submitPhase(dealId, resp, faseNombre) {
 }
 
 // --------------------------------------------------------------
-//  RECIBO MODAL � Vendedor & T�cnico
+//  RECIBO MODAL – Representante & Técnico
 // --------------------------------------------------------------
 window._abrirReciboModal = async function(campoId, tipo, dealId) {
-  const isVendedor = tipo === 'Recibo Vendedor';
+  const isRepresentante = tipo === 'Recibo Representante';
   const existingModal = document.getElementById('modal-recibo-dinamico');
   if (existingModal) existingModal.remove();
 
@@ -1001,3 +1032,124 @@ function _buildFormTecnico(tecnicoNom = "", clienteNom = "") {
     </div>
   `;
 }
+
+// ──────────────────────────────────────────────────────────────
+//  FASE PREVIEW – Read-only bottom-sheet para phases completadas
+// ──────────────────────────────────────────────────────────────
+window._previewFase = async function(faseId, faseNombreEnc, dealId) {
+    const faseNombre = decodeURIComponent(faseNombreEnc);
+
+    // Remove existing drawer
+    const existing = document.getElementById('fase-preview-drawer');
+    if (existing) { existing.remove(); return; }
+
+    const { getDB, getRespuestasByProyecto, getAdminCampos, getAdminPipelines } = await import('../api.js');
+    const db = getDB();
+    const deal = (db.Proyectos_Dinamicos || []).find(p => p.id === dealId) || {};
+    const pipelines = await getAdminPipelines();
+    const pipeline = pipelines.find(p => p.id === deal.pipeline_id) || { color: '#00f5d4' };
+    const allCampos = await getAdminCampos();
+    const campos = allCampos.filter(c => c.fase_id === faseId);
+    const respuestas = await getRespuestasByProyecto(dealId);
+
+    // Build rows
+    const renderValue = (campo, resp) => {
+        const val = resp?.valor || '';
+        if (!val || val === 'No provisto' || val === 'No subido') {
+            return `<span style="color:#94a3b8;font-style:italic;font-size:0.8rem;">Sin respuesta</span>`;
+        }
+        if (val.startsWith('http') && (val.includes('.pdf') || val.includes('pdf'))) {
+            return `<a href="${val}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}40;border-radius:8px;padding:5px 12px;font-size:0.75rem;font-weight:700;text-decoration:none;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Ver PDF
+            </a>`;
+        }
+        if (val.startsWith('http') && (val.match(/\.(jpg|jpeg|png|webp|gif)$/i) || val.includes('storage'))) {
+            return `<img src="${val}" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid var(--border);object-fit:cover;" onclick="window.open('${val}')" title="Click para ampliar">`;
+        }
+        if (val.startsWith('data:image')) {
+            return `<img src="${val}" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid var(--border);object-fit:cover;">`;
+        }
+        // Completado badge
+        if (['Completado', 'Completado en Formulario Externo'].includes(val)) {
+            return `<span style="background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}30;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:800;">✓ Completado</span>`;
+        }
+        return `<span style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">${val}</span>`;
+    };
+
+    const rowsHtml = campos.length
+        ? campos.map(c => {
+            const resp = respuestas.find(r => r.campo_id === c.id);
+            return `
+            <div style="padding:14px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">
+                <span style="font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;">${c.etiqueta}${c.es_opcional ? ' <em style="font-style:italic;font-weight:400;text-transform:none;letter-spacing:0">(Opcional)</em>' : ''}</span>
+                ${renderValue(c, resp)}
+            </div>`;
+          }).join('')
+        : `<div style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;font-size:0.85rem;">
+              Esta fase no tiene campos de formulario.<br>
+              <small style="font-size:0.7rem;margin-top:6px;display:block;">Se avanza directamente al completarse.</small>
+           </div>`;
+
+    const isDesktop = window.innerWidth >= 768;
+    const drawer = document.createElement('div');
+    drawer.id = 'fase-preview-drawer';
+    drawer.style.cssText = isDesktop
+        ? 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .2s ease;'
+        : 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease;';
+
+    const sheetRadius = isDesktop ? '24px' : '28px 28px 0 0';
+    const sheetMaxH   = isDesktop ? '82vh' : '85vh';
+    const sheetMaxW   = isDesktop ? '680px' : '600px';
+    const sheetAnim   = isDesktop ? 'modalIn' : 'slideUp';
+
+    drawer.innerHTML = `
+    <style>
+        @keyframes slideUp  { from { transform:translateY(100%); } to { transform:translateY(0); } }
+        @keyframes modalIn  { from { transform:scale(.95);opacity:0; } to { transform:scale(1);opacity:1; } }
+        @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+        #fase-preview-sheet { animation: ${sheetAnim} .28s cubic-bezier(0.16,1,0.3,1) both; }
+    </style>
+    <div id="fase-preview-sheet"
+         style="background:var(--surface,#fff);width:100%;max-width:${sheetMaxW};border-radius:${sheetRadius};
+                max-height:${sheetMaxH};display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.3);">
+        <!-- Handle (mobile only) -->
+        ${!isDesktop ? '<div style="width:40px;height:5px;background:#cbd5e1;border-radius:99px;margin:14px auto 0;flex-shrink:0;"></div>' : ''}
+
+        <!-- Header -->
+        <div style="padding:${isDesktop?'24px 28px 16px':'16px 20px 12px'};border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:${isDesktop?'48px':'40px'};height:${isDesktop?'48px':'40px'};border-radius:16px;background:${pipeline.color}15;
+                            border:1px solid ${pipeline.color}30;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="${isDesktop?'22':'18'}" height="${isDesktop?'22':'18'}" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:${isDesktop?'1.15rem':'1rem'};font-weight:900;color:var(--text-primary);">${faseNombre}</h3>
+                    <p style="margin:0;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${pipeline.color};">
+                        Solo Lectura &nbsp;·&nbsp; ${pipeline.nombre || ''}
+                    </p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('fase-preview-drawer').remove()"
+                    style="width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-alt,#f1f5f9);
+                           color:var(--text-secondary,#64748b);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;">
+                ✕
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div style="flex:1;overflow-y:auto;padding:${isDesktop?'0 28px 32px':'0 20px 32px'};-webkit-overflow-scrolling:touch;">
+            ${rowsHtml}
+        </div>
+    </div>`;
+
+
+    // Close on backdrop click
+    drawer.addEventListener('click', e => {
+        if (e.target === drawer) drawer.remove();
+    });
+
+    document.body.appendChild(drawer);
+};

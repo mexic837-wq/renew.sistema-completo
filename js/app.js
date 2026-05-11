@@ -3,6 +3,23 @@
    SPA Router + Auth State
    ============================================================ */
 window.appNavigate = (screen, param) => navigate(screen, param);
+
+// Plantillas: navigate to full screen instead of modal
+window.showPlantillasModal = () => {
+    if (window.appNavigate) window.appNavigate('plantillas');
+};
+
+window.closeModals = () => {
+    const ids = ['modal-calendar-event', 'modal-plantillas', 'modal-nuevo-cliente'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = 'none';
+            el.classList.add('nuclear-hidden');
+        }
+    });
+};
+
 import { initDB, getCurrentUser, logout } from './api.js';
 export { getCurrentUser, logout }; // Re-export for compatibility
 
@@ -23,6 +40,7 @@ import { renderMiEquipo } from './screens/equipo.js';
 import { renderPartners } from './screens/partners.js';
 import { renderMisRecibos } from './screens/recibos.js';
 import { renderListaPrecios } from './screens/listadeprecios.js';
+import { renderPlantillas }  from './screens/plantillas.js';
 import { t, getLang } from './i18n.js';
 
 // expose for window.switchLang toast
@@ -306,7 +324,7 @@ window.verificarAnunciosNuevos = async function() {
 }
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones', 'plantillas'];
 
 export function navigate(screen, param = null) {
   // Auth guard
@@ -378,6 +396,7 @@ export function navigate(screen, param = null) {
     case 'partners': renderPartners();               break;
     case 'mis-recibos': renderMisRecibos();          break;
     case 'lista-precios': renderListaPrecios();      break;
+    case 'plantillas':  renderPlantillas();          break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);
       break;
@@ -568,6 +587,7 @@ function handleHashChange() {
       case 'partners': renderPartners(); break;
       case 'mis-recibos': renderMisRecibos(); break;
       case 'lista-precios': renderListaPrecios(); break;
+      case 'plantillas':  renderPlantillas();  break;
       case 'contract-app': /* iframe */ break;
       case 'work-order': /* iframe */ break;
     }

@@ -26,7 +26,7 @@ export async function renderMenu() {
   const waterHighRoles = ['Admin', 'Administrador', 'Desarrollador', 'CEO', 'Supervisión', 'Finanzas', 'Contabilidad'];
   let canSeeWaterForms = waterHighRoles.includes(user.rol);
 
-  if (!canSeeWaterForms && user.rol === 'Vendedor') {
+  if (!canSeeWaterForms && (user.rol === 'Vendedor' || user.rol === 'Representante de Ventas')) {
     // Verificar si el vendedor tiene acceso al pipeline Renew Water
     try {
       const db = getDB();
@@ -280,7 +280,7 @@ function mostrarModalCuenta(user) {
           </div>
           <div>
             <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Rol Organizacional</p>
-            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${user.rol}</p>
+            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${(user.rol || '').toLowerCase().includes('vendedor') ? 'Representante de Ventas' : user.rol}</p>
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { t } from '../i18n.js';
 
 let editingClientId = null;
 let currentClientsTab = 'prospectos'; // 'prospectos' | 'clientes'
+let activeDeptFilter = null;
 
 // ── Helpers ──────────────────────────────────────────────────
 function getGreeting() {
@@ -85,6 +86,39 @@ export async function renderClients() {
     <div class="skeleton" style="height:120px; border-radius:16px; margin-bottom:12px"></div>
   `;
 
+    if (activeDeptFilter === null) activeDeptFilter = localStorage.getItem('active_unit') || 'Todos';
+
+    // ── Render Department Pills ──────────────────────────────
+    const deptContainer = document.getElementById('clients-dept-filter');
+    if (deptContainer) {
+      const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+      const isHighRole = ['admin', 'administrador', 'ceo'].includes(userRolNorm);
+      const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || ['Renew Solar']);
+      
+      const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
+      
+      deptContainer.innerHTML = depts.map(dept => {
+        const isActive = activeDeptFilter.toLowerCase().includes(dept.toLowerCase()) || (activeDeptFilter === 'Todos' && dept === 'Todos');
+        let color = 'var(--text-secondary)';
+        let bg = 'transparent';
+        let border = 'var(--border)';
+        if (isActive) {
+          if (dept === 'Todos') { color = 'var(--primary)'; bg = 'rgba(0, 223, 191, 0.1)'; border = 'var(--primary)'; }
+          else if (dept === 'Solar') { color = '#f59e0b'; bg = 'rgba(245, 158, 11, 0.1)'; border = '#f59e0b'; }
+          else if (dept === 'Water') { color = '#0ea5e9'; bg = 'rgba(14, 165, 233, 0.1)'; border = '#0ea5e9'; }
+          else if (dept === 'Home') { color = '#a855f7'; bg = 'rgba(168, 85, 247, 0.1)'; border = '#a855f7'; }
+        }
+        return `<button class="dept-filter-pill" data-dept="${dept}" style="padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; color: ${color}; background: ${bg}; border: 1px solid ${border}; flex-shrink: 0;">${dept.toUpperCase()}</button>`;
+      }).join('');
+
+      deptContainer.querySelectorAll('.dept-filter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          activeDeptFilter = pill.dataset.dept === 'Todos' ? 'Todos' : 'Renew ' + pill.dataset.dept;
+          renderClients(); 
+        });
+      });
+    }
+
     // ── Wire up tab switching ─────────────────────────────────
     document.querySelectorAll('[data-clients-tab]').forEach(btn => {
       const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
@@ -158,12 +192,13 @@ export async function renderClients() {
 async function _renderList(user, container) {
   const todosClientes = await getClientesMaestro();
   const db = getDB();
-  const activePipelineObj = localStorage.getItem('active_unit') ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === localStorage.getItem('active_unit').toLowerCase().trim()) : null;
+  const pipelineToMatch = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
+  const activePipelineObj = pipelineToMatch ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === pipelineToMatch.toLowerCase().trim()) : null;
   const allProys = [...(db.Proyectos_Dinamicos || [])].sort((a,b) => new Date(b.created_at || b.fecha || 0) - new Date(a.created_at || a.fecha || 0));
   const allFases = db.Admin_Fases || [];
 
   // RBAC filter
-  const activeUnit = localStorage.getItem('active_unit');
+  const activeUnit = pipelineToMatch;
 
   const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const isHighRole = ['admin', 'administrador', 'ceo'].includes(userRolNorm);
@@ -258,8 +293,12 @@ async function _renderList(user, container) {
     return;
   }
 
-  container.innerHTML = filtered.map(c => {
-    const proy = allProys.find(p => p.cliente_id === c.id && (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
+  container.innerHTML = filtered.flatMap(c => {
+    let proysToRender = allProys.filter(p => p.cliente_id === c.id && (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
+    if (proysToRender.length === 0 || (currentClientsTab === 'prospectos' && !isTecnico && !isCallCenterRole)) {
+      proysToRender = [null];
+    }
+    return proysToRender.map(proy => {
     let etapaLabel = 'PROSPECTO';
     let progress = 5;
     let rolEncargado = null;
@@ -283,9 +322,27 @@ async function _renderList(user, container) {
       }
     }
 
+    // Determine department badge
+    let mainDept = 'Desconocido';
+    if (proy && proy.pipeline_id) {
+      const pip = (db.Admin_Pipelines || []).find(p => String(p.id) === String(proy.pipeline_id));
+      if (pip) mainDept = pip.nombre;
+    } else {
+      const clientDepts = getDeptArray(c);
+      if (clientDepts.length > 0) mainDept = clientDepts[0];
+      else mainDept = c.departamento || c.empresa || 'Solar';
+    }
+    mainDept = mainDept.replace('Renew ', '').trim();
+    let deptColor = 'var(--text-muted)';
+    let deptBg = 'rgba(0,0,0,0.05)';
+    if (mainDept.toLowerCase().includes('solar')) { deptColor = '#f59e0b'; deptBg = 'rgba(245, 158, 11, 0.15)'; mainDept = 'Solar'; }
+    else if (mainDept.toLowerCase().includes('water')) { deptColor = '#0ea5e9'; deptBg = 'rgba(14, 165, 233, 0.15)'; mainDept = 'Water'; }
+    else if (mainDept.toLowerCase().includes('home')) { deptColor = '#a855f7'; deptBg = 'rgba(168, 85, 247, 0.15)'; mainDept = 'Home'; }
+    const deptBadgeHtml = `<span style="font-size:0.55rem; font-weight:900; background:${deptBg}; color:${deptColor}; padding:2px 6px; border-radius:6px; text-transform:uppercase; margin-left:6px; letter-spacing:0.5px; align-self:center;">${mainDept}</span>`;
+
     // --- "En manos de" chip ---
     // Show when the current phase's responsible is NOT the vendor (Vendedor)
-    if (rolEncargado && rolEncargado.toLowerCase() !== 'vendedor') {
+    if (rolEncargado && !['vendedor', 'representante'].some(r => rolEncargado.toLowerCase().includes(r))) {
       const allWorkers = [...(db.Usuarios || [])];
 
       // Helper: find the first worker matching a role (case-insensitive)
@@ -348,8 +405,8 @@ async function _renderList(user, container) {
 
     return `
       <div class="deal-card" style="--card-accent:var(--primary); background:var(--surface); border-radius:16px; padding:16px; border-left:4px solid var(--primary); margin-bottom:12px; cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
-        <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div class="deal-client-name" style="color:var(--text-primary); font-weight:bold; font-size:1.1rem">${c.nombre}</div>
+        <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+          <div class="deal-client-name" style="color:var(--text-primary); font-weight:bold; font-size:1.1rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.2;">${c.nombre} ${deptBadgeHtml}</div>
           <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}" style="padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${etapaLabel}</span>
         </div>
         
@@ -374,6 +431,7 @@ async function _renderList(user, container) {
         </div>
       </div>
     `;
+    });
   }).join('');
 
 
@@ -591,8 +649,6 @@ function _showIncompleteDataModal(client, user, missingFields, container) {
     document.getElementById('quick-direccion').value = client.direccion || '';
     const dobEl = document.getElementById('quick-dob');
     if (dobEl) dobEl.value = (client.dob && client.dob !== '-') ? client.dob : '';
-    const licEl = document.getElementById('quick-state-id');
-    if (licEl) licEl.value = (client.licencia && client.licencia !== '-') ? client.licencia : '';
 
     // Pre-fill attachments
     quickAdjID = client.adjunto_id_url || null;
@@ -852,7 +908,7 @@ function resetModal() {
   const selChip = document.getElementById('quick-selected-client-chip');
   if(selChip) selChip.style.display = 'none';
   
-  ['quick-nombre', 'quick-apellido', 'quick-state-id', 'quick-notas'].forEach(id => {
+  ['quick-nombre', 'quick-apellido', 'quick-notas'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.value = ''; el.disabled = false; }
   });
@@ -893,8 +949,6 @@ function resetModal() {
       if (btn.id === 'btn-quick-adj-seguro') label.textContent = 'Seguro';
     }
   });
-  const lblFoto = document.getElementById('lbl-quick-foto');
-  if (lblFoto) lblFoto.textContent = 'Subir Foto';
   const panelDetalles = document.getElementById('quick-detalles-adicionales');
   const btnToggle = document.getElementById('btn-toggle-quick-detalles');
   if (panelDetalles) panelDetalles.style.display = 'none';
@@ -1023,7 +1077,6 @@ function _wireModalControls(user, container) {
                           const tel = document.getElementById('quick-tel'); if(tel) { tel.value = cli.telefono || ''; tel.disabled = true; }
                           const eml = document.getElementById('quick-email'); if(eml) { eml.value = cli.email || ''; eml.disabled = true; }
                           const dir = document.getElementById('quick-direccion'); if(dir) { dir.value = cli.direccion || ''; dir.disabled = true; }
-                          const sid = document.getElementById('quick-state-id'); if(sid) { sid.value = (cli.state_id && cli.state_id !== '-') ? cli.state_id : ''; sid.disabled = true; }
                           
                           // Formatear DOB a YYYY-MM-DD para <input type="date">
                           const dob = document.getElementById('quick-dob'); 
@@ -1081,19 +1134,7 @@ function _wireModalControls(user, container) {
                               if (lbl) { lbl.textContent = '✓ CARGADO'; lbl.style.color = 'var(--primary)'; }
                           }
                           
-                          // Foto del cliente
-                          if (cli.foto) {
-                              const dropFoto = document.getElementById('drop-quick-foto');
-                              const lblFoto = document.getElementById('lbl-quick-foto');
-                              if (dropFoto) {
-                                  dropFoto.style.borderColor = 'var(--primary)';
-                                  dropFoto.style.background = 'rgba(0,245,212,0.05)';
-                              }
-                              if (lblFoto) {
-                                  lblFoto.textContent = '✓ FOTO CARGADA';
-                                  lblFoto.style.color = 'var(--primary)';
-                              }
-                          }
+
                       }
                   });
               });
@@ -1110,7 +1151,7 @@ function _wireModalControls(user, container) {
               searchInp.parentElement.style.display = 'flex';
               searchInp.value = '';
               
-              ['quick-nombre', 'quick-apellido', 'quick-state-id', 'quick-tel', 'quick-email', 'quick-direccion', 'quick-dob', 'quick-notas'].forEach(id => {
+              ['quick-nombre', 'quick-apellido', 'quick-tel', 'quick-email', 'quick-direccion', 'quick-dob', 'quick-notas'].forEach(id => {
                   const el = document.getElementById(id);
                   if (el) { 
                       el.value = id === 'quick-tel' ? '+1 ' : ''; 
@@ -1315,32 +1356,6 @@ function _wireModalControls(user, container) {
     }
   };
 
-  // Foto drop zone
-  let dropFoto = document.getElementById('drop-quick-foto');
-  if (dropFoto) {
-    const freshDrop = dropFoto.cloneNode(true);
-    dropFoto.parentNode.replaceChild(freshDrop, dropFoto);
-    dropFoto = freshDrop;
-  }
-  const inpFoto = document.getElementById('quick-foto-id');
-  if (dropFoto && inpFoto) {
-    dropFoto.addEventListener('click', (e) => {
-      if (e.target === inpFoto) return;
-      inpFoto.click();
-    });
-    inpFoto.addEventListener('change', () => {
-      if (inpFoto.files[0]) {
-        const lbl = document.getElementById('lbl-quick-foto');
-        if (lbl) {
-          lbl.textContent = '✓ FOTO CARGADA - Actualizar si es necesario';
-          lbl.style.fontSize = '0.75rem';
-        }
-        dropFoto.style.borderColor = 'var(--primary)';
-        dropFoto.style.background = 'rgba(0,245,212,0.05)';
-      }
-    });
-  }
-
   // Google Maps
   window.initQuickMaps = () => {
     const dirInput = document.getElementById('quick-direccion');
@@ -1511,7 +1526,6 @@ function _wireModalControls(user, container) {
       const tel = document.getElementById('quick-tel').value.trim();
       const email = document.getElementById('quick-email').value.trim();
       const dir = document.getElementById('quick-direccion').value.trim();
-      const stateId = document.getElementById('quick-state-id')?.value.trim() || '';
       const dob = document.getElementById('quick-dob')?.value || '';
       let dept = document.getElementById('quick-dept')?.value || 'Solar';
 
@@ -1521,8 +1535,7 @@ function _wireModalControls(user, container) {
       if (dept === 'Solar' && activeUnit.includes('home')) dept = 'Home';
 
       const notas = document.getElementById('quick-notas')?.value.trim() || '';
-      const fotoIdInput = document.getElementById('quick-foto-id');
-
+      
       // Validation (prospecto: nombre, apellido, tel, dirección)
       if (!nombre) { showToast('El Nombre es obligatorio', 'error'); return; }
       if (!apellido) { showToast('El Apellido es obligatorio', 'error'); return; }
@@ -1533,23 +1546,16 @@ function _wireModalControls(user, container) {
         newBtnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
         newBtnSave.disabled = true;
 
-        let localFotoId = null;
-        if (fotoIdInput && fotoIdInput.files && fotoIdInput.files.length > 0) {
-          showToast('Subiendo foto...', 'info');
-          localFotoId = await uploadFile(fotoIdInput.files[0], 'profiles');
-        }
-
         const fullNombre = apellido ? `${nombre} ${apellido}` : nombre;
 
         if (editingClientId) {
           await updateClientMaestro(editingClientId, {
             nombre: fullNombre, email, telefono: tel, direccion: dir,
-            state_id: stateId || '-', dob: dob || '-',
-            licencia: stateId || '-', notas,
+            dob: dob || '-',
+            notas,
             adjunto_id_url: quickAdjID,
             adjunto_bill_url: quickAdjBill,
             adjunto_seguro_url: quickAdjSeguro,
-            ...(localFotoId ? { foto: localFotoId } : {})
           });
           showToast('Datos del cliente actualizados', 'success');
         } else {
@@ -1557,13 +1563,13 @@ function _wireModalControls(user, container) {
           if (window.quickSelectedClientId) {
              await updateClientMaestro(window.quickSelectedClientId, {
                 nombre: fullNombre, email, telefono: tel, direccion: dir,
-                state_id: stateId || '-', dob: dob || '-',
-                licencia: stateId || '-', notas,
+                dob: dob || '-',
+                notas,
                 departamento: dept,
                 adjunto_id_url: quickAdjID,
                 adjunto_bill_url: quickAdjBill,
                 adjunto_seguro_url: quickAdjSeguro,
-                ...(localFotoId ? { foto: localFotoId } : {})
+
              });
              
              closeModals();
@@ -1582,11 +1588,9 @@ function _wireModalControls(user, container) {
             cliente: {
               nombre: fullNombre, email, telefono: tel,
               direccion: dir,
-              zip: 'Pendiente', state_id: stateId || '-', dob: dob || '-',
-              licencia: stateId || '-',
+              zip: 'Pendiente', dob: dob || '-',
               departamento: dept, empresa: dept,
               estado: 'Lead',
-              foto: localFotoId,
               adjunto_id_url: quickAdjID, adjunto_bill_url: quickAdjBill,
               adjunto_seguro_url: quickAdjSeguro,
               notas, fecha: new Date().toISOString()

@@ -39,7 +39,7 @@ export function renderMisRecibos() {
           id="rfil-all">Todos</button>
         <button data-filter="vendedor"
           style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
-          id="rfil-vendedor">Vendedores</button>
+          id="rfil-vendedor">Representantes</button>
         <button data-filter="tecnico"
           style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-tecnico">Técnicos</button>
@@ -115,7 +115,7 @@ function _renderRecibosList(recibos, isAdmin) {
   return recibos.map(r => {
     const isVendedor = r.tipo === 'vendedor';
     const color  = isVendedor ? '#3b82f6' : '#10b981';
-    const label  = isVendedor ? 'Recibo de Pago – Vendedor' : 'Recibo de Instalación – Técnico';
+    const label  = isVendedor ? 'Recibo de Pago – Representante' : 'Recibo de Instalación – Técnico';
     const icon   = isVendedor
       ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`
       : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
@@ -169,7 +169,7 @@ function _showReciboModal(r) {
   if (!modal || !titulo || !cont) return;
 
   const isVendedor = r.tipo === 'vendedor';
-  titulo.textContent = isVendedor ? 'Recibo de Pago – Vendedor' : 'Recibo de Instalación – Técnico';
+  titulo.textContent = isVendedor ? 'Recibo de Pago – Representante' : 'Recibo de Instalación – Técnico';
 
   const d = r.datos_json || {};
   const color = isVendedor ? '#3b82f6' : '#10b981';

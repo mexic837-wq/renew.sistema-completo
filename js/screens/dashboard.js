@@ -16,13 +16,14 @@ import { t } from '../i18n.js';
 //  âš ï¸  UPDATE: Change 'minSales' for Iniciante and Junior once
 //               the user provides those numbers.
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ========================================================================================================================
 const RANK_CONFIG = {
   'Renew Water': [
     { name: 'Novato por Referidos', emoji: '\uD83C\uDF31', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total' },
     { name: 'Subvendedor',         emoji: '\uD83E\uDD49', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total' },
     { name: 'Iniciante',           emoji: '\uD83E\uDD48', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 18, type: 'total' },
     { name: 'Junior',              emoji: '\uD83E\uDD47', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total' },
-    { name: 'Vendedor',            emoji: '\u26A1',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total' },
+    { name: 'Representante de Ventas',            emoji: '\u26A1',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total' },
     { name: 'Distribuidor (Analista)', emoji: '\uD83D\uDC51', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total' },
     { name: 'Distribuidor Mensual', emoji: '\u2B50',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly' },
   ]
@@ -199,14 +200,15 @@ export async function renderDashboard() {
         from { opacity: 0; transform: translateY(10px); }
         to   { opacity: 1; transform: translateY(0); }
       }
-      .tool-list { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 100px; }
+      .tool-list { display: flex; flex-direction: column; gap: 20px; padding: 14px 16px 100px; }
       .tool-row {
         position: relative; overflow: hidden;
-        height: 80px;
+        min-height: 90px; height: auto !important;
+        margin-bottom: 4px;
         border-radius: 20px;
         border: 1px solid var(--border);
         cursor: pointer;
-        display: flex; align-items: flex-end;
+        display: flex; align-items: center;
         transition: transform 0.15s ease, box-shadow 0.15s ease;
         animation: toolIn 0.35s ease both;
         background-size: cover; background-position: center;
@@ -218,8 +220,9 @@ export async function renderDashboard() {
         background: linear-gradient(to right, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.18) 100%);
       }
       .tool-row-body {
-        position: relative; padding: 0 16px 14px;
+        position: relative; padding: 12px 16px;
         display: flex; align-items: center; gap: 12px;
+        width: 100%;
       }
       .tool-row-icon {
         width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
@@ -310,21 +313,43 @@ export async function renderDashboard() {
     </div>
 
     <div id="tab-inicio" class="dash-tab-content">
-      <div id="dash-tools-grid" class="tool-list"></div>
-    </div>
-
-    <div id="tab-rendimiento" class="dash-tab-content" style="display:none; padding:0 20px 24px;">
-      <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:16px; margin-top:8px;">${t('dash_month_perf')}</h3>
-      <div style="background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); padding:20px; border-radius:24px; border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow-lg);">
-        <canvas id="rendimientoChart" height="220"></canvas>
+      <div id="dash-tools-grid" class="tool-list mobile-only"></div>
+      
+      <!-- DESKTOP WELCOME PRESENTATION -->
+      <div class="desktop-only w-full">
+        <div class="flex flex-col items-center justify-center text-center w-full" style="padding: 60px 20px; background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(0,245,212,0.02) 100%); border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); margin-top: 20px; min-height: 400px; box-shadow: inset 0 0 40px rgba(0,0,0,0.2);">
+          <div style="position: relative; margin-bottom: 30px;">
+            <div style="position: absolute; inset: -20px; background: radial-gradient(circle, rgba(0,245,212,0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(20px);"></div>
+            <img src="assets/images/renew copia logo.png" alt="Equipo Renew" style="width: 130px; position: relative; z-index: 10; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));">
+          </div>
+          <h2 style="font-size: 2.2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 16px; letter-spacing: -0.5px;">Bienvenido al <span style="color: #00f5d4;">Portal de Ventas</span></h2>
+          <p style="color: var(--text-secondary); max-width: 550px; font-size: 1.15rem; line-height: 1.6; margin-bottom: 30px;">El centro de operaciones del Equipo Renew para llevar tu rendimiento al siguiente nivel. Selecciona una herramienta del menú lateral para comenzar tu jornada.</p>
+          
+          <div class="flex gap-4" style="justify-content: center;">
+            <button onclick="document.querySelector('[data-target=\\'tab-rendimiento\\']').click()" style="background: rgba(0,245,212,0.1); color: #00f5d4; border: 1px solid rgba(0,245,212,0.3); padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: all 0.2s hover:bg-opacity-20 hover:scale-105; cursor: pointer;">
+              <i class="fa-solid fa-chart-line mr-2"></i> Ver Mi Rendimiento
+            </button>
+            <button onclick="document.querySelector('[data-target=\\'tab-leaderboard\\']').click()" style="background: var(--surface-alt); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; border-radius: 12px; font-weight: 600; transition: all 0.2s hover:bg-opacity-10 hover:scale-105; cursor: pointer;">
+              <i class="fa-solid fa-trophy mr-2" style="color: #f59e0b;"></i> Leaderboard
+            </button>
+          </div>
+        </div>
       </div>
-      <div id="rendimiento-quick-stats" style="margin-top:24px;"></div>
-      <div id="rank-banner-rendimiento" style="margin-top:20px;"></div>
     </div>
 
-    <div id="tab-leaderboard" class="dash-tab-content" style="display:none; padding:0 20px 24px;">
-      <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:12px;">${t('dash_top_sellers')}</h3>
-      <div style="background:var(--surface-alt); padding:16px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+    <div class="desktop-dashboard-wrapper" style="padding:0 20px;">
+      <div id="tab-rendimiento" class="dash-tab-content" style="display:none; padding:0 0 24px;">
+        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:16px; margin-top:8px;">${t('dash_month_perf')}</h3>
+        <div style="background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); padding:20px; border-radius:24px; border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow-lg);">
+          <canvas id="rendimientoChart" height="220"></canvas>
+        </div>
+        <div id="rendimiento-quick-stats" style="margin-top:24px;"></div>
+        <div id="rank-banner-rendimiento" style="margin-top:20px;"></div>
+      </div>
+
+      <div id="tab-leaderboard" class="dash-tab-content" style="display:none; padding:0 0 24px;">
+        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:12px; margin-top:8px;">${t('dash_top_sellers')}</h3>
+        <div style="background:var(--surface-alt); padding:16px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.05);">
         <canvas id="leaderboardChart" height="240"></canvas>
       </div>
     </div>
@@ -345,7 +370,6 @@ export async function renderDashboard() {
       tab.classList.add('active');
       const id = tab.dataset.target;
       document.getElementById(id).style.display = 'block';
-      const curUnit = localStorage.getItem('active_unit') || 'Renew Solar';
       if (id === 'tab-rendimiento' && !window.rendimientoChartInstance) initRendimientoChart(user);
       if (id === 'tab-leaderboard' && !window.leaderboardChartInstance) initLeaderboardChart(user);
     });
@@ -457,7 +481,7 @@ function _renderToolsForPipeline(user, activeUnit) {
 
   const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisi\u00F3n','finanzas','contabilidad'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
-  if (!canWater && (userRole === 'vendedor' || isTecnico)) {
+  if (!canWater && (userRole.includes('vendedor') || userRole.includes('representante') || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
     const hasWaterUnit = (user.unidades || []).includes('Renew Water');
     if (waterPip) {
@@ -476,56 +500,42 @@ function _renderToolsForPipeline(user, activeUnit) {
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
-        action: () => window.appNavigate('call-center'), delay: '0s'
+        action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       (canWater || isTecnico) ? {
         name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-        action: () => window.appNavigate('clients'), delay: '0s'
+        action: () => window.appNavigate('clients'), delay: '0s', screen: 'clients'
       } : null,
       (canWater && !isTecnico) ? {
-        name: 'Aplicación de Crédito', tag: 'Renew Water',
-        gradient: 'linear-gradient(90deg,#2563eb,#7c3aed)',
+        name: 'Plantillas', tag: 'Renew Water',
+        gradient: 'linear-gradient(90deg,#2563eb,#0d9488)',
         iconBg: 'rgba(37,99,235,0.12)', iconColor: '#2563eb',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
-        action: () => window.appNavigate('credit-app'), delay: '0s'
-      } : null,
-      (canWater && !isTecnico) ? {
-        name: 'Orden de Trabajo', tag: 'Renew Water',
-        gradient: 'linear-gradient(90deg,#0d9488,#059669)',
-        iconBg: 'rgba(13,148,136,0.12)', iconColor: '#0d9488',
-        icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
-        action: () => window.appNavigate('work-order'), delay: '0.06s'
-      } : null,
-      (canWater && !isTecnico) ? {
-        name: 'Contrato', tag: 'Renew Water',
-        gradient: 'linear-gradient(90deg,#f59e0b,#d97706)',
-        iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b',
-        icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>`,
-        action: () => window.appNavigate('contract-app'), delay: '0.12s'
+        action: () => window.showPlantillasModal(), delay: '0s'
       } : null,
       canInventory ? {
         name: 'Inventario Real', tag: null,
         gradient: 'linear-gradient(90deg,#3b82f6,#6366f1)',
         iconBg: 'rgba(59,130,246,0.1)', iconColor: 'var(--info)',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
-        action: () => window.appNavigate('inventory-tech'), delay: '0.12s'
+        action: () => window.appNavigate('inventory-tech'), delay: '0.12s', screen: 'inventory-tech'
       } : null,
       (canWater || isTecnico) ? {
         name: 'Mis Recibos de Pagos', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#8b5cf6,#6366f1)',
         iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
-        action: () => window.appNavigate('mis-recibos'), delay: '0.15s'
+        action: () => window.appNavigate('mis-recibos'), delay: '0.15s', screen: 'mis-recibos'
       } : null,
       (canWater) ? {
         name: 'Lista de Precios', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#ec4899,#f43f5e)',
         iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>`,
-        action: () => window.appNavigate('lista-precios'), delay: '0.18s'
+        action: () => window.appNavigate('lista-precios'), delay: '0.18s', screen: 'lista-precios'
       } : null,
     ],
     'Renew Solar': [
@@ -575,28 +585,29 @@ function _renderToolsForPipeline(user, activeUnit) {
       gradient: 'linear-gradient(90deg,#8b5cf6,#d946ef)',
       iconBg: 'rgba(139,92,246,0.1)', iconColor: '#a78bfa',
       icon: `<i class="fas fa-map-marked-alt"></i>`,
-      action: () => window.appNavigate('mi-mapa'), delay: '0.19s'
+      action: () => window.appNavigate('mi-mapa'), delay: '0.19s', screen: 'mi-mapa'
     },
     {
-      name: 'Mi Calendario', tag: null,
+      name: 'Calendario', tag: null,
       gradient: 'linear-gradient(90deg,#00ff88,#00d4ff)',
       iconBg: 'rgba(0,255,136,0.1)', iconColor: '#00ff88',
       icon: `<i class="fas fa-calendar-alt"></i>`,
-      action: () => window.appNavigate('mi-calendario'), delay: '0.20s'
+      className: 'desktop-only',
+      action: () => window.appNavigate('mi-calendario'), delay: '0.20s', screen: 'mi-calendario'
     },
     {
       name: 'Mi Equipo', tag: null,
       gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
       iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-      action: () => window.appNavigate('mi-equipo'), delay: '0.22s'
+      action: () => window.appNavigate('mi-equipo'), delay: '0.22s', screen: 'mi-equipo'
     },
     isAdmin ? {
       name: 'Partners', tag: null,
       gradient: 'linear-gradient(90deg,#10b981,#059669)',
       iconBg: 'rgba(16,185,129,0.1)', iconColor: '#10b981',
       icon: `<i class="fa-solid fa-handshake"></i>`,
-      action: () => window.appNavigate('partners'), delay: '0.23s'
+      action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
     } : null,
     isAdmin ? {
       name: 'Renew OS (Admin)', tag: null,
@@ -612,19 +623,18 @@ function _renderToolsForPipeline(user, activeUnit) {
   const allTools = [...pipTools, ...commonTools.filter(Boolean)];
 
   const VARS = {
-    'Aplicaci\u00F3n de Cr\u00E9dito': 'var(--bg-tool-credito)',
-    'Orden de Trabajo':      'var(--bg-tool-trabajo)',
+    'Plantillas':            'var(--bg-tool-credito)',
     'Inventario Real':       'var(--bg-tool-inventario)',
     'Mis Clientes':          'var(--bg-tool-clientes)',
     'Mis Llamadas':          'var(--bg-tool-clientes)',
     'Gestión de Leads (Fase 1)': 'linear-gradient(135deg, #00302b, #004d40)',
     'Mi Mapa':               'var(--bg-tool-mapa)',
-    'Mi Calendario':         'var(--bg-tool-calendario)',
+    'Calendario':         'var(--bg-tool-calendario)',
     'Renew OS (Admin)':      'var(--bg-tool-admin)',
   };
 
   grid.innerHTML = allTools.map((tool, i) => `
-    <div class="tool-row" id="tool-${i}"
+    <div class="tool-row ${tool.className || ''}" id="tool-${i}"
       style="background: ${VARS[tool.name] || 'var(--bg-tool-default)'}; animation-delay:${tool.delay || `${i*0.07}s`};">
       <div class="tool-row-overlay"></div>
       <div style="position:absolute; top:0; left:0; right:0; height:2.5px; background:${tool.gradient};"></div>
@@ -639,6 +649,30 @@ function _renderToolsForPipeline(user, activeUnit) {
       </div>
     </div>
   `).join('');
+
+  // Dynamically populate desktop sidebar
+  const desktopContainer = document.getElementById('desktop-dynamic-tools');
+  if (desktopContainer) {
+    const desktopTools = allTools.filter(tool => tool.name !== 'Calendario');
+    
+    desktopContainer.innerHTML = desktopTools
+      .map((tool, i) => `
+      <a href="#" class="nav-item" id="desktop-tool-${i}" title="${tool.name}" data-screen="${tool.screen || ''}">
+        <div style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
+          ${tool.icon}
+        </div>
+        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${tool.name.replace(' (Admin)', '').replace('Gestión de Leads (Fase 1)', 'Leads').replace('Mis ', '').replace(' de Pagos', '').replace('Lista de ', '')}</span>
+      </a>
+    `).join('');
+
+    desktopTools.forEach((tool, i) => {
+      const btn = document.getElementById(`desktop-tool-${i}`);
+      if (btn && tool.action) btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        tool.action();
+      });
+    });
+  }
 
   allTools.forEach((tool, i) => {
     const el = document.getElementById(`tool-${i}`);
@@ -1406,7 +1440,7 @@ async function initLeaderboardChart(user) {
     const hasUnitAccess = isWHighRole || (w.unidades && w.unidades.includes(activeUnit));
     
     const isWTecnico = /t[eé]cn[io]co/i.test(w.rol || '');
-    const isWVendedor = (w.rol || '').toLowerCase().includes('vendedor');
+    const isWVendedor = (w.rol || '').toLowerCase().includes('vendedor') || (w.rol || '').toLowerCase().includes('representante');
     const isWCall = (w.rol || '').toLowerCase().includes('call');
 
     let shouldInclude = false;
@@ -1597,7 +1631,7 @@ function showProfileModal() {
   }).join('');
 
   const fullName = `${user.nombre} ${user.apellido}`;
-  const rol = user.rol || 'Vendedor';
+  const rol = user.rol || 'Representante de Ventas';
   const roleColor = rol.toLowerCase() === 'admin' ? 'badge-red' : 'badge-green';
 
   overlay.innerHTML = `

@@ -71,13 +71,13 @@ export async function renderRendimientoGlobal() {
             <div class="bg-white dark:bg-darkCard rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-premium overflow-hidden">
                 <div class="p-10 border-b border-gray-100 dark:border-white/5">
                     <h4 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Global Leaderboard</h4>
-                    <p class="text-xs text-gray-500 font-medium">Ranking de vendedores por rendimiento.</p>
+                    <p class="text-xs text-gray-500 font-medium">Ranking de representantes por rendimiento.</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 dark:bg-white/5">
-                                <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Vendedor</th>
+                                <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Representante</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tasa Cierre</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Comisiones Proy.</th>
@@ -148,7 +148,7 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
     const allWorkers = await getAdminWorkers();
     const relevantVendors = allWorkers.filter(u => {
         const role = (u.rol || '').toLowerCase();
-        return role.includes('vendedor') || role.includes('admin') || role.includes('ceo');
+        return role.includes('vendedor') || role.includes('representante') || role.includes('admin') || role.includes('ceo');
     });
 
     const clients = db.Clientes_Maestro || [];
@@ -228,7 +228,7 @@ async function updateGlobalData(ecosystem, range = 'monthly') {
             closeRate: vCloseRate,
             commissions: vCommissions
         };
-    }).filter(v => v.sales > 0 || (v.rol || '').toLowerCase().includes('vendedor'))
+    }).filter(v => v.sales > 0 || (v.rol || '').toLowerCase().includes('vendedor') || (v.rol || '').toLowerCase().includes('representante'))
       .sort((a, b) => b.sales - a.sales);
 
     const tbody = document.getElementById('global-leaderboard-body');

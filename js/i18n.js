@@ -32,7 +32,7 @@ const TRANSLATIONS = {
     dash_tab_perf:      'Mi Rendimiento',
     dash_tab_rank:      'Leaderboard',
     dash_month_perf:    'Desempeño del Mes',
-    dash_top_sellers:   'Top Vendedores',
+    dash_top_sellers:   'Top Representantes de Ventas',
     dash_loading:       'Cargando...',
     dash_error:         'Error al cargar proyectos',
     dash_no_deals:      'Aún no tienes proyectos',
@@ -162,7 +162,7 @@ const TRANSLATIONS = {
 
     // ── Leaderboard ────────────────────────────────────────
     lb_title:           'Tabla de Posiciones',
-    lb_top_performers:  'Mejores Vendedores',
+    lb_top_performers:  'Mejores Representantes de Ventas',
     lb_no_sales:        'Sin ventas este mes',
     lb_sales:           'Ventas',
     lb_sale:            'venta',
@@ -272,7 +272,7 @@ const TRANSLATIONS = {
     ann_btn_pub:        'Publicar Anuncio',
     ann_hist:           'Historial de Anuncios',
     ann_report_select:  'Selecciona un anuncio',
-    ann_report_users_desc: 'Para ver el reporte de lectura de los vendedores',
+    ann_report_users_desc: 'Para ver el reporte de lectura de los representantes',
     ann_report_pct:     'Aceptación (Lectura)',
     ann_report_users:   'Usuarios',
     ann_status_read:    'Leído',
@@ -339,7 +339,7 @@ const TRANSLATIONS = {
     dash_tab_perf:      'My Performance',
     dash_tab_rank:      'Leaderboard',
     dash_month_perf:    'Monthly Performance',
-    dash_top_sellers:   'Top Sellers',
+    dash_top_sellers:   'Top Representatives',
     dash_loading:       'Loading...',
     dash_error:         'Error loading projects',
     dash_no_deals:      'You have no projects yet',
@@ -469,7 +469,7 @@ const TRANSLATIONS = {
 
     // ── Leaderboard ────────────────────────────────────────
     lb_title:           'Leaderboard',
-    lb_top_performers:  'Top Performers',
+    lb_top_performers:  'Best Representatives',
     lb_no_sales:        'No sales this month',
     lb_sales:           'Sales',
     lb_sale:            'sale',
