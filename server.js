@@ -101,11 +101,16 @@ app.get('/api/db', async (req, res) => {
 
         const fixUrl = (url) => {
             if (typeof url !== 'string' || !url) return url;
-            // Imágenes antiguas o internas de Supabase → usar proxy público del servidor
-            // Esto resuelve problemas de Mixed Content (HTTPS -> HTTP) y bloqueos de IP
-            return url
-                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/');
+            // Si ya tiene el proxy o es una URL local, no tocar
+            if (url.startsWith('/api/storage-proxy/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+            
+            // Forzar el uso del proxy para cualquier URL que contenga la IP de Supabase o el path de storage
+            if (url.includes('31.97.') || url.includes('/storage/v1/object/public/')) {
+                const parts = url.split('/storage/v1/object/public/');
+                const filePath = parts[parts.length - 1];
+                return `/api/storage-proxy/${filePath.replace(/^\//, '')}`;
+            }
+            return url;
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
@@ -2159,12 +2164,13 @@ app.post('/api/complete-upload', async (req, res) => {
 // Permite que URLs como /api/storage-proxy/announcements/... funcionen públicamente
 app.use('/api/storage-proxy', async (req, res) => {
     try {
-        const filePath = req.path.replace(/^\//, ''); // Quitamos la barra inicial
+        let filePath = req.path.replace(/^\//, ''); // Quitamos la barra inicial
         if (!filePath) return res.status(404).json({ error: 'Ruta de archivo no especificada' });
         
-        // Priorizar IP interna si está en VPS, sino intentar URL pública
+        // Si el filePath empieza con archivos_renew/, lo mantenemos. 
+        // El internalUrl final debe ser: {IP}/storage/v1/object/public/{filePath}
         const internalUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
-        console.log(`[PROXY] Requesting file: ${filePath} via ${internalUrl}`);
+        console.log(`[PROXY] Fetching file: ${internalUrl}`);
         
         const https = require('https');
         const http = require('http');

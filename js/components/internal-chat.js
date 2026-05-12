@@ -140,6 +140,8 @@ async function renderMessages() {
     const messages = await getInternalMessages();
     const currentUser = getCurrentUser();
     
+    console.log('[CHAT] Rendering messages:', messages.length, messages);
+    
     if (!messages.length) {
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center h-full text-gray-400">
