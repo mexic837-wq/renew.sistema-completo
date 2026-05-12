@@ -272,16 +272,14 @@ app.get('/api/db', async (req, res) => {
         };
 
         // Debug log for Chat messages count
-        if (db.mensajes_internos) {
-            console.log(`[API/DB] Syncing ${db.mensajes_internos.length} internal messages.`);
-        }
+        console.log(`[API/DB] Syncing ${db.mensajes_internos.length} internal messages.`);
         
         // Final Global Fix: Stringify everything and replace internal URLs globally
         const jsonString = JSON.stringify(db);
         const fixedJson = jsonString
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
-            .replace(/https?:\/\/renewgroup\.site\/uploads\//g, '/uploads/')
+            .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         
         res.setHeader('Content-Type', 'application/json');
