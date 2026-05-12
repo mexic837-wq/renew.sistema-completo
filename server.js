@@ -290,6 +290,41 @@ app.get('/api/db', async (req, res) => {
     }
 });
 
+// GET: Mensajes Internos (endpoint dedicado para el chat — evita depender del /api/db completo)
+app.get('/api/messages', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    try {
+        const { data, error } = await supabase
+            .from('mensajes_internos')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('[API/MESSAGES] Supabase error:', error.message);
+            return res.status(500).json({ error: error.message });
+        }
+
+        // Apply URL normalization same as /api/db
+        const messages = (data || []).map(m => ({
+            ...m,
+            image_url: fixUrl(m.image_url)
+        }));
+
+        // Global string replace for any remaining internal URLs
+        const jsonString = JSON.stringify(messages);
+        const fixedJson = jsonString
+            .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+            .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/');
+
+        console.log(`[API/MESSAGES] Returning ${messages.length} messages.`);
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify({ messages: JSON.parse(fixedJson) }));
+    } catch (error) {
+        console.error('[API/MESSAGES] Critical error:', error.message);
+        res.status(500).json({ error: 'Fallo al recuperar mensajes', details: error.message });
+    }
+});
+
 // GET: Obtener info de un proyecto y su cliente asociado para auto-relleno
 app.get('/api/project-info', async (req, res) => {
     try {
