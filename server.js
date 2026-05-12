@@ -78,15 +78,15 @@ const fetchWithTimeout = (table, timeoutMs = 30000) => {
             const { data, error } = await supabase.from(table).select('*');
             clearTimeout(timer);
             if (error) {
-                console.error(`[SUPABASE ERROR] table ${table}:`, error.message || error);
-                resolve({ data: [], error });
+                console.error(`[SUPABASE ERROR] table ${table}:`, error);
+                resolve({ data: [] });
             } else {
                 resolve({ data });
             }
         } catch (e) {
             clearTimeout(timer);
-            console.error(`[NETWORK ERROR] table ${table}:`, e.message || e);
-            resolve({ data: [], error: e });
+            console.error(`[NETWORK ERROR] table ${table}:`, e);
+            resolve({ data: [] });
         }
     });
 };
@@ -265,20 +265,15 @@ app.get('/api/db', async (req, res) => {
                 campo: maxId(results[2].data,  'campo_'),
                 proveedores: maxId(results[11].data, 'prv_'),
                 calendario: maxId(results[12].data, 'ev_'),
-            },
-            version: 'chat-fix-v3'
+            }
         };
-
-        console.log(`[DB-FETCH] Internal Messages found: ${(db.mensajes_internos || []).length}`);
 
         // Final Global Fix: Stringify everything and replace internal URLs globally
         const jsonString = JSON.stringify(db);
         const fixedJson = jsonString
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
-            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host\/object\/public\//g, '/api/storage-proxy/')
-            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host\//g, '/api/storage-proxy/');
+            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         
         res.setHeader('Content-Type', 'application/json');
         res.send(fixedJson);
