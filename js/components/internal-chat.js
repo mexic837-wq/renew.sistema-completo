@@ -137,6 +137,17 @@ export function closeChat() {
 
 async function renderMessages() {
     const container = document.getElementById('chat-messages-container');
+    
+    // Show loading state while fetching
+    if (!container.querySelector('.chat-msg-item')) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 opacity-40"></i>
+                <p class="text-xs font-bold uppercase tracking-widest opacity-40">Cargando...</p>
+            </div>
+        `;
+    }
+    
     const messages = await getInternalMessages();
     const currentUser = getCurrentUser();
     
@@ -152,27 +163,41 @@ async function renderMessages() {
         return;
     }
 
+    const origin = window.location.origin;
+    
+    // Normalize image URL for the current environment (handles old server URLs)
+    const normalizeImageUrl = (url) => {
+        if (!url) return null;
+        if (url.startsWith('/api/storage-proxy/') || url.startsWith('/uploads/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+        // Convert Supabase internal URLs to the storage proxy
+        return url
+            .replace(/https?:\/\/(31\.97\.\d+\.\d+:\d+|gateway\.renewgroup\.site|supabase\.renewgroup\.site)\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+    };
+
     const html = messages.map(msg => {
-        const isMe = msg.sender_id === currentUser.id;
+        const isMe = msg.sender_id === currentUser?.id;
         const date = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const readBy = Array.isArray(msg.read_by) ? msg.read_by : [];
+        const imageUrl = normalizeImageUrl(msg.image_url);
         
         // Mark as read if I'm mentioned and haven't read it
-        if (msg.mentions && msg.mentions.includes(currentUser.id) && !msg.read_by.includes(currentUser.id)) {
+        if (msg.mentions && msg.mentions.includes(currentUser?.id) && !readBy.includes(currentUser?.id)) {
             markMessageAsRead(msg.id);
         }
 
         return `
-            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn">
+            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn chat-msg-item">
                 <div class="max-w-[80%] ${isMe ? 'bg-tealAccent text-black' : 'bg-white dark:bg-white/5 text-gray-800 dark:text-white'} rounded-[1.5rem] p-4 shadow-sm relative group">
-                    ${!isMe ? `<p class="text-[10px] font-black uppercase tracking-widest text-tealAccent mb-1">${msg.sender_name}</p>` : ''}
+                    ${!isMe ? `<p class="text-[10px] font-black uppercase tracking-widest text-tealAccent mb-1">${msg.sender_name || ''}</p>` : ''}
                     
-                    ${msg.image_url ? `<img src="${msg.image_url}" class="w-full max-h-60 object-cover rounded-xl mb-2 cursor-pointer" onclick="window.open('${msg.image_url}')">` : ''}
+                    ${imageUrl ? `<img src="${imageUrl}" class="w-full max-h-60 object-cover rounded-xl mb-2 cursor-pointer" onclick="window.open('${imageUrl}')" onerror="this.style.display='none'">` : ''}
                     
-                    <p class="text-sm font-medium leading-relaxed">${formatContent(msg.content)}</p>
+                    <p class="text-sm font-medium leading-relaxed">${formatContent(msg.content || '')}</p>
                     
                     <div class="flex items-center justify-end gap-2 mt-1">
                         <span class="text-[9px] opacity-50 font-bold">${date}</span>
-                        ${isMe ? `<i class="fa-solid fa-check-double text-[9px] ${msg.read_by.length > 1 ? 'text-blue-600' : 'opacity-30'}"></i>` : ''}
+                        ${isMe ? `<i class="fa-solid fa-check-double text-[9px] ${readBy.length > 1 ? 'text-blue-600' : 'opacity-30'}"></i>` : ''}
                     </div>
                 </div>
             </div>

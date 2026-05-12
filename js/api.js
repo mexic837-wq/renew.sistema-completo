@@ -58,15 +58,15 @@ export async function initDB() {
                         mappedDB[targetKey] = freshDB[k];
                     }
 
-                    // Apply URL fixes
+                    // Apply URL fixes — ONLY convert internal Supabase IPs/subdomains to the storage proxy.
+                    // Do NOT touch renewgroup.site/uploads/ — those are served directly by our Node server.
                     const dbStr = JSON.stringify(mappedDB);
                     let fixedDB = mappedDB;
-                    if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('renewgroup.site') || dbStr.includes('gateway.renewgroup.site')) {
+                    if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('gateway.renewgroup.site') || dbStr.includes('supabase.renewgroup.site')) {
                       const fixedStr = dbStr
                         .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
                         .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
                         .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-                        .replace(/https?:\/\/renewgroup\.site\/uploads\//g, window.location.origin + '/uploads/')
                         .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
                       fixedDB = JSON.parse(fixedStr);
                     }
@@ -116,14 +116,15 @@ export async function initDB() {
       }
       
       // ── CLIENT-SIDE URL FIX ──
+      // Only convert internal Supabase IPs/subdomains. Do NOT touch renewgroup.site/uploads/
+      // because those are local files served directly by our Node server.
       const dbStr = JSON.stringify(mappedData);
       let freshDB = mappedData;
-      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('renewgroup.site')) {
+      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('gateway.renewgroup.site') || dbStr.includes('supabase.renewgroup.site')) {
         const fixedStr = dbStr
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-          .replace(/https?:\/\/renewgroup\.site\/uploads\//g, window.location.origin + '/uploads/')
           .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         freshDB = JSON.parse(fixedStr);
       }
@@ -2100,24 +2101,52 @@ export function getProjectDate(p, db) {
 
 // ── INTERNAL MESSAGING (CHAT) ────────────────────────────────
 export async function getInternalMessages() {
-    // Always fetch fresh from the dedicated endpoint so both localhost and
-    // production see live Supabase data regardless of localStorage state.
+    // Strategy: Use the cache populated by initDB() as the primary source.
+    // This works on BOTH old and new server versions.
+    // If cache is empty (first open before initDB completes, or fresh page load),
+    // try the dedicated /api/messages endpoint as a fast fallback.
+    const db = getDB();
+    const cached = db.mensajes_internos || [];
+
+    if (cached.length > 0) {
+        // Cache is populated — return immediately
+        return cached.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+
+    // Cache is empty — try the dedicated endpoint (available on new server)
+    // and also schedule an initDB refresh so the db_synced event re-renders the chat
     try {
+        console.log('[CHAT] Cache empty — trying /api/messages directly...');
         const res = await fetch(`${API_BASE}/messages`);
         if (res.ok) {
             const data = await res.json();
             const messages = data.messages || [];
-            // Update cache so other parts of the app stay in sync
+            // Populate cache so subsequent calls are instant
             if (cachedDB) cachedDB.mensajes_internos = messages;
+            console.log(`[CHAT] Got ${messages.length} messages from /api/messages`);
             return messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         }
     } catch (e) {
-        console.warn('[CHAT] Live fetch failed, falling back to cache:', e.message);
+        console.warn('[CHAT] /api/messages not available, will rely on db_synced event:', e.message);
     }
 
-    // Fallback: return what's in the local cache
-    const db = getDB();
-    return (db.mensajes_internos || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    // Last resort: trigger a background DB refresh so the db_synced event
+    // fires and re-renders the chat once the full DB is loaded
+    if (!window._chatForcedSync) {
+        window._chatForcedSync = true;
+        fetch(`${API_BASE}/db`)
+            .then(r => r.ok ? r.json() : null)
+            .then(freshDB => {
+                if (!freshDB) return;
+                const msgs = freshDB.mensajes_internos || [];
+                if (cachedDB) cachedDB.mensajes_internos = msgs;
+                window._chatForcedSync = false;
+                window.dispatchEvent(new CustomEvent('db_synced'));
+            })
+            .catch(() => { window._chatForcedSync = false; });
+    }
+
+    return [];
 }
 
 export async function sendInternalMessage({ content, mentions = [], image_url = null }) {
