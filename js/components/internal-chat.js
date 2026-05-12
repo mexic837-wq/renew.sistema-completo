@@ -98,6 +98,13 @@ export async function initChat() {
 
     // Load users for mentions
     mentionList = await getAdminWorkers();
+
+    // Listener para sincronización de fondo
+    window.addEventListener('db_synced', () => {
+        if (chatModal && !chatModal.classList.contains('hidden')) {
+            renderMessages();
+        }
+    });
 }
 
 export async function openChat() {

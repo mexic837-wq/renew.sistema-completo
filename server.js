@@ -100,11 +100,12 @@ app.get('/api/db', async (req, res) => {
         };
 
         const fixUrl = (url) => {
-            if (typeof url !== 'string') return url;
-            // Imágenes antiguas guardadas con IP interna → usar proxy público del servidor
+            if (typeof url !== 'string' || !url) return url;
+            // Imágenes antiguas o internas de Supabase → usar proxy público del servidor
+            // Esto resuelve problemas de Mixed Content (HTTPS -> HTTP) y bloqueos de IP
             return url
-                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//, '/api/storage-proxy/')
-                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//, '/api/storage-proxy/');
+                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/');
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
@@ -1990,7 +1991,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
         const url = await subirArchivo(req.file, folder);
         console.log('[API-UPLOAD] Success:', url);
-        res.json({ success: true, url });
+        res.json({ success: true, url: fixUrl(url) });
     } catch (e) {
         console.error('[API-UPLOAD] Critical Error:', e);
         res.status(500).json({ 
@@ -2163,14 +2164,16 @@ app.use('/api/storage-proxy', async (req, res) => {
         const protocol = internalUrl.startsWith('https') ? https : http;
         
         protocol.get(internalUrl, (proxyRes) => {
-            res.writeHead(proxyRes.statusCode, {
+            // Forward headers
+            const headers = {
                 'Content-Type': proxyRes.headers['content-type'] || 'application/octet-stream',
                 'Cache-Control': 'public, max-age=31536000',
                 'Access-Control-Allow-Origin': '*'
-            });
+            };
+            res.writeHead(proxyRes.statusCode, headers);
             proxyRes.pipe(res);
         }).on('error', (err) => {
-            console.error('[PROXY ERROR]', err.message);
+            console.error('[PROXY ERROR] Failed to fetch:', internalUrl, err.message);
             res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
         });
     } catch (e) {

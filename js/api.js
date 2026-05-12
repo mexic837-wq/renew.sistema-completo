@@ -200,7 +200,8 @@ export async function initDB() {
               Admin_Pipelines: [], Admin_Fases: [], Admin_Campos_Formulario: [],
               Clientes_Maestro: [], Proyectos_Dinamicos: [], Respuestas_Dinamicas: [],
               Usuarios: [], academiaContent: [], inventarioGlobal: [], historialInventario: [],
-              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], Admin_Proveedores: [], calendario_eventos: [],
+              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], Admin_Proveedores: [], 
+              calendario_eventos: [], mensajes_internos: [],
               Counters: { cli: 0, proy: 0, resp: 0, pip: 0, fase: 0, campo: 0 }
             };
         }
