@@ -29,7 +29,7 @@ export async function initDB() {
         setInterval(async () => {
             try {
                 console.log('[DB] Periodic background sync...');
-                const res = await fetch(`${API_BASE}/db`);
+                const res = await fetch(`${API_BASE}/db?t=${Date.now()}`);
                 if (res.ok) {
                     const freshDB = await res.json();
                     
@@ -74,7 +74,7 @@ export async function initDB() {
 
     try {
       console.log('[DB] Synchronizing with Cloud Server...');
-      const res = await fetch(`${API_BASE}/db`, { signal: controller.signal });
+      const res = await fetch(`${API_BASE}/db?t=${Date.now()}`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error('Servidor de nube no disponible.');

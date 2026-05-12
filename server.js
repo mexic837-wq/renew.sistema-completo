@@ -274,8 +274,6 @@ app.get('/api/db', async (req, res) => {
         // Debug log for Chat messages count
         console.log(`[API/DB] Syncing ${db.mensajes_internos.length} internal messages.`);
         
-        res.json(db);
-
         // Final Global Fix: Stringify everything and replace internal URLs globally
         const jsonString = JSON.stringify(db);
         const fixedJson = jsonString
