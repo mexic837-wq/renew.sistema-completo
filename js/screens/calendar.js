@@ -300,7 +300,8 @@ export async function renderMiCalendario() {
                   direccion: ev.direccion,
                   description: ev.descripcion,
                   color: ev.color,
-                  colaboradores: normalizedColab
+                  colaboradores: normalizedColab,
+                  departamentos: ev.departamentos || []
                 }
               });
               current.setDate(current.getDate() + 1);
@@ -320,7 +321,8 @@ export async function renderMiCalendario() {
                 direccion: ev.direccion,
                 description: ev.descripcion,
                 color: ev.color,
-                colaboradores: normalizedColab
+                colaboradores: normalizedColab,
+                departamentos: ev.departamentos || []
               }
             });
           }
@@ -334,7 +336,27 @@ export async function renderMiCalendario() {
     },
     height: 'auto',
     themeSystem: 'standard',
-    eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' }
+    eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' },
+    eventDidMount: function(arg) {
+       const legacyColor = arg.event.backgroundColor || '#00f5d4';
+       const deptos = arg.event.extendedProps.departamentos || [];
+       if (deptos.length > 0) {
+           const colors = { 'Solar': '#064e3b', 'Home': '#84cc16', 'Water': '#1e3a8a' };
+           const c = deptos.map(d => colors[d]).filter(Boolean);
+           if (c.length === 1) {
+               arg.el.style.background = c[0];
+           } else if (c.length === 2) {
+               arg.el.style.background = `linear-gradient(90deg, ${c[0]} 50%, ${c[1]} 50%)`;
+           } else if (c.length >= 3) {
+               arg.el.style.background = `linear-gradient(90deg, ${c[0]} 33.33%, ${c[1]} 33.33%, ${c[1]} 66.66%, ${c[2]} 66.66%)`;
+           }
+           arg.el.style.borderLeft = `4px solid ${legacyColor}`;
+           
+           // Ensure internal text elements inherit white for contrast
+           const mainEl = arg.el.querySelector('.fc-event-main');
+           if (mainEl) mainEl.style.color = '#fff';
+       }
+    }
   });
 
   calendar.render();
@@ -404,6 +426,19 @@ export async function renderMiCalendario() {
             if (colorRadio) colorRadio.checked = true;
         }
         document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
+
+        // Departamentos
+        document.querySelectorAll('input[name="ev-depto"]').forEach(r => {
+            r.checked = false;
+            r.disabled = true;
+        });
+        if (props.departamentos && Array.isArray(props.departamentos)) {
+            props.departamentos.forEach(d => {
+                const dChk = document.querySelector(`input[name="ev-depto"][value="${d}"]`);
+                if (dChk) dChk.checked = true;
+            });
+        }
+
 
     } else {
         // ADD MODE
@@ -531,6 +566,8 @@ export async function renderMiCalendario() {
         const colorNode = document.querySelector('input[name="ev-color"]:checked');
         const color = colorNode ? colorNode.value : 'Verde';
 
+        const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
+
         // Vendor is automatically the collaborator
         const colaboradores = [{
             id: user.id,
@@ -550,6 +587,7 @@ export async function renderMiCalendario() {
             descripcion,
             color,
             colaboradores,
+            departamentos,
             attendees: [],
             created_at: new Date().toISOString()
         };

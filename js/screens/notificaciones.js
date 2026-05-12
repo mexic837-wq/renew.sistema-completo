@@ -51,7 +51,8 @@ export async function renderNotificaciones() {
       const matchesRole = tags.some(tag => tag.toLowerCase() === (user.rol || '').toLowerCase());
       const pipelinePerms = user.pipeline_perms || [];
       const matchesPipe = tags.some(tag => pipelinePerms.includes(tag) || (user.unidades || []).includes(tag));
-      return matchesRole || matchesPipe;
+      const matchesUser = tags.includes(`user_${user.id}`);
+      return matchesRole || matchesPipe || matchesUser;
   }).map(mt => {
       const isRead = meetingReads.some(r => r.meeting_id === mt.id && r.user_id === user.id);
       return {
@@ -91,7 +92,7 @@ export async function renderNotificaciones() {
       const iconClass = item.type === 'meeting' ? 'fa-video' : 'fa-bullhorn';
 
       return `
-        <div class="notif-item" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
+        <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
           
           ${isUnread ? '<div class="unread-border" style="position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--primary); box-shadow: 0 0 12px var(--primary-glow); border-radius: 0 4px 4px 0;"></div>' : ''}
 
@@ -133,10 +134,10 @@ export async function renderNotificaciones() {
     <!-- Detalles View (Integrated, not a popup) -->
     <div id="notif-detail-view" style="display: none; width: 100%; min-height: 100vh; background: var(--bg);">
         <!-- Header background spans full width -->
-        <div style="width: 100%; background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 10;">
+        <div class="bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 w-full">
             <!-- Header content centered -->
             <div style="display: flex; align-items: center; padding: 20px 24px; max-width: 900px; margin: 0 auto; width: 100%;">
-                <button id="btn-close-notif-detail" style="background: rgba(255,255,255,0.08); width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 1.2rem; color: var(--text-primary); cursor: pointer; margin-right: 18px; display: flex; justify-content: center; align-items: center; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+                <button id="btn-close-notif-detail" class="bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10" style="width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 1.2rem; cursor: pointer; margin-right: 18px; display: flex; justify-content: center; align-items: center; transition: all 0.2s ease;">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
                 <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.4px;">Leer Mensaje</h3>

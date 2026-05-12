@@ -62,9 +62,10 @@ export async function renderClients() {
       badgeEl.innerHTML = `${icon} <span>${text}</span>`;
     }
     if (nameEl) {
-      const userName = user && user.nombre ? user.nombre : (user && user.email ? user.email.split('@')[0] : 'Usuario');
-      const titleBase = isTecnico ? (t('clients_title_tech') || 'Mis Citas') : `Hola, ${userName} 👋`;
-      nameEl.textContent = isTecnico ? `${titleBase} - ${userName}` : titleBase;
+      const fullUserName = user && user.nombre ? user.nombre : (user && user.email ? user.email.split('@')[0] : 'Usuario');
+      const firstName = fullUserName.split(' ')[0];
+      const titleBase = isTecnico ? (t('clients_title_tech') || 'Mis Citas') : `Hola, ${firstName} 👋`;
+      nameEl.textContent = isTecnico ? `${titleBase} - ${firstName}` : titleBase;
       console.log('Title updated to:', nameEl.textContent);
     }
     if (avatarEl) {

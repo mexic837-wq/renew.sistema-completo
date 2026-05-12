@@ -22,6 +22,55 @@ export async function initDB() {
   const syncTask = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for massive first fetch
+    
+    // Background sync loop
+    if (!window._syncLoopStarted) {
+        window._syncLoopStarted = true;
+        setInterval(async () => {
+            try {
+                console.log('[DB] Periodic background sync...');
+                const res = await fetch(`${API_BASE}/db`);
+                if (res.ok) {
+                    const freshDB = await res.json();
+                    
+                    // Map keys from snake_case (server) to CamelCase (client cachedDB)
+                    const keyMap = {
+                        admin_pipelines: 'Admin_Pipelines',
+                        admin_fases: 'Admin_Fases',
+                        admin_campos_formulario: 'Admin_Campos_Formulario',
+                        clientes_maestro: 'Clientes_Maestro',
+                        proyectos_dinamicos: 'Proyectos_Dinamicos',
+                        respuestas_dinamicas: 'Respuestas_Dinamicas',
+                        usuarios: 'Usuarios',
+                        academia_content: 'academiaContent',
+                        inventario_global: 'inventarioGlobal',
+                        historial_inventario: 'historialInventario',
+                        anuncios_corporativos: 'anuncios_corporativos',
+                        admin_meetings: 'admin_meetings',
+                        admin_meetings_reads: 'admin_meetings_reads',
+                        mensajes_internos: 'mensajes_internos',
+                        calendario_eventos: 'calendario_eventos'
+                    };
+
+                    const mappedDB = {};
+                    for (const k in freshDB) {
+                        const targetKey = keyMap[k] || k;
+                        mappedDB[targetKey] = freshDB[k];
+                    }
+
+                    // Apply URL fixes
+                    const dbStr = JSON.stringify(mappedDB);
+                    const fixedDB = JSON.parse(dbStr.replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/'));
+                    
+                    cachedDB = { ...cachedDB, ...fixedDB };
+                    updateChatBadges();
+                    window.dispatchEvent(new CustomEvent('db_synced'));
+                }
+            } catch (e) {
+                console.warn('[DB] Periodic sync failed', e);
+            }
+        }, 30000); // Every 30 seconds
+    }
 
     try {
       console.log('[DB] Synchronizing with Cloud Server...');
@@ -30,16 +79,41 @@ export async function initDB() {
 
       if (!res.ok) throw new Error('Servidor de nube no disponible.');
       
-      let freshDB = await res.json();
+      let freshData = await res.json();
       
-      // ── CLIENT-SIDE URL FIX (Fail-safe for Mixed Content) ──
-      // If the server hasn't proxied some URLs, we do it here to avoid browser blocking
-      const dbStr = JSON.stringify(freshDB);
-      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host')) {
-        console.log('[DB] Applying client-side URL fixes for Mixed Content...');
+      // Map keys from snake_case to CamelCase
+      const keyMap = {
+          admin_pipelines: 'Admin_Pipelines',
+          admin_fases: 'Admin_Fases',
+          admin_campos_formulario: 'Admin_Campos_Formulario',
+          clientes_maestro: 'Clientes_Maestro',
+          proyectos_dinamicos: 'Proyectos_Dinamicos',
+          respuestas_dinamicas: 'Respuestas_Dinamicas',
+          usuarios: 'Usuarios',
+          academia_content: 'academiaContent',
+          inventario_global: 'inventarioGlobal',
+          historial_inventario: 'historialInventario',
+          anuncios_corporativos: 'anuncios_corporativos',
+          admin_meetings: 'admin_meetings',
+          admin_meetings_reads: 'admin_meetings_reads',
+          mensajes_internos: 'mensajes_internos',
+          calendario_eventos: 'calendario_eventos'
+      };
+
+      const mappedData = {};
+      for (const k in freshData) {
+          const targetKey = keyMap[k] || k;
+          mappedData[targetKey] = freshData[k];
+      }
+      
+      // ── CLIENT-SIDE URL FIX ──
+      const dbStr = JSON.stringify(mappedData);
+      let freshDB = mappedData;
+      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('renewgroup.site')) {
         const fixedStr = dbStr
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
+          .replace(/https?:\/\/renewgroup\.site\/uploads\//g, window.location.origin + '/uploads/')
           .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         freshDB = JSON.parse(fixedStr);
       }
@@ -59,6 +133,7 @@ export async function initDB() {
       }
 
       cachedDB = freshDB;
+      updateChatBadges();
       
       // Optional: Save a small copy for emergency offline access only
       try {
@@ -209,7 +284,10 @@ export async function saveGranular(table, records) {
             'Clientes_Maestro': 'Clientes_Maestro',
             'Admin_Fases': 'Admin_Fases',
             'Admin_Campos_Formulario': 'Admin_Campos_Formulario',
-            'Usuarios': 'Usuarios'
+            'Usuarios': 'Usuarios',
+            'Historial_Inventario': 'historialInventario',
+            'Mensajes_Internos': 'mensajes_internos',
+            'mensajes_internos': 'mensajes_internos'
         };
         const dbKey = dbKeyMap[tableName] || tableName;
         
@@ -1620,26 +1698,32 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
 }
 
 
-export function syncKanbanActivity({ proyecto_id, evento, campo_etiqueta, archivo_nombre, responsable_id, fase_nombre }) {
+export function syncKanbanActivity({ proyecto_id, evento, campo_etiqueta, archivo_nombre, responsable_id, fase_nombre, skipSave = false }) {
   const db = getDB();
   const p = db.Proyectos_Dinamicos.find(x => x.id === proyecto_id);
   if (!p) return;
 
   if (!p.actividad) p.actividad = [];
+  
+  // Custom label for inventory
+  let displayLabel = `✅ ${fase_nombre}`;
+  if (evento === 'ARCHIVO_SUBIDO') displayLabel = `📎 ${campo_etiqueta}`;
+  if (evento === 'RETIRO_MATERIAL') displayLabel = `📦 Material: ${archivo_nombre}`;
+
   p.actividad.unshift({
     tipo: evento,
     campo: campo_etiqueta || fase_nombre || '',
     archivo: archivo_nombre || null,
     responsable_id: responsable_id || null,
     timestamp: new Date().toISOString(),
-    label: evento === 'ARCHIVO_SUBIDO' ? `📎 ${campo_etiqueta}` : `✅ Fase: ${fase_nombre}`
+    label: displayLabel
   });
 
   if (p.actividad.length > 20) p.actividad = p.actividad.slice(0, 20);
   p.ultima_actividad = new Date().toISOString();
-  p.ultima_actividad_label = evento === 'ARCHIVO_SUBIDO' ? `📎 ${campo_etiqueta}` : `✅ ${fase_nombre}`;
+  p.ultima_actividad_label = displayLabel;
 
-  saveDB(db); // Note: Fires async
+  if (!skipSave) saveDB(db); 
 }
 
 export function formatDate(dateStr) {
@@ -2001,4 +2085,75 @@ export function getProjectDate(p, db) {
     return p.fecha_cierre || p.fecha;
   }
   return p.fecha;
+}
+
+// ── INTERNAL MESSAGING (CHAT) ────────────────────────────────
+export async function getInternalMessages() {
+    const db = getDB();
+    return (db.mensajes_internos || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+}
+
+export async function sendInternalMessage({ content, mentions = [], image_url = null }) {
+    const user = getCurrentUser();
+    if (!user) throw new Error('No hay sesión activa');
+
+    const newMessage = {
+        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        sender_id: user.id,
+        sender_name: user.nombre + ' ' + (user.apellido || ''),
+        content,
+        mentions, // Array of user IDs
+        image_url,
+        created_at: new Date().toISOString(),
+        read_by: [user.id]
+    };
+
+    const db = getDB();
+    if (!db.mensajes_internos) db.mensajes_internos = [];
+    db.mensajes_internos.push(newMessage);
+    
+    // Maintain a reasonable limit for in-memory chat history if needed, 
+    // but for now, let's just save.
+    await saveGranular('mensajes_internos', [newMessage]);
+    return newMessage;
+}
+
+export async function markMessageAsRead(messageId) {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    const db = getDB();
+    const msg = (db.mensajes_internos || []).find(m => m.id === messageId);
+    if (msg && !msg.read_by.includes(user.id)) {
+        msg.read_by.push(user.id);
+        await saveGranular('mensajes_internos', [msg]);
+    }
+}
+
+export function updateChatBadges() {
+    const user = getCurrentUser();
+    if (!user) return;
+    const db = getDB();
+    const messages = db.mensajes_internos || [];
+    const unreadCount = messages.filter(m => 
+        m.mentions && m.mentions.includes(user.id) && (!m.read_by || !m.read_by.includes(user.id))
+    ).length;
+
+    window._unreadChatCount = unreadCount;
+
+    // Update all badge elements in the DOM
+    const badges = document.querySelectorAll('[id^="chat-badge-"], #chat-header-badge, #notifications-badge-chat');
+    badges.forEach(b => {
+        if (unreadCount > 0) {
+            b.classList.remove('hidden');
+            // Check if it's a "dot only" badge or a "number" badge
+            if (b.id === 'chat-header-badge' || b.classList.contains('w-2.5')) {
+                // Just keep it visible (the dot)
+            } else {
+                b.textContent = unreadCount;
+            }
+        } else {
+            b.classList.add('hidden');
+        }
+    });
 }

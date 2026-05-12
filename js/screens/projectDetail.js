@@ -44,6 +44,24 @@ function renderDiscussion(discusion) {
     `).join('');
 }
 
+function renderProjectInventory(dealId) {
+    const db = getDB();
+    const historial = db.historialInventario || [];
+    const used = historial.filter(h => h.proyecto_id === dealId && h.tipo_movimiento === 'Salida (Proyecto)');
+    
+    if (!used.length) return '<div style="background:var(--surface-alt); border-radius:12px; padding:16px; font-size:0.85rem; color:var(--text-muted); border:1px solid var(--border); text-align:center; font-style:italic;">No se han retirado materiales.</div>';
+    
+    return used.map(h => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-alt); padding:12px; border-radius:12px; border:1px solid var(--border);">
+           <div>
+              <div style="font-weight:800; font-size:0.85rem; color:var(--text-primary); text-transform:uppercase;">${h.item_nombre}</div>
+              <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;"><i class="fa-solid fa-user text-[8px] mr-1"></i> ${h.tecnico_nombre} &nbsp;&bull;&nbsp; ${new Date(h.fecha).toLocaleDateString()}</div>
+           </div>
+           <div style="background:#ef444415; color:#ef4444; font-weight:900; font-size:0.85rem; padding:6px 10px; border-radius:8px; border:1px solid #ef444430;">-${h.cantidad_retirada}</div>
+        </div>
+    `).join('');
+}
+
 export async function renderDetail(dealId) {
   const screen = document.getElementById('screen-detail');
   if (!screen) return;
@@ -123,6 +141,18 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
 
     <div style="padding: 16px; padding-bottom: 40px;">
       <div id="dynamic-action-section"></div>
+
+      <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
+          Materiales del Proyecto
+          <button onclick="window.appNavigate('inventory-tech', '${deal.id}')" style="background:${pipeline.color}15; color:${pipeline.color}; border:1px solid ${pipeline.color}30; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">
+             <i class="fa-solid fa-box-open mr-1"></i> Retirar Material
+          </button>
+        </h3>
+        <div id="project-inventory-list-${deal.id}" style="display:flex; flex-direction:column; gap:8px;">
+          ${renderProjectInventory(deal.id)}
+        </div>
+      </div>
 
       <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>

@@ -2,14 +2,16 @@
    RENEW SOLAR – screens/inventory.js
    Drill-down Inventory Form for Techs
    ============================================================ */
-import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario } from '../api.js';
+import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, syncKanbanActivity } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { navigate, getCurrentUser } from '../app.js';
 
 let selectedSede = null;
 let selectedEcosistema = null;
+let currentDealId = null;
 
-export function renderInventoryTech() {
+export function renderInventoryTech(dealId = null) {
+  currentDealId = dealId;
   const screen = document.getElementById('screen-inventory-tech');
   if (!screen) return;
 
@@ -132,10 +134,16 @@ export function renderInventoryTech() {
     btnAddStock.addEventListener('click', () => handleInventoryChange('addition'));
   }
 
-  // Back Button to Dashboard
+  // Back Button to Dashboard or Project
   const btnBackDash = document.getElementById('btn-inventory-back');
   if (btnBackDash) {
-    btnBackDash.addEventListener('click', () => navigate('dashboard'));
+    btnBackDash.addEventListener('click', () => {
+        if (currentDealId) {
+            navigate('detail', currentDealId);
+        } else {
+            navigate('dashboard');
+        }
+    });
   }
 
   function populateItems() {
@@ -157,7 +165,19 @@ export function renderInventoryTech() {
         trigger.style.borderColor = isHidden ? 'var(--tealAccent)' : 'var(--border)';
     };
 
-    document.getElementById('form-title').innerText = `RETIRO DE MATERIAL - SEDE ${selectedSede.toUpperCase()} (${selectedEcosistema.toUpperCase()})`;
+    let formTitle = `RETIRO DE MATERIAL - SEDE ${selectedSede.toUpperCase()} (${selectedEcosistema.toUpperCase()})`;
+    
+    let clienteNombre = null;
+    if (currentDealId) {
+        const db = getDB();
+        const proj = (db.Proyectos_Dinamicos || []).find(p => p.id === currentDealId);
+        if (proj) {
+            clienteNombre = proj.nombre_cliente;
+            formTitle = `RETIRO DE MATERIAL<br><span style="font-size:0.75rem; color:var(--tealAccent);">PROYECTO: ${clienteNombre}</span>`;
+        }
+    }
+    
+    document.getElementById('form-title').innerHTML = formTitle;
 
     const invData = getInventario();
     const filtered = invData.filter(item => {
@@ -219,7 +239,7 @@ export function renderInventoryTech() {
     });
   }
 
-  function handleInventoryChange(mode = 'withdrawal') {
+  async function handleInventoryChange(mode = 'withdrawal') {
     const itemId = document.getElementById('inv-item-select').value;
     const qtyInput = document.getElementById('inv-item-qty').value;
     const qty = parseInt(qtyInput, 10);
@@ -248,29 +268,61 @@ export function renderInventoryTech() {
         item.stockActual += qty;
     }
 
-    saveInventario(invData);
-
     // ── Registro en historialInventario ──────────────────────────
     try {
-      const loggedUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+      const loggedUser = getCurrentUser() || {};
       const userName = [loggedUser.nombre, loggedUser.apellido].filter(Boolean).join(' ') || loggedUser.email || (mode === 'withdrawal' ? 'Técnico' : 'Admin');
+      
+      let clienteNombre = null;
+      if (currentDealId) {
+          const db = getDB();
+          const proj = (db.Proyectos_Dinamicos || []).find(p => p.id === currentDealId);
+          if (proj) {
+              const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proj.cliente_id));
+              if (cli) clienteNombre = cli.nombre;
+          }
+      }
 
       const historial = getHistorialInventario();
-      historial.unshift({
+      const newEntry = {
         fecha: new Date().toISOString(),
         tecnico_nombre: userName,
+        tecnico_id: loggedUser.id || null,
         item_nombre: item.nombreItem,
         item_id: item.id,
-        cantidad_retirada: mode === 'withdrawal' ? qty : 0,
-        cantidad_surtida: mode === 'addition' ? qty : 0,
+        cantidad_retirada: mode === 'withdrawal' ? qty : -qty,
         sede: selectedSede,
         ecosistema: selectedEcosistema,
-        tipo_movimiento: mode === 'withdrawal' ? 'RETIRO' : 'SURTIDO'
-      });
+        proyecto_id: currentDealId || null,
+        cliente_nombre: clienteNombre,
+        tipo_movimiento: currentDealId && mode === 'withdrawal' ? 'Salida (Proyecto)' : (mode === 'withdrawal' ? 'RETIRO' : 'SURTIDO')
+      };
+      historial.unshift(newEntry);
       if (historial.length > 500) historial.length = 500;
-      saveHistorialInventario(historial);
+      
+      // Update DB and Save once
+      const db = getDB();
+      db.inventarioGlobal = invData;
+      db.historialInventario = historial;
+
+      if (currentDealId && mode === 'withdrawal') {
+          syncKanbanActivity({
+              proyecto_id: currentDealId,
+              evento: 'RETIRO_MATERIAL',
+              campo_etiqueta: 'Inventario',
+              archivo_nombre: `${qty} x ${item.nombreItem}`,
+              responsable_id: loggedUser.id,
+              fase_nombre: 'Materiales',
+              skipSave: true
+          });
+      }
+
+      await saveDB(db);
+
     } catch (histErr) {
       console.warn('No se pudo guardar el historial de inventario:', histErr);
+      showToast('Error al sincronizar historial con la nube', 'error');
+      return; // Stop here if save fails
     }
     // ─────────────────────────────────────────────────────────────
 
@@ -280,7 +332,11 @@ export function renderInventoryTech() {
     document.getElementById('inv-item-select').value = '';
     document.getElementById('inv-item-qty').value = '';
     
-    step3.style.display = 'none';
-    step1.style.display = 'block';
+    if (currentDealId) {
+        navigate('detail', currentDealId);
+    } else {
+        step3.style.display = 'none';
+        step1.style.display = 'block';
+    }
   }
 }

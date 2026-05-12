@@ -42,6 +42,9 @@ import { renderMisRecibos } from './screens/recibos.js';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderPlantillas }  from './screens/plantillas.js';
 import { t, getLang } from './i18n.js';
+import { openChat } from './components/internal-chat.js';
+
+window.openInternalChat = openChat;
 
 // expose for window.switchLang toast
 import { showToast } from './components/toast.js';
@@ -311,7 +314,19 @@ window.verificarAnunciosNuevos = async function() {
       }
   }
 
-  // 3. Actualizar el badge en el menú de navegación inferior
+  // 3. Contar mensajes internos no leídos (donde el usuario es mencionado)
+  const mensajes = db.mensajes_internos || [];
+  let unreadChatCount = 0;
+  for (let msg of mensajes) {
+      if (msg.mentions && msg.mentions.includes(user.id)) {
+          if (!msg.read_by || !msg.read_by.includes(user.id)) {
+              unreadChatCount++;
+          }
+      }
+  }
+  window._unreadChatCount = unreadChatCount;
+
+  // 4. Actualizar badges
   const navBadge = document.getElementById('notif-badge');
   if (navBadge) {
       if (unreadCount > 0) {
@@ -321,7 +336,21 @@ window.verificarAnunciosNuevos = async function() {
           navBadge.style.display = 'none';
       }
   }
+
+  // Update all potential chat badges
+  const chatBadges = document.querySelectorAll('[id^="chat-badge"]');
+  chatBadges.forEach(badge => {
+      if (unreadChatCount > 0) {
+          badge.textContent = unreadChatCount;
+          badge.classList.remove('hidden');
+      } else {
+          badge.classList.add('hidden');
+      }
+  });
 }
+
+// Check every 30 seconds
+setInterval(window.verificarAnunciosNuevos, 30000);
 
 // ── Router ──────────────────────────────────────────────────
 const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones', 'plantillas'];
@@ -368,7 +397,7 @@ export function navigate(screen, param = null) {
     case 'detail':      renderDetail(param);        break;
     case 'academy':     renderAcademy();            break;
     case 'menu':        renderMenu();               break;
-    case 'inventory-tech': renderInventoryTech();   break;
+    case 'inventory-tech': renderInventoryTech(param);   break;
     case 'clients':
       renderClients().then(() => {
         if (param === 'new') {
@@ -558,7 +587,7 @@ function handleHashChange() {
       case 'detail':     renderDetail(param);     break;
       case 'academy':    renderAcademy();         break;
       case 'menu':       renderMenu();            break;
-      case 'inventory-tech': renderInventoryTech(); break;
+      case 'inventory-tech': renderInventoryTech(param); break;
       case 'clients':
         renderClients().then(() => {
           if (param === 'new') {
@@ -720,7 +749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'dashboard':     renderDashboard();       break;
       case 'notificaciones': renderNotificaciones(); break;
       case 'new-client':    renderNewClient();       break;
-      case 'inventory-tech':renderInventoryTech();   break;
+      case 'inventory-tech':renderInventoryTech(param);   break;
       case 'clients':       renderClients();         break;
       case 'academy':       renderAcademy();         break;
       // Avoid re-rendering detail if it interrupts user typing

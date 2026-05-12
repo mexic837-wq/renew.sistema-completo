@@ -292,13 +292,21 @@ export async function renderDashboard() {
       <div class="dash-header-top">
         <div class="dash-greeting">
           <div class="greeting-time">${getGreeting()}</div>
-          <h1>Hola, ${user.nombre} ${user.apellido} \uD83D\uDC4B</h1>
+          <h1 class="text-xl font-black tracking-tight">Hola, ${user.nombre.split(' ')[0]} 👋</h1>
         </div>
 
-        <button class="avatar-btn" id="avatar-btn" aria-label="Perfil"
-          style="${user.foto ? `background-image:url(${user.foto});background-size:cover;background-position:center;color:transparent;border:2px solid rgba(255,255,255,0.2)` : ''}">
-          ${user.foto ? '' : (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase()}
-        </button>
+        <div class="flex items-center gap-4">
+          <button id="btn-chat-mobile" onclick="window.openInternalChat && window.openInternalChat()" 
+            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
+            <i class="fa-solid fa-comment-dots text-xl"></i>
+            <span id="chat-badge-mobile" class="absolute -top-1 -right-1 bg-tealAccent text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#0b1120] ${window._unreadChatCount > 0 ? '' : 'hidden'}">${window._unreadChatCount || 0}</span>
+          </button>
+          
+          <button class="avatar-btn" id="avatar-btn" aria-label="Perfil"
+            style="${user.foto ? `background-image:url(${user.foto});background-size:cover;background-position:center;color:transparent;border:2px solid rgba(255,255,255,0.15)` : ''}">
+            ${user.foto ? '' : (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase()}
+          </button>
+        </div>
       </div>
     </div>
 

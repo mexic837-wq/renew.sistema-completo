@@ -16,6 +16,44 @@ import { showToast } from './components/toast.js';
 import { t, getLang, setLang } from './i18n.js';
 import { renderRendimientoGlobal } from './screens/rendimiento-global.js';
 import { renderHRHub } from './screens/hrhub.js';
+import { openChat } from './components/internal-chat.js';
+
+window.openInternalChat = openChat;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const chatBtn = document.getElementById('btn-header-chat');
+    if (chatBtn) chatBtn.addEventListener('click', openChat);
+
+    // Initial check and periodic refresh
+    updateAdminBadges();
+    setInterval(updateAdminBadges, 30000); // Every 30s
+});
+
+async function updateAdminBadges() {
+    const user = getCurrentUser();
+    if (!user) return;
+    
+    const db = getDB();
+    const mensajes = db.mensajes_internos || [];
+    let unreadCount = 0;
+    
+    for (let msg of mensajes) {
+        if (msg.mentions && msg.mentions.includes(user.id)) {
+            if (!msg.read_by || !msg.read_by.includes(user.id)) {
+                unreadCount++;
+            }
+        }
+    }
+    
+    const badge = document.getElementById('chat-header-badge');
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
 
 
 function readFileAsBase64(file) {
@@ -75,7 +113,7 @@ window.addStock = (id) => {
                     item_id: item.id,
                     cantidad_retirada: -val, // Negative withdrawal = addition
                     sede: item.locacion || 'orlando',
-                    ecosistema: item.ecosistema || 'solar'
+                    ecosistema: state.activeEcoFilter || 'solar'
                 });
                 if (historial.length > 500) historial.length = 500;
                 saveHistorialInventario(historial);
@@ -4257,6 +4295,7 @@ window.renderView = async function renderView() {
                   <span class="text-xs font-bold text-gray-800 dark:text-white">${h.tecnico_nombre || 'Desconocido'}</span>
                 </div>
               </td>
+              <td class="px-6 py-3 whitespace-nowrap text-[10px] font-black text-[#3b82f6] uppercase tracking-wider">${h.cliente_nombre || '-'}</td>
               <td class="px-6 py-3 whitespace-nowrap text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">${h.item_nombre || '-'}</td>
               <td class="px-6 py-3 whitespace-nowrap">
                 <span class="inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-2 py-0.5 text-[10px] font-black">
@@ -4327,6 +4366,7 @@ window.renderView = async function renderView() {
                 <tr>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_date')}</th>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_tech')}</th>
+                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PROYECTO</th>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_item')}</th>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_qty')}</th>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_sede')}</th>
@@ -4363,9 +4403,10 @@ window.renderView = async function renderView() {
     if (state.activeAnnTab === 'comunicados') {
         // --- COMUNICADOS LOGIC ---
         if (!db.anuncios_corporativos) db.anuncios_corporativos = [];
+        window._cachedAnunciosWorkers = await getAdminWorkers();
         const dynPipelines = db.Admin_Pipelines || [];
         const sortedAnuncios = [...db.anuncios_corporativos].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
-        window._cachedAnunciosWorkers = await getAdminWorkers();
+        
         
         const anunciosHtml = sortedAnuncios.map(an => {
           const getTagBadge = (tag) => {
@@ -4442,6 +4483,17 @@ window.renderView = async function renderView() {
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Trabajadores</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${(window._cachedAnunciosWorkers || []).map(w => `
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" class="aud-check aud-worker w-3.5 h-3.5 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="user_${w.id}">
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-tealAccent transition-colors">${w.nombre} ${w.apellido || ''}</span>
                                     </label>
                                 `).join('')}
                             </div>
@@ -4566,6 +4618,17 @@ window.renderView = async function renderView() {
                                 `).join('')}
                             </div>
                         </div>
+                        <div class="pt-2 border-t border-gray-100 dark:border-white/5">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Trabajadores</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                ${(window._cachedAnunciosWorkers || []).map(w => `
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" class="mt-aud-check aud-worker w-3.5 h-3.5 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="user_${w.id}">
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-400 transition-colors">${w.nombre} ${w.apellido || ''}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
                     </div>
                   </div>
                   <div class="space-y-1">
@@ -4649,11 +4712,12 @@ window.renderView = async function renderView() {
                   };
                   
                   const todosTra = await getAdminWorkers();
-                  nuevoAnuncio.estado_lecturas = todosTra.filter(w => {
+                    nuevoAnuncio.estado_lecturas = todosTra.filter(w => {
                     if (isAll) return true;
                     const matchesPipe = audTags.some(tag => (w.unidades || []).includes(tag));
                     const matchesRole = audTags.some(tag => (w.rol || '').toLowerCase() === tag.toLowerCase());
-                    return matchesPipe || matchesRole;
+                    const matchesUser = audTags.includes(`user_${w.id}`);
+                    return matchesPipe || matchesRole || matchesUser;
                   }).map(w => ({
                     vendedor_id: w.id,
                     vendedor_nombre: `${w.nombre} ${w.apellido}`,
@@ -5051,7 +5115,8 @@ function renderCalendario() {
                         description: ev.descripcion,
                         adjunto_url: ev.adjunto_url,
                         color: ev.color,
-                        colaboradores: normalizedColab
+                        colaboradores: normalizedColab,
+                        departamentos: ev.departamentos || []
                     }
                 };
              });
@@ -5063,11 +5128,27 @@ function renderCalendario() {
       }
     ],
     eventContent: function(arg) {
-       const color = arg.event.backgroundColor || '#00f5d4';
-       const timeText = arg.timeText ? `<span class="opacity-70 mr-1">${arg.timeText}</span>` : '';
+       const legacyColor = arg.event.backgroundColor || '#00f5d4';
+       const deptos = arg.event.extendedProps.departamentos || [];
+       let bgStyle = '';
+       let textCol = '#ffffff';
+       
+       if (deptos.length > 0) {
+           const colors = { 'Solar': '#064e3b', 'Home': '#84cc16', 'Water': '#1e3a8a' };
+           const c = deptos.map(d => colors[d]).filter(Boolean);
+           if (c.length === 1) bgStyle = `background: ${c[0]};`;
+           else if (c.length === 2) bgStyle = `background: linear-gradient(90deg, ${c[0]} 50%, ${c[1]} 50%);`;
+           else if (c.length >= 3) bgStyle = `background: linear-gradient(90deg, ${c[0]} 33.33%, ${c[1]} 33.33%, ${c[1]} 66.66%, ${c[2]} 66.66%);`;
+       } else {
+           bgStyle = `background: ${legacyColor}15; border-left: 3px solid ${legacyColor};`;
+           textCol = legacyColor;
+       }
+
+       const timeText = arg.timeText ? `<span class="opacity-70 mr-1" style="color: ${textCol}">${arg.timeText}</span>` : '';
        let html = `
-         <div class="flex items-center gap-1.5 w-full overflow-hidden p-1 rounded" style="border-left: 3px solid ${color}; background: ${color}15;">
-            <div class="text-[10px] font-bold text-gray-800 dark:text-white truncate" style="color: ${color}">${timeText}${arg.event.title}</div>
+         <div class="flex items-center gap-1.5 w-full overflow-hidden p-1 rounded relative" style="${bgStyle}">
+            <div class="absolute top-0 right-0 w-2 h-2 rounded-bl" style="background: ${legacyColor};"></div>
+            <div class="text-[10px] font-bold truncate z-10" style="color: ${textCol}; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${timeText}${arg.event.title}</div>
          </div>
        `;
        return { html: html };
@@ -5193,6 +5274,17 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
     document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
 
+    document.querySelectorAll('input[name="ev-depto"]').forEach(r => {
+        r.checked = false;
+        r.disabled = true;
+    });
+    if (props.departamentos && Array.isArray(props.departamentos)) {
+        props.departamentos.forEach(d => {
+            const dChk = document.querySelector(`input[name="ev-depto"][value="${d}"]`);
+            if (dChk) dChk.checked = true;
+        });
+    }
+
   } else {
     // ADD NEW EVENT MODE (Triggered genericlly)
     titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
@@ -5228,6 +5320,11 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     document.getElementById('ev-colaboradores').parentElement.classList.remove('hidden');
 
     document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
+    
+    document.querySelectorAll('input[name="ev-depto"]').forEach(r => {
+        r.disabled = false;
+        r.checked = false;
+    });
 
     // ── Load collaborators as checkboxes with email for Google Calendar attendees ──
     const container = document.getElementById('ev-colaboradores-container');
@@ -5374,6 +5471,8 @@ window.guardarEventoCalendario = async function(e) {
     const colorNode = document.querySelector('input[name="ev-color"]:checked');
     const color = colorNode ? colorNode.value : 'Verde';
     
+    const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
+    
     // ── Read collaborators from checkboxes (stores id + email for Google Calendar) ──
     const colaboradores = [];
     document.querySelectorAll('.ev-colab-chk:checked').forEach(chk => {
@@ -5407,9 +5506,8 @@ window.guardarEventoCalendario = async function(e) {
       id: 'ev_' + Date.now(),
       created_at: new Date().toISOString(),
       nombre, fecha_inicio, fecha_fin, telefono, direccion, descripcion, color, adjunto_url,
-      // colaboradores: array of { id, nombre, email } — used for display
       colaboradores,
-      // attendees: Google Calendar-ready format for future sync
+      departamentos,
       attendees,
       notificacion_recordatorio: recordatorio !== 'none' ? recordatorio : null
     };
@@ -5909,6 +6007,7 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
     document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
     document.getElementById('det-usr-tel-emergencia').textContent = usr.tel_emergencia || '-';
+    if (document.getElementById('det-usr-contacto-emergencia-nombre')) document.getElementById('det-usr-contacto-emergencia-nombre').textContent = usr.contacto_emergencia_nombre || '-';
     document.getElementById('det-usr-direccion').textContent = usr.direccion || '-';
     document.getElementById('det-usr-zelle-nombre').textContent = usr.zelle_nombre || '-';
     document.getElementById('det-usr-zelle-cuenta').textContent = usr.zelle_cuenta || '-';
@@ -5921,11 +6020,16 @@ async function showWorkerDetail(id) {
     // Format DOB for view mode (mes dia año)
     const dobViewEl = document.getElementById('det-usr-dob-view');
     if (dobViewEl) {
-        if (usr.dob) {
-            const [y, m, d] = usr.dob.split('-');
-            dobViewEl.textContent = `${m}/${d}/${y}`;
+        if (usr.dob && usr.dob.includes('-')) {
+            const parts = usr.dob.split('-');
+            if (parts.length === 3) {
+                const [y, m, d] = parts;
+                dobViewEl.textContent = `${m}/${d}/${y}`;
+            } else {
+                dobViewEl.textContent = usr.dob;
+            }
         } else {
-            dobViewEl.textContent = '-';
+            dobViewEl.textContent = usr.dob || '-';
         }
     }
 
@@ -6068,8 +6172,28 @@ async function toggleDetailEditMode(id) {
             }
         }
         
+        // Apply flatpickr first so we can use its API if needed
+        if (window.initDatePickers) window.initDatePickers();
+
         if (document.getElementById('det-edit-id')) document.getElementById('det-edit-id').value = usr.id;
-        if (document.getElementById('det-edit-dob')) document.getElementById('det-edit-dob').value = usr.dob || '';
+        if (document.getElementById('det-edit-dob')) {
+            const dobEl = document.getElementById('det-edit-dob');
+            let dobVal = usr.dob || '';
+            // Ensure format is YYYY-MM-DD for date input
+            if (dobVal && dobVal.includes('/')) {
+                const parts = dobVal.split('/');
+                if (parts.length === 3) {
+                    // Assume MM/DD/YYYY and convert to YYYY-MM-DD
+                    dobVal = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                }
+            }
+            
+            if (dobEl._flatpickr) {
+                dobEl._flatpickr.setDate(dobVal, true); // true to trigger onChange
+            } else {
+                dobEl.value = dobVal;
+            }
+        }
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
         if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'Vendedor';
         if (document.getElementById('det-edit-rank')) document.getElementById('det-edit-rank').value = usr.rango || 'novato';
@@ -6078,6 +6202,7 @@ async function toggleDetailEditMode(id) {
         // Populate new fields
         if (document.getElementById('det-edit-direccion')) document.getElementById('det-edit-direccion').value = usr.direccion || '';
         if (document.getElementById('det-edit-tel-emergencia')) document.getElementById('det-edit-tel-emergencia').value = usr.tel_emergencia || '';
+        if (document.getElementById('det-edit-contacto-emergencia-nombre')) document.getElementById('det-edit-contacto-emergencia-nombre').value = usr.contacto_emergencia_nombre || '';
         if (document.getElementById('det-edit-zelle-nombre')) document.getElementById('det-edit-zelle-nombre').value = usr.zelle_nombre || '';
         if (document.getElementById('det-edit-zelle-cuenta')) document.getElementById('det-edit-zelle-cuenta').value = usr.zelle_cuenta || '';
         if (document.getElementById('det-edit-zelle-tel')) document.getElementById('det-edit-zelle-tel').value = usr.zelle_tel || '';
@@ -6085,9 +6210,6 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-banco-nombre')) document.getElementById('det-edit-banco-nombre').value = usr.banco_nombre || '';
         if (document.getElementById('det-edit-banco-cuenta')) document.getElementById('det-edit-banco-cuenta').value = usr.banco_cuenta || '';
         if (document.getElementById('det-edit-banco-ruta'))   document.getElementById('det-edit-banco-ruta').value   = usr.banco_ruta   || '';
-
-        // Apply flatpickr to the new edit field
-        if (window.initDatePickers) window.initDatePickers();
 
         // ── Pre-fill W-9 state in edit panel ──────────────────────────────
         state.detEditW9Url = usr.w9Url || usr.w9_url || null;
@@ -6309,6 +6431,7 @@ async function toggleDetailEditMode(id) {
             const dob = dobEl ? dobEl.value : (usr.dob || '');
 
             const tel_emergencia = document.getElementById('det-edit-tel-emergencia')?.value.trim() || '';
+            const contacto_emergencia_nombre = document.getElementById('det-edit-contacto-emergencia-nombre')?.value.trim() || '';
             const direccion = document.getElementById('det-edit-direccion')?.value.trim() || '';
             const zelle_nombre = document.getElementById('det-edit-zelle-nombre')?.value.trim() || '';
             const zelle_cuenta = document.getElementById('det-edit-zelle-cuenta')?.value.trim() || '';
@@ -6354,7 +6477,7 @@ async function toggleDetailEditMode(id) {
                     carnet_url: state.detEditCarnetUrl !== undefined ? state.detEditCarnetUrl : (usr.carnet_url || null),
                     contrato_url: state.detEditContratoUrl !== undefined ? state.detEditContratoUrl : (usr.contrato_url || null),
                     estatus_rrhh: current_estatus,
-                    tel_emergencia, direccion, zelle_nombre, zelle_cuenta, zelle_tel,
+                    tel_emergencia, contacto_emergencia_nombre, direccion, zelle_nombre, zelle_cuenta, zelle_tel,
                     banco_nombre, banco_cuenta, banco_ruta
                 };
 
@@ -6371,6 +6494,9 @@ async function toggleDetailEditMode(id) {
                 document.getElementById('det-usr-rol').textContent = rol;
                 document.getElementById('det-usr-dept').textContent = department || 'Grupo Renew';
                 document.getElementById('det-usr-tel').textContent = telefono || '-';
+                if (document.getElementById('det-usr-tel-emergencia')) document.getElementById('det-usr-tel-emergencia').textContent = tel_emergencia || '-';
+                if (document.getElementById('det-usr-contacto-emergencia-nombre')) document.getElementById('det-usr-contacto-emergencia-nombre').textContent = contacto_emergencia_nombre || '-';
+                if (document.getElementById('det-usr-direccion')) document.getElementById('det-usr-direccion').textContent = direccion || '-';
                 
                 const dobViewEl = document.getElementById('det-usr-dob-view');
                 if (dobViewEl) {

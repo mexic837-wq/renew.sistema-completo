@@ -85,7 +85,7 @@ app.get('/api/db', async (req, res) => {
             'admin_pipelines', 'admin_fases', 'admin_campos_formulario', 'clientes_maestro', 
             'proyectos_dinamicos', 'respuestas_dinamicas', 'usuarios', 'academia_content', 
             'inventario_global', 'historial_inventario', 'anuncios_corporativos', 'partners_directorio', 'calendario_eventos',
-            'recibos_pagos', 'water_productos', 'admin_catalogos', 'admin_meetings', 'admin_meetings_reads'
+            'recibos_pagos', 'water_productos', 'admin_catalogos', 'admin_meetings', 'admin_meetings_reads', 'mensajes_internos'
         ];
         
         const results = await Promise.all(tables.map(t => fetchWithTimeout(t)));
@@ -247,6 +247,10 @@ app.get('/api/db', async (req, res) => {
             Admin_Catalogos:         results[15].data || [],
             admin_meetings:          results[16].data || [],
             admin_meetings_reads:    results[17].data || [],
+            mensajes_internos:       (results[18].data || []).map(m => ({
+                ...m,
+                image_url: fixUrl(m.image_url)
+            })),
             // Compute counters dynamically from real data — avoids collision bugs
             Counters: {
                 cli:   maxId(results[3].data,  'cli_'),
@@ -566,7 +570,17 @@ app.post('/api/db', async (req, res) => {
                     contrato_url: u.contrato_url || u.contratoUrl || null,
                     estatus_rrhh: u.estatus_rrhh || null,
                     is_suspended: u.is_suspended || false,
-                    unidades:   Array.isArray(u.unidades) ? u.unidades : []
+                    unidades:   Array.isArray(u.unidades) ? u.unidades : [],
+                    // --- NEW FIELDS ---
+                    tel_emergencia: u.tel_emergencia || null,
+                    contacto_emergencia_nombre: u.contacto_emergencia_nombre || null,
+                    direccion:      u.direccion      || null,
+                    zelle_nombre:   u.zelle_nombre   || null,
+                    zelle_cuenta:   u.zelle_cuenta   || null,
+                    zelle_tel:      u.zelle_tel      || null,
+                    banco_nombre:   u.banco_nombre   || null,
+                    banco_cuenta:   u.banco_cuenta   || null,
+                    banco_ruta:     u.banco_ruta     || null
                 };
                 if (mapped.id === 'u1') console.log('[DEBUG-U1] Mapped Carlos:', JSON.stringify(mapped));
                 return mapped;
@@ -700,7 +714,27 @@ app.post('/api/db', async (req, res) => {
             syncTasks.push(supabase.from('inventario_global').upsert(mappedInv, { onConflict: 'id' }));
         }
         if (db.historialInventario?.length) {
-            syncTasks.push(supabase.from('historial_inventario').upsert(db.historialInventario, { onConflict: 'fecha' })); 
+            const mappedHist = db.historialInventario.map(h => ({
+                fecha:             h.fecha             || new Date().toISOString(),
+                tecnico_nombre:    h.tecnico_nombre    || null,
+                item_nombre:       h.item_nombre       || null,
+                item_id:           h.item_id           || null,
+                cantidad_retirada: h.cantidad_retirada || 0,
+                sede:              h.sede              || 'orlando',
+                ecosistema:        h.ecosistema        || 'solar',
+                proyecto_id:       h.proyecto_id       || null,
+                cliente_nombre:    h.cliente_nombre    || null,
+                tipo_movimiento:   h.tipo_movimiento   || null
+            }));
+            console.log(`[SUPABASE] Upserting ${mappedHist.length} history records...`);
+            const histTask = supabase.from('historial_inventario').upsert(mappedHist, { onConflict: 'fecha' }).then(({data, error}) => {
+                if (error) {
+                    console.error('[SUPABASE ERROR] table historial_inventario:', error.message, error.details);
+                    return { error };
+                }
+                return { data };
+            });
+            syncTasks.push(histTask);
         }
 
         if (db.Admin_Proveedores?.length) {
@@ -728,6 +762,7 @@ app.post('/api/db', async (req, res) => {
                 descripcion:   ev.descripcion || null,
                 color:         ev.color || null,
                 colaboradores: Array.isArray(ev.colaboradores) ? ev.colaboradores.map(c => typeof c === 'string' ? c : JSON.stringify(c)) : [],
+                departamentos: ev.departamentos || [],
                 attendees:     ev.attendees || [],
                 adjunto_url:   ev.adjunto_url || null,
                 created_at:    ev.created_at || ev.fecha_creacion || new Date().toISOString()
@@ -758,6 +793,9 @@ app.post('/api/db', async (req, res) => {
                 pdf_url:          r.pdf_url          || null
             }));
             syncTasks.push(supabase.from('recibos_pagos').upsert(mappedRec, { onConflict: 'id' }));
+        }
+        if (db.mensajes_internos?.length) {
+            syncTasks.push(supabase.from('mensajes_internos').upsert(db.mensajes_internos, { onConflict: 'id' }));
         }
         // Counters are computed dynamically from real data — no table needed
 
@@ -1868,31 +1906,35 @@ const upload = multer({
 
 // Helper function to upload — saves locally and returns public URL accessible from anywhere
 const subirArchivo = async (file, folder) => {
-    if (!file || !file.originalname) {
-        throw new Error('Archivo inválido o sin nombre');
+    if (!file || !file.buffer) {
+        throw new Error('Archivo inválido o sin buffer');
     }
     const ext = path.extname(file.originalname);
     
-    // Aplanar subcarpetas (profiles/123 -> folder: profiles, filename: 123-timestamp)
-    let targetFolder = folder;
-    let filePrefix = '';
-    if (folder && folder.includes('/')) {
-        const parts = folder.split('/');
-        targetFolder = parts[0]; 
-        filePrefix = parts.slice(1).join('_') + '-';
-    }
+    // Normalize folder name and file name
+    let targetFolder = folder.replace(/^\//, '').replace(/\/$/, '');
+    const fileName = `${targetFolder}/${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
 
-    const fileName = `${filePrefix}${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-    const localDir = path.join(__dirname, 'uploads', targetFolder);
-    if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
-    const localFilePath = path.join(localDir, fileName);
-    
-    console.log(`[STORAGE] Guardando localmente: ${localFilePath}`);
+    console.log(`[STORAGE] Uploading to Supabase: archivos_renew/${fileName}`);
 
     try {
-        fs.writeFileSync(localFilePath, file.buffer);
-        const publicUrl = `${PUBLIC_BASE_URL}/uploads/${targetFolder}/${fileName}`;
-        console.log('[STORAGE] ✅ Guardado exitoso:', publicUrl);
+        const { data, error } = await supabase.storage
+            .from('archivos_renew')
+            .upload(fileName, file.buffer, {
+                contentType: file.mimetype,
+                upsert: true
+            });
+
+        if (error) {
+            console.error('[STORAGE SUPABASE ERROR]', error);
+            throw error;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('archivos_renew')
+            .getPublicUrl(fileName);
+
+        console.log('[STORAGE] ✅ Upload successful:', publicUrl);
         return publicUrl;
     } catch (err) {
         console.error(`[STORAGE CRITICAL ERROR]:`, err.message);
