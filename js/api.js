@@ -2104,14 +2104,7 @@ export function getProjectDate(p, db) {
 let _apiMessagesAvailable = null;
 
 export async function getInternalMessages() {
-    // 1. Use cache if populated (fastest path, works always)
-    const db = getDB();
-    const cached = db.mensajes_internos || [];
-    if (cached.length > 0) {
-        return cached.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    }
-
-    // 2. Try the lightweight /api/messages endpoint ONLY if we haven't confirmed it's unavailable
+    // 1. Try the lightweight /api/messages endpoint ONLY if we haven't confirmed it's unavailable
     if (_apiMessagesAvailable !== false) {
         try {
             const res = await fetch(`${API_BASE}/messages`);
@@ -2124,31 +2117,19 @@ export async function getInternalMessages() {
             } else if (res.status === 404) {
                 // Endpoint doesn't exist on this server — never try again this session
                 _apiMessagesAvailable = false;
-                console.log('[CHAT] /api/messages not found on server, using /api/db fallback.');
+                console.log('[CHAT] /api/messages not found on server, relying entirely on /api/db cache.');
             }
         } catch (e) {
-            // Network error — might retry later
             console.warn('[CHAT] /api/messages network error:', e.message);
         }
     }
 
-    // 3. Fallback: fetch from /api/db (works on ALL server versions)
-    // Uses a flag to prevent concurrent fetches — the db_synced event will re-render the chat
-    if (!window._chatForcedSync) {
-        window._chatForcedSync = true;
-        fetch(`${API_BASE}/db`)
-            .then(r => r.ok ? r.json() : null)
-            .then(freshDB => {
-                if (!freshDB) return;
-                const msgs = freshDB.mensajes_internos || [];
-                if (cachedDB) cachedDB.mensajes_internos = msgs;
-                window._chatForcedSync = false;
-                window.dispatchEvent(new CustomEvent('db_synced'));
-            })
-            .catch(() => { window._chatForcedSync = false; });
-    }
-
-    return [];
+    // 2. Fallback: Use the cache populated by initDB().
+    // This works on ALL server versions. We don't trigger a fetch here because
+    // initDB() already syncs the full DB periodically in the background.
+    const db = getDB();
+    const cached = db.mensajes_internos || [];
+    return cached.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
 export async function sendInternalMessage({ content, mentions = [], image_url = null }) {
