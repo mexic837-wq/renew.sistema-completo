@@ -2100,38 +2100,40 @@ export function getProjectDate(p, db) {
 }
 
 // ── INTERNAL MESSAGING (CHAT) ────────────────────────────────
+// Tracks whether /api/messages exists on this server (null=unknown, true/false=confirmed)
+let _apiMessagesAvailable = null;
+
 export async function getInternalMessages() {
-    // Strategy: Use the cache populated by initDB() as the primary source.
-    // This works on BOTH old and new server versions.
-    // If cache is empty (first open before initDB completes, or fresh page load),
-    // try the dedicated /api/messages endpoint as a fast fallback.
+    // 1. Use cache if populated (fastest path, works always)
     const db = getDB();
     const cached = db.mensajes_internos || [];
-
     if (cached.length > 0) {
-        // Cache is populated — return immediately
         return cached.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     }
 
-    // Cache is empty — try the dedicated endpoint (available on new server)
-    // and also schedule an initDB refresh so the db_synced event re-renders the chat
-    try {
-        console.log('[CHAT] Cache empty — trying /api/messages directly...');
-        const res = await fetch(`${API_BASE}/messages`);
-        if (res.ok) {
-            const data = await res.json();
-            const messages = data.messages || [];
-            // Populate cache so subsequent calls are instant
-            if (cachedDB) cachedDB.mensajes_internos = messages;
-            console.log(`[CHAT] Got ${messages.length} messages from /api/messages`);
-            return messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    // 2. Try the lightweight /api/messages endpoint ONLY if we haven't confirmed it's unavailable
+    if (_apiMessagesAvailable !== false) {
+        try {
+            const res = await fetch(`${API_BASE}/messages`);
+            if (res.ok) {
+                _apiMessagesAvailable = true;
+                const data = await res.json();
+                const messages = data.messages || [];
+                if (cachedDB) cachedDB.mensajes_internos = messages;
+                return messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            } else if (res.status === 404) {
+                // Endpoint doesn't exist on this server — never try again this session
+                _apiMessagesAvailable = false;
+                console.log('[CHAT] /api/messages not found on server, using /api/db fallback.');
+            }
+        } catch (e) {
+            // Network error — might retry later
+            console.warn('[CHAT] /api/messages network error:', e.message);
         }
-    } catch (e) {
-        console.warn('[CHAT] /api/messages not available, will rely on db_synced event:', e.message);
     }
 
-    // Last resort: trigger a background DB refresh so the db_synced event
-    // fires and re-renders the chat once the full DB is loaded
+    // 3. Fallback: fetch from /api/db (works on ALL server versions)
+    // Uses a flag to prevent concurrent fetches — the db_synced event will re-render the chat
     if (!window._chatForcedSync) {
         window._chatForcedSync = true;
         fetch(`${API_BASE}/db`)
