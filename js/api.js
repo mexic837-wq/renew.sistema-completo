@@ -8,18 +8,7 @@ let cachedDB = null;
 export const delay = ms => new Promise(r => setTimeout(r, ms));
 export function getCurrentUser() {
   const raw = localStorage.getItem('rs_user');
-  if (!raw) return null;
-  const user = JSON.parse(raw);
-  
-  // Fix user profile photo URL if it points to internal IP or restricted domain
-  if (user && typeof user.foto === 'string') {
-    user.foto = user.foto
-      .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-      .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
-      .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
-  }
-  
-  return user;
+  return raw ? JSON.parse(raw) : null;
 }
 export function logout() {
   localStorage.removeItem('rs_user');
@@ -71,11 +60,7 @@ export async function initDB() {
 
                     // Apply URL fixes
                     const dbStr = JSON.stringify(mappedDB);
-                    const fixedDB = JSON.parse(dbStr
-                        .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-                        .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
-                        .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/')
-                    );
+                    const fixedDB = JSON.parse(dbStr.replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/'));
                     
                     cachedDB = { ...cachedDB, ...fixedDB };
                     updateChatBadges();

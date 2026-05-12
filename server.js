@@ -52,18 +52,6 @@ app.get('/app', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Helper para arreglar URLs de Supabase (Mixed Content / Proxy)
-const fixUrl = (url) => {
-    if (typeof url !== 'string' || !url) return url;
-    // Si la URL ya es pública (renewgroup.site), no la tocamos
-    if (url.includes('renewgroup.site/uploads/')) return url;
-    
-    return url
-        .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-        .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
-        .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
-};
-
 // ── 1. DATABASE ENDPOINTS (100% SUPABASE) ──
 
 // GET: Reconstruye el objeto DB completo desde Supabase
@@ -109,6 +97,14 @@ app.get('/api/db', async (req, res) => {
                 return parseInt(i.id.replace(prefix, ''), 10) || 0;
             });
             return `${prefix}${Math.max(0, ...nums) + 1}`;
+        };
+
+        const fixUrl = (url) => {
+            if (typeof url !== 'string') return url;
+            // Imágenes antiguas guardadas con IP interna → usar proxy público del servidor
+            return url
+                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//, '/api/storage-proxy/')
+                .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//, '/api/storage-proxy/');
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
@@ -1994,7 +1990,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
         const url = await subirArchivo(req.file, folder);
         console.log('[API-UPLOAD] Success:', url);
-        res.json({ success: true, url: fixUrl(url) });
+        res.json({ success: true, url });
     } catch (e) {
         console.error('[API-UPLOAD] Critical Error:', e);
         res.status(500).json({ 
