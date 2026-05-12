@@ -26,9 +26,14 @@ export async function initChat() {
                         <p class="text-[10px] text-gray-400 dark:text-gray-500 font-bold tracking-widest uppercase mt-1">Colaboración en Tiempo Real</p>
                     </div>
                 </div>
-                <button id="chat-close-btn" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="chat-refresh-btn" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:text-tealAccent transition-all" title="Refrescar">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                    <button id="chat-close-btn" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Messages Area -->
@@ -77,6 +82,11 @@ export async function initChat() {
     
     // Event Listeners
     document.getElementById('chat-close-btn').addEventListener('click', closeChat);
+    document.getElementById('chat-refresh-btn').addEventListener('click', () => {
+        const icon = document.querySelector('#chat-refresh-btn i');
+        icon.classList.add('fa-spin');
+        renderMessages().finally(() => setTimeout(() => icon.classList.remove('fa-spin'), 1000));
+    });
     document.getElementById('chat-send-btn').addEventListener('click', handleSendMessage);
     document.getElementById('chat-remove-image').addEventListener('click', () => {
         const preview = document.getElementById('chat-image-preview');

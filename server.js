@@ -265,6 +265,11 @@ app.get('/api/db', async (req, res) => {
             }
         };
 
+        // Debug log for Chat messages count
+        console.log(`[API/DB] Syncing ${db.mensajes_internos.length} internal messages.`);
+        
+        res.json(db);
+
         // Final Global Fix: Stringify everything and replace internal URLs globally
         const jsonString = JSON.stringify(db);
         const fixedJson = jsonString
@@ -2156,8 +2161,10 @@ app.use('/api/storage-proxy', async (req, res) => {
     try {
         const filePath = req.path.replace(/^\//, ''); // Quitamos la barra inicial
         if (!filePath) return res.status(404).json({ error: 'Ruta de archivo no especificada' });
+        
+        // Priorizar IP interna si está en VPS, sino intentar URL pública
         const internalUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
-        console.log(`[PROXY] Fetching: ${internalUrl}`);
+        console.log(`[PROXY] Requesting file: ${filePath} via ${internalUrl}`);
         
         const https = require('https');
         const http = require('http');
