@@ -8,7 +8,7 @@ const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
-const SUPABASE_URL = 'http://31.97.102.243:8001';
+const SUPABASE_URL = 'https://gateway.renewgroup.site';
 // URL pública del servidor (para generar URLs de archivos accesibles desde internet)
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://renewgroup.site';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3MTI4ODAwMDAsImV4cCI6MjAyODQxNjAwMH0.JlrSkGO6ZyAaaToY0xTLajbLsNuL8kn2QwCI3jrCeFs'; // secret: RenewJWTSuperSecret2026Key32Chars
@@ -85,7 +85,7 @@ const fixUrl = (url) => {
     if (url.startsWith('/api/storage-proxy/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
     
     // Forzar el uso del proxy para cualquier URL que contenga la IP de Supabase o el path de storage
-    if (url.includes('31.97.') || url.includes('/storage/v1/object/public/')) {
+    if (url.includes('31.97.') || url.includes('gateway.renewgroup.site') || url.includes('supabase.renewgroup.site') || url.includes('/storage/v1/object/public/')) {
         const parts = url.split('/storage/v1/object/public/');
         const filePath = parts[parts.length - 1];
         return `/api/storage-proxy/${filePath.replace(/^\//, '')}`;

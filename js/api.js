@@ -113,6 +113,7 @@ export async function initDB() {
         const fixedStr = dbStr
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
+          .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/renewgroup\.site\/uploads\//g, window.location.origin + '/uploads/')
           .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         freshDB = JSON.parse(fixedStr);
