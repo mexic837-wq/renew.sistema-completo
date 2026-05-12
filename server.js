@@ -79,7 +79,22 @@ const fetchWithTimeout = (table, timeoutMs = 30000) => {
     });
 };
 
+const fixUrl = (url) => {
+    if (typeof url !== 'string' || !url) return url;
+    // Si ya tiene el proxy o es una URL local, no tocar
+    if (url.startsWith('/api/storage-proxy/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    
+    // Forzar el uso del proxy para cualquier URL que contenga la IP de Supabase o el path de storage
+    if (url.includes('31.97.') || url.includes('/storage/v1/object/public/')) {
+        const parts = url.split('/storage/v1/object/public/');
+        const filePath = parts[parts.length - 1];
+        return `/api/storage-proxy/${filePath.replace(/^\//, '')}`;
+    }
+    return url;
+};
+
 app.get('/api/db', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     try {
         const tables = [
             'admin_pipelines', 'admin_fases', 'admin_campos_formulario', 'clientes_maestro', 
@@ -97,20 +112,6 @@ app.get('/api/db', async (req, res) => {
                 return parseInt(i.id.replace(prefix, ''), 10) || 0;
             });
             return `${prefix}${Math.max(0, ...nums) + 1}`;
-        };
-
-        const fixUrl = (url) => {
-            if (typeof url !== 'string' || !url) return url;
-            // Si ya tiene el proxy o es una URL local, no tocar
-            if (url.startsWith('/api/storage-proxy/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
-            
-            // Forzar el uso del proxy para cualquier URL que contenga la IP de Supabase o el path de storage
-            if (url.includes('31.97.') || url.includes('/storage/v1/object/public/')) {
-                const parts = url.split('/storage/v1/object/public/');
-                const filePath = parts[parts.length - 1];
-                return `/api/storage-proxy/${filePath.replace(/^\//, '')}`;
-            }
-            return url;
         };
 
         // Mapeo selectivo para reconstruir la estructura rs_admin_db
