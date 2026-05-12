@@ -29,7 +29,7 @@ export async function initDB() {
         setInterval(async () => {
             try {
                 console.log('[DB] Periodic background sync...');
-                const res = await fetch(`${API_BASE}/db?t=${Date.now()}`);
+                const res = await fetch(`${API_BASE}/db`);
                 if (res.ok) {
                     const freshDB = await res.json();
                     
@@ -60,7 +60,16 @@ export async function initDB() {
 
                     // Apply URL fixes
                     const dbStr = JSON.stringify(mappedDB);
-                    const fixedDB = JSON.parse(dbStr.replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/'));
+                    let fixedDB = mappedDB;
+                    if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('renewgroup.site')) {
+                        const fixedStr = dbStr
+                            .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+                            .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
+                            .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+                            .replace(/https?:\/\/renewgroup\.site\/uploads\//g, window.location.origin + '/uploads/')
+                            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+                        fixedDB = JSON.parse(fixedStr);
+                    }
                     
                     cachedDB = { ...cachedDB, ...fixedDB };
                     updateChatBadges();
@@ -74,7 +83,7 @@ export async function initDB() {
 
     try {
       console.log('[DB] Synchronizing with Cloud Server...');
-      const res = await fetch(`${API_BASE}/db?t=${Date.now()}`, { signal: controller.signal });
+      const res = await fetch(`${API_BASE}/db`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error('Servidor de nube no disponible.');
