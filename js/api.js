@@ -60,7 +60,11 @@ export async function initDB() {
 
                     // Apply URL fixes
                     const dbStr = JSON.stringify(mappedDB);
-                    const fixedDB = JSON.parse(dbStr.replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/'));
+                    const fixedDB = JSON.parse(dbStr
+                        .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+                        .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
+                        .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/')
+                    );
                     
                     cachedDB = { ...cachedDB, ...fixedDB };
                     updateChatBadges();
