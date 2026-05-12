@@ -114,12 +114,13 @@ app.get('/api/db', async (req, res) => {
             return `${prefix}${Math.max(0, ...nums) + 1}`;
         };
 
-        // Mapeo selectivo para reconstruir la estructura rs_admin_db
+        // Build the DB object safely
         const db = {
-            Admin_Pipelines:         results[0].data || [],
-            Admin_Fases:             results[1].data || [],
-            Admin_Campos_Formulario: results[2].data || [],
-            Clientes_Maestro:        (results[3].data || []).map(c => {
+            Admin_Pipelines:         (results[0] && results[0].data) || [],
+            Admin_Fases:             (results[1] && results[1].data) || [],
+            Admin_Campos_Formulario: (results[2] && results[2].data) || [],
+            Clientes_Maestro:        ((results[3] && results[3].data) || []).map(c => {
+                if (!c) return null;
                 let adjOficina = c.adjuntos_oficina || null;
                 if (adjOficina && typeof adjOficina === 'object') {
                     Object.keys(adjOficina).forEach(k => {
@@ -130,162 +131,90 @@ app.get('/api/db', async (req, res) => {
                     ...c,
                     foto: fixUrl(c.foto),
                     id_photo: fixUrl(c.id_photo || c.foto_id),
-                    origen_tipo: c.origen_tipo || null,
-                    origen_nombre: c.origen_nombre || null,
-                    origen_id: c.origen_id || null,
-                    vendedor_asignado_id: c.vendedor_asignado_id || null,
-                    vendedor_asignado_nombre: c.vendedor_asignado_nombre || null,
-                    // ── NUEVAS COLUMNAS (Módulo Clientes v2) ──
-                    departamento:       c.departamento       || null,
-                    adjunto_id_url:     fixUrl(c.adjunto_id_url),
-                    adjunto_bill_url:   fixUrl(c.adjunto_bill_url),
+                    adjunto_id_url: fixUrl(c.adjunto_id_url),
+                    adjunto_bill_url: fixUrl(c.adjunto_bill_url),
                     adjunto_seguro_url: fixUrl(c.adjunto_seguro_url),
-                    adjuntos_oficina:   adjOficina,
                     contrato_water_url: fixUrl(c.contrato_water_url),
-                    macro_estado:       c.macro_estado       || null,
-                    departamentos_activos: c.departamentos_activos || [],
-                    fecha_inicio:       c.fecha_inicio       || null,
-                    notas:              c.notas              || null,
-                    creador_id:         c.origen_id          || null,
-                    responsable_id:     c.vendedor_asignado_id || null,
+                    departamentos_activos: c.departamentos_activos || []
                 };
-            }),
-            Proyectos_Dinamicos:     results[4].data || [],
-            Respuestas_Dinamicas:    results[5].data || [],
-            Usuarios:                (results[6].data || []).map(u => ({
+            }).filter(Boolean),
+            Proyectos_Dinamicos:     (results[4] && results[4].data) || [],
+            Respuestas_Dinamicas:    (results[5] && results[5].data) || [],
+            Usuarios:                ((results[6] && results[6].data) || []).map(u => ({
                     ...u,
                     foto:       fixUrl(u.foto),
                     w9_url:     fixUrl(u.w9_url || u.w9Url),
                     carnet_url: fixUrl(u.carnet_url || u.carnetUrl),
                     contrato_url: fixUrl(u.contrato_url || u.contratoUrl)
             })),
-            academiaContent:         (results[7].data || []).map(item => ({
-                id:             item.id,
-                titulo:         item.titulo         || null,
-                tipo:           item.tipo           || null,
-                enlace:         item.enlace         || null,
-                miniaturaUrl:   fixUrl(item.miniatura_url  || item.miniaturaUrl),
-                permisos:       item.permisos       || [],
-                fecha_creacion: item.fecha_creacion || null
+            academiaContent:         ((results[7] && results[7].data) || []).map(item => ({
+                ...item,
+                miniaturaUrl:   fixUrl(item.miniatura_url  || item.miniaturaUrl)
             })),
-            inventarioGlobal:        (results[8].data || []).map(item => ({
-                id:          item.id,
-                nombreItem:  item.nombre_item  || item.nombreItem  || null,
-                ecosistema:  item.ecosistema   || null,
-                category:    item.category     || null,
-                locacion:    item.locacion     || null,
-                storage:     item.storage      || null,
-                stockActual: item.stock_actual || item.stockActual || 0
-            })),
-            historialInventario:     results[9].data || [],
-            anuncios_corporativos:   (results[10].data || []).map(an => ({
+            inventarioGlobal:        (results[8] && results[8].data) || [],
+            historialInventario:     (results[9] && results[9].data) || [],
+            anuncios_corporativos:   ((results[10] && results[10].data) || []).map(an => ({
                 ...an,
                 foto_url: fixUrl(an.foto_url)
             })),
-            Admin_Proveedores:       (results[11].data || []).map(p => ({
-                id:          p.id,
-                empresa:     p.empresa_nombre || null,
-                contacto:    p.contacto_principal || null,
-                servicio:    p.categoria_servicio || null,
-                telefono:    p.telefono || null,
-                area:        p.area_cobertura || null,
-                email:       p.email || null,
-                w9Url:       p.w9_url || null,
-                seguroUrl:   p.seguro_url || null,
-                created_at:  p.fecha_registro || null
-            })),
-            calendario_eventos:      (results[12].data || []).map(ev => {
+            Admin_Proveedores:       (results[11] && results[11].data) || [],
+            calendario_eventos:      ((results[12] && results[12].data) || []).map(ev => {
                 let parsedColab = [];
                 if (Array.isArray(ev.colaboradores)) {
                     parsedColab = ev.colaboradores.map(c => {
                         try {
                             let parsed = typeof c === 'string' ? JSON.parse(c) : c;
-                            if (typeof parsed === 'string') parsed = JSON.parse(parsed); // Double unwrap just in case
+                            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
                             return parsed;
-                        } catch(e) {
-                            return c;
-                        }
+                        } catch(e) { return c; }
                     });
                 }
                 return { ...ev, colaboradores: parsedColab, adjunto_url: fixUrl(ev.adjunto_url) };
             }),
-            Recibos_Pagos:           (results[13].data || []).map(r => ({
-                id:               r.id,
-                proyecto_id:      r.proyecto_id   || null,
-                tipo:             r.tipo          || null,
-                trabajador_id:    r.trabajador_id || null,
-                trabajador_nombre:r.trabajador_nombre || null,
-                cliente_nombre:   r.cliente_nombre || null,
-                direccion:        r.direccion     || null,
-                fecha_recibo:     r.fecha_recibo  || null,
-                datos_json:       r.datos_json    || {},
-                pdf_url:          fixUrl(r.pdf_url),
-                created_at:       r.created_at    || null
+            Recibos_Pagos:           ((results[13] && results[13].data) || []).map(r => ({
+                ...r,
+                pdf_url: fixUrl(r.pdf_url)
             })),
-            Water_Productos:         (results[14].data || []).map(p => ({
-                id:              p.id,
-                nombre:          p.nombre         || null,
-                codigo:          p.codigo         || null,
-                descripcion:     p.descripcion    || null,
-                categoria:       p.categoria      || null,
-                foto_url:        fixUrl(p.foto_url),
-                sede:            p.sede           || 'todas',
-                medida:          p.medida         || null,
-                boton:           p.boton          || null,
-                color:           p.color          || null,
-                precio_junior:   p.precio_junior   ?? null,
-                precio_subvende: p.precio_subvende  ?? null,
-                precio_vendedor: p.precio_vendedor  ?? null,
-                precio_analista: p.precio_analista  ?? null,
-                precio_oficina:  p.precio_oficina   ?? null,
-                precio_full:     p.precio_full      ?? null,
-                solo_equipo_grande: p.solo_equipo_grande ?? null,
-                precio_minimo:   p.precio_minimo    ?? null,
-                precio_maximo:   p.precio_maximo    ?? null,
-                unidad:          p.unidad         || null,
-                garantia:        p.garantia       || null,
-                es_activo:       p.es_activo !== false,
-                orden:           p.orden          || 0,
-                notas:           p.notas          || null,
-                pdf_url:         fixUrl(p.pdf_url),
-                created_at:      p.created_at     || null,
-                updated_at:      p.updated_at     || null
+            Water_Productos:         ((results[14] && results[14].data) || []).map(p => ({
+                ...p,
+                foto_url: fixUrl(p.foto_url),
+                pdf_url: fixUrl(p.pdf_url)
             })),
-            Admin_Catalogos:         results[15].data || [],
-            admin_meetings:          results[16].data || [],
-            admin_meetings_reads:    results[17].data || [],
-            mensajes_internos:       (results[18].data || []).map(m => ({
+            Admin_Catalogos:         (results[15] && results[15].data) || [],
+            admin_meetings:          (results[16] && results[16].data) || [],
+            admin_meetings_reads:    (results[17] && results[17].data) || [],
+            mensajes_internos:       ((results[18] && results[18].data) || []).map(m => ({
                 ...m,
                 image_url: fixUrl(m.image_url)
             })),
-            // Compute counters dynamically from real data — avoids collision bugs
             Counters: {
-                cli:   maxId(results[3].data,  'cli_'),
-                proy:  maxId(results[4].data,  'proy_'),
-                resp:  maxId(results[5].data,  'resp_'),
-                pip:   maxId(results[0].data,  'pip_'),
-                fase:  maxId(results[1].data,  'fase_'),
-                campo: maxId(results[2].data,  'campo_'),
-                proveedores: maxId(results[11].data, 'prv_'),
-                calendario: maxId(results[12].data, 'ev_'),
+                cli:   maxId((results[3] && results[3].data), 'cli_'),
+                proy:  maxId((results[4] && results[4].data), 'proy_'),
+                resp:  maxId((results[5] && results[5].data), 'resp_'),
+                pip:   maxId((results[0] && results[0].data), 'pip_'),
+                fase:  maxId((results[1] && results[1].data), 'fase_'),
+                campo: maxId((results[2] && results[2].data), 'campo_'),
+                proveedores: maxId((results[11] && results[11].data), 'prv_'),
+                calendario: maxId((results[12] && results[12].data), 'ev_'),
             }
         };
 
-        // Debug log for Chat messages count
-        console.log(`[API/DB] Syncing ${db.mensajes_internos.length} internal messages.`);
-        
-        // Final Global Fix: Stringify everything and replace internal URLs globally
         const jsonString = JSON.stringify(db);
         const fixedJson = jsonString
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
+            .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
         
-        res.setHeader('Content-Type', 'application/json');
-        res.send(fixedJson);
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(fixedJson);
+        }
     } catch (error) {
         console.error('[SUPABASE ERROR] getDB:', error.message);
-        res.status(500).json({ error: 'Fallo al recuperar datos de Supabase', details: error.message });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Fallo al recuperar datos de Supabase', details: error.message });
+        }
     }
 });
 
