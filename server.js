@@ -265,8 +265,11 @@ app.get('/api/db', async (req, res) => {
                 campo: maxId(results[2].data,  'campo_'),
                 proveedores: maxId(results[11].data, 'prv_'),
                 calendario: maxId(results[12].data, 'ev_'),
-            }
+            },
+            version: 'chat-fix-v3'
         };
+
+        console.log(`[DB-FETCH] Internal Messages found: ${(db.mensajes_internos || []).length}`);
 
         // Final Global Fix: Stringify everything and replace internal URLs globally
         const jsonString = JSON.stringify(db);
