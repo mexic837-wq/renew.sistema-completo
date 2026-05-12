@@ -2100,40 +2100,24 @@ export function getProjectDate(p, db) {
 
 // ── INTERNAL MESSAGING (CHAT) ────────────────────────────────
 export async function getInternalMessages() {
-    const db = getDB();
-    const cached = db.mensajes_internos || [];
-
-    // If we have cached messages, return them immediately
-    if (cached.length > 0) {
-        return cached.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    }
-
-    // If the cache is empty, fetch directly from the server to ensure we get live data.
-    // This handles the case in production where initDB() may have loaded from
-    // localStorage (which doesn't have 'mensajes_internos') before the cloud sync completed.
+    // Always fetch fresh from the dedicated endpoint so both localhost and
+    // production see live Supabase data regardless of localStorage state.
     try {
-        console.log('[CHAT] Cache empty — fetching messages directly from server...');
         const res = await fetch(`${API_BASE}/messages`);
         if (res.ok) {
             const data = await res.json();
             const messages = data.messages || [];
-            // Apply URL fixes for storage proxy
-            const fixedMessages = messages.map(m => ({
-                ...m,
-                image_url: m.image_url ? m.image_url.replace(
-                    /https?:\/\/(31\.97\.\d+\.\d+:\d+|gateway\.renewgroup\.site|supabase\.renewgroup\.site)\/storage\/v1\/object\/public\//g,
-                    '/api/storage-proxy/'
-                ) : null
-            }));
-            // Update cache
-            if (cachedDB) cachedDB.mensajes_internos = fixedMessages;
-            return fixedMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            // Update cache so other parts of the app stay in sync
+            if (cachedDB) cachedDB.mensajes_internos = messages;
+            return messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         }
     } catch (e) {
-        console.warn('[CHAT] Direct fetch failed, returning empty array:', e.message);
+        console.warn('[CHAT] Live fetch failed, falling back to cache:', e.message);
     }
 
-    return [];
+    // Fallback: return what's in the local cache
+    const db = getDB();
+    return (db.mensajes_internos || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
 export async function sendInternalMessage({ content, mentions = [], image_url = null }) {
