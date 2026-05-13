@@ -2269,11 +2269,19 @@ app.use('/api/storage-proxy', async (req, res) => {
             proxyRes.pipe(res);
         }).on('error', (err) => {
             console.error('[PROXY ERROR] Failed to fetch:', internalUrl, err.message);
-            res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
+            if (!res.headersSent) {
+                res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
+            } else {
+                res.end();
+            }
         });
     } catch (e) {
         console.error('[PROXY CRITICAL]', e.message);
-        res.status(500).json({ error: e.message });
+        if (!res.headersSent) {
+            res.status(500).json({ error: e.message });
+        } else {
+            res.end();
+        }
     }
 });
 
