@@ -160,10 +160,21 @@ export function renderAcademy() {
       return;
     }
 
+    const getViewerUrl = (url) => {
+      if (!url) return '';
+      const docExts = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+      const lowerUrl = url.toLowerCase();
+      if (docExts.some(ext => lowerUrl.endsWith(ext))) {
+        // Use Google Docs Viewer for visualization
+        return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+      }
+      return url;
+    };
+
     contenedorFinal.innerHTML = resources.map(r => {
       if (catKey === 'video') {
         return `
-          <div class="video-item" onclick="window.open('${r.enlace}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%;">
+          <div class="video-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%;">
             <div style="width: 100%; height: 160px; position:relative; background: #000;">
               ${r.miniaturaUrl ? `<img src="${r.miniaturaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.85;">` : ''}
               <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
@@ -204,7 +215,7 @@ export function renderAcademy() {
         }
 
         return `
-          <div class="recurso-item" onclick="window.open('${r.enlace}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
+          <div class="recurso-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
             <div style="width: 52px; height: 52px; border-radius: 15px; background: ${iconBg}; color: ${iconColor}; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
               ${iconSvg}
             </div>
