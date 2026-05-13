@@ -2266,10 +2266,26 @@ app.use('/api/storage-proxy', async (req, res) => {
                 'Access-Control-Allow-Origin': '*'
             };
             res.writeHead(proxyRes.statusCode, headers);
+            
+            proxyRes.on('error', (err) => {
+                console.error('[PROXY-RES ERROR]', err.message);
+                if (!res.headersSent) res.status(502).end();
+                else res.end();
+            });
+            
+            res.on('error', (err) => {
+                console.error('[PROXY CLIENT ERROR]', err.message);
+                proxyRes.destroy();
+            });
+
             proxyRes.pipe(res);
         }).on('error', (err) => {
             console.error('[PROXY ERROR] Failed to fetch:', internalUrl, err.message);
-            res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
+            if (!res.headersSent) {
+                res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
+            } else {
+                res.end();
+            }
         });
     } catch (e) {
         console.error('[PROXY CRITICAL]', e.message);
