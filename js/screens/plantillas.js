@@ -187,6 +187,17 @@ export function renderPlantillas() {
             cat:    'water',
             navigate: 'contract-app'
         },
+        {
+            id:     'confirmacion-instalacion',
+            title:  'Confirmación de Instalación',
+            sub:    'Renew Water',
+            desc:   'Documento de cierre que confirma equipos instalados, observaciones y firma del cliente.',
+            icon:   '✅',
+            iconBg: 'rgba(14,165,233,.12)',
+            iconColor: '#0ea5e9',
+            cat:    'water',
+            navigate: 'confirmacion-instalacion'
+        },
     ];
 
     let activeFilter = 'all';

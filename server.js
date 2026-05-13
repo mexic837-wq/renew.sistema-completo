@@ -1051,6 +1051,153 @@ async function generarPDF(moldePath, datos) {
   }
 }
 
+// ── CONFIRMACION DE INSTALACION WATER PDF ENDPOINT ──
+app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
+    console.log('[/api/generar-confirmacion-instalacion] Petición recibida.');
+    try {
+        const d = req.body.datos || req.body;
+        const moldePath = path.join(__dirname, 'confirmacion_instalacion_water.pdf');
+
+        if (!fs.existsSync(moldePath)) {
+            return res.status(404).json({ error: 'No se encontró el PDF de confirmación' });
+        }
+
+        const { PDFDocument: PDFDoc2, rgb: rgb2, StandardFonts: SF2 } = require('pdf-lib');
+        const pdfBuf = fs.readFileSync(moldePath);
+        const pdfDoc = await PDFDoc2.load(pdfBuf);
+        const page = pdfDoc.getPages()[0];
+        const { width, height } = page.getSize();
+
+        const font = await pdfDoc.embedFont(SF2.Helvetica);
+        const boldFont = await pdfDoc.embedFont(SF2.HelveticaBold);
+        const BLACK = rgb2(0, 0, 0);
+        const BLUE  = rgb2(0, 0.3, 0.7);
+
+        // Helper: draw text at PDF coords (y from bottom)
+        const txt = (text, x, y, sz, f, col) => {
+            if (!text) return;
+            page.drawText(String(text), {
+                x, y: height - y, size: sz || 10, font: f || font, color: col || BLACK
+            });
+        };
+
+        // ── INFO GENERAL (top section) ──
+        // Date
+        txt(d.fecha,         265, 113, 10);
+        // Phone
+        txt(d.telefono,      265, 126, 10);
+        // Purchaser
+        txt(d.comprador,     265, 139, 10);
+        // Email
+        txt(d.email,         265, 152, 10);
+        // Address
+        txt(d.direccion,     265, 165, 10);
+        // City
+        txt(d.ciudad,        265, 178, 10);
+        // State
+        txt(d.estado,        265, 191, 10);
+        // Zip
+        txt(d.zip,           455, 191, 10);
+
+        // ── INSTRUCCIONES DE INSTALACIÓN ──
+        txt(d.fecha_instalacion,        265, 224, 10);
+        txt(d.instalador,               265, 237, 10);
+        txt(d.representante_ventas,     265, 250, 10);
+
+        // ── OBSERVACIONES (Yes/No checkboxes + iniciales) ──
+        // Pregunta 1: ¿Programar LED?
+        const p1yes = d.enseno_programar === 'si' ? 'X' : '';
+        const p1no  = d.enseno_programar === 'no' ? 'X' : '';
+        txt(p1yes, 90,  292, 11, boldFont, BLUE);
+        txt(p1no,  120, 292, 11, boldFont, BLUE);
+        txt(d.iniciales_1 || '', 200, 292, 10);
+
+        // Pregunta 2: ¿De acuerdo donde se instaló?
+        const p2yes = d.acuerdo_ubicacion === 'si' ? 'X' : '';
+        const p2no  = d.acuerdo_ubicacion === 'no' ? 'X' : '';
+        txt(p2yes, 90,  313, 11, boldFont, BLUE);
+        txt(p2no,  120, 313, 11, boldFont, BLUE);
+        txt(d.iniciales_2 || '', 200, 313, 10);
+
+        // Pregunta 3: ¿Informado sobre congelamiento?
+        const p3yes = d.info_congelamiento === 'si' ? 'X' : '';
+        const p3no  = d.info_congelamiento === 'no' ? 'X' : '';
+        txt(p3yes, 90,  334, 11, boldFont, BLUE);
+        txt(p3no,  120, 334, 11, boldFont, BLUE);
+        txt(d.iniciales_3 || '', 200, 334, 10);
+
+        // ── EQUIPOS (checkboxes) ──
+        const chk = (val) => val ? 'X' : '';
+        txt(chk(d.agua_municipal),  37, 365, 10, boldFont, BLUE);
+        txt(chk(d.ice_maker),       37, 378, 10, boldFont, BLUE);
+        txt(chk(d.water_treatment), 37, 391, 10, boldFont, BLUE);
+        txt(d.serial_water || '',   210, 391, 9);
+        txt(chk(d.reverse_osmosis), 37, 404, 10, boldFont, BLUE);
+        txt(d.serial_ro || '',      210, 404, 9);
+        txt(chk(d.well_water),      37, 417, 10, boldFont, BLUE);
+        txt(d.serial_well || '',    210, 417, 9);
+        txt(chk(d.ultraviolet),     37, 430, 10, boldFont, BLUE);
+        txt(chk(d.big_blue),        37, 443, 10, boldFont, BLUE);
+        txt(chk(d.spin_down),       37, 456, 10, boldFont, BLUE);
+        txt(chk(d.other_equip),     37, 469, 10, boldFont, BLUE);
+        txt(d.other_equip_text || '', 80, 469, 9);
+
+        // ── COSTOS (right column) ──
+        txt(d.costo_instalacion ? `$ ${d.costo_instalacion}` : '', 400, 365, 10);
+        txt(d.costo_millas     ? `$ ${d.costo_millas}`     : '', 400, 378, 10);
+        txt(d.costo_extra      ? `$ ${d.costo_extra}`      : '', 400, 391, 10);
+        txt(d.costo_otro       ? `$ ${d.costo_otro}`       : '', 400, 404, 10);
+        txt(d.costo_total      ? `$ ${d.costo_total}`      : '', 400, 417, 10, boldFont);
+
+        // ── FIRMA ──
+        if (d.firma_comprador && d.firma_comprador.startsWith('data:image/png;base64,')) {
+            try {
+                const imgBytes = Buffer.from(d.firma_comprador.split(',')[1], 'base64');
+                const pngImg = await pdfDoc.embedPng(imgBytes);
+                page.drawImage(pngImg, { x: 60, y: height - 538, width: 200, height: 40 });
+            } catch(sigErr) { console.warn('[FIRMA] Error embedding signature:', sigErr.message); }
+        }
+        txt(d.fecha_firma || new Date().toLocaleDateString('en-US'), 380, 530, 10);
+
+        const pdfBytes = await pdfDoc.save();
+
+        // Subir a Supabase
+        const fileName = `confirmaciones/confirmacion_instalacion_${Date.now()}.pdf`;
+        const { error: uploadError } = await supabase.storage
+            .from('archivos_renew')
+            .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
+
+        let finalUrl = null;
+        if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
+            finalUrl = publicUrl;
+
+            // Guardar en clientes_maestro si hay proyectoId
+            if (d.proyectoId) {
+                const { data: proy } = await supabase.from('proyectos_dinamicos')
+                    .select('cliente_id').eq('id', d.proyectoId).single();
+                if (proy?.cliente_id) {
+                    const { data: cli } = await supabase.from('clientes_maestro')
+                        .select('adjuntos_oficina').eq('id', proy.cliente_id).single();
+                    let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
+                    adj.confirmacion_instalacion_url = finalUrl;
+                    await supabase.from('clientes_maestro')
+                        .update({ adjuntos_oficina: adj, confirmacion_instalacion_url: finalUrl })
+                        .eq('id', proy.cliente_id);
+                    console.log(`[CONFIRMACION] Cliente ${proy.cliente_id} actualizado.`);
+                }
+            }
+        } else {
+            console.error('[STORAGE ERROR - CONFIRMACION]', uploadError);
+        }
+
+        res.json({ success: true, url: finalUrl });
+    } catch (err) {
+        console.error('[/api/generar-confirmacion-instalacion] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── CONTRATO PDF ENDPOINT ──
 // ── CONTRATO PDF ENDPOINT ──
 app.post('/api/generar-contrato', async (req, res) => {

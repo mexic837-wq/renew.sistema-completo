@@ -41,6 +41,7 @@ import { renderPartners } from './screens/partners.js';
 import { renderMisRecibos } from './screens/recibos.js';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderPlantillas }  from './screens/plantillas.js';
+import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -353,7 +354,7 @@ window.verificarAnunciosNuevos = async function() {
 setInterval(window.verificarAnunciosNuevos, 30000);
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones', 'plantillas'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones', 'plantillas', 'confirmacion-instalacion'];
 
 export function navigate(screen, param = null) {
   // Auth guard
@@ -426,6 +427,7 @@ export function navigate(screen, param = null) {
     case 'mis-recibos': renderMisRecibos();          break;
     case 'lista-precios': renderListaPrecios();      break;
     case 'plantillas':  renderPlantillas();          break;
+    case 'confirmacion-instalacion': renderConfirmacionInstalacion(); break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);
       break;
