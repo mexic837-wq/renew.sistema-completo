@@ -1,3 +1,4 @@
+console.log('[SYSTEM] Server process starting...');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -6,8 +7,6 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
-const https = require('https');
-const http = require('http');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
 const SUPABASE_URL = 'https://gateway.renewgroup.site';
@@ -2247,7 +2246,9 @@ app.post('/api/complete-upload', async (req, res) => {
 // GET: PROXY para imágenes antiguas guardadas en Supabase con IP interna
 app.get('/api/storage-proxy/*', async (req, res) => {
     try {
-        // req.params[0] contendrá la ruta después de /api/storage-proxy/
+        const https = require('https');
+        const http = require('http');
+        
         let filePath = req.params[0];
         if (!filePath) return res.status(404).json({ error: 'Ruta de archivo no especificada' });
         
@@ -2257,7 +2258,6 @@ app.get('/api/storage-proxy/*', async (req, res) => {
         const protocol = internalUrl.startsWith('https') ? https : http;
         
         protocol.get(internalUrl, (proxyRes) => {
-            // Forward headers
             const headers = {
                 'Content-Type': proxyRes.headers['content-type'] || 'application/octet-stream',
                 'Cache-Control': 'public, max-age=31536000',
