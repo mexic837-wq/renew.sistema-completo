@@ -1063,7 +1063,7 @@ body.no-nav #bottom-nav {
   .nav-item {
     justify-content: center;
   }
-  .nav-item span {
+  .nav-item span:not([id*="badge"]) {
     display: block;
     width: 100%;
     text-align: center;
