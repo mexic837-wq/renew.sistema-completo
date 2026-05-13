@@ -216,7 +216,10 @@ async function loadCCLeads() {
                         ${l.estado}
                     </span>
                 </td>
-                <td class="py-4 text-right">
+                <td class="py-4 text-right flex justify-end gap-2">
+                    <button class="w-8 h-8 rounded-lg hover:bg-tealAccent/20 hover:text-tealAccent dark:hover:bg-tealAccent/10 text-gray-400 transition-colors" onclick="adminEditCCLead('${l.id}', '${l.operador_id || ''}')">
+                        <i class="fa-solid fa-pen-to-square text-xs"></i>
+                    </button>
                     <button class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 text-gray-400 transition-colors" onclick="adminDeleteCCLead('${l.id}')">
                         <i class="fa-solid fa-trash text-xs"></i>
                     </button>
@@ -228,6 +231,116 @@ async function loadCCLeads() {
         tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-red-500 text-xs uppercase tracking-widest">Error al cargar leads</td></tr>';
     }
 }
+
+window.adminEditCCLead = async (id, currentOpId) => {
+    // Create edit modal if not exists
+    let modal = document.getElementById('modal-cc-admin-edit');
+    if (!modal) {
+        const modalHtml = `
+            <div id="modal-cc-admin-edit" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[999999] flex items-center justify-center transition-opacity duration-300 opacity-0">
+                <div class="bg-white dark:bg-[#111827] w-full max-w-md rounded-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden transform scale-95 transition-all duration-300 p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">Reasignar Lead</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Cambiar operador asignado</p>
+                        </div>
+                        <button id="btn-close-cc-edit-modal" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nuevo Operador</label>
+                            <select id="sel-cc-edit-operador" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
+                                <option value="">En Cola / Sin Asignar</option>
+                            </select>
+                        </div>
+                        <div class="pt-6 flex gap-3">
+                            <button type="button" id="btn-cancel-cc-edit" class="flex-1 py-4 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="button" id="btn-update-cc-lead" class="flex-1 py-4 bg-tealAccent text-black rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_4px_15px_rgba(0,245,212,0.3)] hover:scale-[1.02] active:scale-95 transition-all">
+                                Actualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modal = document.getElementById('modal-cc-admin-edit');
+    }
+
+    const sel = document.getElementById('sel-cc-edit-operador');
+    const closeBtn = document.getElementById('btn-close-cc-edit-modal');
+    const cancelBtn = document.getElementById('btn-cancel-cc-edit');
+    const updateBtn = document.getElementById('btn-update-cc-lead');
+
+    // Load operators into edit select
+    sel.innerHTML = '<option value="">En Cola / Sin Asignar</option>';
+    try {
+        const res = await fetch('/api/usuarios');
+        const users = await res.json();
+        const operators = users.filter(u => u.rol === 'vendedor' || u.rol === 'admin');
+        operators.forEach(op => {
+            const opt = document.createElement('option');
+            opt.value = op.id;
+            opt.textContent = `${op.nombre} ${op.apellido || ''}`;
+            if (op.id === currentOpId) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    } catch (e) {}
+
+    const openModal = () => {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.querySelector('div').classList.remove('scale-95');
+        }, 10);
+    };
+
+    const closeModal = () => {
+        modal.classList.add('opacity-0');
+        modal.querySelector('div').classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    };
+
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    openModal();
+
+    updateBtn.onclick = async () => {
+        const newOpId = sel.value;
+        const newOpName = sel.options[sel.selectedIndex].text;
+        
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+        try {
+            const res = await fetch(`/api/cc-prospectos/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    operador_id: newOpId || null,
+                    operador_nombre: newOpId ? newOpName : null,
+                    estado: newOpId ? 'pendiente' : 'en_espera',
+                    fecha_asignacion: newOpId ? new Date().toISOString() : null,
+                    fecha_expiracion: null // No expiration for manual assignments
+                })
+            });
+
+            if (!res.ok) throw new Error('No se pudo actualizar');
+            showToast('Lead actualizado correctamente', 'success');
+            closeModal();
+            await loadCCLeads();
+        } catch (err) {
+            showToast(err.message, 'error');
+        } finally {
+            updateBtn.disabled = false;
+            updateBtn.innerHTML = 'Actualizar';
+        }
+    };
+};
 
 window.adminDeleteCCLead = async (id) => {
     if (!confirm('¿Eliminar este lead permanentemente?')) return;

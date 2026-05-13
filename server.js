@@ -1641,6 +1641,18 @@ async function asignarLeadAMejorAgente(lead, offset = 0) {
     return agente;
 }
 
+// GET: Usuarios (para asignaciones manuales en Call Center)
+app.get('/api/usuarios', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('usuarios').select('id, nombre, apellido, rol');
+        if (error) throw error;
+        res.json(data || []);
+    } catch (e) {
+        console.error('[API/USUARIOS] GET error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // GET: Listar prospectos — filtrado por operador_id o estado
 app.get('/api/cc-prospectos', async (req, res) => {
     try {
