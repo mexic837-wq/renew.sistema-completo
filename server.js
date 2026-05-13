@@ -105,6 +105,12 @@ const fixUrl = (url) => {
         const filePath = parts[parts.length - 1];
         return `/api/storage-proxy/${filePath.replace(/^\//, '')}`;
     }
+    
+    // Convertir localhost a URL pública si existe
+    if (url.includes('http://localhost:3010')) {
+        return url.replace('http://localhost:3010', PUBLIC_BASE_URL);
+    }
+
     return url;
 };
 
@@ -295,7 +301,8 @@ app.get('/api/db', async (req, res) => {
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
             .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+            .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/')
+            .replace(/http:\/\/localhost:3010/g, PUBLIC_BASE_URL);
         
         res.setHeader('Content-Type', 'application/json');
         res.send(fixedJson);
@@ -329,7 +336,8 @@ app.get('/api/messages', async (req, res) => {
         const jsonString = JSON.stringify(messages);
         const fixedJson = jsonString
             .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-            .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/');
+            .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
+            .replace(/http:\/\/localhost:3010/g, PUBLIC_BASE_URL);
 
         console.log(`[API/MESSAGES] Returning ${messages.length} messages.`);
         res.setHeader('Content-Type', 'application/json');

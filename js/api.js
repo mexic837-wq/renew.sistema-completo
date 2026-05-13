@@ -62,12 +62,13 @@ export async function initDB() {
                     // Do NOT touch renewgroup.site/uploads/ — those are served directly by our Node server.
                     const dbStr = JSON.stringify(mappedDB);
                     let fixedDB = mappedDB;
-                    if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('gateway.renewgroup.site') || dbStr.includes('supabase.renewgroup.site')) {
+                    if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('gateway.renewgroup.site') || dbStr.includes('supabase.renewgroup.site') || dbStr.includes('localhost:3010')) {
                       const fixedStr = dbStr
                         .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
                         .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
                         .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-                        .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+                        .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/')
+                        .replace(/https?:\/\/localhost:3010/g, 'https://renewgroup.site');
                       fixedDB = JSON.parse(fixedStr);
                     }
                     
@@ -120,12 +121,13 @@ export async function initDB() {
       // because those are local files served directly by our Node server.
       const dbStr = JSON.stringify(mappedData);
       let freshDB = mappedData;
-      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('gateway.renewgroup.site') || dbStr.includes('supabase.renewgroup.site')) {
+      if (dbStr.includes('31.97.') || dbStr.includes('easypanel.host') || dbStr.includes('gateway.renewgroup.site') || dbStr.includes('supabase.renewgroup.site') || dbStr.includes('localhost:3010')) {
         const fixedStr = dbStr
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/31\.97\.\d+\.\d+:\d+\//g, '/api/storage-proxy/')
           .replace(/https?:\/\/(gateway|supabase)\.renewgroup\.site\/storage\/v1\/object\/public\//g, '/api/storage-proxy/')
-          .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
+          .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/')
+          .replace(/https?:\/\/localhost:3010/g, 'https://renewgroup.site');
         freshDB = JSON.parse(fixedStr);
       }
       
