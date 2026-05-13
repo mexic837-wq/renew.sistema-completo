@@ -66,7 +66,7 @@ export async function renderCallCenterAdmin() {
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Dirección Formateada *</label>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Dirección Completa *</label>
                         <input type="text" id="inp-cc-dir" required class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
                     </div>
                     <div class="grid grid-cols-3 gap-4">
@@ -83,13 +83,20 @@ export async function renderCallCenterAdmin() {
                             <input type="text" id="inp-cc-zip" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
                         </div>
                     </div>
+                    
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Asignar Operador (Opcional)</label>
+                        <select id="sel-cc-operador" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
+                            <option value="">Selección Automática</option>
+                        </select>
+                    </div>
 
                     <div class="pt-6 flex gap-3">
                         <button type="button" id="btn-cancel-cc" class="flex-1 py-4 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                             Cancelar
                         </button>
                         <button type="submit" id="btn-save-cc" class="flex-1 py-4 bg-tealAccent text-black rounded-xl font-black uppercase text-[10px] tracking-widest shadow-[0_4px_15px_rgba(0,245,212,0.3)] hover:scale-[1.02] active:scale-95 transition-all">
-                            Guardar y Asignar
+                            Guardar Lead
                         </button>
                     </div>
                 </form>
@@ -99,6 +106,7 @@ export async function renderCallCenterAdmin() {
 
     // Load data
     await loadCCLeads();
+    await loadOperators();
 
     // Events
     const modal = document.getElementById('modal-cc-admin-add');
@@ -138,8 +146,9 @@ export async function renderCallCenterAdmin() {
             email: document.getElementById('inp-cc-email').value.trim(),
             direccion: document.getElementById('inp-cc-dir').value.trim(),
             ciudad: document.getElementById('inp-cc-ciudad').value.trim(),
-            estado: document.getElementById('inp-cc-estado-geo').value.trim(),
+            estado_geo: document.getElementById('inp-cc-estado-geo').value.trim(),
             zip_code: document.getElementById('inp-cc-zip').value.trim(),
+            operador_id: document.getElementById('sel-cc-operador').value || null,
             fuente: 'manual_admin'
         };
 
@@ -157,10 +166,28 @@ export async function renderCallCenterAdmin() {
         } catch (err) {
             showToast(err.message, 'error');
         } finally {
-            btnSave.innerHTML = 'Guardar y Asignar';
+            btnSave.innerHTML = 'Guardar Lead';
             btnSave.disabled = false;
         }
     };
+}
+
+async function loadOperators() {
+    const sel = document.getElementById('sel-cc-operador');
+    try {
+        const res = await fetch('/api/usuarios');
+        const users = await res.json();
+        const operators = users.filter(u => u.rol === 'vendedor' || u.rol === 'admin');
+        
+        operators.forEach(op => {
+            const opt = document.createElement('option');
+            opt.value = op.id;
+            opt.textContent = `${op.nombre} ${op.apellido || ''} (${op.rol})`;
+            sel.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Error cargando operadores:', err);
+    }
 }
 
 async function loadCCLeads() {

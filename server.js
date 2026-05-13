@@ -1685,11 +1685,25 @@ app.post('/api/cc-prospectos', async (req, res) => {
             const lead = leadsIn[idx];
             const leadId = 'cc_' + Date.now().toString(36) + '_' + idx;
 
-            const agente = await asignarLeadAMejorAgente(lead, 0);
+            let agente = null;
+            let manualAssignment = false;
+
+            if (lead.operador_id) {
+                // Manual assignment
+                const { data: usr } = await supabase.from('usuarios').select('id, nombre, apellido').eq('id', lead.operador_id).single();
+                if (usr) {
+                    agente = usr;
+                    manualAssignment = true;
+                }
+            }
+
+            if (!agente) {
+                agente = await asignarLeadAMejorAgente(lead, 0);
+            }
 
             let nuevoLead;
             if (agente) {
-                // ── Asignar directamente al mejor agente ──
+                // ── Asignar directamente ──
                 nuevoLead = {
                     id:                    leadId,
                     nombre:               lead.nombre     || null,
@@ -1697,18 +1711,18 @@ app.post('/api/cc-prospectos', async (req, res) => {
                     direccion:            lead.direccion  || null,
                     email:                lead.email      || null,
                     ciudad:               lead.ciudad     || null,
-                    estado_geo:           lead.estado     || null,
+                    estado_geo:           lead.estado_geo || lead.estado || null,
                     zip_code:             lead.zip_code   || null,
                     pipeline:             lead.pipeline   || lead.ecosistema || null,
                     fuente:               lead.fuente     || 'scraper',
-                    estado:               'confirmacion_pendiente',
+                    estado:               manualAssignment ? 'pendiente' : 'confirmacion_pendiente',
                     prioridad:            0,
                     intentos_reasignacion: 0,
                     operador_id:          agente.id,
                     operador_nombre:      `${agente.nombre || ''} ${agente.apellido || ''}`.trim(),
                     fecha_creacion:       new Date().toISOString(),
                     fecha_asignacion:     new Date().toISOString(),
-                    fecha_expiracion:     new Date(Date.now() + 60 * 1000).toISOString() // 60s timeout
+                    fecha_expiracion:     manualAssignment ? null : new Date(Date.now() + 60 * 1000).toISOString()
                 };
 
                 // Actualizar ultima_asignacion_cc del agente
@@ -1727,7 +1741,7 @@ app.post('/api/cc-prospectos', async (req, res) => {
                     direccion:            lead.direccion  || null,
                     email:                lead.email      || null,
                     ciudad:               lead.ciudad     || null,
-                    estado_geo:           lead.estado     || null,
+                    estado_geo:           lead.estado_geo || lead.estado || null,
                     zip_code:             lead.zip_code   || null,
                     pipeline:             lead.pipeline   || lead.ecosistema || null,
                     fuente:               lead.fuente     || 'scraper',
@@ -1741,7 +1755,7 @@ app.post('/api/cc-prospectos', async (req, res) => {
                     fecha_expiracion:     null
                 };
                 summary.en_espera++;
-                console.log(`[CC-PROSPECTOS] Lead ${leadId} colocado en cola de espera — todos los agentes al límite.`);
+                console.log(`[CC-PROSPECTOS] Lead ${leadId} colocado en cola de espera.`);
             }
 
             resultados.push(nuevoLead);
