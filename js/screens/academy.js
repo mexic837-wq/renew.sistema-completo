@@ -162,10 +162,15 @@ export function renderAcademy() {
 
     const getViewerUrl = (url) => {
       if (!url) return '';
-      const docExts = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
       const lowerUrl = url.toLowerCase();
-      if (docExts.some(ext => lowerUrl.endsWith(ext))) {
-        // Use Google Docs Viewer for visualization
+      const officeExts = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+      const isOffice = officeExts.some(ext => lowerUrl.endsWith(ext));
+      const isPdf = lowerUrl.endsWith('.pdf');
+
+      if (isOffice) {
+        return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+      }
+      if (isPdf) {
         return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
       }
       return url;
