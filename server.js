@@ -6,6 +6,8 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 const { google } = require('googleapis');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const https = require('https');
+const http = require('http');
 
 // ── CONFIGURACIÓN SUPABASE ───────────────
 const SUPABASE_URL = 'https://gateway.renewgroup.site';
@@ -2242,20 +2244,16 @@ app.post('/api/complete-upload', async (req, res) => {
     }
 });
 
-// ── PROXY para imágenes antiguas guardadas en Supabase con IP interna ──
-// Permite que URLs como /api/storage-proxy/announcements/... funcionen públicamente
-app.use('/api/storage-proxy', async (req, res) => {
+// GET: PROXY para imágenes antiguas guardadas en Supabase con IP interna
+app.get('/api/storage-proxy/*', async (req, res) => {
     try {
-        let filePath = req.path.replace(/^\//, ''); // Quitamos la barra inicial
+        // req.params[0] contendrá la ruta después de /api/storage-proxy/
+        let filePath = req.params[0];
         if (!filePath) return res.status(404).json({ error: 'Ruta de archivo no especificada' });
         
-        // Si el filePath empieza con archivos_renew/, lo mantenemos. 
-        // El internalUrl final debe ser: {IP}/storage/v1/object/public/{filePath}
         const internalUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
         console.log(`[PROXY] Fetching file: ${internalUrl}`);
         
-        const https = require('https');
-        const http = require('http');
         const protocol = internalUrl.startsWith('https') ? https : http;
         
         protocol.get(internalUrl, (proxyRes) => {
@@ -2289,7 +2287,8 @@ app.use('/api/storage-proxy', async (req, res) => {
         });
     } catch (e) {
         console.error('[PROXY CRITICAL]', e.message);
-        res.status(500).json({ error: e.message });
+        if (!res.headersSent) res.status(500).json({ error: e.message });
+        else res.end();
     }
 });
 
