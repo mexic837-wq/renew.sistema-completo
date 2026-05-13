@@ -763,6 +763,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 1000); // Give it a second to look cool
 });
 
+// ── GLOBAL USER SYNC ─────────────────────────────────────────
+window.addEventListener('user_updated', (e) => {
+    const user = e.detail;
+    const avatarBtn = document.getElementById('avatar-btn');
+    if (avatarBtn) {
+        if (user.foto) {
+            avatarBtn.style.backgroundImage = `url(${user.foto})`;
+            avatarBtn.style.backgroundSize = 'cover';
+            avatarBtn.style.backgroundPosition = 'center';
+            avatarBtn.style.color = 'transparent';
+            avatarBtn.style.border = '2px solid rgba(255,255,255,0.15)';
+            avatarBtn.textContent = '';
+        } else {
+            avatarBtn.style.backgroundImage = '';
+            avatarBtn.style.color = '';
+            avatarBtn.style.border = '';
+            const initials = (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase();
+            avatarBtn.textContent = initials;
+        }
+    }
+});
+
 // ── Iframe Screen Sizing Helper ──────────────────────────────
 // Sizes iframe screens to exactly fill the viewport below their header.
 // This fixes the black-bar issue where flex:1 doesn't always work on iframes.

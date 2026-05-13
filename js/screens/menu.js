@@ -2,10 +2,10 @@
    RENEW SOLAR – screens/menu.js
    Full-screen Main Menu Section
    ============================================================ */
-import { getCurrentUser, logout } from '../api.js';
+import { getCurrentUser, logout, uploadFile, saveGranular, getDB } from '../api.js';
 // Removed import from ../app.js to break circular dependency
 import { t, getLang, setLang, langSwitcherHTML } from '../i18n.js';
-import { getDB } from '../api.js';
+import { showToast } from '../components/toast.js';
 
 export async function renderMenu() {
   const user = getCurrentUser();
@@ -243,8 +243,14 @@ function mostrarModalCuenta(user) {
       <div style="height:100px; background:linear-gradient(135deg, #00f5d4 0%, #00d2ff 100%); opacity:0.15;"></div>
       
       <div style="text-align:center; margin-top:-50px; position:relative; z-index:2;">
-        <div style="width:100px; height:100px; border-radius:30px; background:var(--surface); border:4px solid var(--surface); margin:0 auto; overflow:hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
-          <img src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='assets/images/default-avatar.png'">
+        <div style="position:relative; width:100px; height:100px; margin:0 auto;">
+          <div style="width:100px; height:100px; border-radius:30px; background:var(--surface); border:4px solid var(--surface); overflow:hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+            <img id="user-avatar-img" src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='assets/images/default-avatar.png'">
+          </div>
+          <label for="input-avatar" style="position:absolute; bottom:-5px; right:-5px; width:36px; height:36px; border-radius:12px; background:var(--primary); color:var(--bg); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border:3px solid var(--surface);">
+            <i class="fa-solid fa-camera" style="font-size:14px;"></i>
+          </label>
+          <input type="file" id="input-avatar" style="display:none;" accept="image/*">
         </div>
         <div style="margin-top:12px;">
            <h3 style="margin:0; font-size:1.4rem; font-weight:900; color:var(--text-primary);">${user.nombre} ${user.apellido}</h3>
@@ -294,4 +300,39 @@ function mostrarModalCuenta(user) {
   `;
   document.body.appendChild(modal);
   modal.querySelector('#close-account').onclick = () => modal.remove();
+
+  // Handle Avatar Change
+  const inputAvatar = modal.querySelector('#input-avatar');
+  if (inputAvatar) {
+    inputAvatar.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        showToast('Subiendo nueva foto...', 'info');
+        
+        // 1. Upload to Supabase
+        const photoUrl = await uploadFile(file, 'usuarios_perfiles');
+        
+        // 2. Update current UI
+        const img = modal.querySelector('#user-avatar-img');
+        if (img) img.src = photoUrl;
+
+        // 3. Update User in DB
+        const updatedUser = { ...user, foto: photoUrl };
+        await saveGranular('usuarios', [updatedUser]);
+
+        // 4. Update Local Session
+        localStorage.setItem('rs_user', JSON.stringify(updatedUser));
+        
+        // 5. Update global app context if needed (triggers header update)
+        window.dispatchEvent(new CustomEvent('user_updated', { detail: updatedUser }));
+
+        showToast('Foto de perfil actualizada correctamente', 'success');
+      } catch (err) {
+        console.error('Error actualizando foto de perfil:', err);
+        showToast('Fallo al actualizar la foto', 'error');
+      }
+    });
+  }
 }
