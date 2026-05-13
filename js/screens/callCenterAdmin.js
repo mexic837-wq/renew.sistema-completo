@@ -174,15 +174,21 @@ export async function renderCallCenterAdmin() {
 
 async function loadOperators() {
     const sel = document.getElementById('sel-cc-operador');
+    if (!sel) return;
     try {
         const res = await fetch('/api/usuarios');
         const users = await res.json();
-        const operators = users.filter(u => u.rol === 'Call Center');
+        console.log('[CC-ADMIN] Users fetched:', users.length);
         
+        // Filter case-insensitive and trim
+        const operators = users.filter(u => u.rol && u.rol.trim().toLowerCase() === 'call center');
+        console.log('[CC-ADMIN] Call Center operators found:', operators.length);
+        
+        sel.innerHTML = '<option value="">Selección Automática</option>';
         operators.forEach(op => {
             const opt = document.createElement('option');
             opt.value = op.id;
-            opt.textContent = `${op.nombre} ${op.apellido || ''} (${op.rol})`;
+            opt.textContent = `${op.nombre} ${op.apellido || ''}`;
             sel.appendChild(opt);
         });
     } catch (err) {
@@ -281,7 +287,7 @@ window.adminEditCCLead = async (id, currentOpId) => {
     try {
         const res = await fetch('/api/usuarios');
         const users = await res.json();
-        const operators = users.filter(u => u.rol === 'Call Center');
+        const operators = users.filter(u => u.rol && u.rol.trim().toLowerCase() === 'call center');
         operators.forEach(op => {
             const opt = document.createElement('option');
             opt.value = op.id;
