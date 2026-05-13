@@ -1,21 +1,22 @@
 {
-  "name": "Renew Solar OS",
-  "short_name": "Renew Solar",
+  "name": "Renew Group OS",
+  "short_name": "Renew Group",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#0d9488",
-  "theme_color": "#0d9488",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "assets/images/renew copia logo.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/images/renew copia logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
