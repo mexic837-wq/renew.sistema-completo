@@ -16,6 +16,7 @@ import { showToast } from './components/toast.js';
 import { t, getLang, setLang } from './i18n.js';
 import { renderRendimientoGlobal } from './screens/rendimiento-global.js';
 import { renderHRHub } from './screens/hrhub.js';
+import { renderCallCenterAdmin } from './screens/callCenterAdmin.js';
 import { openChat } from './components/internal-chat.js';
 
 window.openInternalChat = openChat;
@@ -3652,6 +3653,10 @@ window.renderView = async function renderView() {
             </table>
         </div>
     `;
+  }
+  else if (state.activeView === 'call-center') {
+      setGlobalButton(false);
+      renderCallCenterAdmin();
   }
   else if (state.activeView === 'kanban') {
     UI.viewTitle.textContent = "Kanban Pulse";
