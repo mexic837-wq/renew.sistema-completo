@@ -30,7 +30,7 @@ export async function renderClients() {
     const avatarEl = document.getElementById('clients-avatar-btn');
     const badgeEl = document.getElementById('clients-pipeline-badge');
 
-    if (greetEl) greetEl.textContent = getGreeting();
+    if (greetEl) greetEl.style.display = 'none';
     
     if (badgeEl) {
       const activeUnit = (localStorage.getItem('active_unit') || 'Solar').toLowerCase();
@@ -64,7 +64,7 @@ export async function renderClients() {
     if (nameEl) {
       const fullUserName = user && user.nombre ? user.nombre : (user && user.email ? user.email.split('@')[0] : 'Usuario');
       const firstName = fullUserName.split(' ')[0];
-      const titleBase = isTecnico ? (t('clients_title_tech') || 'Mis Citas') : `Hola, ${firstName} 👋`;
+      const titleBase = isTecnico ? (t('clients_title_tech') || 'Mis Citas') : 'Cartera de Clientes';
       nameEl.textContent = isTecnico ? `${titleBase} - ${firstName}` : titleBase;
       console.log('Title updated to:', nameEl.textContent);
     }
