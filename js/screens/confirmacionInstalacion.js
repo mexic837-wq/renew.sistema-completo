@@ -16,7 +16,7 @@ export function renderConfirmacionInstalacion() {
     .ci-header { position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px; }
     .ci-back { width:38px;height:38px;border-radius:50%;border:none;background:var(--surface-alt);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.2s; }
     .ci-back:hover { background:rgba(14,165,233,.12);color:#0ea5e9; }
-    .ci-body { padding:20px;display:flex;flex-direction:column;gap:20px;padding-bottom:120px; }
+    .ci-body { padding:20px;display:flex;flex-direction:column;gap:20px;padding-bottom:160px; }
     .ci-section { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden; }
     .ci-section-hdr { padding:16px 20px;display:flex;align-items:center;gap:12px; }
     .ci-section-icon { width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
@@ -40,7 +40,7 @@ export function renderConfirmacionInstalacion() {
     .sig-wrapper { border:2px dashed var(--border);border-radius:16px;overflow:hidden;position:relative;background:#fff; }
     .sig-canvas { display:block;width:100%;height:140px;touch-action:none; }
     .sig-clear { position:absolute;top:8px;right:10px;background:rgba(239,68,68,.1);border:none;color:#ef4444;font-size:.7rem;font-weight:800;padding:4px 10px;border-radius:6px;cursor:pointer; }
-    .ci-submit { position:fixed;bottom:0;left:0;right:0;padding:16px;background:var(--surface);border-top:1px solid var(--border);z-index:20; }
+    .ci-submit { position:fixed;bottom:70px;left:0;right:0;padding:16px;background:var(--surface);border-top:1px solid var(--border);z-index:99; }
     .ci-btn-submit { width:100%;padding:16px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);color:#fff;border:none;border-radius:16px;font-size:1rem;font-weight:800;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px; }
     .ci-btn-submit:active { transform:scale(.97); }
     .ci-btn-submit:disabled { opacity:.6;pointer-events:none; }
