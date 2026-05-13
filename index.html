@@ -351,8 +351,8 @@
         </a>
 
         <!-- Centro: Flotante + -->
-        <a href="#new-client" class="nav-item nav-item-plus" data-screen="new-client" id="nav-btn-nuevo-cliente"
-          onclick="event.preventDefault(); window.appNavigate && window.appNavigate('new-client');">
+        <a href="javascript:void(0)" class="nav-item nav-item-plus" id="nav-btn-nuevo-cliente"
+          onclick="event.preventDefault(); if (window.openNuevoProspectoGlobal) window.openNuevoProspectoGlobal();">
           <div class="plus-circle">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19" />

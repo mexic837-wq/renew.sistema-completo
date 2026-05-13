@@ -1607,6 +1607,13 @@ function _wireModalControls(user, container) {
         // Refresh list
         const container2 = document.getElementById('lista-clientes-movil');
         if (container2) await _renderList(user, container2);
+        if (window.appNavigate) {
+            window.appNavigate('clients');
+            setTimeout(() => {
+                const tabProsp = document.getElementById('clients-tab-prospectos');
+                if (tabProsp) tabProsp.click();
+            }, 100);
+        }
       } catch (err) {
         console.error(err);
         showToast('Error al guardar: ' + err.message, 'error');
@@ -1618,5 +1625,22 @@ function _wireModalControls(user, container) {
   }
 }
 
+window.openNuevoProspectoGlobal = () => {
+    editingClientId = null;
+    resetModal();
+    const title = document.querySelector('#modal-nuevo-cliente h3');
+    if (title) title.textContent = 'Nuevo Prospecto';
+    const modal = document.getElementById('modal-nuevo-cliente');
+    if (modal) modal.style.display = 'flex';
 
+    const mapCont = document.getElementById('quick-map-container');
+    if (mapCont) mapCont.style.display = 'block';
+    const dirInput = document.getElementById('quick-direccion');
+    if (dirInput) dirInput.dataset.quickMapsLoaded = '';
 
+    if (window.initQuickMaps) setTimeout(window.initQuickMaps, 400);
+
+    const user = getCurrentUser();
+    const container = document.getElementById('lista-clientes-movil');
+    _wireModalControls(user, container);
+};
