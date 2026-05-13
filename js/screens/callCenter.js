@@ -49,7 +49,7 @@ async function crearLeadEnCRM(prospecto, ecosistema, notas, operador) {
     id:                       'cli_' + Date.now().toString(36),
     nombre:                   prospecto.nombre    || 'Prospecto CC',
     telefono:                 prospecto.telefono  || '',
-    direccion:                [prospecto.direccion, prospecto.ciudad, prospecto.estado_geo, prospecto.zip_code].filter(Boolean).join(', '),
+    direccion:                prospecto.direccion || '',
     email:                    prospecto.email     || '',
     empresa:                  ecosistema,
     departamento:             ecosistema,   // alias for pipeline detection in vendor assignment
@@ -149,11 +149,6 @@ function renderFase1(screen, user) {
               <h1 style="font-size:17px;font-weight:900;color:var(--text);margin:0;line-height:1.2;">Prospectos del Día</h1>
             </div>
           </div>
-          <!-- Action Buttons -->
-          <div style="display:flex;align-items:center;gap:10px;">
-            <button id="btn-cc-add-manual" style="background:var(--primary);color:black;border:none;border-radius:12px;padding:8px 12px;font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;">
-              <i class="fa-solid fa-plus"></i> Agregar
-            </button>
           <!-- Counter badge -->
           <div style="background:rgba(0,245,212,0.08);border:1px solid rgba(0,245,212,0.2);border-radius:14px;padding:8px 14px;text-align:center;">
             <p style="font-size:20px;font-weight:900;color:var(--primary);margin:0;line-height:1;">${total}</p>
@@ -184,110 +179,11 @@ function renderFase1(screen, user) {
         ${cards}
       </div>
     </div>
-
-    <!-- MODAL AGREGAR LEAD MANUAL -->
-    <div id="modal-cc-add-manual" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:9999;justify-content:center;align-items:flex-end;">
-      <div style="background:var(--surface);width:100%;border-radius:32px 32px 0 0;padding:24px;max-height:90vh;overflow-y:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.3);animation: fadeInUp 0.3s ease both;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <div>
-            <h3 style="font-size:1.3rem;font-weight:800;color:var(--text-primary);margin:0;">Nuevo Lead</h3>
-            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">Call Center - Ingreso Manual</p>
-          </div>
-          <button id="btn-cc-close-manual" style="background:var(--surface-alt);border:none;color:var(--text-secondary);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;">&times;</button>
-        </div>
-
-        <form id="form-cc-add-manual" style="display:flex;flex-direction:column;gap:16px;">
-          <div>
-            <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Nombre *</label>
-            <input type="text" id="cc-manual-nombre" required style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div>
-              <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Teléfono *</label>
-              <input type="tel" id="cc-manual-telefono" required style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Email</label>
-              <input type="email" id="cc-manual-email" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-            </div>
-          </div>
-          <div>
-            <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Dirección Formateada *</label>
-            <input type="text" id="cc-manual-direccion" required style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-            <div>
-              <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Ciudad</label>
-              <input type="text" id="cc-manual-ciudad" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Estado</label>
-              <input type="text" id="cc-manual-estado" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;display:block;">Zip Code</label>
-              <input type="text" id="cc-manual-zip" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
-            </div>
-          </div>
-          
-          <button type="submit" id="btn-cc-submit-manual" style="width:100%;background:var(--primary);color:black;border:none;border-radius:14px;padding:16px;font-size:14px;font-weight:900;cursor:pointer;margin-top:10px;box-shadow:0 4px 16px rgba(0,245,212,0.3);">
-            Guardar y Asignar Lead
-          </button>
-        </form>
-      </div>
-    </div>
   `;
 
   // EVENTS
   screen.onclick = (e) => handleFase1Click(screen, user, e);
   startCountdownTick(screen);
-
-  // Modal Events
-  const addBtn = screen.querySelector('#btn-cc-add-manual');
-  const closeBtn = screen.querySelector('#btn-cc-close-manual');
-  const modal = screen.querySelector('#modal-cc-add-manual');
-  const form = screen.querySelector('#form-cc-add-manual');
-
-  if(addBtn) addBtn.onclick = () => { modal.style.display = 'flex'; };
-  if(closeBtn) closeBtn.onclick = () => { modal.style.display = 'none'; };
-  
-  if(form) {
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const btnSubmit = form.querySelector('#btn-cc-submit-manual');
-      btnSubmit.textContent = 'Guardando...';
-      btnSubmit.disabled = true;
-
-      const payload = {
-        nombre: form.querySelector('#cc-manual-nombre').value.trim(),
-        telefono: form.querySelector('#cc-manual-telefono').value.trim(),
-        email: form.querySelector('#cc-manual-email').value.trim(),
-        direccion: form.querySelector('#cc-manual-direccion').value.trim(),
-        ciudad: form.querySelector('#cc-manual-ciudad').value.trim(),
-        estado: form.querySelector('#cc-manual-estado').value.trim(),
-        zip_code: form.querySelector('#cc-manual-zip').value.trim(),
-        fuente: 'manual'
-      };
-
-      try {
-        const res = await fetch('/api/cc-prospectos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if(!res.ok) throw new Error('Error al guardar lead manual');
-        
-        showToast('Lead agregado y asignado a cola/operador', 'success');
-        modal.style.display = 'none';
-        renderCallCenter(); // re-render to fetch new leads
-      } catch (err) {
-        showToast(err.message, 'error');
-        btnSubmit.textContent = 'Guardar y Asignar Lead';
-        btnSubmit.disabled = false;
-      }
-    };
-  }
 }
 
 function buildFase1Card(p, index) {
@@ -422,12 +318,6 @@ async function handleFase1Click(screen, user, e) {
     // Confirma la aceptación: estado pasa a 'pendiente' (activo)
     await patchProspecto(id, { accion: 'aceptar' });
     renderFase2(screen, user, { ...pros, estado: 'pendiente' });
-    return;
-  }
-
-  // Allow inner clicks in modal
-  if (e.target.closest('#modal-cc-add-manual') && !e.target.closest('#btn-cc-close-manual') && !e.target.closest('#btn-cc-add-manual')) {
-    screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     return;
   }
 
