@@ -1,4 +1,3 @@
-console.log('[SYSTEM] Server process starting...');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -2243,52 +2242,38 @@ app.post('/api/complete-upload', async (req, res) => {
     }
 });
 
-// GET: PROXY para imágenes antiguas guardadas en Supabase con IP interna
-app.get('/api/storage-proxy/*', async (req, res) => {
+// ── PROXY para imágenes antiguas guardadas en Supabase con IP interna ──
+// Permite que URLs como /api/storage-proxy/announcements/... funcionen públicamente
+app.use('/api/storage-proxy', async (req, res) => {
     try {
-        const https = require('https');
-        const http = require('http');
-        
-        let filePath = req.params[0];
+        let filePath = req.path.replace(/^\//, ''); // Quitamos la barra inicial
         if (!filePath) return res.status(404).json({ error: 'Ruta de archivo no especificada' });
         
+        // Si el filePath empieza con archivos_renew/, lo mantenemos. 
+        // El internalUrl final debe ser: {IP}/storage/v1/object/public/{filePath}
         const internalUrl = `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
         console.log(`[PROXY] Fetching file: ${internalUrl}`);
         
+        const https = require('https');
+        const http = require('http');
         const protocol = internalUrl.startsWith('https') ? https : http;
         
         protocol.get(internalUrl, (proxyRes) => {
+            // Forward headers
             const headers = {
                 'Content-Type': proxyRes.headers['content-type'] || 'application/octet-stream',
                 'Cache-Control': 'public, max-age=31536000',
                 'Access-Control-Allow-Origin': '*'
             };
             res.writeHead(proxyRes.statusCode, headers);
-            
-            proxyRes.on('error', (err) => {
-                console.error('[PROXY-RES ERROR]', err.message);
-                if (!res.headersSent) res.status(502).end();
-                else res.end();
-            });
-            
-            res.on('error', (err) => {
-                console.error('[PROXY CLIENT ERROR]', err.message);
-                proxyRes.destroy();
-            });
-
             proxyRes.pipe(res);
         }).on('error', (err) => {
             console.error('[PROXY ERROR] Failed to fetch:', internalUrl, err.message);
-            if (!res.headersSent) {
-                res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
-            } else {
-                res.end();
-            }
+            res.status(502).json({ error: 'No se pudo recuperar el archivo del almacenamiento interno.' });
         });
     } catch (e) {
         console.error('[PROXY CRITICAL]', e.message);
-        if (!res.headersSent) res.status(500).json({ error: e.message });
-        else res.end();
+        res.status(500).json({ error: e.message });
     }
 });
 
