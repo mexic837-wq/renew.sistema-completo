@@ -177,7 +177,7 @@ async function loadOperators() {
     try {
         const res = await fetch('/api/usuarios');
         const users = await res.json();
-        const operators = users.filter(u => u.rol === 'vendedor' || u.rol === 'admin');
+        const operators = users.filter(u => u.rol === 'Call Center');
         
         operators.forEach(op => {
             const opt = document.createElement('option');
@@ -281,7 +281,7 @@ window.adminEditCCLead = async (id, currentOpId) => {
     try {
         const res = await fetch('/api/usuarios');
         const users = await res.json();
-        const operators = users.filter(u => u.rol === 'vendedor' || u.rol === 'admin');
+        const operators = users.filter(u => u.rol === 'Call Center');
         operators.forEach(op => {
             const opt = document.createElement('option');
             opt.value = op.id;
