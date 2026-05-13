@@ -176,7 +176,7 @@ async function loadOperators() {
     const sel = document.getElementById('sel-cc-operador');
     if (!sel) return;
     try {
-        const res = await fetch('/api/usuarios');
+        const res = await fetch('/api/usuarios?t=' + Date.now());
         const users = await res.json();
         console.log('[CC-ADMIN] Users fetched:', users.length);
         
@@ -285,9 +285,14 @@ window.adminEditCCLead = async (id, currentOpId) => {
     // Load operators into edit select
     sel.innerHTML = '<option value="">En Cola / Sin Asignar</option>';
     try {
-        const res = await fetch('/api/usuarios');
+        const res = await fetch('/api/usuarios?t=' + Date.now());
         const users = await res.json();
+        console.log('[CC-EDIT] All Users fetched:', users.length);
+        console.log('[CC-EDIT] Roles found:', [...new Set(users.map(u => u.rol))]);
+        
         const operators = users.filter(u => u.rol && u.rol.trim().toLowerCase() === 'call center');
+        console.log('[CC-EDIT] Call Center operators found:', operators.length);
+        
         operators.forEach(op => {
             const opt = document.createElement('option');
             opt.value = op.id;
@@ -295,7 +300,9 @@ window.adminEditCCLead = async (id, currentOpId) => {
             if (op.id === currentOpId) opt.selected = true;
             sel.appendChild(opt);
         });
-    } catch (e) {}
+    } catch (e) {
+        console.error('[CC-EDIT] Error loading operators:', e);
+    }
 
     const openModal = () => {
         modal.classList.remove('hidden');
