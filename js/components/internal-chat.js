@@ -1,12 +1,14 @@
 import { 
     getInternalMessages, sendInternalMessage, getAdminWorkers, 
-    uploadFile, getCurrentUser, markMessageAsRead, updateChatBadges 
+    uploadFile, getCurrentUser, markMessageAsRead, updateChatBadges,
+    updateInternalMessage, deleteInternalMessage 
 } from '../api.js';
 import { showToast } from './toast.js';
 
 let chatModal = null;
 let mentionList = [];
 let selectedMentions = [];
+let editingMessageId = null;
 
 export async function initChat() {
     if (chatModal) return;
@@ -104,7 +106,14 @@ export async function initChat() {
             e.preventDefault();
             handleSendMessage();
         }
+        if (e.key === 'Escape' && editingMessageId) {
+            cancelEdit();
+        }
     });
+
+    // Global actions
+    window.editInternalMessage = startEdit;
+    window.deleteInternalMessage = handleDeleteMessage;
 
     // Load users for mentions
     mentionList = await getAdminWorkers();
@@ -189,6 +198,17 @@ async function renderMessages() {
         return `
             <div class="flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn chat-msg-item">
                 <div class="max-w-[80%] ${isMe ? 'bg-tealAccent text-black' : 'bg-white dark:bg-white/5 text-gray-800 dark:text-white'} rounded-[1.5rem] p-4 shadow-sm relative group">
+                    ${isMe ? `
+                        <div class="absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1">
+                            <button onclick="window.editInternalMessage('${msg.id}')" class="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-[10px] transition-colors" title="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="window.deleteInternalMessage('${msg.id}')" class="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-red-500 hover:text-white flex items-center justify-center text-[10px] transition-colors" title="Eliminar">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    ` : ''}
+
                     ${!isMe ? `<p class="text-[10px] font-black uppercase tracking-widest text-tealAccent mb-1">${msg.sender_name || ''}</p>` : ''}
                     
                     ${imageUrl ? `<img src="${imageUrl}" class="w-full max-h-60 object-cover rounded-xl mb-2 cursor-pointer" onclick="window.open('${imageUrl}')" onerror="this.style.display='none'">` : ''}
@@ -196,6 +216,7 @@ async function renderMessages() {
                     <p class="text-sm font-medium leading-relaxed">${formatContent(msg.content || '')}</p>
                     
                     <div class="flex items-center justify-end gap-2 mt-1">
+                        ${msg.updated_at ? `<span class="text-[8px] opacity-40 font-bold italic mr-auto">editado</span>` : ''}
                         <span class="text-[9px] opacity-50 font-bold">${date}</span>
                         ${isMe ? `<i class="fa-solid fa-check-double text-[9px] ${readBy.length > 1 ? 'text-blue-600' : 'opacity-30'}"></i>` : ''}
                     </div>
@@ -308,6 +329,18 @@ async function handleSendMessage() {
 
     if (!content && !file) return;
 
+    if (editingMessageId) {
+        try {
+            await updateInternalMessage(editingMessageId, content);
+            cancelEdit();
+            renderMessages();
+        } catch (error) {
+            console.error('Error updating message:', error);
+            showToast('Error al actualizar mensaje', 'error');
+        }
+        return;
+    }
+
     try {
         let image_url = null;
         if (file) {
@@ -332,4 +365,57 @@ async function handleSendMessage() {
         console.error('Error sending message:', error);
         showToast('Error al enviar mensaje', 'error');
     }
+}
+
+function startEdit(id) {
+    const messages = JSON.parse(JSON.stringify(getInternalMessagesSync())); // Helper to get messages from cache
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+
+    editingMessageId = id;
+    const input = document.getElementById('chat-input');
+    input.value = msg.content;
+    input.focus();
+    input.classList.add('ring-2', 'ring-orange-500');
+    
+    // Cambiar icono de enviar a guardar
+    const sendBtn = document.getElementById('chat-send-btn');
+    sendBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+    sendBtn.classList.remove('bg-tealAccent');
+    sendBtn.classList.add('bg-orange-500');
+
+    showToast('Editando mensaje...', 'info');
+}
+
+function cancelEdit() {
+    editingMessageId = null;
+    const input = document.getElementById('chat-input');
+    input.value = '';
+    input.classList.remove('ring-2', 'ring-orange-500');
+
+    const sendBtn = document.getElementById('chat-send-btn');
+    sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+    sendBtn.classList.add('bg-tealAccent');
+    sendBtn.classList.remove('bg-orange-500');
+}
+
+async function handleDeleteMessage(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este mensaje?')) return;
+
+    try {
+        await deleteInternalMessage(id);
+        showToast('Mensaje eliminado', 'success');
+        renderMessages();
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        showToast('Error al eliminar mensaje', 'error');
+    }
+}
+
+// Helper para obtener mensajes sincronizados sin await
+function getInternalMessagesSync() {
+    const raw = localStorage.getItem('rs_admin_db');
+    if (!raw) return [];
+    const db = JSON.parse(raw);
+    return db.mensajes_internos || [];
 }

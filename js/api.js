@@ -2198,3 +2198,25 @@ export function updateChatBadges() {
         }
     });
 }
+export async function updateInternalMessage(messageId, content) {
+    const db = getDB();
+    const msg = (db.mensajes_internos || []).find(m => m.id === messageId);
+    if (msg) {
+        msg.content = content;
+        msg.updated_at = new Date().toISOString();
+        await saveGranular('mensajes_internos', [msg]);
+    }
+}
+
+export async function deleteInternalMessage(messageId) {
+    const db = getDB();
+    try {
+        await deleteRecord('mensajes_internos', messageId);
+        db.mensajes_internos = (db.mensajes_internos || []).filter(m => m.id !== messageId);
+        cachedDB = db;
+        window.dispatchEvent(new CustomEvent('db_synced'));
+    } catch (err) {
+        console.error('Error deleting message:', err);
+        throw err;
+    }
+}
