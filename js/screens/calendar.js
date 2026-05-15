@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/calendar.js
    ============================================================ */
 import { getCurrentUser, navigate } from '../app.js';
-import { getDB, saveGranular } from '../api.js';
+import { getDB, saveGranular, deleteRecord } from '../api.js';
 import { t } from '../i18n.js';
 
 export async function renderMiCalendario() {
@@ -189,10 +189,10 @@ export async function renderMiCalendario() {
       </style>
       <div id="mi-calendario-container" style="background: var(--surface); border-radius: 32px; padding: 12px; box-shadow: var(--shadow-xl); min-height: 550px; border: 1px solid var(--border);"></div>
     </div>
-    <button id="fab-add-event" style="position: fixed; bottom: 85px; right: 20px; width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: #000; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; box-shadow: 0 8px 30px rgba(0,223,191,0.5); z-index: 100; transition: transform 0.2s;">
-      <i class="fa-solid fa-plus"></i>
     </button>
   `;
+
+  let currentEventId = null;
 
   // Listeners
   setTimeout(() => {
@@ -208,6 +208,12 @@ export async function renderMiCalendario() {
         btnGuardar.parentNode.replaceChild(newBtn, btnGuardar);
         newBtn.addEventListener('click', (e) => guardarEventoCalendario(e));
     }
+
+    const btnEditar = document.getElementById('btn-editar-evento');
+    if (btnEditar) btnEditar.addEventListener('click', () => switchEventToEditMode());
+
+    const btnEliminar = document.getElementById('btn-eliminar-evento');
+    if (btnEliminar) btnEliminar.addEventListener('click', () => eliminarEventoCalendario());
   }, 100);
 
   const calendarEl = document.getElementById('mi-calendario-container');
@@ -369,6 +375,8 @@ export async function renderMiCalendario() {
     modal.style.display = 'flex';
 
     const btnGuardar = document.getElementById('btn-guardar-evento');
+    const btnEditar = document.getElementById('btn-editar-evento');
+    const btnEliminar = document.getElementById('btn-eliminar-evento');
     const titleEl = document.getElementById('modal-calendar-title');
     const form = document.getElementById('form-calendario-evento');
     
@@ -384,7 +392,11 @@ export async function renderMiCalendario() {
         btnGuardar.classList.add('nuclear-hidden');
 
         const props = event.extendedProps || {};
+        currentEventId = props.originalId || event.id;
         
+        btnEditar.classList.remove('hidden');
+        btnEliminar.classList.remove('hidden');
+
         document.getElementById('ev-nombre').value = event.title || '';
         document.getElementById('ev-nombre').readOnly = true;
 
@@ -398,10 +410,6 @@ export async function renderMiCalendario() {
         }
         document.getElementById('ev-fecha-inicio').readOnly = true;
         document.getElementById('ev-fecha-fin').readOnly = true;
-
-        if (props.telefono) {
-            } else {
-            }
 
         if (props.direccion) {
             document.getElementById('ev-direccion').classList.add('nuclear-hidden');
@@ -438,12 +446,13 @@ export async function renderMiCalendario() {
                 if (dChk) dChk.checked = true;
             });
         }
-
-
     } else {
         // ADD MODE
+        currentEventId = null;
         titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
         btnGuardar.classList.remove('nuclear-hidden');
+        btnEditar.classList.add('hidden');
+        btnEliminar.classList.add('hidden');
         btnGuardar.innerHTML = 'Guardar';
         btnGuardar.disabled = false;
         form.reset();
@@ -451,15 +460,12 @@ export async function renderMiCalendario() {
         document.getElementById('ev-nombre').readOnly = false;
         document.getElementById('ev-fecha-inicio').readOnly = false;
         document.getElementById('ev-fecha-fin').readOnly = false;
-
+        document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
+        document.querySelectorAll('input[name="ev-depto"]').forEach(r => r.disabled = false);
+        document.getElementById('ev-descripcion').readOnly = false;
         document.getElementById('ev-direccion').readOnly = false;
         document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
         document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
-
-        document.getElementById('ev-descripcion').readOnly = false;
-        document.getElementById('ev-colaboradores-wrapper').classList.add('nuclear-hidden');
-
-        document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
 
         // Google Places Autocomplete for address field
         const evDirInput = document.getElementById('ev-direccion');
@@ -578,8 +584,10 @@ export async function renderMiCalendario() {
         const db = getDB();
         if (!db.calendario_eventos) db.calendario_eventos = [];
 
+        const existingIdx = db.calendario_eventos.findIndex(ev => ev.id === currentEventId);
+
         const newEvent = {
-            id: 'ev_' + Date.now(),
+            id: currentEventId || ('ev_' + Date.now()),
             nombre,
             fecha_inicio,
             fecha_fin,
@@ -592,7 +600,11 @@ export async function renderMiCalendario() {
             created_at: new Date().toISOString()
         };
 
-        db.calendario_eventos.push(newEvent);
+        if (existingIdx !== -1) {
+            db.calendario_eventos[existingIdx] = newEvent;
+        } else {
+            db.calendario_eventos.push(newEvent);
+        }
         await saveGranular('calendario_eventos', [newEvent]);
 
         // ── SYNC WITH GOOGLE CALENDAR VIA N8N ──
@@ -644,6 +656,62 @@ export async function renderMiCalendario() {
         btnGuardar.innerHTML = 'Guardar';
         btnGuardar.disabled = false;
     }
+  }
+
+  function switchEventToEditMode() {
+      const btnGuardar = document.getElementById('btn-guardar-evento');
+      const btnEditar = document.getElementById('btn-editar-evento');
+      const titleEl = document.getElementById('modal-calendar-title');
+      
+      titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Editar Evento`;
+      btnGuardar.classList.remove('nuclear-hidden');
+      btnEditar.classList.add('hidden');
+      
+      document.getElementById('ev-nombre').readOnly = false;
+      document.getElementById('ev-fecha-inicio').readOnly = false;
+      document.getElementById('ev-fecha-fin').readOnly = false;
+      document.getElementById('ev-descripcion').readOnly = false;
+      document.getElementById('ev-direccion').readOnly = false;
+      document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
+      document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
+      document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
+      document.querySelectorAll('input[name="ev-depto"]').forEach(r => r.disabled = false);
+  }
+
+  async function eliminarEventoCalendario() {
+      if (!currentEventId) return;
+      if (!confirm('¿Estás seguro de eliminar este evento?')) return;
+      
+      try {
+          const btnEliminar = document.getElementById('btn-eliminar-evento');
+          btnEliminar.disabled = true;
+          btnEliminar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+          
+          await deleteRecord('calendario_eventos', currentEventId);
+          
+          const db = getDB();
+          db.calendario_eventos = (db.calendario_eventos || []).filter(ev => ev.id !== currentEventId);
+          
+          import('../components/toast.js').then(m => m.showToast('Evento eliminado', 'success'));
+          
+          // Close modal
+          const modal = document.getElementById('modal-calendar-event');
+          if (modal) {
+              modal.classList.add('nuclear-hidden');
+              modal.style.display = 'none';
+          }
+          
+          calendar.refetchEvents();
+      } catch (err) {
+          console.error(err);
+          import('../components/toast.js').then(m => m.showToast('Error al eliminar', 'error'));
+      } finally {
+          const btnEliminar = document.getElementById('btn-eliminar-evento');
+          if (btnEliminar) {
+              btnEliminar.disabled = false;
+              btnEliminar.innerHTML = 'Eliminar';
+          }
+      }
   }
 }
 

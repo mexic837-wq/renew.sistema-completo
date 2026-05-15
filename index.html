@@ -165,8 +165,13 @@
     .pac-item-query {
       color: white !important;
     }
-    .pac-matched {
-      color: var(--primary) !important;
+    /* Hide scrollbars globally */
+    * {
+      scrollbar-width: none !important; /* Firefox */
+      -ms-overflow-style: none !important; /* IE/Edge */
+    }
+    *::-webkit-scrollbar {
+      display: none !important; /* Chrome/Safari/Webkit */
     }
   </style>
 
@@ -669,8 +674,12 @@
                 </div>
 
                 <div class="flex gap-3 pt-3">
-                    <button type="button" onclick="window.closeModals()" 
+                    <button type="button" id="btn-eliminar-evento" 
+                        class="px-4 bg-red-500/10 text-red-500 font-black text-[9px] uppercase tracking-widest p-3 rounded-xl hover:bg-red-500/20 transition-all hidden">Eliminar</button>
+                    <button type="button" onclick="window.closeModals()" id="btn-cancelar-evento"
                         class="flex-1 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/60 font-black text-[9px] uppercase tracking-widest p-3 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all">Cancelar</button>
+                    <button type="button" id="btn-editar-evento"
+                        class="flex-1 bg-tealAccent/10 text-tealAccent font-black text-[9px] uppercase tracking-widest p-3 rounded-xl border border-tealAccent/20 hidden">Editar</button>
                     <button type="submit" id="btn-guardar-evento" 
                         class="flex-[1.5] bg-tealAccent text-black font-black text-[9px] uppercase tracking-[0.2em] p-3 rounded-xl shadow-xl shadow-tealAccent/20 hover:scale-[1.02] active:scale-95 transition-all">Guardar Evento</button>
                 </div>
