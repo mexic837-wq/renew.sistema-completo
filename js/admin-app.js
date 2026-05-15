@@ -8449,7 +8449,7 @@ async function renderListaPreciosAdmin() {
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRODUCTO</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">SPECS</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRECIO ${rankLabels[activeRank].toUpperCase()}</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">EQ. GRANDE</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">SOLO TANQUE</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">RANGO SUG.</th>
                       <th class="px-6 py-5 text-right text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">ACCIONES</th>
                   </tr>

@@ -42,6 +42,7 @@ import { renderMisRecibos } from './screens/recibos.js';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
+import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 

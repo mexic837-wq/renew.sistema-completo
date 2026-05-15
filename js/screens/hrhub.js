@@ -13,6 +13,9 @@ export async function renderHRHub() {
             <button class="hr-view-btn px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/5 text-gray-500 hover:text-white transition-all whitespace-nowrap" data-target="recibos">
                 <i class="fa-solid fa-receipt mr-1"></i>Recibos de Pago
             </button>
+            <button class="hr-view-btn px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/5 text-gray-500 hover:text-white transition-all whitespace-nowrap" data-target="adelantos">
+                <i class="fa-solid fa-hand-holding-dollar mr-1"></i>Préstamos / Adelantos
+            </button>
         </div>
 
         <!-- DIRECTORIO BASE -->
@@ -137,6 +140,38 @@ export async function renderHRHub() {
                 </div>
             </div>
         </div>
+
+        <!-- PRÉSTAMOS O ADELANTOS -->
+        <div id="view-adelantos" class="hr-view-container hidden flex-1">
+            <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-sm font-black text-gray-900 dark:text-white">Préstamos y Adelantos</h3>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">Gestión de créditos al personal</p>
+                    </div>
+                    <button id="btn-add-adelanto" class="px-6 py-2.5 bg-tealAccent text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Nuevo Adelanto
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs min-w-[900px]">
+                        <thead class="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/5">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">Colaborador</th>
+                                <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">Monto</th>
+                                <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">Fecha</th>
+                                <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">Motivo</th>
+                                <th class="px-4 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">Documento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rrhh-adelantos-body" class="divide-y divide-gray-100 dark:divide-white/5">
+                            <tr><td colspan="5" class="py-12 text-center text-gray-400 text-xs italic">Cargando adelantos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
     `;
 
@@ -174,8 +209,9 @@ export async function renderHRHub() {
                 if (target === 'kanban') showContainer.classList.add('flex');
                 else showContainer.classList.add('block');
 
-                // Render recibos when tab is clicked
+                // Render views when tab is clicked
                 if (target === 'recibos') renderRecibos('all');
+                if (target === 'adelantos') renderAdelantos();
             });
         });
     }
@@ -498,6 +534,126 @@ export async function renderHRHub() {
         }).join('');
 
         wireFilterBtns(roleFilter, deptFilter);
+    }
+
+    async function renderAdelantos() {
+        const tbody = document.getElementById('rrhh-adelantos-body');
+        if (!tbody) return;
+
+        try {
+            const db = getDB();
+            const adelantos = db.rrhh_adelantos || [];
+            
+            if (adelantos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-400 text-xs italic">No se han registrado préstamos ni adelantos.</td></tr>`;
+            } else {
+                tbody.innerHTML = adelantos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(adel => {
+                    const worker = db.Usuarios.find(u => String(u.id) === String(adel.trabajador_id));
+                    const name = worker ? `${worker.nombre} ${worker.apellido || ''}` : (adel.trabajador_nombre || 'N/A');
+                    const initial = name[0]?.toUpperCase() || '?';
+                    const avatar = worker?.foto ? `<img src="${worker.foto}" class="w-8 h-8 rounded-full object-cover">` : `<div class="w-8 h-8 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-[10px]">${initial}</div>`;
+                    
+                    return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                ${avatar}
+                                <span class="font-bold text-gray-900 dark:text-white text-xs">${name}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap font-black text-tealAccent text-xs">$${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-[10px] text-gray-500">${adel.fecha || '-'}</td>
+                        <td class="px-4 py-3 text-[10px] text-gray-600 dark:text-gray-400 italic">${adel.motivo || '-'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right">
+                            ${adel.document_url ? `<a href="${adel.document_url}" target="_blank" class="px-3 py-1 bg-tealAccent/10 text-tealAccent rounded-lg text-[8px] font-black uppercase border border-tealAccent/20 hover:bg-tealAccent/20 transition-all"><i class="fa-solid fa-file-pdf mr-1"></i>Ver Doc</a>` : '<span class="text-[9px] text-gray-300">Sin Doc</span>'}
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+
+            // Bind Add Button
+            document.getElementById('btn-add-adelanto').onclick = openAdelantoModal;
+
+        } catch (err) {
+            console.error("Error rendering adelantos:", err);
+        }
+    }
+
+    function openAdelantoModal() {
+        const modal = document.getElementById('modal-adelanto');
+        const select = document.getElementById('adel-trabajador-id');
+        if (!modal || !select) return;
+
+        // Populate workers select
+        select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
+            empleadosData.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''}</option>`).join('');
+
+        modal.classList.remove('nuclear-hidden');
+        modal.classList.add('flex');
+
+        // Handle file change
+        const fileInp = document.getElementById('inp-adelanto-doc');
+        const label = document.getElementById('lbl-adelanto-doc');
+        fileInp.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) label.textContent = file.name;
+        };
+
+        // Handle save
+        document.getElementById('btn-save-adelanto').onclick = async () => {
+            const workerId = select.value;
+            const monto = document.getElementById('adel-monto').value;
+            const fecha = document.getElementById('adel-fecha').value;
+            const motivo = document.getElementById('adel-motivo').value;
+            const file = fileInp.files[0];
+
+            if (!workerId || !monto || !fecha) {
+                import('../components/toast.js').then(m => m.showToast('Complete los campos obligatorios.', 'error'));
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-adelanto');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+            try {
+                let docUrl = null;
+                if (file) {
+                    docUrl = await uploadFile(file, 'hr-adelantos');
+                }
+
+                const worker = empleadosData.find(e => String(e.id) === String(workerId));
+                const newAdelanto = {
+                    id: crypto.randomUUID(),
+                    trabajador_id: workerId,
+                    trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
+                    monto: parseFloat(monto),
+                    fecha: fecha,
+                    motivo: motivo,
+                    document_url: docUrl,
+                    created_at: new Date().toISOString()
+                };
+
+                const db = getDB();
+                if (!db.rrhh_adelantos) db.rrhh_adelantos = [];
+                db.rrhh_adelantos.push(newAdelanto);
+
+                const { saveGranular } = await import('../api.js');
+                await saveGranular('rrhh_adelantos', [newAdelanto]);
+
+                import('../components/toast.js').then(m => m.showToast('Adelanto registrado correctamente.', 'success'));
+                modal.classList.add('nuclear-hidden');
+                modal.classList.remove('flex');
+                renderAdelantos();
+
+            } catch (err) {
+                console.error("Error saving adelanto:", err);
+                import('../components/toast.js').then(m => m.showToast('Error al guardar.', 'error'));
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar y Notificar';
+            }
+        };
     }
 
     function wireFilterBtns(currentRole, currentDept) {

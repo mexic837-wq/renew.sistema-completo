@@ -431,7 +431,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
 
               ${(prod.solo_equipo_grande > 0) ? `
                 <div style="background:rgba(245,158,11,0.08); border:1.5px dashed rgba(245,158,11,0.25); border-radius:18px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
-                   <span style="font-size:0.75rem; color:#f59e0b; font-weight:900; text-transform:uppercase; letter-spacing:1px;">Solo Eq. Grande</span>
+                   <span style="font-size:0.75rem; color:#f59e0b; font-weight:900; text-transform:uppercase; letter-spacing:1px;">Solo Tanque</span>
                    <span style="font-size:1.15rem; font-weight:900; color:#f59e0b;">${formatPrice(prod.solo_equipo_grande)}</span>
                 </div>
               ` : ''}

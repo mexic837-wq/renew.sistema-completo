@@ -631,14 +631,15 @@ function _renderToolsForPipeline(user, activeUnit) {
       icon: `<i class="fa-solid fa-handshake"></i>`,
       action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
     } : null,
-    isAdmin ? {
-      name: 'Renew OS (Admin)', tag: null,
-      gradient: 'linear-gradient(90deg,#f59e0b,#ef4444)',
-      iconBg: 'rgba(245,158,11,0.1)', iconColor: 'var(--warning)',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
       action: () => { window.location.href = 'admin.html'; }, delay: '0.24s'
-    } : null
-
+    } : null,
+    {
+      name: 'Mis Adelantos', tag: 'RRHH',
+      gradient: 'linear-gradient(90deg,#0ea5e9,#2563eb)',
+      iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',
+      icon: `<i class="fa-solid fa-hand-holding-dollar"></i>`,
+      action: () => window.showMisAdelantos && window.showMisAdelantos(), delay: '0.25s'
+    }
   ];
 
   const pipTools = (TOOLS[activeUnit] || TOOLS['Renew Solar']).filter(Boolean);
@@ -653,6 +654,7 @@ function _renderToolsForPipeline(user, activeUnit) {
     'Mi Mapa':               'var(--bg-tool-mapa)',
     'Calendario':         'var(--bg-tool-calendario)',
     'Renew OS (Admin)':      'var(--bg-tool-admin)',
+    'Mis Adelantos':       'var(--bg-tool-credito)',
   };
 
   grid.innerHTML = allTools.map((tool, i) => `
