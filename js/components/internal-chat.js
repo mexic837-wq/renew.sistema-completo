@@ -133,7 +133,7 @@ export async function openChat() {
     renderMessages();
     
     // Auto-refresh every 10 seconds while open
-    window._chatRefreshInterval = setInterval(renderMessages, 10000);
+    // window._chatRefreshInterval = setInterval(renderMessages, 10000);
 }
 
 export function closeChat() {

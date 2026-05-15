@@ -542,9 +542,10 @@ window.setAdminLang = (lang) => {
 
 window.addEventListener('db_synced', async () => {
     // Re-render the active admin view when background sync finishes
-    if (typeof renderView === 'function') {
-        await renderView();
-    }
+    // Disabled to prevent the page from fully reloading every 30 seconds.
+    // if (typeof renderView === 'function') {
+    //     await renderView();
+    // }
 });
 
 window.addEventListener('langchange', async () => {

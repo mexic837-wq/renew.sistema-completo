@@ -743,6 +743,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Background DB Sync: Re-render current screen ──────────
   window.addEventListener('db_synced', () => {
+    // Disabled to prevent the UI from fully reloading/flashing every 30 seconds
+    /*
     const activeEl = document.querySelector('.screen.active');
     if (!activeEl) return;
     const activeId = activeEl.id.replace('screen-', '');
@@ -756,6 +758,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'academy':       renderAcademy();         break;
       // Avoid re-rendering detail if it interrupts user typing
     }
+    */
   });
 
   // HIDE PRELOADER
