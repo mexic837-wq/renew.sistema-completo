@@ -165,12 +165,12 @@
     .pac-item-query {
       color: white !important;
     }
-    /* Hide scrollbars globally */
-    * {
+    /* Hide scrollbars specifically for containers with .hide-scrollbar */
+    .hide-scrollbar {
       scrollbar-width: none !important; /* Firefox */
       -ms-overflow-style: none !important; /* IE/Edge */
     }
-    *::-webkit-scrollbar {
+    .hide-scrollbar::-webkit-scrollbar {
       display: none !important; /* Chrome/Safari/Webkit */
     }
   </style>
@@ -563,8 +563,8 @@
 
   <!-- GLOBAL MODAL REMOVED PER USER REQUEST -->
   <!-- MODAL: AÑADIR/VER EVENTO CALENDARIO -->
-    <div id="modal-calendar-event" class="fixed inset-0 bg-black/70 nuclear-hidden flex items-center justify-center z-[200] p-3 sm:p-6" style="display: none;">
-        <div class="bg-surface dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[500px] rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl p-5 sm:p-8 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn relative group">
+     <div id="modal-calendar-event" class="fixed inset-0 bg-black/80 nuclear-hidden flex items-start sm:items-center justify-center z-[200] p-2 sm:p-6" style="display: none;">
+        <div class="bg-surface dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[480px] rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl p-4 sm:p-8 max-h-[98vh] overflow-y-auto hide-scrollbar animate-scaleIn relative group">
             <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
             
             <div class="flex items-center justify-between mb-5 relative z-10">
@@ -582,14 +582,14 @@
                 </button>
             </div>
 
-            <form id="form-calendario-evento" class="space-y-4 relative z-10">
+            <form id="form-calendario-evento" class="space-y-3 relative z-10">
                 <div class="space-y-1.5">
                     <label class="text-[9px] font-black text-tealAccent uppercase tracking-[0.2em] ml-2"><i class="fa-solid fa-user-tag mr-1"></i> Nombre de la cita</label>
                     <input type="text" id="ev-nombre" placeholder="Ej. Instalación Juan Pérez" required
                         class="w-full bg-gray-50 dark:bg-white/5 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-tealAccent/50 transition-all dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20">
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="space-y-1.5">
                         <label class="text-[9px] font-black text-tealAccent uppercase tracking-[0.2em] ml-2"><i class="fa-solid fa-clock mr-1"></i> Inicio</label>
                         <input type="datetime-local" id="ev-fecha-inicio" oninput="window.onStartDateChange(this)" required
@@ -602,7 +602,7 @@
                     </div>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <div class="space-y-1.5">
                         <label class="text-[9px] font-black text-tealAccent uppercase tracking-[0.2em] ml-2"><i class="fa-solid fa-location-dot mr-1"></i> Dirección</label>
                         <div class="relative">
@@ -630,7 +630,7 @@
                     <div id="ev-colaboradores-list" class="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl p-4 space-y-2 max-h-36 overflow-y-auto hide-scrollbar"></div>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <label class="text-[10px] font-black text-tealAccent uppercase tracking-[0.2em] ml-2"><i class="fa-solid fa-building mr-1"></i> Departamentos</label>
                     <div class="flex flex-wrap gap-3">
                         <label class="flex items-center gap-2 cursor-pointer p-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-[#0d9488] transition-all">
@@ -651,7 +651,7 @@
                     </div>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <label class="text-[10px] font-black text-tealAccent uppercase tracking-[0.2em] ml-2"><i class="fa-solid fa-palette mr-1"></i> Color de Etiqueta</label>
                     <div class="flex gap-4">
                         <label class="relative cursor-pointer group">
