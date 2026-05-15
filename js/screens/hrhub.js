@@ -184,6 +184,10 @@ export async function renderHRHub() {
         renderTabla();
         renderKanban();
         initSortableKanban();
+        
+        // Initial binding for buttons that are part of the main HTML
+        const addAdelantoBtn = document.getElementById('btn-add-adelanto');
+        if (addAdelantoBtn) addAdelantoBtn.onclick = openAdelantoModal;
     }
 
     function bindHRToggle() {
@@ -571,8 +575,9 @@ export async function renderHRHub() {
                 }).join('');
             }
 
-            // Bind Add Button
-            document.getElementById('btn-add-adelanto').onclick = openAdelantoModal;
+            // Bind Add Button (re-bind just in case)
+            const btn = document.getElementById('btn-add-adelanto');
+            if (btn) btn.onclick = openAdelantoModal;
 
         } catch (err) {
             console.error("Error rendering adelantos:", err);
@@ -624,7 +629,7 @@ export async function renderHRHub() {
 
                 const worker = empleadosData.find(e => String(e.id) === String(workerId));
                 const newAdelanto = {
-                    id: crypto.randomUUID(),
+                    id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
                     trabajador_id: workerId,
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     monto: parseFloat(monto),
