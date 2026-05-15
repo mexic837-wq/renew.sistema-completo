@@ -268,7 +268,7 @@ export async function renderDashboard() {
       @media (min-width: 768px) {
         .pip-chips-row {
           gap: 16px;
-          margin: 30px 0 24px !important;
+          margin: 10px 0 24px !important;
         }
         .pip-chip {
           min-width: 150px;
@@ -310,7 +310,7 @@ export async function renderDashboard() {
       </div>
     </div>
 
-    <div id="pip-chips-row" class="pip-chips-row" style="margin: 14px 0 10px;"></div>
+    <div id="pip-chips-row" class="pip-chips-row" style="margin: 8px 0 10px;"></div>
 
     <div class="dash-tabs-wrapper">
       <div class="dash-tabs-container">

@@ -1550,7 +1550,7 @@ body.no-nav #bottom-nav {
 
   /* Desktop Header Adjustment */
   .dash-header { 
-    padding: 40px 64px !important; 
+    padding: 24px 64px 12px !important; 
     width: 100% !important;
     max-width: 1200px !important;
     margin: 0 auto !important;
@@ -1638,7 +1638,7 @@ body.no-nav #bottom-nav {
   }
   
   .dash-header-top { 
-    margin-bottom: 40px !important; 
+    margin-bottom: 16px !important; 
   }
   .dash-greeting h1 { font-size: 2.2rem !important; }
   
