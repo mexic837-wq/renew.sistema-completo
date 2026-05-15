@@ -458,7 +458,8 @@ async function _renderList(user, container) {
         return;
       }
 
-      // ── VALIDAR DATOS ANTES DE MOSTRAR PIPELINE SELECTOR ──
+      // ── VALIDAR DATOS ANTES DE MOSTRAR PIPELINE SELECTOR (Desactivado por petición: todos los campos opcionales) ──
+      /*
       const missingFields = [];
       if (!client.email || client.email.trim() === '') missingFields.push('Email');
       if (!client.telefono || client.telefono.trim() === '') missingFields.push('Teléfono');
@@ -474,6 +475,7 @@ async function _renderList(user, container) {
         _showIncompleteDataModal(client, user, missingFields, container);
         return;
       }
+      */
 
       // All data complete → show pipeline selector
       _showPipelineSelector(client, user);
@@ -835,7 +837,8 @@ function _showPipelineSelector(client, user) {
     btn.addEventListener('click', async () => {
       const pipName = btn.dataset.pipName;
 
-      // ── VALIDACIÓN COMPLETA AL CONVERTIR PROSPECTO → CLIENTE ──
+      // ── VALIDACIÓN COMPLETA AL CONVERTIR PROSPECTO → CLIENTE (Desactivado por petición: todos los campos opcionales) ──
+      /*
       const missingClientFields = [];
       if (!client.email || client.email.trim() === '') missingClientFields.push('Email');
       if (!client.telefono || client.telefono.trim() === '') missingClientFields.push('Teléfono');
@@ -855,6 +858,7 @@ function _showPipelineSelector(client, user) {
         );
         return;
       }
+      */
 
       btn.innerHTML = `<i class="fas fa-spinner fa-spin" style="margin:0 auto;"></i>`;
       btn.disabled = true;
@@ -1545,11 +1549,17 @@ function _wireModalControls(user, container) {
 
       const notas = document.getElementById('quick-notas')?.value.trim() || '';
       
-      // Validation (prospecto: nombre, apellido, tel, dirección)
+      // Validation (Desactivado por petición: todos los campos opcionales)
+      /*
       if (!nombre) { showToast('El Nombre es obligatorio', 'error'); return; }
       if (!apellido) { showToast('El Apellido es obligatorio', 'error'); return; }
       if (tel.length < 5) { showToast('El Teléfono es obligatorio', 'error'); return; }
       if (!dir) { showToast('La Dirección es obligatoria', 'error'); return; }
+      */
+
+      if (!nombre && !apellido && !tel) {
+         showToast('Al menos pon un nombre o teléfono para identificarlo', 'warning');
+      }
 
       try {
         newBtnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
