@@ -477,8 +477,16 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
       
       if (!dirInput || !mapContainer || !mapDiv) return;
       if (window.google && window.google.maps && window.google.maps.places) {
-          if(dirInput.dataset.placesLoaded) return;
-          dirInput.dataset.placesLoaded = 'true';
+          if(window.ncMapInstance) {
+              mapContainer.style.display = 'block';
+              setTimeout(() => {
+                  window.google.maps.event.trigger(window.ncMapInstance, 'resize');
+                  if(window.ncMapInstance.getCenter()) {
+                      window.ncMapInstance.setCenter(window.ncMapInstance.getCenter());
+                  }
+              }, 200);
+              return;
+          }
           
           const autocomplete = new window.google.maps.places.Autocomplete(dirInput, {
               types: ['address']
@@ -515,6 +523,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
               disableDefaultUI: true,
               zoomControl: true,
           });
+          window.ncMapInstance = map;
 
           const marker = new window.google.maps.Marker({
               map: map,

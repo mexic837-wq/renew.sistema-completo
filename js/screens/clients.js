@@ -1380,8 +1380,17 @@ function _wireModalControls(user, container) {
       return;
     }
 
-    if (dirInput.dataset.quickMapsLoaded === 'true') return;
-    dirInput.dataset.quickMapsLoaded = 'true';
+    // If already initialized, just ensure it's visible and resized
+    if (window.quickMapInstance) {
+      mapContainer.style.display = 'block';
+      setTimeout(() => {
+        window.google.maps.event.trigger(window.quickMapInstance, 'resize');
+        if (window.quickMapInstance.getCenter()) {
+          window.quickMapInstance.setCenter(window.quickMapInstance.getCenter());
+        }
+      }, 200);
+      return;
+    }
 
     const darkMapStyle = [
       { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -1408,9 +1417,37 @@ function _wireModalControls(user, container) {
     let marker = null;
     const defaultCenter = { lat: 25.7617, lng: -80.1918 };
 
-    const autocomplete = new window.google.maps.places.Autocomplete(dirInput, {
-      types: ['address']
-    });
+    const initAutocomplete = () => {
+      if (dirInput.dataset.autocompleteLoaded === 'true') return;
+      dirInput.dataset.autocompleteLoaded = 'true';
+      const autocomplete = new window.google.maps.places.Autocomplete(dirInput, {
+        types: ['address']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) return;
+
+        if (place.formatted_address) {
+          dirInput.value = place.formatted_address;
+        } else if (place.name) {
+          dirInput.value = place.name;
+        }
+
+        ensureMapCreated();
+        setTimeout(() => {
+          if (window.quickMapInstance) {
+            window.google.maps.event.trigger(window.quickMapInstance, 'resize');
+            window.quickMapInstance.setCenter(place.geometry.location);
+            window.quickMapInstance.setZoom(17);
+            if (window.quickMapMarker) window.quickMapMarker.setPosition(place.geometry.location);
+            quickLat = place.geometry.location.lat();
+            quickLng = place.geometry.location.lng();
+          }
+        }, 200);
+      });
+    };
+    initAutocomplete();
 
     const ensureMapCreated = () => {
       if (map) return;

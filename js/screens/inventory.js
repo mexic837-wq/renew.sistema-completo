@@ -88,7 +88,10 @@ export function renderInventoryTech(dealId = null) {
     
             <div class="mobile-submit-box" style="display: flex; flex-direction: column; gap: 8px;">
                 <button id="btn-submit-inv" class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; font-weight: 800; letter-spacing: 1px;">REGISTRAR USO</button>
-                ${isAdmin ? `<button id="btn-add-stock-inv" class="btn btn-outline" style="width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 800; border: 2px solid var(--tealAccent); color: var(--tealAccent); border-radius: 12px; background: transparent; cursor: pointer;">AGREGAR STOCK</button>` : ''}
+                ${isAdmin ? `
+                  <button id="btn-add-stock-inv" class="btn btn-outline" style="width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 800; border: 2px solid var(--tealAccent); color: var(--tealAccent); border-radius: 12px; background: transparent; cursor: pointer;">AGREGAR STOCK</button>
+                  <button id="btn-sub-stock-inv" class="btn btn-outline" style="width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 800; border: 2px solid #ef4444; color: #ef4444; border-radius: 12px; background: transparent; cursor: pointer;">RESTAR STOCK</button>
+                ` : ''}
             </div>
         </div>
       </div>
@@ -132,6 +135,10 @@ export function renderInventoryTech(dealId = null) {
   const btnAddStock = document.getElementById('btn-add-stock-inv');
   if (btnAddStock) {
     btnAddStock.addEventListener('click', () => handleInventoryChange('addition'));
+  }
+  const btnSubStock = document.getElementById('btn-sub-stock-inv');
+  if (btnSubStock) {
+    btnSubStock.addEventListener('click', () => handleInventoryChange('withdrawal'));
   }
 
   // Back Button to Dashboard or Project

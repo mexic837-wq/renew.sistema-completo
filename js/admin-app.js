@@ -97,7 +97,11 @@ window.addStock = (id) => {
     if (labelName) labelName.textContent = item.nombreItem;
     if (inputQty) inputQty.value = 1;
     
+    const modalTitle = document.querySelector('#modal-quick-stock h3');
+    if (modalTitle) modalTitle.textContent = 'Añadir Stock Rápido';
+
     if (btnConfirm) {
+        btnConfirm.innerHTML = '<i class="fa-solid fa-plus"></i> Confirmar Ingreso';
         btnConfirm.onclick = async () => {
             const val = parseInt(inputQty.value) || 0;
             if (val > 0) {
@@ -122,6 +126,57 @@ window.addStock = (id) => {
                 window.closeModals();
                 await renderView();
                 window.addNotification('Inventario', `Se añadieron ${val} unidades a ${item.nombreItem}`, 'success');
+            }
+        };
+    }
+    
+    window.showModal(document.getElementById('modal-quick-stock'));
+};
+
+window.subtractStock = (id) => {
+    console.log("Global subtractStock called for ID:", id);
+    const invData = getInventario();
+    const item = invData.find(i => i.id === id);
+    if (!item) return showToast("Artículo no encontrado", "error");
+    
+    const labelName = document.getElementById('lbl-add-stock-name');
+    const inputQty = document.getElementById('inp-quick-stock-qty');
+    const btnConfirm = document.getElementById('btn-confirm-quick-stock');
+    const modalTitle = document.querySelector('#modal-quick-stock h3');
+    
+    if (modalTitle) modalTitle.textContent = 'Restar Stock (Ajuste)';
+    if (labelName) labelName.textContent = item.nombreItem;
+    if (inputQty) inputQty.value = 1;
+    
+    if (btnConfirm) {
+        btnConfirm.innerHTML = '<i class="fa-solid fa-minus"></i> Confirmar Retiro';
+        btnConfirm.onclick = async () => {
+            const val = parseInt(inputQty.value) || 0;
+            if (val > 0) {
+                if (item.stockActual < val) {
+                    if (!confirm('El stock actual es menor a la cantidad a retirar. ¿Continuar con stock negativo?')) return;
+                }
+                item.stockActual = (parseInt(item.stockActual) || 0) - val;
+                saveInventario(invData);
+
+                // Record in history
+                const historial = getHistorialInventario();
+                const adminUser = JSON.parse(localStorage.getItem('currentUser')) || { nombre: 'Admin' };
+                historial.unshift({
+                    fecha: new Date().toISOString(),
+                    tecnico_nombre: `(Admin) ${adminUser.nombre}`,
+                    item_nombre: item.nombreItem,
+                    item_id: item.id,
+                    cantidad_retirada: val, // Positive withdrawal
+                    sede: item.locacion || 'orlando',
+                    ecosistema: state.activeEcoFilter || 'solar'
+                });
+                if (historial.length > 500) historial.length = 500;
+                saveHistorialInventario(historial);
+
+                window.closeModals();
+                await renderView();
+                window.addNotification('Inventario', `Se retiraron ${val} unidades de ${item.nombreItem}`, 'warning');
             }
         };
     }
@@ -4261,6 +4316,9 @@ window.renderView = async function renderView() {
                    <div class="flex items-center gap-3">
                        <button onclick="window.addStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center" title="Suma Rápida de Stock">
                            <i class="fa-solid fa-plus text-[10px]" style="pointer-events: none;"></i>
+                       </button>
+                       <button onclick="window.subtractStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center" title="Restar Stock">
+                           <i class="fa-solid fa-minus text-[10px]" style="pointer-events: none;"></i>
                        </button>
                        <button onclick="window.editStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-[#3b82f6]/5 text-[#3b82f6] hover:bg-[#3b82f6] hover:text-white transition-all flex items-center justify-center" title="Editar Todo">
                            <i class="fa-solid fa-pen-to-square text-[10px]" style="pointer-events: none;"></i>
