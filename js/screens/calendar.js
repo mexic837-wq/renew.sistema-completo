@@ -189,6 +189,8 @@ export async function renderMiCalendario() {
       </style>
       <div id="mi-calendario-container" style="background: var(--surface); border-radius: 32px; padding: 12px; box-shadow: var(--shadow-xl); min-height: 550px; border: 1px solid var(--border);"></div>
     </div>
+    <button id="fab-add-event" style="position: fixed; bottom: 85px; right: 20px; width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: #000; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; box-shadow: 0 8px 30px rgba(0,223,191,0.5); z-index: 100; transition: transform 0.2s;">
+      <i class="fa-solid fa-plus"></i>
     </button>
   `;
 
