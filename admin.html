@@ -1607,7 +1607,10 @@
                                     <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Position / Role</label><p id="det-usr-rol" class="text-sm font-bold text-[#333]">-</p></div>
                                     <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Rank</label><p id="det-usr-rank" class="text-sm font-bold text-tealAccent uppercase">-</p></div>
                                 </div>
-                                <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Department</label><p id="det-usr-dept" class="text-sm font-bold text-[#333]">-</p></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Department</label><p id="det-usr-dept" class="text-sm font-bold text-[#333]">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Sede (Oficina)</label><p id="det-usr-sede" class="text-sm font-bold text-orange-500 uppercase">-</p></div>
+                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Mobile phone</label><p id="det-usr-tel" class="text-sm font-bold text-[#333] flex items-center gap-2">-</p></div>
                                     <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Tel. Emergencia</label><p id="det-usr-tel-emergencia" class="text-sm font-bold text-red-500">-</p></div>
@@ -1682,6 +1685,15 @@
                                 </div>
                             </div>
                             <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Departamento</label><input id="det-edit-dept" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]"></div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Sede (Oficina)</label>
+                                <select id="det-edit-sede" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white">
+                                    <option value="orlando">Orlando</option>
+                                    <option value="miami">Miami</option>
+                                    <option value="dallas">Dallas</option>
+                                    <option value="new_york">Nueva York</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-6">
                         <div class="grid grid-cols-2 gap-4 mb-4">

@@ -25,6 +25,7 @@ export async function renderCallCenterAdmin() {
                                 <th class="pb-4 font-black">Dirección</th>
                                 <th class="pb-4 font-black">Email</th>
                                 <th class="pb-4 font-black">Operador</th>
+                                <th class="pb-4 font-black">Origen</th>
                                 <th class="pb-4 font-black">Estado</th>
                                 <th class="pb-4 font-black text-right">Acción</th>
                             </tr>
@@ -82,6 +83,11 @@ export async function renderCallCenterAdmin() {
                             <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Zip Code</label>
                             <input type="text" id="inp-cc-zip" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Origen / Fuente (Ej: Facebook, Referido, etc.)</label>
+                        <input type="text" id="inp-cc-origen" placeholder="Ej: Facebook Ads, Google, etc." class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
                     </div>
                     
                     <div>
@@ -149,6 +155,7 @@ export async function renderCallCenterAdmin() {
             estado_geo: document.getElementById('inp-cc-estado-geo').value.trim(),
             zip_code: document.getElementById('inp-cc-zip').value.trim(),
             operador_id: document.getElementById('sel-cc-operador').value || null,
+            origen: document.getElementById('inp-cc-origen').value.trim() || 'Manual Admin',
             fuente: 'manual_admin'
         };
 
@@ -214,6 +221,7 @@ async function loadCCLeads() {
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.direccion || '-'} ${l.ciudad ? ', ' + l.ciudad : ''}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.email || '-'}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.operador_nombre || '<span class="text-yellow-500">En Cola</span>'}</td>
+                <td class="py-4 text-gray-600 dark:text-gray-300 text-[10px] font-bold uppercase tracking-tight">${l.origen || '-'}</td>
                 <td class="py-4">
                     <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider
                         ${l.estado === 'pendiente' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :

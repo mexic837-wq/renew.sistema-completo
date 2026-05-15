@@ -61,6 +61,7 @@ async function crearLeadEnCRM(prospecto, ecosistema, notas, operador) {
     origen_id:                operador.id,
     vendedor_asignado_id:     null,
     vendedor_asignado_nombre: null,
+    origen_lead_cc:           prospecto.origen || null
   };
 
 
@@ -209,6 +210,7 @@ function buildFase1Card(p, index) {
     : '';
 
   const fuenteBadge = `<span style="display:inline-block;background:rgba(0,245,212,0.08);color:var(--primary);border:1px solid rgba(0,245,212,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;padding:3px 8px;border-radius:6px;margin-bottom:6px;margin-right:6px;">${fuente.toUpperCase()}</span>`;
+  const origenBadge = p.origen ? `<span style="display:inline-block;background:rgba(245,158,11,0.08);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;padding:3px 8px;border-radius:6px;margin-bottom:6px;margin-right:6px;">${p.origen.toUpperCase()}</span>` : '';
   const pipBadge   = pipeline ? `<span style="display:inline-block;background:rgba(139,92,246,0.1);color:#8b5cf6;border:1px solid rgba(139,92,246,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:6px;margin-bottom:6px;">${pipeline}</span>` : '';
 
   return `
@@ -220,7 +222,7 @@ function buildFase1Card(p, index) {
       </div>
 
       ${timerBadge}
-      <div style="margin-bottom:6px;">${fuenteBadge}${pipBadge}</div>
+      <div style="margin-bottom:6px;">${fuenteBadge}${origenBadge}${pipBadge}</div>
       <h3 style="font-size:19px;font-weight:900;color:var(--text);margin:0 0 14px;line-height:1.2;">${nombre}</h3>
 
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">

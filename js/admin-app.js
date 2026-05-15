@@ -3517,8 +3517,8 @@ window.renderView = async function renderView() {
     setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> Añadir Evento');
     renderCalendario();
   } else if (state.activeView === 'usuarios' || state.activeView === 'equipo') {
-    UI.viewTitle.textContent = "Team Management & Collaborators";
-    UI.viewDesc.textContent = "Manage system access and roles for the RENEW mobile team.";
+    UI.viewTitle.textContent = "Equipo Renew";
+    UI.viewDesc.textContent = "Compañeros de trabajo en Renew Group.";
     setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator');
     
     let items = await getAdminWorkers();
@@ -3530,83 +3530,71 @@ window.renderView = async function renderView() {
         });
     }
 
-    const headers = [`<button id="btn-bulk-delete-workers" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('team_col_worker'), t('team_col_division'), 'RANGO', 'ECOSISTEMA', t('team_col_auth_email'), t('team_col_phone'), t('team_col_activity'), t('team_col_interface'), t('team_col_w9'), "ACCESO", ""];
-    const rowsHtml = items.map(u => {
+    const cardsHtml = items.map(u => {
         const safeNombre = u.nombre || 'Worker';
         const safeApellido = u.apellido || '';
         const initial = u.initials || (safeNombre[0] || '?');
         const dept = u.department || 'Renew Group';
-        const rol = u.rol || 'Vendedor';
-        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-7 h-7 rounded-lg object-cover border border-white/5" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]&quot;>${initial}</div>';">` : `<div class="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]">${initial}</div>`;
+        const rol = (u.rol || 'Vendedor').toLowerCase().includes('vendedor') ? 'Representante de Ventas' : (u.rol || 'Colaborador');
+        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-16 h-16 rounded-full object-cover border-2 border-tealAccent/20 shadow-lg group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-16 h-16 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-xl border-2 border-tealAccent/20&quot;>${initial}</div>';">` : `<div class="w-16 h-16 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-xl border-2 border-tealAccent/20">${initial}</div>`;
         
         return `
-            <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                <td class="px-4 py-2.5 w-4 text-center">
-                    <input type="checkbox" class="worker-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${u.id}">
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap">
-                    <div class="flex items-center gap-3">
+            <div class="group relative bg-white dark:bg-[#0f172a] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-premium hover:shadow-teal-glow transition-all animate-fadeIn">
+                <div class="flex flex-col items-center text-center">
+                    <div class="relative mb-4">
                         ${fotoHtml}
-                        <div class="flex flex-col">
-                            <a href="#" class="worker-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight" data-id="${u.id}">${safeNombre} ${safeApellido}</a>
-                            <span class="text-[8px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-widest">${rol}</span>
+                        <div class="absolute -bottom-1 -right-1 w-5 h-5 ${u.is_suspended ? 'bg-red-500' : 'bg-tealAccent'} rounded-full border-4 border-white dark:border-darkCard"></div>
+                    </div>
+                    
+                    <h3 class="text-base font-black text-gray-900 dark:text-white tracking-tighter mb-1">${safeNombre} ${safeApellido}</h3>
+                    <p class="text-[9px] font-black text-tealAccent uppercase tracking-widest mb-3 bg-tealAccent/5 px-3 py-1 rounded-full border border-tealAccent/10">${rol}</p>
+                    
+                    <div class="flex items-center gap-2 mb-4">
+                         ${(u.unidades || []).map(pip => {
+                             let icon = 'fa-gear';
+                             let colorClass = 'text-gray-400';
+                             if(pip.toLowerCase().includes('solar')) { icon = 'fa-sun'; colorClass = 'text-amber-500'; }
+                             if(pip.toLowerCase().includes('water')) { icon = 'fa-droplet'; colorClass = 'text-blue-500'; }
+                             if(pip.toLowerCase().includes('home'))  { icon = 'fa-house'; colorClass = 'text-purple-500'; }
+                             return `<i class="fa-solid ${icon} text-[10px] ${colorClass}"></i>`;
+                         }).join('')}
+                    </div>
+
+                    <div class="flex flex-col gap-1 w-full mb-4">
+                        <div class="flex items-center justify-between text-[10px] px-2 py-1 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <span class="text-gray-400 font-bold uppercase tracking-widest">Sede</span>
+                            <span class="text-orange-500 font-black uppercase tracking-widest">${u.sede || '-'}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] px-2 py-1 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <span class="text-gray-400 font-bold uppercase tracking-widest">Dpto</span>
+                            <span class="text-gray-600 dark:text-gray-300 font-black uppercase tracking-widest">${dept}</span>
                         </div>
                     </div>
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap">
-                    <span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">
-                        ${dept}
-                    </span>
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap">
-                    <span class="px-2 py-0.5 bg-tealAccent/5 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">
-                        ${u.rango || 'novato'}
-                    </span>
-                </td>
-                <td class="px-4 py-2.5">
-                    <div class="flex flex-wrap gap-1">
-                        ${(u.unidades && u.unidades.length > 0) ? u.unidades.map(pip => `<span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-200 dark:border-blue-500/20">${pip}</span>`).join('') : '<span class="text-[8px] text-gray-400 dark:text-gray-600 italic">Sin Asignar</span>'}
+
+                    <div class="flex gap-2 w-full mt-auto">
+                        <button class="worker-name-link flex-1 bg-tealAccent/10 hover:bg-tealAccent/20 text-tealAccent py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-tealAccent/20" data-id="${u.id}">
+                            Ver Perfil
+                        </button>
+                        <button onclick="window.open('tel:${u.telefono}', '_self')" class="w-10 h-10 bg-gray-50 dark:bg-white/5 flex items-center justify-center rounded-xl text-gray-400 hover:text-tealAccent transition-all border border-gray-100 dark:border-white/5">
+                            <i class="fa-solid fa-phone text-xs"></i>
+                        </button>
                     </div>
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.email || '-'}</td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.telefono || '-'}</td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-[9px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-tighter">Live Monitor</td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase">RENEW OS</td>
-                <td class="px-4 py-2.5 whitespace-nowrap">
-                    ${u.w9Url
-                      ? `<span class="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
-                           <i class="fa-solid fa-circle-check text-[7px]"></i> W-9 OK
-                         </span>`
-                      : `<span class="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
-                           <i class="fa-solid fa-triangle-exclamation text-[7px]"></i> Falta W-9
-                         </span>`
-                    }
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-center">
+                </div>
+
+                <!-- Admin Action Menu -->
+                <div class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
                     <label class="relative inline-flex items-center cursor-pointer" title="${u.is_suspended ? 'Cuenta Inhabilitada' : 'Cuenta Activa'}">
                       <input type="checkbox" class="sr-only peer toggle-worker-status" data-id="${u.id}" ${u.is_suspended ? '' : 'checked'}>
-                      <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
+                      <div class="w-7 h-3.5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
                     </label>
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-right">
-                    <button class="btn-delete-worker text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
-                </td>
-            </tr>
+                </div>
+            </div>
         `;
     }).join('');
 
     UI.canvas.innerHTML = `
-        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto hide-scrollbar">
-            <table class="w-full text-xs">
-                <thead class="bg-gray-50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
-                    <tr>
-                        ${headers.map(h => `<th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em]">${h}</th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                    ${rowsHtml}
-                </tbody>
-            </table>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mt-6">
+            ${cardsHtml}
         </div>
     `;
   }
@@ -4311,9 +4299,13 @@ window.renderView = async function renderView() {
                 <td class="px-6 py-4 whitespace-nowrap">
                    <span class="px-2 py-0.5 ${lineBadge} text-[8px] font-black uppercase tracking-widest rounded border">${ite.ecosistema}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">${ite.medida || '-'}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">${ite.boton || '-'}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">${ite.color || '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex flex-col gap-0.5">
+                        <span class="text-[9px] text-gray-400 font-bold">M: ${ite.medida || '—'}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">B: ${ite.boton || '—'}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">C: ${ite.color || '—'}</span>
+                    </div>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-[10px] font-black text-gray-400 uppercase tracking-widest">${ite.storage || ite.locacion}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-xs font-black text-tealAccent">${ite.stockActual}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -4405,16 +4397,14 @@ window.renderView = async function renderView() {
                         <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_code')}</th>
                         <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_prod')}</th>
                         <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_line')}</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">MEDIDA</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">BOTÓN</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">COLOR</th>
+                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">ESPECIFICACIONES</th>
                         <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_storage')}</th>
                         <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_stock')}</th>
                         <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_actions')}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                    ${rowsHtml.length ? rowsHtml : `<tr><td colspan="9" class="py-24 text-center"><i class="fa-solid fa-parachute-box text-5xl text-gray-200 dark:text-white/5 mb-4 block"></i><span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">${t('inv_empty')}</span></td></tr>`}
+                    ${rowsHtml.length ? rowsHtml : `<tr><td colspan="7" class="py-24 text-center"><i class="fa-solid fa-parachute-box text-5xl text-gray-200 dark:text-white/5 mb-4 block"></i><span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">${t('inv_empty')}</span></td></tr>`}
                 </tbody>
             </table>
         </div>
@@ -6075,6 +6065,7 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-rol').textContent = usr.rol || '-';
     document.getElementById('det-usr-rank').textContent = usr.rango || 'novato';
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
+    document.getElementById('det-usr-sede').textContent = usr.sede || '-';
     document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
     document.getElementById('det-usr-tel-emergencia').textContent = usr.tel_emergencia || '-';
     if (document.getElementById('det-usr-contacto-emergencia-nombre')) document.getElementById('det-usr-contacto-emergencia-nombre').textContent = usr.contacto_emergencia_nombre || '-';
@@ -6246,6 +6237,7 @@ async function toggleDetailEditMode(id) {
         if (window.initDatePickers) window.initDatePickers();
 
         if (document.getElementById('det-edit-id')) document.getElementById('det-edit-id').value = usr.id;
+        if (document.getElementById('det-edit-sede')) document.getElementById('det-edit-sede').value = usr.sede || 'orlando';
         if (document.getElementById('det-edit-dob')) {
             const dobEl = document.getElementById('det-edit-dob');
             let dobVal = usr.dob || '';
@@ -6497,6 +6489,7 @@ async function toggleDetailEditMode(id) {
             const rol = rolEl ? rolEl.value : (usr.rol || 'Vendedor');
             const rango = rankEl ? rankEl.value : (usr.rango || 'novato');
             const department = deptEl ? deptEl.value.trim() : (usr.department || '');
+            const sede = document.getElementById('det-edit-sede')?.value || (usr.sede || 'orlando');
             const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');
             const dob = dobEl ? dobEl.value : (usr.dob || '');
 
@@ -6539,7 +6532,7 @@ async function toggleDetailEditMode(id) {
                 
                 const updatedUsr = {
                     ...usr,
-                    nombre, apellido, email, telefono, rol, rango, department, password, initials, dob,
+                    nombre, apellido, email, telefono, rol, rango, department, password, initials, dob, sede,
                     unidades: checkedPips,
                     foto: state.currentUsrFoto, 
                     w9Url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9Url || null),
@@ -6563,6 +6556,7 @@ async function toggleDetailEditMode(id) {
                 document.getElementById('det-usr-email').textContent = email;
                 document.getElementById('det-usr-rol').textContent = rol;
                 document.getElementById('det-usr-dept').textContent = department || 'Grupo Renew';
+                document.getElementById('det-usr-sede').textContent = sede;
                 document.getElementById('det-usr-tel').textContent = telefono || '-';
                 if (document.getElementById('det-usr-tel-emergencia')) document.getElementById('det-usr-tel-emergencia').textContent = tel_emergencia || '-';
                 if (document.getElementById('det-usr-contacto-emergencia-nombre')) document.getElementById('det-usr-contacto-emergencia-nombre').textContent = contacto_emergencia_nombre || '-';

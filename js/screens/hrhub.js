@@ -27,6 +27,7 @@ export async function renderHRHub() {
                             <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Email Autenticación</th>
                             <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Teléfono Móvil</th>
                             <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Status Documentos</th>
+                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Acceso</th>
                             <th class="px-4 py-3 text-right"></th>
                         </tr>
                     </thead>
@@ -243,6 +244,12 @@ export async function renderHRHub() {
                 <td class="px-4 py-3 whitespace-nowrap text-[10px] text-gray-500 font-medium min-w-[180px]">${emp.email || '-'}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-[10px] text-gray-500 font-medium min-w-[120px]">${emp.telefono || '-'}</td>
                 <td class="px-4 py-3 whitespace-nowrap min-w-[160px]">${docsBadgeHtml}</td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <label class="relative inline-flex items-center cursor-pointer" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="sr-only peer toggle-worker-status" data-id="${emp.id}" ${emp.is_suspended ? '' : 'checked'}>
+                        <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
+                    </label>
+                </td>
                 <td class="px-4 py-3 whitespace-nowrap text-right">
                     <button class="text-gray-400 hover:text-tealAccent transition-colors p-2"><i class="fa-solid fa-pen text-[10px]"></i></button>
                 </td>
