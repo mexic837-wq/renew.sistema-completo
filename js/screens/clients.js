@@ -650,6 +650,8 @@ function _showIncompleteDataModal(client, user, missingFields, container) {
     document.getElementById('quick-direccion').value = client.direccion || '';
     const dobEl = document.getElementById('quick-dob');
     if (dobEl) dobEl.value = (client.dob && client.dob !== '-') ? client.dob : '';
+    const licEl = document.getElementById('quick-state-id');
+    if (licEl) licEl.value = (client.licencia && client.licencia !== '-') ? client.licencia : '';
 
     // Pre-fill attachments
     quickAdjID = client.adjunto_id_url || null;
@@ -936,6 +938,9 @@ function resetModal() {
     else dept.value = 'Solar';
   }
 
+  const lic = document.getElementById('quick-state-id');
+  if (lic) { lic.value = ''; lic.disabled = false; }
+
   quickAdjID = null; quickAdjBill = null; quickAdjSeguro = null;
 
   document.querySelectorAll('.doc-btn').forEach(btn => {
@@ -1114,6 +1119,8 @@ function _wireModalControls(user, container) {
                                   showToast('DOB Error: ' + err.message, 'error');
                               }
                           }
+                          const licInput = document.getElementById('quick-state-id');
+                          if (licInput) { licInput.value = cli.licencia || ''; licInput.disabled = true; }
                           const nts = document.getElementById('quick-notas'); if(nts) { nts.value = cli.notas || ''; }
 
                           // Preserve existing documents in global state
@@ -1528,6 +1535,7 @@ function _wireModalControls(user, container) {
       const email = document.getElementById('quick-email').value.trim();
       const dir = document.getElementById('quick-direccion').value.trim();
       const dob = document.getElementById('quick-dob')?.value || '';
+      const licencia = document.getElementById('quick-state-id')?.value.trim() || '-';
       let dept = document.getElementById('quick-dept')?.value || 'Solar';
 
       // Auto-correct dept if it's default but we are in a specific unit
@@ -1553,6 +1561,7 @@ function _wireModalControls(user, container) {
           await updateClientMaestro(editingClientId, {
             nombre: fullNombre, email, telefono: tel, direccion: dir,
             dob: dob || '-',
+            licencia,
             notas,
             adjunto_id_url: quickAdjID,
             adjunto_bill_url: quickAdjBill,
@@ -1565,6 +1574,7 @@ function _wireModalControls(user, container) {
              await updateClientMaestro(window.quickSelectedClientId, {
                 nombre: fullNombre, email, telefono: tel, direccion: dir,
                 dob: dob || '-',
+                licencia,
                 notas,
                 departamento: dept,
                 adjunto_id_url: quickAdjID,
@@ -1590,6 +1600,7 @@ function _wireModalControls(user, container) {
               nombre: fullNombre, email, telefono: tel,
               direccion: dir,
               zip: 'Pendiente', dob: dob || '-',
+              licencia,
               departamento: dept, empresa: dept,
               estado: 'Lead',
               adjunto_id_url: quickAdjID, adjunto_bill_url: quickAdjBill,
