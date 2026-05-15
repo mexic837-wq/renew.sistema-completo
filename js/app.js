@@ -371,10 +371,14 @@ export function navigate(screen, param = null) {
     return;
   }
 
-  if (screen === 'partners' && user && !['admin', 'administrador', 'ceo', 'desenvolvedor'].includes((user.rol || '').toLowerCase())) {
-    import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
-    navigate('dashboard');
-    return;
+  if (screen === 'partners' && user) {
+    const userRole = (user.rol || '').toLowerCase();
+    const isAdmin = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRole);
+    if (!isAdmin && !userRole.includes('representante') && !userRole.includes('vendedor')) {
+      import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
+      navigate('dashboard');
+      return;
+    }
   }
 
   // Hide all screens
