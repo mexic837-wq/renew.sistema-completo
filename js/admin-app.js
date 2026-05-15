@@ -2979,7 +2979,7 @@ window.renderView = async function renderView() {
       const MACRO_COLS = [
         { key: 'Prospecto',     emoji: '🔵', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
         { key: 'En Proceso',    emoji: '🟡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
-        { key: 'Cliente Fiel',  emoji: '🟢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
+        { key: 'Cliente',        emoji: '🟢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
         { key: 'Cancelado',     emoji: '🔴', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
       ];
 
@@ -3004,6 +3004,10 @@ window.renderView = async function renderView() {
                 <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">${c.state_id || ''}</span>
               </div>
               <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? '· ' + c.email : ''}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <i class="fa-solid fa-user-tie text-[10px] text-tealAccent"></i>
+                <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">${getRepName(c) || 'Sin asignar'}</span>
+              </div>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">${deptBadges || '<span style="font-size:9px;color:#aaa;font-style:italic;">Sin departamento</span>'}</div>
             </div>
           `;
@@ -3059,10 +3063,10 @@ window.renderView = async function renderView() {
           const _db = getDB();
           const cli = (_db.Clientes_Maestro || []).find(c => c.id === cliId);
           
-          // RULE: Don't allow moving "Cliente Fiel"
-          if (cli && cli.macro_estado === 'Cliente Fiel') {
+          // RULE: Don't allow moving "Cliente"
+          if (cli && cli.macro_estado === 'Cliente') {
             e.preventDefault();
-            window.addNotification('CRM', 'Los clientes fieles no se pueden mover manualmente.', 'info');
+            window.addNotification('CRM', 'Los clientes no se pueden mover manualmente.', 'info');
             return;
           }
 
@@ -5198,14 +5202,16 @@ function renderCalendario() {
        let textCol = '#ffffff';
        
        if (deptos.length > 0) {
-           const colors = { 'Solar': '#064e3b', 'Home': '#84cc16', 'Water': '#1e3a8a' };
+           const colors = { 'Solar': '#84cc16', 'Home': '#fbbf24', 'Water': '#38bdf8' };
            const c = deptos.map(d => colors[d]).filter(Boolean);
            if (c.length === 1) bgStyle = `background: ${c[0]};`;
            else if (c.length === 2) bgStyle = `background: linear-gradient(90deg, ${c[0]} 50%, ${c[1]} 50%);`;
            else if (c.length >= 3) bgStyle = `background: linear-gradient(90deg, ${c[0]} 33.33%, ${c[1]} 33.33%, ${c[1]} 66.66%, ${c[2]} 66.66%);`;
+           textCol = '#ffffff';
        } else {
-           bgStyle = `background: ${legacyColor}15; border-left: 3px solid ${legacyColor};`;
-           textCol = legacyColor;
+           bgStyle = `background: ${legacyColor};`;
+           const isLight = ['Azul', 'Verde', 'Amarillo'].includes(arg.event.extendedProps.color);
+           textCol = isLight ? '#000000' : '#ffffff';
        }
 
        const timeText = arg.timeText ? `<span class="opacity-70 mr-1" style="color: ${textCol}">${arg.timeText}</span>` : '';
@@ -7410,7 +7416,7 @@ async function showClientDetail(id) {
         _me = 'Cancelado';
       }
 
-      const _meColors = { 'Prospecto': 'text-sky-400', 'En Proceso': 'text-amber-400', 'Cliente Fiel': 'text-tealAccent', 'Cancelado': 'text-red-400' };
+      const _meColors = { 'Prospecto': 'text-sky-400', 'En Proceso': 'text-amber-400', 'Cliente': 'text-tealAccent', 'Cancelado': 'text-red-400' };
       detMacroEl.className = `text-sm font-black ${_meColors[_me] || 'text-gray-400'}`;
       detMacroEl.textContent = _me;
     }

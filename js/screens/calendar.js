@@ -341,7 +341,7 @@ export async function renderMiCalendario() {
        const legacyColor = arg.event.backgroundColor || '#00f5d4';
        const deptos = arg.event.extendedProps.departamentos || [];
        if (deptos.length > 0) {
-           const colors = { 'Solar': '#064e3b', 'Home': '#84cc16', 'Water': '#1e3a8a' };
+           const colors = { 'Solar': '#84cc16', 'Home': '#fbbf24', 'Water': '#38bdf8' };
            const c = deptos.map(d => colors[d]).filter(Boolean);
            if (c.length === 1) {
                arg.el.style.background = c[0];
