@@ -149,7 +149,7 @@ export async function renderHRHub() {
                         <h3 class="text-sm font-black text-gray-900 dark:text-white">Préstamos y Adelantos</h3>
                         <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">Gestión de créditos al personal</p>
                     </div>
-                    <button id="btn-add-adelanto" class="px-6 py-2.5 bg-tealAccent text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2">
+                    <button id="btn-add-adelanto" onclick="window.openAdelantoModal && window.openAdelantoModal()" class="px-6 py-2.5 bg-tealAccent text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2">
                         <i class="fa-solid fa-plus"></i> Nuevo Adelanto
                     </button>
                 </div>
@@ -576,8 +576,7 @@ export async function renderHRHub() {
             }
 
             // Bind Add Button (re-bind just in case)
-            const btn = document.getElementById('btn-add-adelanto');
-            if (btn) btn.onclick = openAdelantoModal;
+            window.openAdelantoModal = openAdelantoModal;
 
         } catch (err) {
             console.error("Error rendering adelantos:", err);
@@ -660,6 +659,7 @@ export async function renderHRHub() {
             }
         };
     }
+    window.openAdelantoModal = openAdelantoModal;
 
     function wireFilterBtns(currentRole, currentDept) {
         // Role filter buttons
