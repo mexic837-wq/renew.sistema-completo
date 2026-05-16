@@ -5,10 +5,7 @@ export async function renderHRHub() {
     if (!canvas) return;
 
     // Define globally immediately to avoid race conditions
-    window.openAdelantoModal = () => {
-        console.log("Triggering openAdelantoModal from global scope...");
-        // This will be overwritten by the full implementation later
-    };
+    window.openAdelantoModal = openAdelantoModal;
 
     // UI HTML
     canvas.innerHTML = `
@@ -603,8 +600,12 @@ export async function renderHRHub() {
         select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
             empleadosData.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''}</option>`).join('');
 
+        // Force visibility
         modal.classList.remove('nuclear-hidden');
-        modal.classList.add('flex');
+        modal.style.display = 'flex';
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.zIndex = '10000';
+        console.log("Modal display forced to flex.");
 
         // Handle file change
         const fileInp = document.getElementById('inp-adelanto-doc');
