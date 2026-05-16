@@ -4,6 +4,12 @@ export async function renderHRHub() {
     const canvas = document.getElementById('main-canvas');
     if (!canvas) return;
 
+    // Define globally immediately to avoid race conditions
+    window.openAdelantoModal = () => {
+        console.log("Triggering openAdelantoModal from global scope...");
+        // This will be overwritten by the full implementation later
+    };
+
     // UI HTML
     canvas.innerHTML = `
     <div class="h-full flex flex-col animate-fadeIn pt-2">
@@ -577,6 +583,7 @@ export async function renderHRHub() {
 
             // Bind Add Button (re-bind just in case)
             window.openAdelantoModal = openAdelantoModal;
+            console.log("Adelantos view rendered, global binder updated.");
 
         } catch (err) {
             console.error("Error rendering adelantos:", err);
@@ -584,9 +591,13 @@ export async function renderHRHub() {
     }
 
     function openAdelantoModal() {
+        console.log("Opening Adelanto Modal...");
         const modal = document.getElementById('modal-adelanto');
         const select = document.getElementById('adel-trabajador-id');
-        if (!modal || !select) return;
+        if (!modal || !select) {
+            console.error("Modal elements not found!", { modal, select });
+            return;
+        }
 
         // Populate workers select
         select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 

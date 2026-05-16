@@ -1,95 +1,77 @@
 /* ============================================================
    RENEW OS – screens/adelantos.js
-   Worker view for Préstamos y Adelantos
+   Worker view for Préstamos y Adelantos (Full Screen)
    ============================================================ */
 import { getDB, getCurrentUser } from '../api.js';
 import { t } from '../i18n.js';
 
 export function renderMisAdelantos() {
-    // We'll use a modal instead of a full screen to keep it simple and 'card-like'
     const user = getCurrentUser();
-    if (!user) return;
+    const screen = document.getElementById('screen-mis-adelantos');
+    if (!user || !screen) return;
 
     const db = getDB();
     const myAdelantos = (db.rrhh_adelantos || []).filter(a => String(a.trabajador_id) === String(user.id));
-
-    // Create modal if not exists
-    let modal = document.getElementById('modal-mis-adelantos');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modal-mis-adelantos';
-        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex items-center justify-center p-4 nuclear-hidden';
-        document.body.appendChild(modal);
-    }
-
     const totalMonto = myAdelantos.reduce((sum, a) => sum + (Number(a.monto) || 0), 0);
 
-    modal.innerHTML = `
-        <div class="bg-white dark:bg-[#0f172a] w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn relative group">
-            <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="p-8 pb-0 relative z-10">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-tealAccent/10 rounded-2xl flex items-center justify-center border border-tealAccent/20">
-                            <i class="fa-solid fa-hand-holding-dollar text-xl text-tealAccent"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Mis Adelantos</h3>
-                            <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Historial de Préstamos</p>
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('modal-mis-adelantos').classList.add('nuclear-hidden')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-400">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
+    screen.innerHTML = `
+        <div class="screen-header slide-in-left" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border:none;">
+            <button class="back-btn" id="adelantos-back-btn" style="color:#fff;background:rgba(255,255,255,0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            <h2 style="color:#fff;">Mis Adelantos</h2>
+            <span style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:4px 10px;border-radius:10px;font-size:0.7rem;font-weight:800;">
+                ${myAdelantos.length} registro${myAdelantos.length !== 1 ? 's' : ''}
+            </span>
+        </div>
 
-                <div class="bg-tealAccent/5 border border-tealAccent/20 rounded-2xl p-4 mb-6 flex items-center justify-between">
-                    <div>
-                        <span class="text-[9px] font-black text-tealAccent uppercase tracking-widest block mb-1">Monto Total Adeudado</span>
-                        <span class="text-2xl font-black text-gray-900 dark:text-white">$${totalMonto.toLocaleString('en-US', {minimumFractionDigits:2})}</span>
-                    </div>
-                    <div class="w-10 h-10 bg-tealAccent rounded-xl flex items-center justify-center text-black shadow-lg shadow-tealAccent/20">
-                        <i class="fa-solid fa-sack-dollar text-lg"></i>
-                    </div>
+        <div style="padding:16px 16px 100px;" class="animate-fadeIn">
+            <!-- Summary Card -->
+            <div style="background:linear-gradient(135deg,rgba(14,165,233,0.1),rgba(37,99,235,0.05)); border:1.5px solid rgba(14,165,233,0.2); border-radius:24px; padding:24px; margin-bottom:24px; display:flex; align-items:center; justify-content:between; position:relative; overflow:hidden;">
+                <div style="position:absolute; top:-20px; right:-20px; width:100px; height:100px; background:#0ea5e9; opacity:0.1; filter:blur(40px);"></div>
+                <div style="flex:1;">
+                    <span style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; display:block; margin-bottom:4px;">Saldo Total Adeudado</span>
+                    <h3 style="font-size:2rem; font-weight:950; color:var(--text-primary); margin:0; letter-spacing:-1px;">$${totalMonto.toLocaleString('en-US', {minimumFractionDigits:2})}</h3>
+                </div>
+                <div style="width:56px; height:56px; border-radius:18px; background:#0ea5e9; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 8px 20px rgba(14,165,233,0.3);">
+                    <i class="fa-solid fa-sack-dollar text-2xl"></i>
                 </div>
             </div>
 
-            <div class="p-8 pt-2 max-h-[50vh] overflow-y-auto hide-scrollbar relative z-10">
-                <div class="space-y-3">
-                    ${myAdelantos.length === 0 ? `
-                        <div class="py-10 text-center opacity-30">
-                            <i class="fa-solid fa-receipt text-3xl mb-3"></i>
-                            <p class="text-[10px] font-black uppercase tracking-widest">No hay adelantos registrados</p>
+            <div class="space-y-3">
+                ${myAdelantos.length === 0 ? `
+                    <div style="text-align:center; padding:60px 20px; color:var(--text-muted); opacity:0.5;">
+                        <i class="fa-solid fa-receipt text-5xl mb-4"></i>
+                        <p style="font-weight:900; text-transform:uppercase; font-size:0.8rem; letter-spacing:1px;">Sin adelantos registrados</p>
+                    </div>
+                ` : myAdelantos.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(adel => `
+                    <div class="adelanto-card" style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:16px; transition:all 0.2s;">
+                        <div style="width:48px; height:48px; border-radius:14px; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2); display:flex; align-items:center; justify-content:center; color:#0ea5e9; flex-shrink:0;">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
                         </div>
-                    ` : myAdelantos.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(adel => `
-                        <div class="bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-2xl p-4 flex items-center justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-xs font-black text-gray-900 dark:text-white">$${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}</span>
-                                    <span class="text-[8px] font-black text-tealAccent uppercase tracking-widest bg-tealAccent/10 px-2 py-0.5 rounded-full">${adel.fecha}</span>
-                                </div>
-                                <p class="text-[10px] text-gray-500 italic line-clamp-1">${adel.motivo || 'Sin motivo especificado'}</p>
+                        <div style="flex:1; min-width:0;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:2px;">
+                                <span style="font-size:1.1rem; font-weight:900; color:var(--text-primary);">$${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}</span>
+                                <span style="font-size:0.6rem; font-weight:800; color:#0ea5e9; background:rgba(14,165,233,0.1); padding:2px 8px; border-radius:99px; text-transform:uppercase;">${adel.fecha}</span>
                             </div>
-                            ${adel.document_url ? `
-                                <a href="${adel.document_url}" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-xl bg-tealAccent/10 text-tealAccent hover:bg-tealAccent/20 transition-all ml-3">
-                                    <i class="fa-solid fa-file-pdf"></i>
-                                </a>
-                            ` : ''}
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin:0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${adel.motivo || 'Sin motivo especificado'}</p>
                         </div>
-                    `).join('')}
-                </div>
+                        ${adel.document_url ? `
+                            <a href="${adel.document_url}" target="_blank" onclick="event.stopPropagation();" style="width:40px; height:40px; border-radius:12px; background:rgba(14,165,233,0.05); color:#0ea5e9; display:flex; align-items:center; justify-content:center; text-decoration:none; border:1px solid rgba(14,165,233,0.1);">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </a>
+                        ` : ''}
+                    </div>
+                `).join('')}
             </div>
             
-            <div class="p-6 pt-0 relative z-10 text-center">
-                <p class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Consulte con RRHH para más detalles</p>
+            <div style="margin-top:32px; text-align:center; opacity:0.4;">
+                <p style="font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted);">Consulte con RRHH para más detalles</p>
             </div>
         </div>
     `;
 
-    modal.classList.remove('nuclear-hidden');
-    modal.classList.add('flex');
+    document.getElementById('adelantos-back-btn')?.addEventListener('click', () => window.appNavigate('dashboard'));
 }
-
-// Expose to window for the dashboard tool-row
-window.showMisAdelantos = renderMisAdelantos;

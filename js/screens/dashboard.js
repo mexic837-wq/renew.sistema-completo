@@ -643,7 +643,7 @@ function _renderToolsForPipeline(user, activeUnit) {
       gradient: 'linear-gradient(90deg,#0ea5e9,#2563eb)',
       iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',
       icon: `<i class="fa-solid fa-hand-holding-dollar"></i>`,
-      action: () => window.showMisAdelantos && window.showMisAdelantos(), delay: '0.25s'
+      action: () => window.appNavigate('mis-adelantos'), delay: '0.25s', screen: 'mis-adelantos'
     }
   ];
 
