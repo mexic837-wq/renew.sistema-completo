@@ -631,6 +631,11 @@ function _renderToolsForPipeline(user, activeUnit) {
       icon: `<i class="fa-solid fa-handshake"></i>`,
       action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
     } : null,
+    isAdmin ? {
+      name: 'Renew OS (Admin)', tag: null,
+      gradient: 'linear-gradient(90deg,#f59e0b,#ef4444)',
+      iconBg: 'rgba(245,158,11,0.1)', iconColor: 'var(--warning)',
+      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
       action: () => { window.location.href = 'admin.html'; }, delay: '0.24s'
     } : null,
     {
