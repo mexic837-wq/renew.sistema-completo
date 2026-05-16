@@ -395,15 +395,17 @@ function updateCartUI() {
     const countEl = document.getElementById('cart-count');
     const btn = document.getElementById('btn-confirm-cart');
     
+    if (!summary || !countEl || !btn) return;
+
     const totalItems = cart.reduce((acc, curr) => acc + curr.qty, 0);
     countEl.textContent = totalItems;
     btn.disabled = cart.length === 0;
 
     if (cart.length === 0) {
-        emptyMsg.style.display = 'block';
+        if (emptyMsg) emptyMsg.style.display = 'block';
         summary.querySelectorAll('.cart-item-row').forEach(r => r.remove());
     } else {
-        emptyMsg.style.display = 'none';
+        if (emptyMsg) emptyMsg.style.display = 'none';
         summary.innerHTML = cart.map(c => `
             <div class="cart-item-row flex items-center justify-between bg-tealAccent/5 px-4 py-2 rounded-xl border border-tealAccent/10">
                 <span class="text-[10px] font-black text-gray-900 dark:text-white uppercase truncate flex-1 mr-4">${c.nombre}</span>
@@ -481,17 +483,17 @@ async function processCartWithdrawal() {
         });
     }
 
-    // Map to Supabase column names
+    // Map to Supabase column names (inventario_global uses nombre_item, locacion, stock_actual)
     const mappedStockUpdates = stockUpdates.map(item => ({
         id: item.id,
-        nombre: item.nombreItem,
-        sede: item.locacion,
+        nombre_item: item.nombreItem,
+        locacion: item.locacion,
         ecosistema: item.ecosistema,
         category: item.category,
         medida: item.medida,
         boton: item.boton,
         color: item.color,
-        stock: item.stockActual,
+        stock_actual: item.stockActual,
         storage: item.storage,
         min_stock: item.minStock,
         price: item.price,
@@ -504,10 +506,9 @@ async function processCartWithdrawal() {
     await saveGranular('historial_inventario', historyRecords);
 
     // Update local cache for history since saveGranular might not handle 'historial_inventario' key perfectly for unshift
-    if (db.historialInventario) {
-        historyRecords.forEach(r => db.historialInventario.unshift(r));
-        if (db.historialInventario.length > 500) db.historialInventario.length = 500;
-    }
+    if (!db.historialInventario) db.historialInventario = [];
+    historyRecords.forEach(r => db.historialInventario.unshift(r));
+    if (db.historialInventario.length > 500) db.historialInventario.length = 500;
 }
 
 async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
