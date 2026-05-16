@@ -4398,66 +4398,118 @@ window.renderView = async function renderView() {
       (h.ecosistema || '').toLowerCase() === ecoFilterLower
     );
 
-    // Grouping by project/client
-    const groupedHistorial = {};
+    // Grouping logic: Group by client ONLY if a valid client name exists.
+    // Otherwise, show as individual rows.
+    const finalHistoryItems = [];
+    const groupingTemp = {};
+
     historialFiltered.forEach(h => {
-        const key = h.cliente_nombre || 'Sin Proyecto';
-        if (!groupedHistorial[key]) {
-            groupedHistorial[key] = {
-                cliente: key,
+        const client = (h.cliente_nombre || '').trim().toUpperCase();
+        const isUngroupable = !client || client === '-' || client === 'SIN PROYECTO';
+
+        if (isUngroupable) {
+            finalHistoryItems.push({
+                isGroup: false,
+                cliente: h.cliente_nombre || 'SIN PROYECTO',
                 tecnico: h.tecnico_nombre,
-                ultima_fecha: h.fecha,
-                sede: h.sede,
-                items: []
-            };
-        }
-        groupedHistorial[key].items.push({
-            nombre: h.item_nombre,
-            cantidad: h.cantidad_retirada,
-            fecha: h.fecha
-        });
-        if (new Date(h.fecha) > new Date(groupedHistorial[key].ultima_fecha)) {
-            groupedHistorial[key].ultima_fecha = h.fecha;
-            groupedHistorial[key].tecnico = h.tecnico_nombre;
+                fecha: h.fecha,
+                item_nombre: h.item_nombre,
+                cantidad: h.cantidad_retirada,
+                sede: h.sede
+            });
+        } else {
+            if (!groupingTemp[client]) {
+                groupingTemp[client] = {
+                    isGroup: true,
+                    cliente: h.cliente_nombre,
+                    tecnico: h.tecnico_nombre,
+                    ultima_fecha: h.fecha,
+                    sede: h.sede,
+                    items: []
+                };
+            }
+            groupingTemp[client].items.push({
+                nombre: h.item_nombre,
+                cantidad: h.cantidad_retirada,
+                fecha: h.fecha
+            });
+            if (new Date(h.fecha) > new Date(groupingTemp[client].ultima_fecha)) {
+                groupingTemp[client].ultima_fecha = h.fecha;
+                groupingTemp[client].tecnico = h.tecnico_nombre;
+            }
         }
     });
 
-    const groupedArray = Object.values(groupedHistorial).sort((a,b) => new Date(b.ultima_fecha) - new Date(a.ultima_fecha));
+    Object.values(groupingTemp).forEach(g => finalHistoryItems.push(g));
 
-    const historialRowsHtml = groupedArray.length
-      ? groupedArray.map(g => {
-          const dateStr = g.ultima_fecha ? new Date(g.ultima_fecha).toLocaleString('en-US', {
+    // Sort all by date
+    finalHistoryItems.sort((a,b) => {
+        const dateA = a.isGroup ? a.ultima_fecha : a.fecha;
+        const dateB = b.isGroup ? b.ultima_fecha : b.fecha;
+        return new Date(dateB) - new Date(dateA);
+    });
+
+    const historialRowsHtml = finalHistoryItems.length
+      ? finalHistoryItems.map(g => {
+          const rawDate = g.isGroup ? g.ultima_fecha : g.fecha;
+          const dateStr = rawDate ? new Date(rawDate).toLocaleString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
           }) : '-';
           const sedeLabel = (g.sede || '').charAt(0).toUpperCase() + (g.sede || '').slice(1);
           
-          // Store data in a global window object for the modal to access
-          if (!window._inv_grouped_data) window._inv_grouped_data = {};
-          window._inv_grouped_data[g.cliente] = g.items;
+          if (g.isGroup) {
+              if (!window._inv_grouped_data) window._inv_grouped_data = {};
+              window._inv_grouped_data[g.cliente] = g.items;
 
-          return `
-            <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-              <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
-              <td class="px-6 py-3 whitespace-nowrap">
-                <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-full bg-tealAccent/10 flex items-center justify-center">
-                    <i class="fa-solid fa-screwdriver-wrench text-tealAccent text-[8px]"></i>
-                  </div>
-                  <span class="text-xs font-bold text-gray-800 dark:text-white">${g.tecnico || 'Desconocido'}</span>
-                </div>
-              </td>
-              <td class="px-6 py-3 whitespace-nowrap text-[10px] font-black text-[#3b82f6] uppercase tracking-wider">${g.cliente}</td>
-              <td class="px-6 py-3 whitespace-nowrap" colspan="2">
-                <button onclick="window.showInvHistoryDetails('${g.cliente.replace(/'/g, "\\'")}')" class="px-4 py-1.5 bg-tealAccent/10 text-tealAccent border border-tealAccent/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-tealAccent hover:text-black transition-all">
-                   <i class="fa-solid fa-list-ul mr-1"></i> Ver Detalles (${g.items.length})
-                </button>
-              </td>
-              <td class="px-6 py-3 whitespace-nowrap">
-                <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
-              </td>
-            </tr>
-          `;
+              return `
+                <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
+                  <td class="px-6 py-3 whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-tealAccent/10 flex items-center justify-center">
+                        <i class="fa-solid fa-screwdriver-wrench text-tealAccent text-[8px]"></i>
+                      </div>
+                      <span class="text-xs font-bold text-gray-800 dark:text-white">${g.tecnico || 'Desconocido'}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-3 whitespace-nowrap text-[10px] font-black text-[#3b82f6] uppercase tracking-wider">${g.cliente}</td>
+                  <td class="px-6 py-3 whitespace-nowrap" colspan="2">
+                    <button onclick="window.showInvHistoryDetails('${g.cliente.replace(/'/g, "\\'")}')" class="px-4 py-1.5 bg-tealAccent/10 text-tealAccent border border-tealAccent/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-tealAccent hover:text-black transition-all">
+                       <i class="fa-solid fa-list-ul mr-1"></i> Ver Detalles (${g.items.length})
+                    </button>
+                  </td>
+                  <td class="px-6 py-3 whitespace-nowrap">
+                    <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
+                  </td>
+                </tr>
+              `;
+          } else {
+              // Ungrouped row (Individual)
+              return `
+                <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
+                  <td class="px-6 py-3 whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-tealAccent/10 flex items-center justify-center">
+                        <i class="fa-solid fa-screwdriver-wrench text-tealAccent text-[8px]"></i>
+                      </div>
+                      <span class="text-xs font-bold text-gray-800 dark:text-white">${g.tecnico || 'Desconocido'}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-3 whitespace-nowrap text-[10px] font-black text-gray-400 uppercase tracking-wider italic">${g.cliente}</td>
+                  <td class="px-6 py-3 whitespace-nowrap text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">${g.item_nombre}</td>
+                  <td class="px-6 py-3 whitespace-nowrap">
+                    <span class="inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-2 py-0.5 text-[10px] font-black">
+                      <i class="fa-solid fa-minus text-[8px]"></i> ${g.cantidad}
+                    </span>
+                  </td>
+                  <td class="px-6 py-3 whitespace-nowrap">
+                    <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
+                  </td>
+                </tr>
+              `;
+          }
         }).join('')
       : `<tr><td colspan="5" class="py-16 text-center">
            <i class="fa-solid fa-clock-rotate-left text-4xl text-gray-200 dark:text-white/5 mb-3 block"></i>
