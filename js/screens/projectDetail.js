@@ -145,8 +145,8 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
       <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
           Materiales del Proyecto
-          <button onclick="window.appNavigate('inventory-tech', '${deal.id}')" style="background:${pipeline.color}15; color:${pipeline.color}; border:1px solid ${pipeline.color}30; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">
-             <i class="fa-solid fa-box-open mr-1"></i> Retirar Material
+          <button onclick="window.openInventoryCart('${deal.id}')" style="background:${pipeline.color}15; color:${pipeline.color}; border:1px solid ${pipeline.color}30; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">
+             <i class="fa-solid fa-cart-plus mr-1"></i> Retirar Material
           </button>
         </h3>
         <div id="project-inventory-list-${deal.id}" style="display:flex; flex-direction:column; gap:8px;">
@@ -265,6 +265,202 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
   }
 
   await renderDynamicAction(deal, pipeline, fases, curFidx, db);
+}
+
+// ─── INVENTORY CART LOGIC ───────────────────────────────────
+let cart = [];
+let cartDealId = null;
+let cartSelectedSede = 'orlando';
+
+window.openInventoryCart = (dealId) => {
+    cartDealId = dealId;
+    cart = [];
+    const modal = document.getElementById('modal-inventory-cart');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    
+    renderCartSedes();
+    renderCartItems();
+    updateCartUI();
+    
+    // Search listener
+    const search = document.getElementById('cart-inv-search');
+    search.value = '';
+    search.oninput = () => renderCartItems(search.value.toLowerCase());
+    
+    // Confirm button
+    const btnConfirm = document.getElementById('btn-confirm-cart');
+    btnConfirm.onclick = async () => {
+        if (cart.length === 0) return;
+        btnConfirm.disabled = true;
+        btnConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+        
+        try {
+            await processCartWithdrawal();
+            modal.classList.add('hidden');
+            // Refresh project inventory list
+            const list = document.getElementById(`project-inventory-list-${cartDealId}`);
+            if (list) list.innerHTML = renderProjectInventory(cartDealId);
+            showToast('Retiro completado con éxito', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            btnConfirm.disabled = false;
+            btnConfirm.innerHTML = '<i class="fa-solid fa-truck-ramp-box"></i> Confirmar Retiro (<span id="cart-count">0</span>)';
+        }
+    };
+};
+
+function renderCartSedes() {
+    const container = document.getElementById('cart-sede-filters');
+    const sedes = ['orlando', 'miami', 'dallas', 'new_york'];
+    container.innerHTML = sedes.map(s => `
+        <button onclick="window.setCartSede('${s}')" class="sede-tab-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${cartSelectedSede === s ? 'bg-tealAccent text-black' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}" data-sede="${s}">
+            ${s.replace('_', ' ')}
+        </button>
+    `).join('');
+}
+
+window.setCartSede = (sede) => {
+    cartSelectedSede = sede;
+    renderCartSedes();
+    renderCartItems();
+};
+
+function renderCartItems(query = '') {
+    const container = document.getElementById('cart-inv-items');
+    const db = getDB();
+    const inv = db.inventarioGlobal || [];
+    
+    const filtered = inv.filter(item => {
+        const matchesSede = item.locacion === cartSelectedSede;
+        const matchesSearch = !query || item.nombreItem.toLowerCase().includes(query) || item.id.toLowerCase().includes(query);
+        return matchesSede && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-center py-10 text-gray-400 text-xs italic">No hay artículos que coincidan</p>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(item => {
+        const inCart = cart.find(c => c.id === item.id);
+        const qtyInCart = inCart ? inCart.qty : 0;
+        
+        return `
+            <div class="bg-gray-50 dark:bg-white/[0.03] p-4 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center justify-between group">
+                <div class="flex-1 min-width-0">
+                    <p class="text-[8px] font-black text-tealAccent uppercase opacity-60">${item.id}</p>
+                    <p class="text-sm font-black text-gray-900 dark:text-white uppercase truncate">${item.nombreItem}</p>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">Stock: ${item.stockActual} unidades</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    ${qtyInCart > 0 ? `
+                        <button onclick="window.updateCartQty('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
+                            <i class="fa-solid fa-minus text-xs"></i>
+                        </button>
+                        <span class="text-sm font-black text-gray-900 dark:text-white w-4 text-center">${qtyInCart}</span>
+                    ` : ''}
+                    <button onclick="window.updateCartQty('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-tealAccent/10 text-tealAccent flex items-center justify-center" ${item.stockActual <= qtyInCart ? 'disabled opacity-30' : ''}>
+                        <i class="fa-solid fa-plus text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.updateCartQty = (itemId, delta) => {
+    const db = getDB();
+    const item = (db.inventarioGlobal || []).find(i => i.id === itemId);
+    if (!item) return;
+
+    const idx = cart.findIndex(c => c.id === itemId);
+    if (idx === -1 && delta > 0) {
+        cart.push({ id: item.id, nombre: item.nombreItem, qty: 1, stock: item.stockActual });
+    } else if (idx !== -1) {
+        cart[idx].qty += delta;
+        if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        else if (cart[idx].qty > item.stockActual) cart[idx].qty = item.stockActual;
+    }
+    
+    renderCartItems(document.getElementById('cart-inv-search').value.toLowerCase());
+    updateCartUI();
+};
+
+function updateCartUI() {
+    const summary = document.getElementById('cart-summary');
+    const emptyMsg = document.getElementById('cart-empty-msg');
+    const countEl = document.getElementById('cart-count');
+    const btn = document.getElementById('btn-confirm-cart');
+    
+    const totalItems = cart.reduce((acc, curr) => acc + curr.qty, 0);
+    countEl.textContent = totalItems;
+    btn.disabled = cart.length === 0;
+
+    if (cart.length === 0) {
+        emptyMsg.style.display = 'block';
+        summary.querySelectorAll('.cart-item-row').forEach(r => r.remove());
+    } else {
+        emptyMsg.style.display = 'none';
+        summary.innerHTML = cart.map(c => `
+            <div class="cart-item-row flex items-center justify-between bg-tealAccent/5 px-4 py-2 rounded-xl border border-tealAccent/10">
+                <span class="text-[10px] font-black text-gray-900 dark:text-white uppercase truncate flex-1 mr-4">${c.nombre}</span>
+                <span class="text-[11px] font-black text-tealAccent">x${c.qty}</span>
+            </div>
+        `).join('');
+    }
+}
+
+async function processCartWithdrawal() {
+    const db = getDB();
+    const user = getCurrentUser();
+    const proj = (db.Proyectos_Dinamicos || []).find(p => p.id === cartDealId);
+    if (!proj) throw new Error('Proyecto no encontrado');
+
+    const userName = [user?.nombre, user?.apellido].filter(Boolean).join(' ') || user?.email || 'Técnico';
+    
+    for (const cartItem of cart) {
+        const invItem = (db.inventarioGlobal || []).find(i => i.id === cartItem.id);
+        if (!invItem) continue;
+
+        // Subtract stock
+        invItem.stockActual -= cartItem.qty;
+
+        // Add history entry
+        const historyEntry = {
+            id: `hist_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,
+            fecha: new Date().toISOString(),
+            tecnico_nombre: userName,
+            tecnico_id: user?.id || null,
+            item_nombre: invItem.nombreItem,
+            item_id: invItem.id,
+            cantidad_retirada: cartItem.qty,
+            sede: cartSelectedSede,
+            ecosistema: invItem.ecosistema || invItem.category || 'water',
+            proyecto_id: cartDealId,
+            cliente_nombre: proj.nombre_cliente,
+            tipo_movimiento: 'Salida (Proyecto)'
+        };
+        
+        if (!db.historialInventario) db.historialInventario = [];
+        db.historialInventario.unshift(historyEntry);
+        
+        // Log to Kanban
+        syncKanbanActivity({
+            proyecto_id: cartDealId,
+            evento: 'RETIRO_MATERIAL',
+            campo_etiqueta: 'Inventario',
+            archivo_nombre: `${cartItem.qty} x ${invItem.nombreItem}`,
+            responsable_id: user?.id,
+            fase_nombre: 'Materiales',
+            skipSave: true
+        });
+    }
+
+    // Bulk save
+    await saveDB(db);
 }
 
 async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {

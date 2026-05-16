@@ -207,6 +207,9 @@ body {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+.animate-sheetUp {
+  animation: sheetUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
 
 @keyframes slideUp {
   from { transform: translateY(100%); }
