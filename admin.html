@@ -2703,6 +2703,32 @@
         </div>
     </div>
 
+    <!-- MODAL: DETALLES HISTORIAL INVENTARIO -->
+    <div id="modal-inv-history-details" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[300] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[600px] rounded-[2.5rem] shadow-2xl p-8 max-h-[90vh] overflow-y-auto hide-scrollbar animate-scaleIn relative overflow-hidden group">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between mb-6 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
+                        <i class="fa-solid fa-list-check text-xl text-blue-500"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase" id="inv-hist-modal-title">Detalles del Proyecto</h3>
+                        <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase mt-0.5">Desglose de artículos utilizados</p>
+                    </div>
+                </div>
+                <button onclick="closeModals()" class="btn-cancel text-gray-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div id="inv-hist-modal-content" class="space-y-3 relative z-10">
+                <!-- JS Content -->
+            </div>
+        </div>
+    </div>
+
     <!-- Module script -->
     <script type="module" src="./js/admin-app.js?v=10"></script>
 </body>

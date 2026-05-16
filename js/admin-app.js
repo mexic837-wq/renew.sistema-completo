@@ -2631,6 +2631,67 @@ window.openW9File = function(dataUrl) {
   }
 };
 
+window.showInvHistoryDetails = (clientName) => {
+    const modal = document.getElementById('modal-inv-history-details');
+    const title = document.getElementById('inv-hist-modal-title');
+    const content = document.getElementById('inv-hist-modal-content');
+    if (!modal || !content) return;
+
+    const items = (window._inv_grouped_data || {})[clientName] || [];
+    title.textContent = clientName;
+
+    if (items.length === 0) {
+        content.innerHTML = '<p class="text-center text-gray-500 py-8 italic">No hay detalles disponibles.</p>';
+    } else {
+        // Sort by date descending
+        const sorted = [...items].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        // Sum quantities of same items if they appear multiple times for the same client (optional but good)
+        const summary = {};
+        sorted.forEach(it => {
+            if (!summary[it.nombre]) summary[it.nombre] = { qty: 0, lastDate: it.fecha };
+            summary[it.nombre].qty += (Number(it.cantidad) || 0);
+        });
+
+        content.innerHTML = `
+            <div class="bg-gray-50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+                <table class="w-full text-[11px]">
+                    <thead class="bg-gray-100 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-widest">Artículo</th>
+                            <th class="px-4 py-3 text-right font-black text-gray-400 uppercase tracking-widest">Cant. Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                        ${Object.entries(summary).map(([name, data]) => `
+                            <tr>
+                                <td class="px-4 py-3 text-gray-900 dark:text-white font-bold">${name}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <span class="inline-flex items-center gap-1.5 bg-red-500/10 text-red-500 rounded-full px-3 py-1 font-black">
+                                        -${data.qty}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-6 p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
+                <p class="text-[10px] text-blue-500 font-black uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info"></i> Información de Registro
+                </p>
+                <p class="text-[10px] text-gray-500 mt-2">Este reporte consolida todos los materiales retirados del inventario vinculados a este proyecto/cliente específico.</p>
+            </div>
+        `;
+    }
+
+    if (window.showModal) window.showModal(modal);
+    else {
+        modal.classList.remove('nuclear-hidden');
+        modal.classList.add('flex');
+    }
+};
+
 window.showModal = (m) => {
   if (!m) {
     console.error("[RENEW-ERROR] showModal received null element!");
@@ -4337,13 +4398,44 @@ window.renderView = async function renderView() {
       (h.ecosistema || '').toLowerCase() === ecoFilterLower
     );
 
-    const historialRowsHtml = historialFiltered.length
-      ? historialFiltered.map(h => {
-          const dateStr = h.fecha ? new Date(h.fecha).toLocaleString('en-US', {
+    // Grouping by project/client
+    const groupedHistorial = {};
+    historialFiltered.forEach(h => {
+        const key = h.cliente_nombre || 'Sin Proyecto';
+        if (!groupedHistorial[key]) {
+            groupedHistorial[key] = {
+                cliente: key,
+                tecnico: h.tecnico_nombre,
+                ultima_fecha: h.fecha,
+                sede: h.sede,
+                items: []
+            };
+        }
+        groupedHistorial[key].items.push({
+            nombre: h.item_nombre,
+            cantidad: h.cantidad_retirada,
+            fecha: h.fecha
+        });
+        if (new Date(h.fecha) > new Date(groupedHistorial[key].ultima_fecha)) {
+            groupedHistorial[key].ultima_fecha = h.fecha;
+            groupedHistorial[key].tecnico = h.tecnico_nombre;
+        }
+    });
+
+    const groupedArray = Object.values(groupedHistorial).sort((a,b) => new Date(b.ultima_fecha) - new Date(a.ultima_fecha));
+
+    const historialRowsHtml = groupedArray.length
+      ? groupedArray.map(g => {
+          const dateStr = g.ultima_fecha ? new Date(g.ultima_fecha).toLocaleString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
           }) : '-';
-          const sedeLabel = (h.sede || '').charAt(0).toUpperCase() + (h.sede || '').slice(1);
+          const sedeLabel = (g.sede || '').charAt(0).toUpperCase() + (g.sede || '').slice(1);
+          
+          // Store data in a global window object for the modal to access
+          if (!window._inv_grouped_data) window._inv_grouped_data = {};
+          window._inv_grouped_data[g.cliente] = g.items;
+
           return `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
               <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
@@ -4352,15 +4444,14 @@ window.renderView = async function renderView() {
                   <div class="w-6 h-6 rounded-full bg-tealAccent/10 flex items-center justify-center">
                     <i class="fa-solid fa-screwdriver-wrench text-tealAccent text-[8px]"></i>
                   </div>
-                  <span class="text-xs font-bold text-gray-800 dark:text-white">${h.tecnico_nombre || 'Desconocido'}</span>
+                  <span class="text-xs font-bold text-gray-800 dark:text-white">${g.tecnico || 'Desconocido'}</span>
                 </div>
               </td>
-              <td class="px-6 py-3 whitespace-nowrap text-[10px] font-black text-[#3b82f6] uppercase tracking-wider">${h.cliente_nombre || '-'}</td>
-              <td class="px-6 py-3 whitespace-nowrap text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">${h.item_nombre || '-'}</td>
-              <td class="px-6 py-3 whitespace-nowrap">
-                <span class="inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-2 py-0.5 text-[10px] font-black">
-                  <i class="fa-solid fa-minus text-[8px]"></i> ${h.cantidad_retirada}
-                </span>
+              <td class="px-6 py-3 whitespace-nowrap text-[10px] font-black text-[#3b82f6] uppercase tracking-wider">${g.cliente}</td>
+              <td class="px-6 py-3 whitespace-nowrap" colspan="2">
+                <button onclick="window.showInvHistoryDetails('${g.cliente.replace(/'/g, "\\'")}')" class="px-4 py-1.5 bg-tealAccent/10 text-tealAccent border border-tealAccent/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-tealAccent hover:text-black transition-all">
+                   <i class="fa-solid fa-list-ul mr-1"></i> Ver Detalles (${g.items.length})
+                </button>
               </td>
               <td class="px-6 py-3 whitespace-nowrap">
                 <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
