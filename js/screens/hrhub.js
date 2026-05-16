@@ -600,12 +600,30 @@ export async function renderHRHub() {
         select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
             empleadosData.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''}</option>`).join('');
 
-        // Force visibility
-        modal.classList.remove('nuclear-hidden');
-        modal.style.display = 'flex';
-        modal.style.setProperty('display', 'flex', 'important');
-        modal.style.zIndex = '10000';
-        console.log("Modal display forced to flex.");
+        // Use the application's standard modal display function
+        if (window.showModal) {
+            console.log("Using standard window.showModal...");
+            window.showModal(modal);
+        } else {
+            console.warn("window.showModal not found, using fallback manual display...");
+            modal.classList.remove('nuclear-hidden');
+            modal.style.display = 'flex';
+            modal.style.setProperty('display', 'flex', 'important');
+            modal.style.zIndex = '10000';
+        }
+
+        // Diagnostic logs
+        setTimeout(() => {
+            const rect = modal.getBoundingClientRect();
+            console.log("--- MODAL DIAGNOSTIC ---");
+            console.log("ID:", modal.id);
+            console.log("Size:", rect.width, "x", rect.height);
+            console.log("Visible Style:", window.getComputedStyle(modal).display);
+            console.log("Opacity:", window.getComputedStyle(modal).opacity);
+            console.log("Z-Index:", window.getComputedStyle(modal).zIndex);
+            console.log("Parent:", modal.parentElement ? modal.parentElement.tagName : 'None');
+            console.log("------------------------");
+        }, 100);
 
         // Handle file change
         const fileInp = document.getElementById('inp-adelanto-doc');
