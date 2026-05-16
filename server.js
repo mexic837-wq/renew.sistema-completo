@@ -929,6 +929,9 @@ app.post('/api/upsert', async (req, res) => {
                 colaboradores: Array.isArray(ev.colaboradores) ? ev.colaboradores.map(c => typeof c === 'string' ? c : JSON.stringify(c)) : [],
                 attendees: ev.attendees || []
             }));
+        } else if (table === 'historial_inventario') {
+            // Strip the client-side 'id' string because Supabase uses a serial/integer ID
+            sanitizedRecords = records.map(({ id, ...rest }) => rest);
         }
         
         // El id es el identificador por defecto para el conflicto en la mayoría de tablas

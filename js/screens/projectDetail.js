@@ -416,36 +416,58 @@ function updateCartUI() {
 async function processCartWithdrawal() {
     const db = getDB();
     const user = getCurrentUser();
-    const proj = (db.Proyectos_Dinamicos || []).find(p => p.id === cartDealId);
+    const proj = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(cartDealId));
     if (!proj) throw new Error('Proyecto no encontrado');
 
+    const client = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proj.cliente_id));
+    const clientName = client ? client.nombre : 'SIN CLIENTE';
+
     const userName = [user?.nombre, user?.apellido].filter(Boolean).join(' ') || user?.email || 'Técnico';
+    const timestamp = new Date();
     
-    for (const cartItem of cart) {
-        const invItem = (db.inventarioGlobal || []).find(i => i.id === cartItem.id);
+    // Determine project ecosystem from pipeline
+    const pipelines = await getAdminPipelines();
+    const pip = pipelines.find(p => String(p.id) === String(proj.pipeline_id));
+    let projectEco = 'water';
+    if (pip) {
+        const name = (pip.nombre || '').toLowerCase();
+        if (name.includes('solar')) projectEco = 'solar';
+        else if (name.includes('home')) projectEco = 'home';
+        else projectEco = 'water';
+    }
+
+    console.log(`[CART] Processing: Client=${clientName}, Eco=${projectEco}, Sede=${cartSelectedSede}`);
+    
+    const historyRecords = [];
+    const stockUpdates = [];
+
+    for (let i = 0; i < cart.length; i++) {
+        const cartItem = cart[i];
+        const invItem = (db.inventarioGlobal || []).find(item => item.id === cartItem.id);
         if (!invItem) continue;
 
-        // Subtract stock
+        // Subtract stock locally
         invItem.stockActual -= cartItem.qty;
+        stockUpdates.push(invItem);
 
-        // Add history entry
+        // Add history entry (with staggered timestamp to avoid onConflict: 'fecha' collisions)
+        const entryTime = new Date(timestamp.getTime() + i * 10); 
         const historyEntry = {
-            id: `hist_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,
-            fecha: new Date().toISOString(),
+            id: `hist_${entryTime.getTime()}_${Math.random().toString(36).slice(2,5)}`,
+            fecha: entryTime.toISOString(),
             tecnico_nombre: userName,
             tecnico_id: user?.id || null,
             item_nombre: invItem.nombreItem,
             item_id: invItem.id,
             cantidad_retirada: cartItem.qty,
             sede: cartSelectedSede,
-            ecosistema: invItem.ecosistema || invItem.category || 'water',
+            ecosistema: projectEco, // Always use the project's ecosystem for history log visibility
             proyecto_id: cartDealId,
-            cliente_nombre: proj.nombre_cliente,
+            cliente_nombre: clientName,
             tipo_movimiento: 'Salida (Proyecto)'
         };
         
-        if (!db.historialInventario) db.historialInventario = [];
-        db.historialInventario.unshift(historyEntry);
+        historyRecords.push(historyEntry);
         
         // Log to Kanban
         syncKanbanActivity({
@@ -459,8 +481,33 @@ async function processCartWithdrawal() {
         });
     }
 
-    // Bulk save
-    await saveDB(db);
+    // Map to Supabase column names
+    const mappedStockUpdates = stockUpdates.map(item => ({
+        id: item.id,
+        nombre: item.nombreItem,
+        sede: item.locacion,
+        ecosistema: item.ecosistema,
+        category: item.category,
+        medida: item.medida,
+        boton: item.boton,
+        color: item.color,
+        stock: item.stockActual,
+        storage: item.storage,
+        min_stock: item.minStock,
+        price: item.price,
+        image_url: item.imageUrl
+    }));
+
+    // Fast Granular saves
+    const { saveGranular } = await import('../api.js');
+    await saveGranular('inventario_global', mappedStockUpdates);
+    await saveGranular('historial_inventario', historyRecords);
+
+    // Update local cache for history since saveGranular might not handle 'historial_inventario' key perfectly for unshift
+    if (db.historialInventario) {
+        historyRecords.forEach(r => db.historialInventario.unshift(r));
+        if (db.historialInventario.length > 500) db.historialInventario.length = 500;
+    }
 }
 
 async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
