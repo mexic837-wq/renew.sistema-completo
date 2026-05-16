@@ -458,7 +458,6 @@ async function processCartWithdrawal() {
             id: `hist_${entryTime.getTime()}_${Math.random().toString(36).slice(2,5)}`,
             fecha: entryTime.toISOString(),
             tecnico_nombre: userName,
-            tecnico_id: user?.id || null,
             item_nombre: invItem.nombreItem,
             item_id: invItem.id,
             cantidad_retirada: cartItem.qty,
