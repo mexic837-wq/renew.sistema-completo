@@ -943,7 +943,7 @@ function resetModal() {
   }
 
   const lic = document.getElementById('quick-state-id');
-  if (lic) { lic.value = ''; lic.disabled = false; }
+  if (lic) lic.value = '';
 
   quickAdjID = null; quickAdjBill = null; quickAdjSeguro = null;
 
@@ -1124,6 +1124,7 @@ function _wireModalControls(user, container) {
                               }
                           }
                           const licInput = document.getElementById('quick-state-id');
+                          if (licInput) licInput.value = (data['licenseNumber'] || '');
                           if (licInput) { licInput.value = cli.licencia || ''; licInput.disabled = true; }
                           const nts = document.getElementById('quick-notas'); if(nts) { nts.value = cli.notas || ''; }
 
@@ -1305,6 +1306,7 @@ function _wireModalControls(user, container) {
         const idMatch = text.match(/[A-Z]\d{3}-\d{3}-\d{2}-\d{3}-\d/i) || text.match(/[A-Z]\d{12}/i) || text.match(/\d{9,12}/);
         if (idMatch) {
           const idEl = document.getElementById('quick-state-id');
+          if (idEl) idEl.value = (data['licenseNumber'] || '');
           if (idEl) idEl.value = idMatch[0].toUpperCase();
         }
 
