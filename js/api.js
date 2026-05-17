@@ -332,9 +332,25 @@ export async function saveGranular(table, records) {
            const campo = (db.Admin_Campos_Formulario || []).find(c => String(c.id) === String(r.campo_id));
            if (campo) {
              const label = (campo.etiqueta || '').toLowerCase();
-             if (label.includes('recibo') && (label.includes('pago') || label.includes('vendedor') || label.includes('tecnico') || label.includes('técnico'))) {
+             const fase = (db.Admin_Fases || []).find(f => String(f.id) === String(campo.fase_id));
+             const isComisionPhase = fase && fase.nombre && fase.nombre.toLowerCase().includes('comisi');
+             
+             const isReceiptLabel = label.includes('recibo') || label.includes('pago') || label.includes('comisi') || label.includes('comprobante');
+             
+             if (isComisionPhase || (isReceiptLabel && (label.includes('vendedor') || label.includes('tecnico') || label.includes('técnico') || label.includes('instalador')))) {
+               
+               let tipo = 'tecnico'; // default
+               if (label.includes('vendedor') || label.includes('representante') || label.includes('comisión vendedor') || label.includes('comision vendedor')) {
+                   tipo = 'vendedor';
+               } else if (label.includes('tecnico') || label.includes('técnico') || label.includes('instalador') || label.includes('instalación')) {
+                   tipo = 'tecnico';
+               } else {
+                   // If in Comision phase but label is vague, try to guess
+                   if (label.includes('vendedor')) tipo = 'vendedor';
+               }
+
                console.log(`[API-SYNC] Detecting receipt upload in field "${campo.etiqueta}". Syncing to client...`);
-               _syncReceiptToClient(r.proyecto_id, r.valor, label).catch(e => console.error("[API-SYNC] Failed to sync receipt:", e));
+               _syncReceiptToClient(r.proyecto_id, r.valor, label, tipo).catch(e => console.error("[API-SYNC] Failed to sync receipt:", e));
              }
            }
         }
@@ -355,7 +371,7 @@ export async function saveGranular(table, records) {
  * Syncs a receipt URL to the client's adjuntos_oficina metadata
  * @private
  */
-async function _syncReceiptToClient(projectId, url, label) {
+async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
   const db = getDB();
   const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(projectId));
   if (!proy || !proy.cliente_id) return;
@@ -369,7 +385,7 @@ async function _syncReceiptToClient(projectId, url, label) {
   if (!adjuntos || Array.isArray(adjuntos)) adjuntos = {};
   else adjuntos = { ...adjuntos };
   
-  const isVendedor = label.includes('vendedor');
+  const isVendedor = forceTipo ? (forceTipo === 'vendedor') : label.includes('vendedor');
   adjuntos.recibo_url = url;
   if (isVendedor) {
     adjuntos.recibo_vendedor_url = url;
