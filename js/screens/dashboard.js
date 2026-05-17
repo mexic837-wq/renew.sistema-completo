@@ -858,19 +858,19 @@ async function initRendimientoChart(user) {
   let closedMonth = 0;
 
   userProjects.forEach(p => {
-    // A project counts as a "sale/venta" only when it has reached the terminal state
     const isCompleted = isProjectFinished(p, db);
-    if (!isCompleted) return;
-
     const dateToUse = getProjectDate(p, db);
     const pDate = dateToUse ? new Date(dateToUse + 'T12:00:00') : null;
+    
     if (pDate && pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
-      const day = pDate.getDate();
-      ventasMap[day - 1] += 1;
       totalVentasMonth += 1;
-      closedMonth++;
+      if (isCompleted) {
+        closedMonth++;
+      }
     }
   });
+
+  const pendientes = totalVentasMonth - closedMonth;
 
   // Dynamically render Quick Stats below the graph
   const quickStatsEl = document.getElementById('rendimiento-quick-stats');
@@ -934,83 +934,43 @@ async function initRendimientoChart(user) {
     }
   }
 
-  const gradientVentas = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
-  gradientVentas.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
-  gradientVentas.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
   window.rendimientoChartInstance = new Chart(ctx.getContext('2d'), {
-    type: 'line',
+    type: 'doughnut',
     data: {
-      labels: labels,
+      labels: [isTecnico ? 'Completadas' : 'Ventas', isTecnico ? 'Pendientes' : 'En Proceso'],
       datasets: [
         {
-          label: isTecnico ? 'Citas' : 'Ventas',
-
-          data: ventasMap.map((v, i) => v > 0 ? v : (i > now.getDate() ? null : 0)),
-          borderColor: '#3b82f6',
-          backgroundColor: gradientVentas,
-          borderWidth: 3,
-          fill: true,
-          tension: 0.45,
-          pointRadius: (context) => {
-            const index = context.dataIndex;
-            return index === now.getDate() - 1 ? 6 : 0;
-          },
-          pointBackgroundColor: '#3b82f6',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
+          data: [closedMonth, pendientes],
+          backgroundColor: ['#3b82f6', '#334155'],
+          hoverBackgroundColor: ['#60a5fa', '#475569'],
+          borderWidth: 0,
+          hoverOffset: 8
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: 'index',
-      },
-      scales: {
-        y: { 
-          beginAtZero: true, 
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false }, 
-          ticks: { 
-            color: document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#64748b',
-            font: { size: 10 },
-            stepSize: 1, // Sales are integer numbers
-            callback: value => value
-          } 
-        },
-        x: { 
-          grid: { display: false }, 
-          ticks: { 
-            color: document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#64748b',
-            font: { size: 10 },
-            maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 15,
-            callback: function(val, index) {
-              return labels[index];
-            }
-          } 
-        }
+      cutout: '75%',
+      layout: {
+        padding: 10
       },
       plugins: {
         legend: { 
           display: true,
-          position: 'top',
-          align: 'end',
+          position: 'bottom',
           labels: { 
             color: document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#64748b', 
             usePointStyle: true,
             pointStyle: 'circle',
-            font: { family: 'Inter', size: 11, weight: '600' },
+            font: { family: 'Inter', size: 12, weight: '600' },
             padding: 20
           } 
         },
         tooltip: {
           backgroundColor: 'rgba(0,0,0,0.8)',
           titleFont: { size: 13, weight: 'bold' },
-          bodyFont: { size: 12 },
+          bodyFont: { size: 13 },
           padding: 12,
           cornerRadius: 12,
           displayColors: true
@@ -1231,83 +1191,45 @@ async function initCCRendimientoChart(user) {
     `;
   }
 
-  const gradientAceptados = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
-  gradientAceptados.addColorStop(0, 'rgba(0, 245, 212, 0.3)');
-  gradientAceptados.addColorStop(1, 'rgba(0, 245, 212, 0)');
-
   window.rendimientoChartInstance = new Chart(ctx.getContext('2d'), {
-    type: 'line',
+    type: 'doughnut',
     data: {
-      labels,
+      labels: ['Aceptados', 'Rechazados'],
       datasets: [
         {
-          label: 'Aceptados',
-          data: aceptadosByDay,
-          borderColor: '#00f5d4',
-          backgroundColor: gradientAceptados,
-          borderWidth: 3,
-          fill: true,
-          tension: 0.45,
-          pointRadius: 0,
-          order: 2
-        },
-        {
-          label: '% Aceptaci\u00F3n',
-          data: pctByDay,
-          borderColor: '#a855f7',
-          borderWidth: 2,
-          pointRadius: 3,
-          fill: false,
-          tension: 0.4,
-          yAxisID: 'y2',
-          order: 1,
-          spanGaps: true
+          data: [totalAceptados, rechazados],
+          backgroundColor: ['#00f5d4', '#ef4444'],
+          hoverBackgroundColor: ['#2dd4bf', '#f87171'],
+          borderWidth: 0,
+          hoverOffset: 8
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y:  { 
-          beginAtZero: true, 
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false }, 
-          ticks: { color: document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#64748b', precision: 0, font: { size: 9 } } 
-        },
-        y2: { 
-          beginAtZero: true, 
-          max: 100, 
-          position: 'right', 
-          grid: { display: false }, 
-          ticks: { color: '#a855f7', font: { size: 9 }, callback: v => v + '%' } 
-        },
-        x:  { 
-          grid: { display: false }, 
-          ticks: { 
-            color: document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#64748b', 
-            font: { size: 9 },
-            callback: function(val, index) {
-              const day = labels[index];
-              if (day === '1') return 'W1';
-              if (day === '8') return 'W2';
-              if (day === '15') return 'W3';
-              if (day === '22') return 'W4';
-              return '';
-            }
-          } 
-        }
+      cutout: '75%',
+      layout: {
+        padding: 10
       },
       plugins: {
         legend: { 
           display: true,
-          position: 'top',
-          align: 'end',
+          position: 'bottom',
           labels: { 
             color: document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#64748b',
             pointStyle: 'circle',
             usePointStyle: true,
-            font: { family: 'Inter', size: 10, weight: '600' } 
+            font: { family: 'Inter', size: 12, weight: '600' } 
           } 
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          titleFont: { size: 13, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 12,
+          cornerRadius: 12,
+          displayColors: true
         }
       }
     }

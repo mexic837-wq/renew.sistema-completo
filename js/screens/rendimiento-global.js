@@ -599,96 +599,56 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const ctx = chartCanvas.getContext('2d');
     if (globalChartInstance) { globalChartInstance.destroy(); globalChartInstance = null; }
 
-    // Gradients
-    const gradBlue   = ctx.createLinearGradient(0, 0, 0, 300);
-    gradBlue.addColorStop(0, 'rgba(96,165,250,.25)');
-    gradBlue.addColorStop(1, 'rgba(96,165,250,0)');
-
-    const gradAmber  = ctx.createLinearGradient(0, 0, 0, 300);
-    gradAmber.addColorStop(0, 'rgba(251,191,36,.2)');
-    gradAmber.addColorStop(1, 'rgba(251,191,36,0)');
-
-    const gradGreen  = ctx.createLinearGradient(0, 0, 0, 300);
-    gradGreen.addColorStop(0, 'rgba(52,211,153,.25)');
-    gradGreen.addColorStop(1, 'rgba(52,211,153,0)');
-
     globalChartInstance = new Chart(ctx, {
-        type: 'line',
+        type: 'doughnut',
         data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Prospectos',
-                    data: dataProspectos,
-                    borderColor: '#60a5fa',
-                    backgroundColor: gradBlue,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#60a5fa',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Presentaciones',
-                    data: dataPresentaciones,
-                    borderColor: '#fbbf24',
-                    backgroundColor: gradAmber,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#fbbf24',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Ventas',
-                    data: dataVentas,
-                    borderColor: '#34d399',
-                    backgroundColor: gradGreen,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#34d399',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
+            labels: ['Prospectos', 'Presentaciones', 'Ventas'],
+            datasets: [{
+                data: [totalProspectos, totalPresentaciones, totalVentas],
+                backgroundColor: [
+                    '#60a5fa', // Blue
+                    '#fbbf24', // Amber
+                    '#34d399'  // Emerald
+                ],
+                hoverBackgroundColor: [
+                    '#93c5fd',
+                    '#fcd34d',
+                    '#6ee7b7'
+                ],
+                borderWidth: 0,
+                hoverOffset: 8
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            cutout: '75%', // Thin doughnut
+            layout: {
+                padding: 20
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     backgroundColor: '#111827',
                     titleColor: '#f1f5f9',
                     bodyColor: '#94a3b8',
+                    bodyFont: { size: 14, weight: 'bold' },
                     padding: 14,
                     borderColor: 'rgba(255,255,255,0.05)',
                     borderWidth: 1,
                     displayColors: true,
                     callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}`
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed !== null) {
+                                label += context.parsed;
+                            }
+                            return label;
+                        }
                     }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#64748b', font: { weight: 'bold', size: 10 }, stepSize: 1 }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#64748b', font: { weight: 'bold', size: 10 } }
                 }
             }
         }
