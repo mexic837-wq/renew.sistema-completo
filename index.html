@@ -786,35 +786,6 @@
       <div class="modal-scroll-area"
         style="flex:1; overflow-y:auto; padding:20px 20px 160px 20px; -webkit-overflow-scrolling: touch;">
 
-        <!-- ═══ SECCIÓN 0: SCANNER INTELIGENTE ═══ -->
-        <div class="field-group" style="margin-bottom:24px;">
-          <div id="btn-quick-scan-id"
-            style="background:rgba(0, 245, 212, 0.05); border:2px dashed var(--primary); border-radius:20px; padding:24px; text-align:center; cursor:pointer; position:relative; overflow:hidden; transition: all 0.3s ease;">
-            <input type="file" id="inp-quick-scan-id" accept="image/*" style="display:none" />
-            <div id="scan-idle-state">
-              <div style="width:56px; height:56px; background:rgba(0, 245, 212, 0.1); border-radius:16px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                  <circle cx="12" cy="13" r="4" />
-                </svg>
-              </div>
-              <p style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin:0;">SCANNER INTELIGENTE DE ID</p>
-              <p style="font-size:0.75rem; color:var(--primary); font-weight:600; margin-top:4px;">Toca para escanear y auto-rellenar</p>
-            </div>
-            <div id="scan-loading-state" style="display:none;">
-              <div class="scan-line" style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent, var(--primary), transparent); height:4px; opacity:0.5; animation: scanAnim 2s infinite linear;"></div>
-              <i class="fas fa-spinner fa-spin" style="font-size:2rem; color:var(--primary); margin-bottom:12px;"></i>
-              <p style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin:0;">ANALIZANDO DOCUMENTO...</p>
-              <p id="scan-progress-text" style="font-size:0.75rem; color:var(--text-muted); font-weight:600; margin-top:4px;">Procesando IA (0%)</p>
-            </div>
-          </div>
-          <style>
-            @keyframes scanAnim {
-              0% { top: -10%; }
-              100% { top: 110%; }
-            }
-          </style>
-        </div>
 
         <!-- ═══ SECCIÓN 0.5: BUSCAR CLIENTE EXISTENTE ═══ -->
         <div class="field-group" style="margin-bottom: 24px; background: rgba(0,245,212,0.03); border: 1px solid var(--border); padding: 16px; border-radius: 16px;">
@@ -933,8 +904,15 @@
               style="font-size:0.8rem; font-weight:800; color:var(--text-primary); text-transform:uppercase; margin-bottom:12px; display:block;">Documentos
               del Cliente</span>
             <div style="display:flex; justify-content:center; gap:10px;">
-              <div class="doc-btn" id="btn-quick-adj-id" style="display:none;">
+              <div class="doc-btn" id="btn-quick-adj-id"
+                style="flex:1; max-width:110px; border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer;">
                 <input type="file" id="inp-quick-adj-id" accept="image/*" style="display:none" />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5"
+                  style="margin:0 auto 6px;">
+                  <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <p id="lbl-adj-id" style="font-size:0.6rem; font-weight:700; color:var(--text-muted);">Foto ID <br><span style="color:var(--primary); opacity:0.7; font-size:0.5rem">(Obligatorio)</span></p>
               </div>
               <div class="doc-btn" id="btn-quick-adj-bill"
                 style="flex:1; max-width:110px; border:2px dashed var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer;">
