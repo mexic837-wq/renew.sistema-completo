@@ -68,7 +68,30 @@ export async function renderNotificaciones() {
       };
   });
 
-  const allItems = [...misAnuncios, ...misMeetings].sort((a,b) => b.date - a.date);
+  // Recopilar Asignaciones de Técnico
+  const misAsignaciones = (db.Proyectos_Dinamicos || []).filter(p => {
+      if (p.tecnico_id !== user.id) return false;
+      // Sólo si es pipeline de Water o si el técnico está asignado a otro que requiera
+      const pipe = (db.Admin_Pipelines || []).find(x => x.id === p.pipeline_id);
+      if (!pipe || !pipe.nombre.toLowerCase().includes('water')) return false;
+      // Verificar si ya respondió
+      const resp = (db.Respuestas_Dinamicas || []).find(r => r.proyecto_id === p.id && r.campo_id === '__estado_asignacion_tecnico__');
+      return !resp; // Si no hay respuesta, está pendiente
+  }).map(p => {
+      const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
+      return {
+          type: 'asignacion',
+          id: p.id,
+          title: `Nueva Asignación: ${cli.nombre || 'Cliente'}`,
+          message: `Has sido asignado a un nuevo proyecto de Water para ${cli.nombre || 'Cliente'}. Por favor acepta o rechaza la asignación y escoge tu horario.`,
+          date: new Date(p.fecha || p.created_at || Date.now()),
+          isRead: false,
+          originalData: p,
+          cliente: cli
+      };
+  });
+
+  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
@@ -88,8 +111,10 @@ export async function renderNotificaciones() {
       
       const iconContainerStyle = item.type === 'meeting' 
         ? 'background: rgba(59, 130, 246, 0.15); color: #60a5fa;' 
-        : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
-      const iconClass = item.type === 'meeting' ? 'fa-video' : 'fa-bullhorn';
+        : item.type === 'asignacion' 
+          ? 'background: rgba(245, 158, 11, 0.15); color: #f59e0b;' 
+          : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
+      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : 'fa-bullhorn';
 
       return `
         <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
@@ -166,8 +191,8 @@ export async function renderNotificaciones() {
           let html = `
             <div style="height: 32px;"></div>
             <div style="padding: 0 24px;">
-              <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: ${item.type === 'meeting' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0, 245, 212, 0.15)'}; color: ${item.type === 'meeting' ? '#60a5fa' : 'var(--primary)'}; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  ${item.type === 'meeting' ? '<i class="fa-solid fa-video" style="margin-right: 8px;"></i> Reunión' : '<i class="fa-solid fa-bullhorn" style="margin-right: 8px;"></i> Anuncio Corporativo'}
+              <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: ${item.type === 'meeting' ? 'rgba(59, 130, 246, 0.15)' : item.type === 'asignacion' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(0, 245, 212, 0.15)'}; color: ${item.type === 'meeting' ? '#60a5fa' : item.type === 'asignacion' ? '#f59e0b' : 'var(--primary)'}; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+                  ${item.type === 'meeting' ? '<i class="fa-solid fa-video" style="margin-right: 8px;"></i> Reunión' : item.type === 'asignacion' ? '<i class="fa-solid fa-clipboard-user" style="margin-right: 8px;"></i> Asignación de Proyecto' : '<i class="fa-solid fa-bullhorn" style="margin-right: 8px;"></i> Anuncio Corporativo'}
               </div>
               <h2 style="font-size: 1.7rem; font-weight: 900; color: var(--text-primary); margin: 0 0 12px 0; line-height: 1.25; letter-spacing: -0.5px;">${item.title}</h2>
               <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 32px; display: flex; align-items: center; font-weight: 500;">
@@ -194,6 +219,31 @@ export async function renderNotificaciones() {
                 </div>
               `;
           }
+
+          if (item.type === 'asignacion') {
+              html += `
+                <div style="background: rgba(245, 158, 11, 0.04); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 20px; padding: 28px 24px; text-align: center; margin-top: 20px; position: relative; overflow: hidden;">
+                  <h4 style="margin: 0 0 16px 0; color: #e2e8f0; font-size: 1.15rem; font-weight: 800; position: relative; z-index: 1;">Responde a esta asignación</h4>
+                  
+                  <div id="asignacion-actions" style="display:flex; gap:12px; justify-content:center; position:relative; z-index:1;">
+                      <button id="btn-rechazar-asig" style="flex:1; padding: 14px 20px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; border-radius: 12px; font-weight: 800; cursor:pointer; transition: all 0.2s;">
+                          <i class="fa-solid fa-xmark mr-2"></i> Rechazar
+                      </button>
+                      <button id="btn-aceptar-asig" style="flex:1; padding: 14px 20px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-weight: 800; cursor:pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+                          <i class="fa-solid fa-check mr-2"></i> Aceptar
+                      </button>
+                  </div>
+
+                  <div id="asignacion-horario" style="display:none; margin-top:20px; text-align:left; position:relative; z-index:1;">
+                      <label style="display:block; font-size:0.85rem; color:var(--text-muted); font-weight:700; margin-bottom:8px;">Selecciona Fecha y Hora de la Instalación:</label>
+                      <input type="datetime-local" id="inp-horario-asig" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:white; font-family:inherit; margin-bottom:16px;">
+                      <button id="btn-confirmar-horario" style="width:100%; padding: 14px 20px; background: var(--primary); color: black; border: none; border-radius: 12px; font-weight: 800; cursor:pointer; transition: all 0.2s;">
+                          Confirmar Horario y Aceptar
+                      </button>
+                  </div>
+                </div>
+              `;
+          }
           
           html += `</div>`; // Cierra el div de padding
 
@@ -207,6 +257,44 @@ export async function renderNotificaciones() {
               document.getElementById('notif-detail-view').style.display = 'none';
               document.getElementById('notif-list-view').style.display = 'block';
           };
+
+          if (item.type === 'asignacion') {
+              const btnRechazar = document.getElementById('btn-rechazar-asig');
+              const btnAceptar = document.getElementById('btn-aceptar-asig');
+              const divHorario = document.getElementById('asignacion-horario');
+              const divActions = document.getElementById('asignacion-actions');
+              const btnConfirmar = document.getElementById('btn-confirmar-horario');
+              const inpHorario = document.getElementById('inp-horario-asig');
+
+              if (btnAceptar) {
+                  btnAceptar.onclick = () => {
+                      divActions.style.display = 'none';
+                      divHorario.style.display = 'block';
+                  };
+              }
+
+              if (btnRechazar) {
+                  btnRechazar.onclick = async () => {
+                      btnRechazar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+                      await procesarRespuestaAsignacion(item.originalData, item.cliente, 'Rechazado', null, user);
+                      document.getElementById('btn-close-notif-detail').click();
+                      renderNotificaciones(); // reload list
+                  };
+              }
+
+              if (btnConfirmar) {
+                  btnConfirmar.onclick = async () => {
+                      if (!inpHorario.value) {
+                          alert("Por favor selecciona una fecha y hora");
+                          return;
+                      }
+                      btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+                      await procesarRespuestaAsignacion(item.originalData, item.cliente, 'Aceptado', inpHorario.value, user);
+                      document.getElementById('btn-close-notif-detail').click();
+                      renderNotificaciones(); // reload list
+                  };
+              }
+          }
 
           // Marcar como leído
           if (!item.isRead) {
@@ -261,4 +349,82 @@ export async function renderNotificaciones() {
       </div>
     `;
   }
+}
+
+async function procesarRespuestaAsignacion(proyecto, cliente, decision, horario, user) {
+    const db = getDB();
+    
+    // 1. Guardar la respuesta en Respuestas_Dinamicas para evitar volver a preguntar
+    const respId = 'resp_' + Date.now() + Math.random().toString(36).substr(2, 5);
+    const newResp = {
+        id: respId,
+        proyecto_id: proyecto.id,
+        campo_id: '__estado_asignacion_tecnico__',
+        valor: decision
+    };
+    if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
+    db.Respuestas_Dinamicas.push(newResp);
+    await saveGranular('respuestas_dinamicas', [newResp]);
+
+    // 2. Si Aceptado, guardar en calendario_eventos
+    if (decision === 'Aceptado' && horario) {
+        const evtId = 'ev_' + Date.now().toString(36);
+        const fechaInicio = new Date(horario).toISOString();
+        const endDate = new Date(new Date(horario).getTime() + 2 * 3600000); // +2 hours
+        
+        const colaboradores = [{
+            id: user.id,
+            nombre: `${user.nombre || ''} ${user.apellido || ''}`.trim(),
+            email: user.email || ''
+        }];
+        
+        if (proyecto.vendedor_id || proyecto.responsable_id) {
+            colaboradores.push({
+                id: proyecto.vendedor_id || proyecto.responsable_id,
+                nombre: 'Vendedor',
+                email: ''
+            });
+        }
+
+        const newEvent = {
+            id: evtId,
+            nombre: `Instalación Water: ${cliente.nombre || 'Cliente'}`,
+            fecha_inicio: fechaInicio,
+            fecha_fin: endDate.toISOString(),
+            direccion: cliente.direccion || '',
+            descripcion: 'Instalación programada confirmada por el técnico.',
+            color: 'Azul',
+            colaboradores: colaboradores,
+            departamentos: ['Water'],
+            attendees: [],
+            created_at: new Date().toISOString(),
+            proyecto_id: proyecto.id
+        };
+        if (!db.calendario_eventos) db.calendario_eventos = [];
+        db.calendario_eventos.push(newEvent);
+        await saveGranular('calendario_eventos', [newEvent]);
+    }
+
+    // 3. Enviar Webhook
+    try {
+        const payload = {
+            proyecto_id: proyecto.id,
+            cliente_nombre: cliente.nombre || 'Desconocido',
+            tecnico_id: user.id,
+            tecnico_nombre: user.nombre + ' ' + (user.apellido || ''),
+            vendedor_id: proyecto.vendedor_id || proyecto.responsable_id || null,
+            decision: decision,
+            horario: horario || null,
+            admin_link: `https://renewgroup.site/admin.html`,
+            timestamp: new Date().toISOString()
+        };
+
+        await fetch('https://n8n.renewgroup.site/webhook/tecnico-respuesta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        console.error("Error enviando webhook de respuesta de técnico", e);
+    }
 }
