@@ -7219,6 +7219,63 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         const res = await advanceDealPhase(p.id, resp);
         if (res.didAdvance) {
            showToast('¡Fase completada y enviada!', 'success');
+
+           // ── TECHNICIAN ASSIGNMENT NOTIFICATION ────────────────────────────
+           // Fires only when admin fills a Técnico-type field and advances the phase.
+           // This is the correct trigger: AFTER admin assigns the tech, not on form submit.
+           try {
+             const db2 = getDB();
+             const techCampo = phaseCampos.find(c => c.tipo === 'Técnico');
+             if (techCampo) {
+               const techId = resp[techCampo.id];
+               if (techId && techId !== 'No provisto') {
+                 const proyectoActualizado = (db2.Proyectos_Dinamicos || []).find(x => x.id === p.id) || p;
+                 const cliente2 = (db2.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
+                 const techWorker2 = (db2.Usuarios || []).find(u => u.id === techId);
+                 const pipeline2 = (db2.Admin_Pipelines || []).find(pip => pip.id === p.pipeline_id);
+
+                 // Remove previous pending response so the notification appears fresh in tech inbox
+                 if (db2.Respuestas_Dinamicas) {
+                   const prevIdx = db2.Respuestas_Dinamicas.findIndex(
+                     r => r.proyecto_id === p.id && r.campo_id === '__estado_asignacion_tecnico__'
+                   );
+                   if (prevIdx !== -1) db2.Respuestas_Dinamicas.splice(prevIdx, 1);
+                 }
+
+                 // Fire webhook → n8n will email/WhatsApp the tech;
+                 // the tech's inbox in the app also shows it via notificaciones.js
+                 fetch('https://n8n.renewgroup.site/webhook/notificacion-flujo', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({
+                     proyecto_id:        p.id,
+                     pipeline_nombre:    pipeline2?.nombre || 'Renew Water',
+                     nombre_fase:        'Asignación de Técnico',
+                     rol_encargado:      'Técnico',
+                     accion:             'TECNICO_ASIGNADO',
+                     tecnico_id:         techId,
+                     tecnico_nombre:     techWorker2 ? `${techWorker2.nombre||''} ${techWorker2.apellido||''}`.trim() : '',
+                     tecnico_email:      techWorker2?.email || '',
+                     tecnico_telefono:   techWorker2?.telefono || '',
+                     vendedor_id:        proyectoActualizado.responsable_id || '',
+                     cliente_nombre:     cliente2.nombre || '',
+                     cliente_telefono:   cliente2.telefono || '',
+                     cliente_direccion:  cliente2.direccion || '',
+                     horario_solicitado: proyectoActualizado.horario_instalacion || '',
+                     fecha_instalacion:  proyectoActualizado.fecha_instalacion || '',
+                     admin_link:         'https://renewgroup.site/admin.html',
+                     timestamp:          new Date().toISOString()
+                   })
+                 }).catch(err => console.warn('[ADMIN] Webhook tecnico-asignado error:', err.message));
+
+                 console.log('[ADMIN] Technician assignment notification fired for tech:', techId);
+               }
+             }
+           } catch (notifErr) {
+             console.error('[ADMIN] Error dispatching tech assignment notification:', notifErr);
+           }
+           // ── END TECHNICIAN ASSIGNMENT NOTIFICATION ───────────────────────
+
            closeDrawer();
            renderView();
         } else if (isCurrentPhase) {
