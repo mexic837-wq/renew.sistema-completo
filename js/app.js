@@ -159,8 +159,108 @@ window.addEventListener('message', async (e) => {
 
       console.log(`[APP] Advancing phase for project: ${proyectoId}...`);
       const res = await advanceDealPhase(proyectoId, flatResp, advOptions);
-      console.log('[APP] Advance result:', res);
-      
+      console.log('[APP] Advance result:', res);\
+
+      // ── TECHNICIAN ASSIGNMENT AUTO-FLOW (Work Order only) ──────────────
+      // When the work order is submitted, we use the schedule info to:
+      // 1. Store schedule on project record
+      // 2. Create a calendar event visible to vendor + technician
+      // 3. Mark the tecnico assignment as pending (so it shows in tech's inbox)
+      // 4. Notify admin via webhook so they can assign a technician if not yet assigned
+      if (isWorkOrder && project) {
+        try {
+          const horarioOrden = rawPayload?.instalacion?.horario || '';
+          const fechaOrden   = rawPayload?.instalacion?.fechaEstimada || '';
+          const cliente      = db.Clientes_Maestro?.find(c => c.id === project.cliente_id) || {};
+
+          // Persist schedule on project for later reference
+          project.horario_instalacion = horarioOrden;
+          project.fecha_instalacion   = fechaOrden;
+          const { saveGranular: sg } = await import('./api.js');
+          await sg('proyectos_dinamicos', [project]);
+
+          // Build a human-readable date/time from wo_install_date + horario
+          // fechaOrden comes as MM/DD/YYYY, horarioOrden as "9:00am – 2:00pm" or "Otro"
+          let isoStart = null;
+          if (fechaOrden) {
+            const parts = fechaOrden.split('/');
+            if (parts.length === 3) {
+              // Convert MM/DD/YYYY → YYYY-MM-DD
+              const iso = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+              // Use 9am as default start if horario has no exact time
+              const hourStr = horarioOrden.includes('2:00') ? '14:00' : '09:00';
+              isoStart = `${iso}T${hourStr}:00.000Z`;
+            }
+          }
+
+          // Create calendar event for vendor + technician
+          const techId      = project.tecnico_id || null;
+          const vendorId    = project.responsable_id || null;
+          const allWorkers  = [...(db.Usuarios || [])];
+          const techWorker  = techId  ? allWorkers.find(u => u.id === techId)  : null;
+          const vendorWorker= vendorId? allWorkers.find(u => u.id === vendorId): null;
+
+          const colaboradores = [];
+          if (vendorWorker) colaboradores.push({ id: vendorWorker.id, nombre: `${vendorWorker.nombre||''} ${vendorWorker.apellido||''}`.trim(), email: vendorWorker.email||'' });
+          if (techWorker)   colaboradores.push({ id: techWorker.id,   nombre: `${techWorker.nombre||''} ${techWorker.apellido||''}`.trim(), email: techWorker.email||'' });
+
+          if (isoStart && colaboradores.length > 0) {
+            const endDate = new Date(new Date(isoStart).getTime() + 4 * 3600000); // +4h window
+            const newEvt = {
+              id:           'ev_wo_' + Date.now().toString(36),
+              nombre:       `Instalación Water: ${cliente.nombre || 'Cliente'}`,
+              fecha_inicio: isoStart,
+              fecha_fin:    endDate.toISOString(),
+              direccion:    cliente.direccion || '',
+              descripcion:  `Horario solicitado: ${horarioOrden}. Instalación programada desde Orden de Trabajo.`,
+              color:        'Azul',
+              colaboradores,
+              departamentos:['Water'],
+              attendees:    [],
+              created_at:   new Date().toISOString(),
+              proyecto_id:  project.id
+            };
+            if (!db.calendario_eventos) db.calendario_eventos = [];
+            db.calendario_eventos.push(newEvt);
+            await sg('calendario_eventos', [newEvt]);
+            console.log('[APP] Calendar event created for work order installation:', newEvt.id);
+          }
+
+          // Remove any previous pending assignment response so tech inbox shows this as new
+          if (db.Respuestas_Dinamicas) {
+            const prevIdx = db.Respuestas_Dinamicas.findIndex(
+              r => r.proyecto_id === project.id && r.campo_id === '__estado_asignacion_tecnico__'
+            );
+            if (prevIdx !== -1) db.Respuestas_Dinamicas.splice(prevIdx, 1);
+          }
+
+          // Fire webhook to notify admin (and tech if already assigned) about new work order with schedule
+          fetch('https://n8n.renewgroup.site/webhook/notificacion-flujo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              proyecto_id:      project.id,
+              pipeline_nombre:  (db.Admin_Pipelines||[]).find(p => p.id === project.pipeline_id)?.nombre || 'Renew Water',
+              nombre_fase:      'Orden de Trabajo',
+              rol_encargado:    'Técnico',
+              accion:           'ORDEN_TRABAJO_RECIBIDA',
+              horario_solicitado: horarioOrden,
+              fecha_instalacion:  fechaOrden,
+              tecnico_id:       techId,
+              vendedor_id:      vendorId,
+              cliente_nombre:   cliente.nombre || '',
+              cliente_telefono: cliente.telefono || '',
+              cliente_direccion:cliente.direccion || '',
+              timestamp:        new Date().toISOString()
+            })
+          }).catch(err => console.warn('[APP] Webhook work-order-flow error:', err.message));
+
+        } catch (techErr) {
+          console.error('[APP] Error en flujo auto-asignación técnico:', techErr);
+        }
+      }
+      // ── END TECHNICIAN ASSIGNMENT AUTO-FLOW ─────────────────────────────
+
       let successMsg = '';
       if (res.didAdvance) {
         successMsg = isWorkOrder 
