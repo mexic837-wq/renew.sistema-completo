@@ -507,6 +507,78 @@ async function init() {
           }
       }
 
+      // ── ?reasignar=PROJECT_ID deep link (from rejection email) ──────────
+      // When admin clicks "Reasignar Técnico Ahora" in the email, this opens
+      // the Kanban drawer directly on that project so they can assign a new tech.
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      const reasignarId = urlSearchParams.get('reasignar');
+      if (reasignarId) {
+          console.log('[DeepLink] Reasignar link detected for project:', reasignarId);
+          state.activeView = 'kanban';
+
+          // Strip param from URL so refreshing doesn't re-trigger
+          const cleanUrl = window.location.pathname;
+          history.replaceState(null, '', cleanUrl);
+
+          // Wait for the UI/DB to be fully ready before opening the drawer
+          setTimeout(async () => {
+              try {
+                  const db2 = getDB();
+                  const proyecto = (db2.Proyectos_Dinamicos || []).find(p =>
+                      p.id === reasignarId ||
+                      p.id === reasignarId.toLowerCase() ||
+                      String(p.id) === String(reasignarId)
+                  );
+
+                  if (proyecto) {
+                      // Show a visible banner so admin knows why this opened
+                      const banner = document.createElement('div');
+                      banner.id = 'reasignar-banner';
+                      banner.style.cssText = `
+                          position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+                          background: linear-gradient(90deg, #dc2626, #b91c1c);
+                          color: white; padding: 14px 24px;
+                          display: flex; align-items: center; justify-content: space-between;
+                          font-family: inherit; font-size: 14px; font-weight: 700;
+                          box-shadow: 0 4px 20px rgba(220,38,38,0.4);
+                          animation: slideDown 0.4s ease;
+                      `;
+                      banner.innerHTML = `
+                          <span>⚠️ El técnico rechazó esta cita. Asigna un nuevo técnico al proyecto <strong>RENEW-${reasignarId.toUpperCase()}</strong></span>
+                          <button onclick="document.getElementById('reasignar-banner').remove()"
+                              style="background:rgba(255,255,255,0.2); border:none; color:white; width:28px; height:28px;
+                                     border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">
+                              ×
+                          </button>
+                      `;
+                      document.body.appendChild(banner);
+                      setTimeout(() => { if (banner.parentNode) banner.remove(); }, 12000);
+
+                      // Switch to Kanban view and open drawer
+                      if (typeof switchView === 'function') {
+                          const pipe = (db2.Admin_Pipelines || []).find(pip => pip.id === proyecto.pipeline_id);
+                          if (pipe) {
+                              state.activePipId = pipe.id;
+                              await switchView('kanban');
+                          }
+                      }
+
+                      setTimeout(() => {
+                          if (typeof openKanbanDrawer === 'function') {
+                              openKanbanDrawer(proyecto.id);
+                          }
+                      }, 800);
+                  } else {
+                      showToast(`⚠️ Proyecto RENEW-${reasignarId} no encontrado. Búscalo manualmente.`, 'warning');
+                      console.warn('[DeepLink] Project not found for reasignar:', reasignarId);
+                  }
+              } catch (deepLinkErr) {
+                  console.error('[DeepLink] Error opening reasignar project:', deepLinkErr);
+              }
+          }, 2000);
+      }
+      // ── END ?reasignar deep link ─────────────────────────────────────────
+
       updateProgress(50, 'Configurando Interfaz...');
       cacheElements();
       bindGlobalEvents();
