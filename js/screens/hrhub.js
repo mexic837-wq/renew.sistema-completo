@@ -1,4 +1,4 @@
-import { getAdminWorkers, uploadFile, saveAdminWorker, getDB } from '../api.js';
+import { getAdminWorkers, uploadFile, saveAdminWorker, getDB, deleteAdminWorker } from '../api.js';
 
 export async function renderHRHub() {
     const canvas = document.getElementById('main-canvas');
@@ -295,11 +295,31 @@ export async function renderHRHub() {
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-right">
                     <button class="text-gray-400 hover:text-tealAccent transition-colors p-2"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                    <button class="text-gray-400 hover:text-red-500 transition-colors p-2 btn-delete-worker" data-id="${emp.id}" title="Eliminar trabajador"><i class="fa-solid fa-trash text-[10px]"></i></button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
         
+        document.querySelectorAll('.btn-delete-worker').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Evitar que se abra el panel
+                const id = e.currentTarget.getAttribute('data-id');
+                if (confirm('¿Estás seguro de que deseas eliminar a este trabajador de forma permanente?')) {
+                    try {
+                        await deleteAdminWorker(id);
+                        await fetchEmpleados();
+                        renderTabla();
+                        renderKanban();
+                        import('../components/toast.js').then(m => m.showToast('Trabajador eliminado correctamente.', 'success'));
+                    } catch (err) {
+                        console.error('Error deleting worker:', err);
+                        import('../components/toast.js').then(m => m.showToast('Error al eliminar el trabajador.', 'error'));
+                    }
+                }
+            });
+        });
+
         document.querySelectorAll('.btn-open-hrpanel').forEach(row => {
             row.addEventListener('click', (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
