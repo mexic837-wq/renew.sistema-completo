@@ -638,13 +638,13 @@ function _renderToolsForPipeline(user, activeUnit) {
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
       action: () => { window.location.href = 'admin.html'; }, delay: '0.24s'
     } : null,
-    {
+    !isAdmin ? {
       name: 'Mis Adelantos', tag: 'RRHH',
       gradient: 'linear-gradient(90deg,#0ea5e9,#2563eb)',
       iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',
       icon: `<i class="fa-solid fa-hand-holding-dollar"></i>`,
       action: () => window.appNavigate('mis-adelantos'), delay: '0.25s', screen: 'mis-adelantos'
-    }
+    } : null
   ];
 
   const pipTools = (TOOLS[activeUnit] || TOOLS['Renew Solar']).filter(Boolean);
