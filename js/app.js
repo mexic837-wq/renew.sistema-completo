@@ -159,7 +159,7 @@ window.addEventListener('message', async (e) => {
 
       console.log(`[APP] Advancing phase for project: ${proyectoId}...`);
       const res = await advanceDealPhase(proyectoId, flatResp, advOptions);
-      console.log('[APP] Advance result:', res);\
+      console.log('[APP] Advance result:', res);
 
       // ── WORK ORDER: persist schedule on project for later reference ───────
       if (isWorkOrder && project && rawPayload?.instalacion) {
