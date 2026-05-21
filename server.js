@@ -639,6 +639,7 @@ app.post('/api/db', async (req, res) => {
                     contrato_url: u.contrato_url || u.contratoUrl || null,
                     estatus_rrhh: u.estatus_rrhh || null,
                     is_suspended: u.is_suspended || false,
+                    sede:         u.sede         || null,
                     unidades:   Array.isArray(u.unidades) ? u.unidades : [],
                     // --- NEW FIELDS ---
                     tel_emergencia: u.tel_emergencia || null,
