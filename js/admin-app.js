@@ -2045,8 +2045,7 @@ function bindGlobalEvents() {
         if (ofiReciboUrl) adjuntosOficina.push({ tipo: 'recibo_pago', url: ofiReciboUrl, fecha: new Date().toISOString() });
 
         const db = getDB();
-        db.Counters.cli = (db.Counters.cli || 0) + 1;
-        const newId = 'cli_' + db.Counters.cli;
+        const newId = genId('cli', db);
         db.Clientes_Maestro.push({
           id: newId, 
           nombre: fullNombre, 
