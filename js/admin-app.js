@@ -1299,7 +1299,7 @@ function bindGlobalEvents() {
         if(UI.inpUsrDept) UI.inpUsrDept.value = usr.department || '';
         if(UI.inpUsrSede) {
             const savedSede = (usr.sede || '').toLowerCase();
-            if (savedSede === 'orlando' || savedSede === 'miami' || savedSede === 'tampa' || savedSede === 'remoto') {
+            if (savedSede === 'orlando' || savedSede === 'miami' || savedSede === 'tampa' || savedSede === 'venezuela' || savedSede === 'remoto') {
                 UI.inpUsrSede.value = savedSede;
             } else if (!savedSede || savedSede === '-') {
                 UI.inpUsrSede.value = 'orlando'; // default
