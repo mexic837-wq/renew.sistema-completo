@@ -5496,6 +5496,13 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     titleEl.innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de Instalación'}`;
     btnGuardar.classList.add('hidden');
 
+    // Show delete button and store event ID
+    const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
+    if (btnEliminar) {
+      btnEliminar.classList.remove('hidden');
+      btnEliminar.dataset.eventId = event.id || '';
+    }
+
     const props = event.extendedProps || {};
     
     document.getElementById('ev-nombre').value = event.title || '';
@@ -5565,6 +5572,13 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
     btnGuardar.classList.remove('hidden');
     form.reset();
+
+    // Hide delete button in create mode
+    const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
+    if (btnEliminar) {
+      btnEliminar.classList.add('hidden');
+      btnEliminar.dataset.eventId = '';
+    }
 
     // Reset ReadOnly and Hidden states
     document.getElementById('ev-nombre').readOnly = false;
@@ -5720,6 +5734,51 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
   window.showModal(modal);
 };
+
+// ── Eliminar Evento del Calendario (Admin) ────────────────────────────────
+window.eliminarEventoCalendarioAdmin = async function() {
+  const btn = document.getElementById('btn-eliminar-evento-admin');
+  const eventId = btn?.dataset?.eventId;
+
+  if (!eventId) {
+    showToast('No se pudo identificar el evento.', 'error');
+    return;
+  }
+
+  if (!confirm('¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) return;
+
+  try {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    // Remove from local DB
+    const db = getDB();
+    if (db.calendario_eventos) {
+      const idx = db.calendario_eventos.findIndex(e => String(e.id) === String(eventId));
+      if (idx !== -1) db.calendario_eventos.splice(idx, 1);
+    }
+
+    // Sync deletion to Supabase
+    try {
+      const { deleteRecord } = await import('./api.js');
+      await deleteRecord('calendario_eventos', eventId);
+    } catch(syncErr) {
+      console.warn('[CAL] Could not sync deletion to Supabase:', syncErr.message);
+    }
+
+    showToast('Evento eliminado correctamente.', 'success');
+
+    // Close modal and re-render calendar
+    closeModals();
+    if (typeof renderCalendario === 'function') renderCalendario();
+
+  } catch(err) {
+    console.error('[CAL] Error eliminando evento:', err);
+    showToast('Error al eliminar el evento.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>'; }
+  }
+};
+// ── END Eliminar Evento ───────────────────────────────────────────────────
 
 window.guardarEventoCalendario = async function(e) {
   if (e) e.preventDefault();
