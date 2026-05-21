@@ -1493,18 +1493,30 @@
                 </div>
                 <div>
                     <label class="aqua-label">Categoría / Servicio</label>
-                    <select id="inp-partner-servicio" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
-                        <option value="Solar">Solar</option>
-                        <option value="Roofing">Roofing / Techos</option>
-                        <option value="HVAC">HVAC / Aire Acondicionado</option>
-                        <option value="Painting">Painting / Pintura</option>
-                        <option value="Fence">Fence / Cercas</option>
-                        <option value="Remodelacion">Remodelación</option>
-                        <option value="Dumpsters">Dumpsters</option>
-                        <option value="Gutters">Gutters</option>
-                        <option value="Screens">Screens</option>
-                        <option value="General">General / Otros</option>
-                    </select>
+                    <input
+                        type="text"
+                        id="inp-partner-servicio"
+                        list="partner-servicio-options"
+                        class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none"
+                        placeholder="Solar, Roofing, HVAC... o escribe el tuyo"
+                        autocomplete="off"
+                    >
+                    <datalist id="partner-servicio-options">
+                        <option value="Solar">
+                        <option value="Roofing">
+                        <option value="HVAC">
+                        <option value="Painting">
+                        <option value="Fence">
+                        <option value="Remodelacion">
+                        <option value="Dumpsters">
+                        <option value="Gutters">
+                        <option value="Screens">
+                        <option value="Plomería">
+                        <option value="Electricidad">
+                        <option value="Flooring">
+                        <option value="Windows">
+                        <option value="General">
+                    </datalist>
                 </div>
             </div>
 
@@ -2701,7 +2713,7 @@
                 </button>
             </div>
         </div>
-    </div>
+ 
 
     <!-- MODAL: DETALLES HISTORIAL INVENTARIO -->
     <div id="modal-inv-history-details" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[300] p-6">
