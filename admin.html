@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Renew Admin – Super Constructor de Flujos</title>
+    <title>Renew Admin â€“ Super Constructor de Flujos</title>
     <link rel="icon" type="image/png" href="assets/images/favicon_pc.png">
     <link rel="apple-touch-icon" href="assets/images/logo_telefono.png">
     <link rel="manifest" href="manifest.json">
@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#000000">
     <script src="js/security-guard.js"></script>
     <script>
-        // ── GLOBAL SECURITY GUARD ──
+        // â”€â”€ GLOBAL SECURITY GUARD â”€â”€
         (function() {
             var user = JSON.parse(localStorage.getItem('rs_user'));
             var allowed = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
@@ -34,7 +34,7 @@
                 <body>
                   <div class="box">
                       <div class="icon-box"><i class="fa-solid fa-lock" style="color: #f43f5e; font-size: 32px;"></i></div>
-                      <h1>Área Restringida</h1>
+                      <h1>Ãrea Restringida</h1>
                       <p>Tu nivel de autorización no permite visualizar el panel de administración o modificar bases de datos globales.</p>
                       <button onclick="window.location.href='index.html'"><i class="fa-solid fa-arrow-left"></i> Volver a mi App</button>
                   </div>
@@ -64,7 +64,7 @@
                         limeAccent: '#daff00',
                         yellowAccent: '#ffcc00',
                         orangeAccent: '#fbb714',
-                        /* ── Light mode palette (matches Lumina reference) ── */
+                        /* â”€â”€ Light mode palette (matches Lumina reference) â”€â”€ */
                         bgLight: '#eef2f5',
                         surfaceLight: '#ffffff',
                         lightPrimary: '#0FAB9E',
@@ -142,7 +142,7 @@
       }
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
       
-      /* ── CSS Variables: Light Mode ─────────────────── */
+      /* â”€â”€ CSS Variables: Light Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       :root {
         --lp: #0FAB9E;          /* light primary teal */
         --lp-dark: #0d9488;     /* hover shade */
@@ -159,7 +159,7 @@
         font-family: 'Plus Jakarta Sans', sans-serif;
       }
 
-      /* ── Light-mode overrides (only when NOT .dark on html) ─ */
+      /* â”€â”€ Light-mode overrides (only when NOT .dark on html) â”€ */
       html:not(.dark) body {
         background-color: var(--lp-bg) !important;
         color: var(--lp-text);
@@ -191,7 +191,7 @@
         background-clip: text;
       }
 
-      /* ── Navigation items – light mode ─────────────── */
+      /* â”€â”€ Navigation items â€“ light mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) .nav-item {
         color: var(--lp-sub) !important;
       }
@@ -218,7 +218,7 @@
         border-right: none !important;
       }
 
-      /* ── Header – light mode ─────────────────────── */
+      /* â”€â”€ Header â€“ light mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) header {
         background: var(--lp-surface) !important;
         border-bottom: 1px solid var(--lp-border) !important;
@@ -231,7 +231,7 @@
         color: var(--lp-muted);
       }
 
-      /* ── View context bar ────────────────────────── */
+      /* â”€â”€ View context bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) .px-10.py-10 {
         background: var(--lp-surface) !important;
         border-bottom: 1px solid var(--lp-border) !important;
@@ -247,7 +247,7 @@
         border: 1.5px solid rgba(15,171,158,0.18);
       }
 
-      /* ── FullCalendar Dark Theme Overrides ─────────── */
+      /* â”€â”€ FullCalendar Dark Theme Overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       .fc {
           --fc-border-color: rgba(0, 245, 212, 0.1);
           --fc-daygrid-event-dot-width: 6px;
@@ -347,12 +347,12 @@
           background: rgba(0, 245, 212, 0.05) !important;
       }
 
-      /* ── Canvas/Main area ────────────────────────── */
+      /* â”€â”€ Canvas/Main area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) #main-canvas {
         background: var(--lp-bg) !important;
       }
 
-      /* ── Cards & tables – light mode ────────────── */
+      /* â”€â”€ Cards & tables â€“ light mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) .bg-white {
         background: var(--lp-surface) !important;
         border-color: var(--lp-border) !important;
@@ -382,7 +382,7 @@
       html:not(.dark) .text-gray-500 { color: #7a8fa8 !important; }
       html:not(.dark) .text-gray-400 { color: var(--lp-muted) !important; }
 
-      /* ── Primary button (btn-premium) – light mode ─ */
+      /* â”€â”€ Primary button (btn-premium) â€“ light mode â”€ */
       html:not(.dark) .btn-premium {
         background: var(--lp) !important;
         color: #ffffff !important;
@@ -393,14 +393,14 @@
         box-shadow: 0 6px 20px rgba(15,171,158,0.45);
       }
 
-      /* ── Aqua labels in light mode ───────────────── */
+      /* â”€â”€ Aqua labels in light mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) .aqua-label {
         background: rgba(15,171,158,0.10);
         border: 1px solid rgba(15,171,158,0.25);
         color: var(--lp);
       }
 
-      /* ── tealAccent references → use lp in light ─ */
+      /* â”€â”€ tealAccent references â†’ use lp in light â”€ */
       html:not(.dark) .text-tealAccent {
         color: var(--lp) !important;
       }
@@ -412,7 +412,7 @@
         border-color: var(--lp) !important;
       }
 
-      /* ── Footer area in sidebar ───────────────────── */
+      /* â”€â”€ Footer area in sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       html:not(.dark) .border-t.border-gray-100 {
         border-color: var(--lp-border) !important;
       }
@@ -423,7 +423,7 @@
         color: var(--lp);
       }
 
-      /* ── Scrollbars ──────────────────────────────── */
+      /* â”€â”€ Scrollbars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
       .hide-scrollbar::-webkit-scrollbar { display: none; }
       
       #main-canvas::-webkit-scrollbar {
@@ -949,11 +949,11 @@
                                 <button id="admin-lang-es" onclick="window.setAdminLang('es')"
                                     class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border transition-all"
                                     style="border-color: rgba(0,245,212,0.4); background: rgba(0,245,212,0.08); color: #00f5d4;">
-                                    🇪🇸 ES
+                                    ðŸ‡ªðŸ‡¸ ES
                                 </button>
                                 <button id="admin-lang-en" onclick="window.setAdminLang('en')"
                                     class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border border-gray-700 text-gray-400 transition-all hover:border-blue-400 hover:text-blue-400">
-                                    🇺🇸 EN
+                                    ðŸ‡ºðŸ‡¸ EN
                                 </button>
                             </div>
                         </div>
@@ -1029,7 +1029,7 @@
         </div>
     </div>
 
-    <!-- MODAL: EDITAR PERMISOS DE PIPELINE (abierto desde ícono lápiz en tab) -->
+    <!-- MODAL: EDITAR PERMISOS DE PIPELINE (abierto desde Ã­cono lápiz en tab) -->
     <div id="modal-edit-pip-roles" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
         <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[460px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
             <input type="hidden" id="edit-pip-roles-id">
@@ -1088,8 +1088,8 @@
                 <option value="Orden de Trabajo">Enlace a Orden de Trabajo</option>
                 <option value="Aplicación de Crédito">Enlace a Aplicación de Crédito</option>
                 <option value="Contrato">Enlace a Contrato</option>
-                <option value="Recibo Vendedor">Recibo de Pago – Vendedor</option>
-                <option value="Recibo Tecnico">Recibo de Instalación – Técnico</option>
+                <option value="Recibo Vendedor">Recibo de Pago â€“ Vendedor</option>
+                <option value="Recibo Tecnico">Recibo de Instalación â€“ Técnico</option>
             </select>
 
             <div id="wrap-opciones" class="hidden">
@@ -1123,11 +1123,11 @@
         </div>
     </div>
 
-    <!-- MODAL: ASIGNAR USUARIOS ESPECÍFICOS A FASE -->
+    <!-- MODAL: ASIGNAR USUARIOS ESPECÃFICOS A FASE -->
     <div id="modal-fase-users-picker" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[110] p-6">
         <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[400px] rounded-[2.5rem] shadow-2xl p-10 animate-scaleIn">
             <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-1">Asignar Usuarios</h3>
-            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-6">Selecciona los usuarios específicos para esta fase</p>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-6">Selecciona los usuarios especÃ­ficos para esta fase</p>
             
             <div id="fase-users-list" class="max-h-[300px] overflow-y-auto mb-6 pr-2 space-y-2">
                 <!-- User list with checkboxes will be injected here -->
@@ -1140,7 +1140,7 @@
         </div>
     </div>
 
-    <!-- MODAL: AÑADIR CLIENTE (CRM) — ADMIN -->
+    <!-- MODAL: AÑADIR CLIENTE (CRM) â€” ADMIN -->
     <div id="modal-nuclear-cli" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
         <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[680px] max-h-[92vh] overflow-y-auto rounded-[3rem] shadow-2xl p-12 hide-scrollbar animate-scaleIn">
             <h3 class="text-xl text-gray-800 dark:text-white font-bold mb-1">Añadir Nuevo Cliente (CRM Maestro)</h3>
@@ -1195,19 +1195,19 @@
             <label class="aqua-label">Address</label>
             <input type="text" id="inp-cli-direccion" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: 789 Brickell Ave, Miami">
 
-            <!-- ═══ NUEVOS CAMPOS ═══ -->
+            <!-- â•â•â• NUEVOS CAMPOS â•â•â• -->
             <div class="flex gap-4 mb-4">
                 <div class="flex-1">
                     <label class="aqua-label">Departamentos Activos</label>
                     <div class="flex flex-wrap gap-3 mt-2 p-3 bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded" id="chk-cli-departamentos-wrap">
                         <label class="flex items-center gap-2 cursor-pointer text-gray-800 dark:text-white text-sm font-semibold">
-                            <input type="checkbox" name="chk-cli-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🌊 Water
+                            <input type="checkbox" name="chk-cli-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ðŸŒŠ Water
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-gray-800 dark:text-white text-sm font-semibold">
-                            <input type="checkbox" name="chk-cli-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ☀️ Solar
+                            <input type="checkbox" name="chk-cli-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> â˜€ï¸ Solar
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-gray-800 dark:text-white text-sm font-semibold">
-                            <input type="checkbox" name="chk-cli-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🏠 Home
+                            <input type="checkbox" name="chk-cli-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ðŸ  Home
                         </label>
                     </div>
                 </div>
@@ -1236,16 +1236,16 @@
                 <div>
                     <label class="aqua-label">Estado Global (Ciclo de Vida)</label>
                     <select id="inp-cli-macro-estado" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
-                        <option value="Prospecto">🔵 Prospecto</option>
-                        <option value="En Proceso">🟡 En Proceso (Pipeline Activo)</option>
-                        <option value="Cliente">🟢 Cliente (Completado)</option>
-                        <option value="Cancelado">🔴 Cancelado / No Molestar</option>
+                        <option value="Prospecto">ðŸ”µ Prospecto</option>
+                        <option value="En Proceso">ðŸŸ¡ En Proceso (Pipeline Activo)</option>
+                        <option value="Cliente">ðŸŸ¢ Cliente (Completado)</option>
+                        <option value="Cancelado">ðŸ”´ Cancelado / No Molestar</option>
                     </select>
                 </div>
             </div>
 
 
-            <!-- ═══ DOCUMENTOS DEL CLIENTE ═══ -->
+            <!-- â•â•â• DOCUMENTOS DEL CLIENTE â•â•â• -->
             <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-5">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center">
@@ -1275,7 +1275,7 @@
                 </div>
             </div>
 
-            <!-- ═══ SECCIÓN EXCLUSIVA DE OFICINA (SOLO ADMIN) ═══ -->
+            <!-- â•â•â• SECCIÓN EXCLUSIVA DE OFICINA (SOLO ADMIN) â•â•â• -->
             <div class="border border-amber-500/20 bg-amber-500/[0.03] rounded-2xl p-5 mb-5 relative" style="box-shadow: 0 0 20px rgba(245,158,11,0.04) inset;">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
@@ -1324,7 +1324,7 @@
                 </div>
                 <div>
                     <label class="aqua-label">Apellido(s)</label>
-                    <input type="text" id="inp-usr-apellido" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Rodríguez">
+                    <input type="text" id="inp-usr-apellido" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="RodrÃ­guez">
                 </div>
             </div>
 
@@ -1424,7 +1424,7 @@
                         <i class="fa-solid fa-file-invoice text-amber-500 text-[10px]"></i>
                     </div>
                     <label class="aqua-label mb-0">Formulario W-9</label>
-                    <span class="text-[9px] text-gray-400">(Opcional — PDF o imagen)</span>
+                    <span class="text-[9px] text-gray-400">(Opcional â€” PDF o imagen)</span>
                 </div>
                 <div id="drop-usr-w9" class="w-full border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/60 hover:bg-amber-400/5 transition-all relative min-h-[80px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('inp-usr-w9-file').click()">
                     <input type="file" id="inp-usr-w9-file" class="hidden" accept=".pdf,image/*">
@@ -1447,7 +1447,7 @@
                         <i class="fa-solid fa-building-columns text-emerald-500 text-[10px]"></i>
                     </div>
                     <label class="aqua-label mb-0">Información Bancaria</label>
-                    <span class="text-[9px] text-gray-400">(Opcional — requerido para avanzar a Capacitación)</span>
+                    <span class="text-[9px] text-gray-400">(Opcional â€” requerido para avanzar a Capacitación)</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -1524,7 +1524,7 @@
                         <option value="Dumpsters">
                         <option value="Gutters">
                         <option value="Screens">
-                        <option value="Plomería">
+                        <option value="PlomerÃ­a">
                         <option value="Electricidad">
                         <option value="Flooring">
                         <option value="Windows">
@@ -1546,7 +1546,7 @@
             
             <div class="grid grid-cols-1 gap-4">
                 <div>
-                    <label class="aqua-label">Área de Cobertura</label>
+                    <label class="aqua-label">Ãrea de Cobertura</label>
                     <input type="text" id="inp-partner-area" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Ej: All Florida, Zip 33411">
                 </div>
             </div>
@@ -1665,8 +1665,8 @@
                                     </label>
                                     <div class="grid grid-cols-3 gap-4">
                                         <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Banco</label><p id="det-usr-banco-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nº Cuenta</label><p id="det-usr-banco-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nº Ruta</label><p id="det-usr-banco-ruta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Cuenta</label><p id="det-usr-banco-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Ruta</label><p id="det-usr-banco-ruta" class="text-[11px] font-bold text-[#333]">-</p></div>
                                     </div>
                                 </div>
 
@@ -1694,7 +1694,7 @@
 
                     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                         <!-- ... edit fields ... -->
-                        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre(s)</label><input id="det-edit-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Carlos"></div><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Apellido(s)</label><input id="det-edit-apellido" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Rodríguez"></div></div>
+                        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre(s)</label><input id="det-edit-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Carlos"></div><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Apellido(s)</label><input id="det-edit-apellido" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="RodrÃ­guez"></div></div>
                         <div class="mb-4"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Email</label><input id="det-edit-email" type="email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors"></div>
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
@@ -2016,11 +2016,11 @@
                 <!-- Tab Content: Evidences -->
                 <div id="cli-tab-evidences" class="cli-tab-content hidden transition-all duration-300">
                     <div class="bg-white rounded-lg shadow-sm p-6 overflow-y-auto max-h-[60vh] hide-scrollbar">
-                        <!-- ══ DOCUMENTOS PRINCIPALES ══ -->
+                        <!-- â•â• DOCUMENTOS PRINCIPALES â•â• -->
                         <div class="flex justify-between items-center mb-6">
                             <div>
                                 <h3 class="text-lg font-medium text-[#333]">Documentación Técnica</h3>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Archivos críticos para la aprobación del proyecto</p>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Archivos crÃ­ticos para la aprobación del proyecto</p>
                             </div>
                         </div>
 
@@ -2045,7 +2045,7 @@
                             </div>
                         </div>
 
-                        <!-- ══ SECCIÓN OFICINA (SOLO ADMIN) ══ -->
+                        <!-- â•â• SECCIÓN OFICINA (SOLO ADMIN) â•â• -->
                         <div class="bg-amber-400/5 border border-amber-400/20 rounded-2xl p-6 mb-8">
                             <div class="flex items-center gap-2 mb-4">
                                 <i class="fa-solid fa-lock text-amber-500 text-xs"></i>
@@ -2076,10 +2076,10 @@
                             </div>
                         </div>
 
-                        <!-- ══ GALERÍA DE EVIDENCIAS MÓVILES ══ -->
+                        <!-- â•â• GALERÃA DE EVIDENCIAS MÓVILES â•â• -->
                         <div class="flex justify-between items-center mb-6">
                             <div>
-                                <h3 class="text-lg font-medium text-[#333]">Galería de Archivos Adjuntos</h3>
+                                <h3 class="text-lg font-medium text-[#333]">GalerÃ­a de Archivos Adjuntos</h3>
                                 <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Fotos tomadas desde la app móvil</p>
                             </div>
                             <span id="evidence-count-badge" class="bg-gray-100 text-gray-500 text-[10px] font-black px-3 py-1 rounded-full border border-gray-200">0 ARCHIVOS</span>
@@ -2131,10 +2131,10 @@
                              <div>
                                  <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Estado Global (Ciclo de Vida)</label>
                                  <select id="det-cli-edit-macro-estado" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none bg-white">
-                                      <option value="Prospecto">🔵 Prospecto</option>
-                                      <option value="En Proceso">🟡 En Proceso</option>
-                                      <option value="Cliente">🟢 Cliente</option>
-                                      <option value="Cancelado">🔴 Cancelado / No Molestar</option>
+                                      <option value="Prospecto">ðŸ”µ Prospecto</option>
+                                      <option value="En Proceso">ðŸŸ¡ En Proceso</option>
+                                      <option value="Cliente">ðŸŸ¢ Cliente</option>
+                                      <option value="Cancelado">ðŸ”´ Cancelado / No Molestar</option>
                                   </select>
                              </div>
                          </div>
@@ -2143,13 +2143,13 @@
                              <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Departamentos Activos</label>
                              <div class="flex flex-wrap gap-3 p-3 border border-gray-200 rounded-lg" id="det-cli-edit-dept-wrap">
                                  <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
-                                     <input type="checkbox" name="det-chk-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🌊 Water
+                                     <input type="checkbox" name="det-chk-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ðŸŒŠ Water
                                  </label>
                                  <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
-                                     <input type="checkbox" name="det-chk-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ☀️ Solar
+                                     <input type="checkbox" name="det-chk-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> â˜€ï¸ Solar
                                  </label>
                                  <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
-                                     <input type="checkbox" name="det-chk-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🏠 Home
+                                     <input type="checkbox" name="det-chk-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ðŸ  Home
                                  </label>
                              </div>
                          </div>
@@ -2254,7 +2254,7 @@
                     <input type="text" id="inp-inv-codigo" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-4 focus:border-tealAccent outline-none transition-all" placeholder="Ej: E-301">
                 </div>
                 <div>
-                    <label class="aqua-label">Línea</label>
+                    <label class="aqua-label">LÃ­nea</label>
                     <input type="text" id="inp-inv-linea" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded p-3 text-xs font-bold text-gray-800 dark:text-white mb-4 focus:border-tealAccent outline-none transition-all" placeholder="Ej: Clásica">
                 </div>
             </div>
@@ -2297,7 +2297,7 @@
         </div>
     </div>
 
-    <!-- ── MODAL: LISTA DE PRECIOS (Add/Edit) ── -->
+    <!-- â”€â”€ MODAL: LISTA DE PRECIOS (Add/Edit) â”€â”€ -->
     <div id="modal-nuclear-precios" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[100] p-6">
         <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 w-full max-w-[700px] rounded-[2.5rem] shadow-2xl p-10 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn relative overflow-hidden group">
             <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -2450,7 +2450,7 @@
         </div>
     </div>
 
-    <!-- MODAL: SUMAR STOCK RÁPIDO -->
+    <!-- MODAL: SUMAR STOCK RÃPIDO -->
     <div id="modal-quick-stock" class="fixed inset-0 bg-black/80 backdrop-blur-md nuclear-hidden items-center justify-center z-[150] p-6 animate-fadeIn">
         <div class="bg-white dark:bg-[#0f172a] border border-white/5 w-full max-w-[300px] rounded-[2.5rem] shadow-2xl p-10 text-center relative overflow-hidden group">
             <div class="absolute -top-12 -right-12 w-24 h-24 bg-tealAccent/10 rounded-full blur-2xl group-hover:bg-tealAccent/20 transition-all duration-700 pointer-events-none"></div>
