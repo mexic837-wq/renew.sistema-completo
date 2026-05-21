@@ -2772,6 +2772,15 @@ window.showModal = (m) => {
   
   console.log("[RENEW-DEBUG] Showing modal:", m.id);
 
+  // Trigger rank visibility check if worker modal
+  if (m.id === 'modal-nuclear-usr') {
+      setTimeout(() => {
+          if (typeof window.updateWorkerRankVisibility === 'function') {
+              window.updateWorkerRankVisibility();
+          }
+      }, 100);
+  }
+
   // 1. Reparent to body to ensure it's top-level and not clipped by siblings
   if (m.parentElement !== document.body) {
       console.log("[RENEW-DEBUG] Reparenting modal to body");
@@ -9014,3 +9023,33 @@ document.addEventListener('click', async e => {
         window.savePrecio();
     }
 });
+
+
+// -- Rango de Trabajadores (Visibilidad Dinámica) -------------------------
+window.updateWorkerRankVisibility = function() {
+    const rol = document.getElementById('inp-usr-rol');
+    const rankContainer = document.getElementById('container-usr-rank');
+    if (!rankContainer || !rol) return;
+    
+    const waterChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
+        const pipName = chk.dataset.pip || '';
+        return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
+    });
+
+    if (rol.value === 'Vendedor' && waterChecked) {
+        rankContainer.classList.remove('hidden');
+    } else {
+        rankContainer.classList.add('hidden');
+        const rankSelect = document.getElementById('inp-usr-rank');
+        if (rankSelect) rankSelect.value = 'novato'; 
+    }
+};
+
+document.addEventListener('change', (e) => {
+    if (e.target.id === 'inp-usr-rol' || (e.target.classList && e.target.classList.contains('usr-pip-chk'))) {
+        if (typeof window.updateWorkerRankVisibility === 'function') {
+            window.updateWorkerRankVisibility();
+        }
+    }
+});
+
