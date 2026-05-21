@@ -79,22 +79,31 @@ export async function renderRendimientoGlobal() {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Prospectos -->
                 <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-blue-400/30 transition-all">
-                    <p class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2">Prospectos</p>
-                    <h3 id="kpi-total-contactos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                    <p class="text[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2">Prospectos</p>
+                    <div class="flex items-end gap-3">
+                        <h3 id="kpi-total-contactos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                        <span id="kpi-prospectos-pct" class="text-sm font-black text-blue-400 mb-1"></span>
+                    </div>
                     <p class="text-[10px] text-gray-400 mt-1 font-medium">Total de contactos registrados</p>
                 </div>
 
                 <!-- Presentaciones -->
                 <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-amber-400/30 transition-all">
                     <p class="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] mb-2">Presentaciones</p>
-                    <h3 id="kpi-proyectos-abiertos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                    <div class="flex items-end gap-3">
+                        <h3 id="kpi-proyectos-abiertos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                        <span id="kpi-presentaciones-pct" class="text-sm font-black text-amber-400 mb-1"></span>
+                    </div>
                     <p class="text-[10px] text-gray-400 mt-1 font-medium">Citas con presentación activa</p>
                 </div>
 
                 <!-- Ventas -->
                 <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-emerald-400/30 transition-all">
                     <p class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2">Ventas</p>
-                    <h3 id="kpi-ventas-totales" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                    <div class="flex items-end gap-3">
+                        <h3 id="kpi-ventas-totales" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                        <span id="kpi-ventas-pct" class="text-sm font-black text-emerald-400 mb-1"></span>
+                    </div>
                     <p class="text-[10px] text-gray-400 mt-1 font-medium">Proyectos concretados</p>
                 </div>
 
@@ -437,10 +446,29 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const totalCitas        = filteredProjects.length;
     const closeRate         = totalCitas > 0 ? Math.round((totalVentas / totalCitas) * 100) : 0;
 
+    // ── Percentages ───────────────────────────────────────────────────────────
+    // Prospectos %: clients that have at least one project vs total clients
+    const prospectosPct = ecoClients.length > 0
+        ? Math.round((filteredProjects.length / ecoClients.length) * 100)
+        : 0;
+    // Presentaciones %: open projects vs total filtered projects
+    const presentacionesPct = totalCitas > 0
+        ? Math.round((totalPresentaciones / totalCitas) * 100)
+        : 0;
+    // Ventas %: same as closeRate
+    const ventasPct = closeRate;
+
     document.getElementById('kpi-total-contactos').textContent    = totalProspectos;
     document.getElementById('kpi-proyectos-abiertos').textContent = totalPresentaciones;
     document.getElementById('kpi-ventas-totales').textContent     = totalVentas;
     document.getElementById('kpi-tasa-cierre').textContent        = `${closeRate}%`;
+
+    const elPPct = document.getElementById('kpi-prospectos-pct');
+    const elPresPct = document.getElementById('kpi-presentaciones-pct');
+    const elVPct = document.getElementById('kpi-ventas-pct');
+    if (elPPct)    elPPct.textContent    = prospectosPct > 0    ? `${prospectosPct}% con proyecto`    : '';
+    if (elPresPct) elPresPct.textContent = totalCitas > 0       ? `${presentacionesPct}% en curso`    : '';
+    if (elVPct)    elVPct.textContent    = ventasPct > 0        ? `${ventasPct}% tasa de cierre`      : '';
 
     // Progress bar + icon
     const bar   = document.getElementById('kpi-tasa-bar');
