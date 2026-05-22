@@ -264,7 +264,8 @@ export async function renderMiCalendario() {
             return c;
           });
           const colorMap = {
-            'Verde': '#00ff88', 'Amarillo': '#fce803', 'Rojo': '#ff3366', 'Azul': '#00d4ff', 'Naranja': '#ff8c00'
+            'Cita': '#4caf50', 'Hold': '#ffb300', 'Cancelado': '#d32f2f', 'Reagendar': '#1e88e5',
+            'Verde': '#4caf50', 'Amarillo': '#ffb300', 'Rojo': '#d32f2f', 'Azul': '#1e88e5', 'Naranja': '#ffb300'
           };
           
           let startStr = ev.fecha_inicio;
@@ -282,7 +283,7 @@ export async function renderMiCalendario() {
           const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 
           const mappedColor = colorMap[ev.color] || '#00f5d4';
-          const textColor = (ev.color === 'Azul' || ev.color === 'Verde' || ev.color === 'Amarillo') ? '#000' : '#fff';
+          const textColor = (ev.color === 'Amarillo' || ev.color === 'Hold') ? '#000' : '#fff';
 
           if (!isSameDay(startDate, endDate)) {
             let current = new Date(startDate);
@@ -432,7 +433,9 @@ export async function renderMiCalendario() {
         document.getElementById('ev-colaboradores-wrapper').classList.add('nuclear-hidden');
 
         if (props.color) {
-            const colorRadio = document.querySelector(`input[name="ev-color"][value="${props.color}"]`);
+            const legacyToNew = { 'Verde': 'Cita', 'Amarillo': 'Hold', 'Naranja': 'Hold', 'Azul': 'Reagendar', 'Rojo': 'Cancelado' };
+            const mappedVal = legacyToNew[props.color] || props.color;
+            const colorRadio = document.querySelector(`input[name="ev-color"][value="${mappedVal}"]`);
             if (colorRadio) colorRadio.checked = true;
         }
         document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
@@ -572,7 +575,7 @@ export async function renderMiCalendario() {
         const descripcion = document.getElementById('ev-descripcion').value;
         
         const colorNode = document.querySelector('input[name="ev-color"]:checked');
-        const color = colorNode ? colorNode.value : 'Verde';
+        const color = colorNode ? colorNode.value : 'Cita';
 
         const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
 
