@@ -57,7 +57,12 @@ function renderProjectInventory(dealId) {
               <div style="font-weight:800; font-size:0.85rem; color:var(--text-primary); text-transform:uppercase;">${h.item_nombre}</div>
               <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;"><i class="fa-solid fa-user text-[8px] mr-1"></i> ${h.tecnico_nombre} &nbsp;&bull;&nbsp; ${new Date(h.fecha).toLocaleDateString()}</div>
            </div>
-           <div style="background:#ef444415; color:#ef4444; font-weight:900; font-size:0.85rem; padding:6px 10px; border-radius:8px; border:1px solid #ef444430;">-${h.cantidad_retirada}</div>
+           <div style="display:flex; align-items:center; gap:8px;">
+               <div style="background:#ef444415; color:#ef4444; font-weight:900; font-size:0.85rem; padding:6px 10px; border-radius:8px; border:1px solid #ef444430;">-${h.cantidad_retirada}</div>
+               <button onclick="window.deleteProjectMaterial('${h.id}', '${dealId}')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:6px;" title="Borrar material retirado y devolver stock">
+                   <i class="fa-solid fa-trash-can hover:text-red-500 transition-colors"></i>
+               </button>
+           </div>
         </div>
     `).join('');
 }
@@ -509,6 +514,57 @@ async function processCartWithdrawal() {
     historyRecords.forEach(r => db.historialInventario.unshift(r));
     if (db.historialInventario.length > 500) db.historialInventario.length = 500;
 }
+
+window.deleteProjectMaterial = async (histId, dealId) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro de retiro? El stock se devolverá al inventario.')) return;
+    
+    const db = getDB();
+    const historial = db.historialInventario || [];
+    const recordIndex = historial.findIndex(h => h.id === histId);
+    if (recordIndex === -1) {
+        showToast('Registro no encontrado', 'error');
+        return;
+    }
+    
+    const record = historial[recordIndex];
+    const invItem = (db.inventarioGlobal || []).find(item => item.id === record.item_id);
+    
+    if (invItem) {
+        // Return stock
+        invItem.stockActual += record.cantidad_retirada;
+        const mappedStockUpdate = {
+            id: invItem.id,
+            nombre_item: invItem.nombreItem,
+            locacion: invItem.locacion,
+            ecosistema: invItem.ecosistema,
+            category: invItem.category,
+            medida: invItem.medida,
+            boton: invItem.boton,
+            color: invItem.color,
+            stock_actual: invItem.stockActual,
+            storage: invItem.storage,
+            min_stock: invItem.minStock,
+            price: invItem.price,
+            image_url: invItem.imageUrl
+        };
+        const { saveGranular } = await import('../api.js');
+        await saveGranular('inventario_global', [mappedStockUpdate]);
+    }
+    
+    // Remove from Supabase and local cache
+    const { getSupabaseClient } = await import('../api.js');
+    const supabase = getSupabaseClient();
+    if (supabase) {
+        await supabase.from('historial_inventario').delete().eq('id', histId);
+    }
+    
+    historial.splice(recordIndex, 1);
+    
+    // Refresh project inventory list
+    const list = document.getElementById(`project-inventory-list-${dealId}`);
+    if (list) list.innerHTML = renderProjectInventory(dealId);
+    showToast('Registro de retiro eliminado y stock devuelto', 'success');
+};
 
 async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   const container = document.getElementById('dynamic-action-section');
