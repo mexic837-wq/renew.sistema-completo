@@ -623,7 +623,9 @@ export async function renderMiCalendario() {
         const descripcion = document.getElementById('ev-descripcion').value;
         
         const colorNode = document.querySelector('input[name="ev-color"]:checked');
-        const color = colorNode ? colorNode.value : 'Cita';
+        let color = colorNode ? colorNode.value : 'Cita';
+        const newToLegacy = { 'Cita': 'Verde', 'Hold': 'Amarillo', 'Reagendar': 'Azul', 'Cancelado': 'Rojo' };
+        color = newToLegacy[color] || color;
 
         const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
         
