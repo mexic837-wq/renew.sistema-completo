@@ -367,13 +367,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           } finally {
               btnSend.innerHTML = `<i class="fa-solid fa-paper-plane text-sm"></i>`;
           }
-      };
 
-      btnSend.addEventListener('click', sendComment);
-      inputDisc.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') sendComment();
-      });
-  }
       };
 
       btnSend.addEventListener('click', sendComment);
