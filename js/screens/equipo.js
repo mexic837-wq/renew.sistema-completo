@@ -149,11 +149,11 @@ export async function renderMiEquipo() {
     const workers = await getAdminWorkers();
     const grid = document.getElementById('team-grid');
     
-    // Filtrar por ecosistema
+    // Filtrar por ecosistema y excluir suspendidos
     // Nota: El campo puede llamarse 'unidades' o 'ecosistemas_autorizados'
     const filtered = workers.filter(w => {
       const units = w.unidades || w.ecosistemas_autorizados || [];
-      return units.includes(activeUnit);
+      return units.includes(activeUnit) && !w.is_suspended;
     });
 
     if (filtered.length === 0) {
