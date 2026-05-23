@@ -9125,7 +9125,7 @@ window.openInviteModal = function() {
     btnEmail.classList.add('hidden');
     
     // Poblar trabajadores
-    const users = db.Usuarios || [];
+    const db = getDB();\n    const users = db.Usuarios || [];
     users.sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')).forEach(u => {
         const opt = document.createElement('option');
         opt.value = u.id;
