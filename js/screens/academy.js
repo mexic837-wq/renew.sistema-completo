@@ -86,6 +86,22 @@ export function renderAcademy() {
             </div>
           </div>
 
+          <!-- Card 6: Renew Water -->
+          <div class="academy-hero-card" data-link="https://renewwaterus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+            <div class="card-overlay" style="padding: 16px;">
+              <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
+              <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Water</h3>
+            </div>
+          </div>
+
+          <!-- Card 7: Renew Solar -->
+          <div class="academy-hero-card" data-link="https://www.renewsolarus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+            <div class="card-overlay" style="padding: 16px;">
+              <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
+              <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Solar</h3>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -119,6 +135,12 @@ export function renderAcademy() {
   const cards = document.querySelectorAll('.academy-hero-card');
   cards.forEach(card => {
     card.addEventListener('click', () => {
+      const directLink = card.getAttribute('data-link');
+      if (directLink) {
+        window.open(directLink, '_blank');
+        return;
+      }
+
       const catKey = card.getAttribute('data-categoria');
       const catTitle = card.querySelector('h3').innerText;
 
