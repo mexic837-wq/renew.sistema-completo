@@ -5420,9 +5420,10 @@ function renderCalendario() {
         }
       }
     ],
+    
     eventContent: function(arg) {
-       const legacyColor = arg.event.backgroundColor || '#00f5d4';
-       const deptos = arg.event.extendedProps?.departamentos || [];
+       // El color principal viene del "estado / clasificación"
+       const baseColor = arg.event.backgroundColor || '#00f5d4';
        const colabs = arg.event.extendedProps?.colaboradores || [];
        
        let avatarsHtml = '';
@@ -5435,23 +5436,17 @@ function renderCalendario() {
            showColabs.forEach(c => {
                const nameStr = (c && c.nombre) ? c.nombre : (typeof c === 'string' ? c : 'U');
                const initial = nameStr.charAt(0).toUpperCase();
-               avatarsHtml += `<div style="width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #444; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2;">${initial}</div>`;
+               // Se agrega title=nameStr para que al pasar el mouse se vea el nombre completo
+               avatarsHtml += `<div title="${nameStr}" style="width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #444; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2; cursor: help;">${initial}</div>`;
            });
            if (extraCount > 0) {
-               avatarsHtml += `<div style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
+               avatarsHtml += `<div title="+${extraCount} colaboradores más" style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
            }
            avatarsHtml += '</div>';
        }
 
-       let baseColor = legacyColor;
-       if (deptos.length > 0) {
-           const colors = { 'Solar': '#84cc16', 'Home': '#fbbf24', 'Water': '#38bdf8' };
-           const mapped = deptos.map(d => colors[d]).filter(Boolean);
-           if (mapped.length > 0) baseColor = mapped[0];
-       }
-
        const isLightMode = !document.documentElement.classList.contains('dark');
-       const bgStyle = isLightMode ? `background-color: ${baseColor}20;` : `background-color: ${baseColor}20;`;
+       const bgStyle = `background-color: ${baseColor}20;`;
        const titleColor = isLightMode ? '#1e293b' : '#f8fafc';
        const timeColor = isLightMode ? '#64748b' : '#94a3b8';
 
