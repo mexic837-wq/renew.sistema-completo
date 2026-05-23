@@ -3,7 +3,11 @@
    Full-page Plantillas hub screen (replaces modal popup)
    ============================================================ */
 
+import { getCurrentUser } from '../app.js';
+
 export function renderPlantillas() {
+    const user = getCurrentUser();
+    const isAdmin = user && ['admin', 'Admin', 'CEO', 'CEO-RENEW', 'Supervisión', 'Supervision'].includes(user.rol);
     const screen = document.getElementById('screen-plantillas');
     if (!screen) return;
 
@@ -185,7 +189,8 @@ export function renderPlantillas() {
             iconBg: 'rgba(245,158,11,.12)',
             iconColor: '#f59e0b',
             cat:    'water',
-            navigate: 'contract-app'
+            navigate: 'contract-app',
+            adminOnly: true
         },
         {
             id:     'confirmacion-instalacion',
@@ -206,9 +211,11 @@ export function renderPlantillas() {
         const grid = document.getElementById('plant-grid');
         if (!grid) return;
 
+        const baseTemplates = templates.filter(t => !t.adminOnly || isAdmin);
+
         const filtered = activeFilter === 'all'
-            ? templates
-            : templates.filter(t => t.cat === activeFilter);
+            ? baseTemplates
+            : baseTemplates.filter(t => t.cat === activeFilter);
 
         if (!filtered.length) {
             grid.innerHTML = `<div class="plant-empty" style="grid-column:1/-1">
