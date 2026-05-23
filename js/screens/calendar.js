@@ -290,7 +290,8 @@ export async function renderMiCalendario() {
          </div>
        `;
        return { html: html };
-    },\n    events: function(fetchInfo, successCallback, failureCallback) {
+    },
+    events: function(fetchInfo, successCallback, failureCallback) {
       try {
         const db = getDB();
         const data = db.calendario_eventos || [];
