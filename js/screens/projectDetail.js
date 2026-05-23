@@ -189,10 +189,12 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
     </div>
 
     <div style="padding: 16px; padding-bottom: 40px;">
-      <div id="dynamic-action-section"></div>
+      <!-- Left Column -->
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <div id="dynamic-action-section"></div>
 
-      ${(pipeline.nombre || '').toLowerCase().includes('water') ? `
-      <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+        ${(pipeline.nombre || '').toLowerCase().includes('water') ? `
+        <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
           Materiales del Proyecto
           <button onclick="window.openInventoryCart('${deal.id}')" style="background:${pipeline.color}15; color:${pipeline.color}; border:1px solid ${pipeline.color}30; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">
@@ -202,9 +204,11 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
         <div id="project-inventory-list-${deal.id}" style="display:flex; flex-direction:column; gap:8px;">
           ${renderProjectInventory(deal.id)}
         </div>
+        </div>
+        ` : ''}
       </div>
-      ` : ''}
 
+      <!-- Right Column -->
       <div style="display:flex; flex-direction:column; gap:24px;">
         <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
           <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
