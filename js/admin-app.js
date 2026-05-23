@@ -7110,7 +7110,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   // Combine dynamic file responses with fixed office attachments
   const fileRespuestas = respuestas.filter(r => {
     const campo = campos.find(c => String(c.id) === String(r.campo_id));
-    return campo && campo.tipo === 'Archivo' && r.valor && (r.valor.startsWith('data:') || r.valor.startsWith('http'));
+    return campo && campo.tipo === 'Archivo' && r.valor && (r.valor.startsWith('data:') || r.valor.startsWith('http') || r.valor.startsWith('/api/') || r.valor.startsWith('/uploads/') || r.valor.includes('/'));
   });
   const combinedFiles = [...fileRespuestas.map(r => {
       const campo = campos.find(c => String(c.id) === String(r.campo_id));
