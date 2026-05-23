@@ -7155,9 +7155,15 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const existing = document.getElementById('kanban-drawer-overlay');
   if (existing) existing.remove();
 
+  // Forzar que otros modales se pongan detrás
+  ['modal-client-detail', 'modal-project-detail'].forEach(id => {
+      const m = document.getElementById(id);
+      if (m) m.style.setProperty('z-index', '50', 'important');
+  });
+
   const overlay = document.createElement('div');
   overlay.id = 'kanban-drawer-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
   overlay.innerHTML = `
     <div id="kanban-split-modal" style="width:90vw;height:90vh;max-width:1400px;background:#f8fafc;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);display:flex;overflow:hidden;animation:zoomIn 0.2s ease-out;">
       
@@ -7484,7 +7490,14 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const closeDrawer = () => {
     const panel = document.getElementById('kanban-split-modal');
     if (panel) panel.style.animation = 'zoomOut 0.2s ease-in both';
-    setTimeout(() => overlay.remove(), 200);
+    setTimeout(() => {
+        overlay.remove();
+        // Restaurar z-index de modales previos
+        ['modal-client-detail', 'modal-project-detail'].forEach(id => {
+            const m = document.getElementById(id);
+            if (m && m.style.display !== 'none') m.style.setProperty('z-index', '2147483647', 'important');
+        });
+    }, 200);
   };
   document.getElementById('kanban-drawer-close-btn').addEventListener('click', closeDrawer);
   document.getElementById('kanban-drawer-overlay').addEventListener('click', (e) => {
