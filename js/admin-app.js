@@ -7267,10 +7267,6 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                 <p class="text-[11px] text-gray-500">${observadores.length + 2} participantes</p>
             </div>
             <div class="flex items-center gap-3">
-                <button class="bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-bold py-1.5 px-4 rounded-full flex items-center gap-2 shadow-sm transition-colors">
-                    <i class="fas fa-video"></i> Videollamada
-                </button>
-                <div class="w-px h-6 bg-gray-200 mx-1"></div>
                 <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-search"></i></button>
             </div>
         </div>
