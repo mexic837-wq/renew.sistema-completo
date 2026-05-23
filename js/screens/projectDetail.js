@@ -205,8 +205,9 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
       </div>
       ` : ''}
 
-      <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
-        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+          <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
           <div style="display:flex; flex-direction:column; gap:4px; grid-column: 1 / -1;">
             <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Descripción</span>
@@ -226,7 +227,10 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           </div>
           <div style="display:flex; flex-direction:column; gap:4px">
             <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Fecha Límite</span>
-            <input type="date" id="pd-deadline-input" value="${deal.fecha_finalizacion ? deal.fecha_finalizacion.substring(0,10) : ''}" class="bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 transition-colors" style="font-size:0.85rem; max-width:140px;" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
+            ${isAdmin ? 
+              `<input type="date" id="pd-deadline-input" value="${deal.fecha_finalizacion ? deal.fecha_finalizacion.substring(0,10) : ''}" class="bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 transition-colors" style="font-size:0.85rem; max-width:140px;">` : 
+              `<span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); padding:4px 0;">${deal.fecha_finalizacion ? new Date(deal.fecha_finalizacion).toLocaleDateString() : 'Sin definir'}</span>`
+            }
           </div>
           <div style="display:flex; flex-direction:column; gap:8px; grid-column: 1 / -1; margin-top:8px; border-top:1px dashed var(--border); padding-top:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -243,7 +247,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
         </div>
       </div>
 
-      <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+      <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>
         <div style="display:flex; flex-direction:column; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
           <div style="display:flex; flex-direction:column; gap:4px">
@@ -268,7 +272,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
         </div>
       </div>
 
-      <div class="info-card slide-in-bottom" style="margin-bottom:120px; margin-top:24px; padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
+      <div class="info-card slide-in-bottom" style="margin-bottom:120px; padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
         <!-- Header -->
         <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -292,6 +296,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
             <i class="fa-solid fa-paper-plane text-sm"></i>
           </button>
         </div>
+      </div>
       </div>
     </div>
   `;
