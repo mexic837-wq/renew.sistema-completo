@@ -9103,3 +9103,83 @@ document.addEventListener('change', (e) => {
           }
       });
   }
+\n
+// ==========================================
+// LOGICA DE INVITACION DE TRABAJADORES
+// ==========================================
+window.openInviteModal = function() {
+    const modal = document.getElementById('modal-nuclear-invite');
+    if (!modal) return;
+    
+    const select = document.getElementById('inp-invite-worker');
+    const previewBox = document.getElementById('invite-preview-box');
+    const previewText = document.getElementById('invite-preview-text');
+    const btnWa = document.getElementById('btn-send-invite-wa');
+    const btnEmail = document.getElementById('btn-send-invite-email');
+    
+    select.innerHTML = '<option value="">Selecciona un trabajador...</option>';
+    previewBox.classList.add('hidden');
+    btnWa.classList.add('hidden');
+    btnEmail.classList.add('hidden');
+    
+    // Poblar trabajadores
+    const users = db.Usuarios || [];
+    users.sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')).forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.nombre} ${u.apellido || ''} - ${u.rol}`;
+        select.appendChild(opt);
+    });
+    
+    modal.classList.remove('nuclear-hidden');
+    
+    select.onchange = () => {
+        const userId = select.value;
+        const user = users.find(u => u.id === userId);
+        if (!user) {
+            previewBox.classList.add('hidden');
+            btnWa.classList.add('hidden');
+            btnEmail.classList.add('hidden');
+            return;
+        }
+        
+        const platformLinkApp = "https://renewgroup.site/index.html";
+        const platformLinkAdmin = "https://renewgroup.site/admin.html";
+        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
+        const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
+        
+        const msg = `¡Hola ${user.nombre}! 👋\n\nTe damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.\n\n🔗 Enlace de acceso: ${mainLink}\n✉️ Usuario: ${user.email}\n🔑 Contraseña: ${user.pass}\n\nSi tienes alguna duda, no dudes en contactar al administrador.\n¡Éxitos!`;
+        
+        previewText.textContent = msg;
+        previewBox.classList.remove('hidden');
+        
+        if (user.tel) {
+            btnWa.classList.remove('hidden');
+            btnWa.onclick = () => {
+                const phone = user.tel.replace(/\D/g, '');
+                window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+            };
+        } else {
+            btnWa.classList.add('hidden');
+        }
+        
+        if (user.email) {
+            btnEmail.classList.remove('hidden');
+            btnEmail.onclick = () => {
+                window.open(`mailto:${user.email}?subject=${encodeURIComponent('Tus Credenciales de Renew')}&body=${encodeURIComponent(msg)}`, '_blank');
+            };
+        } else {
+            btnEmail.classList.add('hidden');
+        }
+    };
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const cancelBtns = document.querySelectorAll('.btn-cancel-invite');
+    cancelBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = document.getElementById('modal-nuclear-invite');
+            if (modal) modal.classList.add('nuclear-hidden');
+        });
+    });
+});
