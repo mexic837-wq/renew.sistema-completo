@@ -2160,7 +2160,7 @@ function bindGlobalEvents() {
   const ROLE_ICONS_MAP = {
     'Call Center': 'fa-headset',
     'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'TÃ©cnico': 'fa-screwdriver-wrench',
-    'DiseÃ±ador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator': 'fa-coins',
+    'DiseÃ±ador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator',
     'SupervisiÃ³n': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
   };
 
