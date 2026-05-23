@@ -7351,6 +7351,21 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               
               if (c.tipo === 'Archivo') {
                 const hasFile = val && (val.startsWith('data:') || val.startsWith('http') || val.startsWith('/api/') || val.startsWith('/uploads/') || val.includes('/'));
+                const isImage = hasFile && (val.startsWith('data:image') || val.match(/\.(jpg|jpeg|png|gif|webp|svg)/i));
+                const safeLabel = c.etiqueta.replace(/'/g, "\\'");
+                
+                const previewHtml = hasFile ? `
+                  <div class="mt-2 group relative rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" style="height: 60px; width: 100%;">
+                    ${isImage
+                      ? `<img src="${val}" class="w-full h-full object-cover" />`
+                      : `<i class="fas fa-file-pdf text-red-400 text-2xl"></i>`
+                    }
+                    <button onclick="window.openFilePreview('${c.id}', '${safeLabel}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <i class="fas ${isImage ? 'fa-eye' : 'fa-download'} text-white text-lg"></i>
+                    </button>
+                  </div>
+                ` : '';
+
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
@@ -7364,6 +7379,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                          ${hasFile ? 'Editar' : 'Subir'}
                        </label>
                     </div>
+                    ${previewHtml}
                   </div>
                 `;
               } else if (c.tipo === 'Desplegable') {
