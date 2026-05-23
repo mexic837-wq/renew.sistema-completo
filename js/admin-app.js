@@ -9375,3 +9375,5 @@ window.saveDynamicFields = async function(dealId, respuestas) {
         await saveGranular('respuestas_dinamicas', recordsToSave);
     }
 };
+
+window.openKanbanDrawer = openKanbanDrawer;
