@@ -9080,7 +9080,8 @@ document.addEventListener('change', (e) => {
     }
 });
 
-\n
+
+
   const detEditRol = document.getElementById('det-edit-rol');
   const detEditDept = document.getElementById('det-edit-dept');
   if (detEditRol) {
@@ -9103,7 +9104,8 @@ document.addEventListener('change', (e) => {
           }
       });
   }
-\n
+
+
 // ==========================================
 // LOGICA DE INVITACION DE TRABAJADORES
 // ==========================================
@@ -9148,7 +9150,16 @@ window.openInviteModal = function() {
         const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
-        const msg = `¡Hola ${user.nombre}! 👋\n\nTe damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.\n\n🔗 Enlace de acceso: ${mainLink}\n✉️ Usuario: ${user.email}\n🔑 Contraseña: ${user.pass}\n\nSi tienes alguna duda, no dudes en contactar al administrador.\n¡Éxitos!`;
+        const msg = `¡Hola ${user.nombre}! 👋
+
+Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.
+
+🔗 Enlace de acceso: ${mainLink}
+✉️ Usuario: ${user.email}
+🔑 Contraseña: ${user.pass}
+
+Si tienes alguna duda, no dudes en contactar al administrador.
+¡Éxitos!`;
         
         previewText.textContent = msg;
         previewBox.classList.remove('hidden');
