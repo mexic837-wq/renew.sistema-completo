@@ -208,7 +208,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
       <div style="display:flex; flex-direction:column; gap:24px;">
         <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
           <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" style="background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
           <div style="display:flex; flex-direction:column; gap:4px; grid-column: 1 / -1;">
             <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Descripción</span>
             <span style="font-size:0.85rem; font-weight:500; color:var(--text-primary); line-height:1.4">${deal.descripcion || '<span class="italic text-gray-400">Sin descripción</span>'}</span>
