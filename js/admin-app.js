@@ -7161,8 +7161,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   overlay.innerHTML = `
     <div id="kanban-split-modal" style="width:90vw;height:90vh;max-width:1400px;background:#f8fafc;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);display:flex;overflow:hidden;animation:zoomIn 0.2s ease-out;">
       
-      <!-- LEFT PANEL: Info & Subtasks -->
-      <div style="width:380px;background:white;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;flex-shrink:0;">
+      <!-- LEFT PANEL: Info & Subtasks (Increased width) -->
+      <div style="width:45%;min-width:400px;max-width:600px;background:white;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;flex-shrink:0;">
         
         <!-- Header Left -->
         <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
@@ -7183,7 +7183,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         <div style="flex:1;overflow-y:auto;" class="hide-scrollbar">
             <!-- Properties -->
             <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;">
-                <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs">
+                <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs items-center">
                     <div class="text-gray-400 font-medium">Description:</div>
                     <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripciÃ³n'}</div>
                     
@@ -7194,6 +7194,12 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
                     <div class="text-gray-400 font-medium">Created:</div>
                     <div class="text-gray-800">${new Date(p.fecha).toLocaleDateString()}</div>
+                    
+                    <!-- New Deadline Field -->
+                    <div class="text-gray-400 font-medium">Deadline:</div>
+                    <div class="text-gray-800">
+                        <input type="date" id="proj-deadline-input" value="${p.fecha_finalizacion ? p.fecha_finalizacion.substring(0,10) : ''}" class="text-[11px] bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 w-full max-w-[130px] transition-colors" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
+                    </div>
                     
                     <div class="text-gray-400 font-medium mt-2">Project:</div>
                     <div class="text-gray-800 mt-2 flex items-center gap-2">
@@ -7213,7 +7219,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                 </div>
             </div>
 
-            <!-- Tabs -->
+            <!-- Tabs / Accordion -->
             <div style="padding:16px 20px 0;">
                 <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-tasks text-blue-500"></i> Subtasks (Fases): ${fases.length}</h3>
                 <div style="display:flex;flex-direction:column;gap:6px;">
@@ -7222,27 +7228,29 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                         const isCurrent = !isProjectCompleted && f.id === p.fase_id;
                         const isViewing = f.id === displayPhaseId;
                         return `
-                        <div class="flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${isViewing ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:bg-gray-50'}"
-                             onclick="window.openKanbanDrawer('${p.id}', '${f.id}')">
-                            <div class="flex items-center gap-3">
-                                <i class="fas ${isDone ? 'fa-check-circle text-green-500' : (isCurrent ? 'fa-dot-circle text-blue-500' : 'fa-circle text-gray-200')}"></i>
-                                <span class="text-xs font-medium ${isViewing ? 'text-blue-700' : 'text-gray-700'}">${f.nombre}</span>
+                        <div class="mb-1">
+                            <div class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${isViewing ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-gray-100 hover:bg-gray-50'}"
+                                 onclick="window.openKanbanDrawer('${p.id}', '${f.id}')">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas ${isDone ? 'fa-check-circle text-green-500' : (isCurrent ? 'fa-dot-circle text-blue-500' : 'fa-circle text-gray-200')}"></i>
+                                    <span class="text-xs font-bold ${isViewing ? 'text-blue-700' : 'text-gray-700'}">${f.nombre}</span>
+                                </div>
+                                <i class="fas fa-chevron-${isViewing ? 'down' : 'right'} text-[10px] text-${isViewing ? 'blue-500' : 'gray-300'}"></i>
                             </div>
-                            ${isViewing ? '<i class="fas fa-chevron-right text-[10px] text-blue-400"></i>' : ''}
+                            ${isViewing ? `
+                            <div class="mt-2 ml-4 p-4 bg-white border border-gray-100 rounded-xl shadow-sm relative before:absolute before:-left-4 before:top-4 before:w-4 before:h-px before:bg-gray-200">
+                                <div id="drawer-dynamic-fields">
+                                    <p style="font-size:11px; color:#64748b; font-style:italic;">Cargando campos...</p>
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
                         `;
                     }).join('')}
                 </div>
             </div>
             
-            <div style="padding:20px;border-top:1px solid #f1f5f9;margin-top:16px;">
-                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-folder-open text-orange-400"></i> ${isCurrentPhase ? 'Fase Actual' : 'Viendo Fase'}: ${displayPhase.nombre}</h3>
-                <div id="drawer-dynamic-fields" class="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                    <p style="font-size:11px; color:#64748b; font-style:italic;">Cargando campos...</p>
-                </div>
-            </div>
-            
-            <div style="padding:0 20px 20px;">
+            <div style="padding:20px 20px 20px;border-top:1px solid #f1f5f9;margin-top:16px;">
                 <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-paperclip text-gray-400"></i> Archivos Globales</h3>
                 <div class="grid grid-cols-3 gap-2">
                     ${filesHtml}
@@ -7294,13 +7302,28 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   document.body.appendChild(overlay);
 
-  // --- NEW: Render Phase Fields in Drawer ---
+  // --- Deadline Logic ---
+  const dInput = document.getElementById('proj-deadline-input');
+  if (dInput) {
+      dInput.addEventListener('change', async (e) => {
+          p.fecha_finalizacion = e.target.value;
+          try {
+              await saveGranular('proyectos_dinamicos', [p]);
+              showToast('Fecha de finalizaciÃ³n guardada', 'success');
+          } catch(err) {
+              console.error(err);
+              showToast('Error al guardar fecha', 'error');
+          }
+      });
+  }
+
+  // --- Render Phase Fields in Drawer ---
   const fieldsContainer = document.getElementById('drawer-dynamic-fields');
   const phaseCampos = campos.filter(c => c.fase_id === displayPhaseId);
   
   if (phaseCampos.length === 0) {
     fieldsContainer.innerHTML = `
-      <div style="padding:20px; text-align:center;">
+      <div style="padding:16px; text-align:center;">
         <p style="font-size:11px; color:#94a3b8; font-weight:700;">ESTA FASE NO TIENE CAMPOS</p>
         ${isCurrentPhase ? `<button id="btn-advance-drawer-empty" style="margin-top:12px; width:100%; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:11px; cursor:pointer;">
            AVANZAR FASE
@@ -7336,7 +7359,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <div style="display:flex; align-items:center; gap:8px; padding:8px; background:white; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:8px;">
+            <div style="display:flex; align-items:center; gap:8px; padding:8px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:8px;">
                <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'};font-size:14px;"></i>
                <span style="font-size:10px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? 'Cargado' : 'Pendiente'}</span>
                <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
@@ -7353,7 +7376,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:white;">
+            <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
               <option value="">Seleccionar...</option>
               ${options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
             </select>
@@ -7366,7 +7389,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:white;">
+            <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
               <option value="">Seleccionar TÃ©cnico...</option>
               ${technicians.map(w => `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${w.nombre} ${w.apellido || ''}</option>`).join('')}
             </select>
@@ -7378,7 +7401,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <input type="${c.tipo === 'NÃºmero' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:white;">
+            <input type="${c.tipo === 'NÃºmero' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
           </div>
         `;
       }
@@ -7386,12 +7409,12 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
     }).join('');
 
     fieldsContainer.innerHTML = inputsHtml + `
-       <div style="margin-top:12px; display:flex; gap:8px;">
-          <button id="btn-save-drawer-fields" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">
-             Guardar
+       <div style="margin-top:16px; display:flex; gap:8px;">
+          <button id="btn-save-drawer-fields" style="flex:1; background:#e2e8f0; color:#475569; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+             Guardar Progreso
           </button>
           ${isCurrentPhase ? `
-          <button id="btn-advance-drawer-fields" ${!isComplete ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} style="flex:1; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">
+          <button id="btn-advance-drawer-fields" ${!isComplete ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} style="flex:1; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer; transition:filter 0.2s;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='brightness(1)'">
              Avanzar Fase
           </button>
           ` : ''}
@@ -7472,7 +7495,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                   <button id="close-obs" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
               </div>
               <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
-                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay más usuarios disponibles</p>' : ''}
+                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay mÃ¡s usuarios disponibles</p>' : ''}
                   ${eligible.map(w => `
                   <div class="obs-item flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 transition-colors" data-id="${w.id}">
                       <div class="flex items-center gap-3">
@@ -7484,7 +7507,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                               <div class="text-[10px] text-gray-500">${w.rol}</div>
                           </div>
                       </div>
-                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">Añadir</button>
+                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">AÃ±adir</button>
                   </div>
                   `).join('')}
               </div>
@@ -7500,14 +7523,13 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                       import('./api.js').then(async ({addObserver}) => {
                           try {
                               await addObserver(p.id, worker);
-                              showToast('Observador añadido', 'success');
+                              showToast('Observador aÃ±adido', 'success');
                               div.remove();
                               openKanbanDrawer(p.id, displayPhaseId);
                           } catch(e) {
                               showToast('Error: ' + e.message, 'error');
                           }
                       }).catch(e => {
-                         // Fallback si no carga el modulo
                          showToast('Error de red', 'error');
                       });
                   }
