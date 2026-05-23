@@ -78,21 +78,15 @@ export function renderInventoryTech(dealId = null) {
           <input type="hidden" id="inv-item-select" value="">
         </div>
         
-        <div>
-            <div class="field-group">
-              <p style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); margin-bottom: 8px;">CANTIDAD A UTILIZAR</p>
-              <div class="input-wrap no-icon">
-                <input type="number" id="inv-item-qty" min="1" placeholder="Ej. 1" style="width: 100%; padding: 12px; border-radius: 8px; background: var(--surface); color: var(--text-primary); border: 1px solid var(--border);" />
-              </div>
-            </div>
-    
-            <div class="mobile-submit-box" style="display: flex; flex-direction: column; gap: 8px;">
-                <button id="btn-submit-inv" class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; font-weight: 800; letter-spacing: 1px;">REGISTRAR USO</button>
-                ${isAdmin ? `
-                  <button id="btn-add-stock-inv" class="btn btn-outline" style="width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 800; border: 2px solid var(--tealAccent); color: var(--tealAccent); border-radius: 12px; background: transparent; cursor: pointer;">AGREGAR STOCK</button>
-                  <button id="btn-sub-stock-inv" class="btn btn-outline" style="width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 800; border: 2px solid #ef4444; color: #ef4444; border-radius: 12px; background: transparent; cursor: pointer;">RESTAR STOCK</button>
-                ` : ''}
-            </div>
+        <div style="display: flex; justify-content: center; gap: 32px; margin-top: 32px; padding-bottom: 24px;">
+            <button id="btn-sub-stock-inv" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; color: #ef4444; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 25px rgba(239, 68, 68, 0.25);">
+                <i class="fa-solid fa-minus"></i>
+            </button>
+            ${isAdmin ? `
+            <button id="btn-add-stock-inv" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; color: #10b981; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.25);">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+            ` : ''}
         </div>
       </div>
     </div>
@@ -130,15 +124,22 @@ export function renderInventoryTech(dealId = null) {
     step2.style.display = 'block';
   });
 
-  document.getElementById('btn-submit-inv').addEventListener('click', () => handleInventoryChange('withdrawal'));
+  const btnSubStock = document.getElementById('btn-sub-stock-inv');
+  if (btnSubStock) {
+    btnSubStock.addEventListener('click', () => {
+        btnSubStock.style.transform = 'scale(0.9)';
+        setTimeout(() => btnSubStock.style.transform = 'scale(1)', 150);
+        handleInventoryChange('withdrawal');
+    });
+  }
 
   const btnAddStock = document.getElementById('btn-add-stock-inv');
   if (btnAddStock) {
-    btnAddStock.addEventListener('click', () => handleInventoryChange('addition'));
-  }
-  const btnSubStock = document.getElementById('btn-sub-stock-inv');
-  if (btnSubStock) {
-    btnSubStock.addEventListener('click', () => handleInventoryChange('withdrawal'));
+    btnAddStock.addEventListener('click', () => {
+        btnAddStock.style.transform = 'scale(0.9)';
+        setTimeout(() => btnAddStock.style.transform = 'scale(1)', 150);
+        handleInventoryChange('addition');
+    });
   }
 
   // Back Button to Dashboard or Project
@@ -248,15 +249,10 @@ export function renderInventoryTech(dealId = null) {
 
   async function handleInventoryChange(mode = 'withdrawal') {
     const itemId = document.getElementById('inv-item-select').value;
-    const qtyInput = document.getElementById('inv-item-qty').value;
-    const qty = parseInt(qtyInput, 10);
+    const qty = 1; // 1 click = 1 unidad
 
     if (!itemId) {
-      showToast('Error: Debe seleccionar un artículo', 'error');
-      return;
-    }
-    if (!qty || qty <= 0) {
-      showToast('Error: Ingrese una cantidad válida', 'error');
+      showToast('Error: Debe seleccionar un artículo primero', 'error');
       return;
     }
 
@@ -333,17 +329,16 @@ export function renderInventoryTech(dealId = null) {
     }
     // ─────────────────────────────────────────────────────────────
 
-    showToast(mode === 'withdrawal' ? 'Retiro registrado correctamente.' : 'Stock actualizado correctamente.', 'success');
+    showToast(mode === 'withdrawal' ? '1 unidad retirada' : '1 unidad agregada', 'success');
     
-    // Clear form
-    document.getElementById('inv-item-select').value = '';
-    document.getElementById('inv-item-qty').value = '';
-    
-    if (currentDealId) {
-        navigate('detail', currentDealId);
-    } else {
-        step3.style.display = 'none';
-        step1.style.display = 'block';
-    }
+    // Update displayed stock immediately in the trigger UI without clearing selection
+    const triggerContent = document.getElementById('inv-trigger-content');
+    triggerContent.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size: 7px; font-weight: 900; color: var(--tealAccent); opacity: 0.8;">${item.id}</span>
+          <span style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">${item.nombreItem}</span>
+          ${isAdmin ? `<span style="font-size: 10px; font-weight: 900; color: var(--tealAccent); margin-top: 4px;">DISPONIBLE: ${item.stockActual} unidades</span>` : ''}
+      </div>
+    `;
   }
 }
