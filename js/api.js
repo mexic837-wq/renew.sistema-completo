@@ -48,6 +48,7 @@ export async function initDB() {
                         anuncios_corporativos: 'anuncios_corporativos',
                         admin_meetings: 'admin_meetings',
                         admin_meetings_reads: 'admin_meetings_reads',
+                        calendario_eventos_reads: 'calendario_eventos_reads',
                         mensajes_internos: 'mensajes_internos',
                         calendario_eventos: 'calendario_eventos',
                         recibos_pagos: 'Recibos_Pagos'
@@ -107,6 +108,7 @@ export async function initDB() {
           anuncios_corporativos: 'anuncios_corporativos',
           admin_meetings: 'admin_meetings',
           admin_meetings_reads: 'admin_meetings_reads',
+          calendario_eventos_reads: 'calendario_eventos_reads',
           mensajes_internos: 'mensajes_internos',
           calendario_eventos: 'calendario_eventos',
           recibos_pagos: 'Recibos_Pagos'
@@ -215,7 +217,7 @@ export async function initDB() {
               Admin_Pipelines: [], Admin_Fases: [], Admin_Campos_Formulario: [],
               Clientes_Maestro: [], Proyectos_Dinamicos: [], Respuestas_Dinamicas: [],
               Usuarios: [], academiaContent: [], inventarioGlobal: [], historialInventario: [],
-              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], Admin_Proveedores: [], 
+              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], calendario_eventos_reads: [], Admin_Proveedores: [], 
               calendario_eventos: [], mensajes_internos: [],
               Counters: { cli: 0, proy: 0, resp: 0, pip: 0, fase: 0, campo: 0 }
             };
@@ -603,7 +605,7 @@ export function getDB() {
         'Admin_Pipelines', 'Admin_Fases', 'Admin_Campos_Formulario',
         'Clientes_Maestro', 'Proyectos_Dinamicos', 'Respuestas_Dinamicas',
         'Usuarios', 'academiaContent', 'inventarioGlobal', 'historialInventario',
-        'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'Deleted_Workers', 'calendario_eventos',
+        'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'calendario_eventos_reads', 'Deleted_Workers', 'calendario_eventos',
         'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos', 'mensajes_internos'
     ];
     

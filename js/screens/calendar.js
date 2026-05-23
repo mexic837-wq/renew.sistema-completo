@@ -245,14 +245,21 @@ export async function renderMiCalendario() {
         const db = getDB();
         const data = db.calendario_eventos || [];
         const userEvents = data.filter(ev => {
-          if (!ev.colaboradores || !Array.isArray(ev.colaboradores)) return false;
-          return ev.colaboradores.some(c => {
-            let colabObj = c;
-            if (typeof c === 'string') {
-              try { colabObj = JSON.parse(c); } catch(e) {}
-            }
-            return colabObj.id === user.id;
-          });
+          let hasColab = false;
+          if (ev.colaboradores && Array.isArray(ev.colaboradores)) {
+            hasColab = ev.colaboradores.some(c => {
+              let colabObj = c;
+              if (typeof c === 'string') {
+                try { colabObj = JSON.parse(c); } catch(e) {}
+              }
+              return String(colabObj.id) === String(user.id);
+            });
+          }
+          let hasAttendee = false;
+          if (ev.attendees && Array.isArray(ev.attendees)) {
+            hasAttendee = ev.attendees.some(a => String(a.id) === String(user.id));
+          }
+          return hasColab || hasAttendee;
         });
 
         const mapped = [];

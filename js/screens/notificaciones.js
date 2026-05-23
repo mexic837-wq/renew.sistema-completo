@@ -91,7 +91,24 @@ export async function renderNotificaciones() {
       };
   });
 
-  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones].sort((a,b) => b.date - a.date);
+  // Recopilar Eventos de Calendario
+  const misEventosCalendario = (db.calendario_eventos || []).filter(ev => {
+      if (!ev.attendees || !Array.isArray(ev.attendees)) return false;
+      return ev.attendees.some(a => String(a.id) === String(user.id));
+  }).map(ev => {
+      const isRead = (db.calendario_eventos_reads || []).some(r => r.event_id === ev.id && r.user_id === user.id);
+      return {
+          type: 'evento_calendario',
+          id: ev.id,
+          title: `Invitación a Evento: ${ev.nombre}`,
+          message: `Has sido invitado al evento "${ev.nombre}" el ${new Date(ev.fecha_inicio).toLocaleDateString()}.`,
+          date: new Date(ev.created_at || ev.fecha_inicio),
+          isRead: isRead,
+          originalData: ev
+      };
+  });
+
+  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
@@ -113,8 +130,10 @@ export async function renderNotificaciones() {
         ? 'background: rgba(59, 130, 246, 0.15); color: #60a5fa;' 
         : item.type === 'asignacion' 
           ? 'background: rgba(245, 158, 11, 0.15); color: #f59e0b;' 
-          : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
-      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : 'fa-bullhorn';
+          : item.type === 'evento_calendario'
+            ? 'background: rgba(16, 185, 129, 0.15); color: #10b981;'
+            : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
+      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : 'fa-bullhorn';
 
       return `
         <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
@@ -191,8 +210,8 @@ export async function renderNotificaciones() {
           let html = `
             <div style="height: 32px;"></div>
             <div style="padding: 0 24px;">
-              <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: ${item.type === 'meeting' ? 'rgba(59, 130, 246, 0.15)' : item.type === 'asignacion' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(0, 245, 212, 0.15)'}; color: ${item.type === 'meeting' ? '#60a5fa' : item.type === 'asignacion' ? '#f59e0b' : 'var(--primary)'}; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  ${item.type === 'meeting' ? '<i class="fa-solid fa-video" style="margin-right: 8px;"></i> Reunión' : item.type === 'asignacion' ? '<i class="fa-solid fa-clipboard-user" style="margin-right: 8px;"></i> Asignación de Proyecto' : '<i class="fa-solid fa-bullhorn" style="margin-right: 8px;"></i> Anuncio Corporativo'}
+              <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: ${item.type === 'meeting' ? 'rgba(59, 130, 246, 0.15)' : item.type === 'asignacion' ? 'rgba(245, 158, 11, 0.15)' : item.type === 'evento_calendario' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(0, 245, 212, 0.15)'}; color: ${item.type === 'meeting' ? '#60a5fa' : item.type === 'asignacion' ? '#f59e0b' : item.type === 'evento_calendario' ? '#10b981' : 'var(--primary)'}; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+                  ${item.type === 'meeting' ? '<i class="fa-solid fa-video" style="margin-right: 8px;"></i> Reunión' : item.type === 'asignacion' ? '<i class="fa-solid fa-clipboard-user" style="margin-right: 8px;"></i> Asignación de Proyecto' : item.type === 'evento_calendario' ? '<i class="fa-solid fa-calendar-check" style="margin-right: 8px;"></i> Invitación a Evento' : '<i class="fa-solid fa-bullhorn" style="margin-right: 8px;"></i> Anuncio Corporativo'}
               </div>
               <h2 style="font-size: 1.7rem; font-weight: 900; color: var(--text-primary); margin: 0 0 12px 0; line-height: 1.25; letter-spacing: -0.5px;">${item.title}</h2>
               <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 32px; display: flex; align-items: center; font-weight: 500;">
@@ -241,6 +260,17 @@ export async function renderNotificaciones() {
                           Confirmar Horario y Aceptar
                       </button>
                   </div>
+                </div>
+              `;
+          }
+
+          if (item.type === 'evento_calendario') {
+              html += `
+                <div style="background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 20px; padding: 28px 24px; text-align: center; margin-top: 20px; position: relative; overflow: hidden;">
+                  <h4 style="margin: 0 0 16px 0; color: #e2e8f0; font-size: 1.15rem; font-weight: 800; position: relative; z-index: 1;">Ir al Calendario</h4>
+                  <a href="#" onclick="window.appNavigate('mi-calendario'); document.getElementById('notif-detail-view').style.display = 'none'; document.getElementById('notif-list-view').style.display = 'block'; return false;" style="display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; background: #10b981; color: white; border-radius: 16px; font-weight: 800; text-decoration: none; width: 100%; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35); transition: all 0.2s ease; font-size: 1.05rem; position: relative; z-index: 1;">
+                      <i class="fa-solid fa-calendar-check" style="margin-right: 12px; font-size: 1.2rem;"></i> Ver en mi Calendario
+                  </a>
                 </div>
               `;
           }
@@ -314,6 +344,16 @@ export async function renderNotificaciones() {
                   });
                   await saveGranular('admin_meetings_reads', meetingReads);
                   await initDB(); // Recargar base de datos para que el estado se mantenga
+              } else if (item.type === 'evento_calendario') {
+                  if (!db.calendario_eventos_reads) db.calendario_eventos_reads = [];
+                  db.calendario_eventos_reads.push({
+                      id: 'rd_' + Date.now().toString(36),
+                      event_id: item.id,
+                      user_id: user.id,
+                      read_at: new Date().toISOString()
+                  });
+                  await saveGranular('calendario_eventos_reads', db.calendario_eventos_reads);
+                  await initDB();
               }
               
               // Actualizar badge del menu principal
