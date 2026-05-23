@@ -7958,14 +7958,16 @@ async function showClientDetail(id) {
     const assignedAvatar = document.getElementById('det-cli-vendedor-avatar');
     const reassignBtn = document.getElementById('btn-reassign-vendedor');
     const selectorWrap = document.getElementById('vendedor-selector-wrap');
+    const badge = document.getElementById('evidence-count-badge');
+    const galleryCont = document.getElementById('cli-evidence-gallery');
 
     if (selAssigned) {
         selAssigned.innerHTML = '<option value="">-- Seleccionar Vendedor --</option>';
         if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">No asignado</option>';
         
-        // â”€â”€ FILTRO DE PIPELINE: Solo mostrar vendedores con acceso al ecosistema del cliente â”€â”€
+        // ―――― FILTRO DE PIPELINE: Solo mostrar vendedores con acceso al ecosistema del cliente ――――
         const clientePipeline = cli.empresa || cli.departamento || null;
-        const vendedorRoles = ['vendedor', 'admin', 'administrador', 'ceo', 'supervisor', 'supervisiÃ³n'];
+        const vendedorRoles = ['vendedor', 'admin', 'administrador', 'ceo', 'supervisor', 'supervisión'];
         
         const filteredWorkers = workers.filter(w => {
             // Solo roles de venta
@@ -8017,7 +8019,7 @@ async function showClientDetail(id) {
     if (reassignBtn && selectorWrap) {
         reassignBtn.onclick = () => {
             selectorWrap.classList.toggle('hidden');
-            reassignBtn.textContent = selectorWrap.classList.contains('hidden') ? 'Cambiar AsignaciÃ³n' : 'Cancelar';
+            reassignBtn.textContent = selectorWrap.classList.contains('hidden') ? 'Cambiar Asignación' : 'Cancelar';
         };
     }
 
@@ -8026,7 +8028,7 @@ async function showClientDetail(id) {
             const newId = selAssigned.value;
             cli.vendedor_asignado_id = newId || null;
             await saveDB(db);
-            showToast('AsignaciÃ³n actualizada', 'success');
+            showToast('Asignación actualizada', 'success');
             
             // Refresh mini-view
             const worker = workers.find(w => w.id === newId);
@@ -8082,79 +8084,135 @@ async function showClientDetail(id) {
     const badge = document.getElementById('evidence-count-badge');
 
     if (galleryCont) {
-        galleryCont.innerHTML = '';
-
-        // Build unified gallery: id_photo + pipeline dynamic fields + archivos_adjuntos
-        const galleryItems = []; // { src, label, sublabel }
-
-        // 1. ID Photo (always first if present)
-        if (cli.id_photo) {
-            galleryItems.push({ src: cli.id_photo, label: 'Foto de IdentificaciÃ³n', sublabel: 'ID / Licencia del Cliente' });
-        }
-
-        // 2. Dynamic pipeline field answers that are images
+        // Build Projects view (replaces legacy gallery)
         const db2 = getDB();
-        const proyecto = (db2.Proyectos_Dinamicos || []).find(p => p.cliente_id === cli.id);
-        if (proyecto) {
-            const respuestas = (db2.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === proyecto.id);
-            const camposMap = {};
-            (db2.Admin_Campos_Formulario || []).forEach(c => { camposMap[c.id] = c; });
-            respuestas.forEach(r => {
-                const val = r.valor;
-                if (val && typeof val === 'string' && val.startsWith('data:image')) {
-                    const campo = camposMap[r.campo_id];
-                    const fieldLabel = campo ? campo.etiqueta : 'Documento del Pipeline';
-                    galleryItems.push({ src: val, label: fieldLabel, sublabel: 'Archivo del proceso' });
+        const pipelines = db2.Admin_Pipelines || [];
+        const fasesAll = db2.Admin_Fases || [];
+        const proyectos = (db2.Proyectos_Dinamicos || []).filter(p => p.cliente_id === cli.id);
+
+        if (proyectos.length > 0) {
+            badge.textContent = \`${proyectos.length} PROYECTOS\`;
+            
+            // Build general client documents panel
+            let generalDocsHtml = '';
+            const generalDocs = [];
+            if (cli.id_photo) generalDocs.push({ src: cli.id_photo, label: 'Foto ID' });
+            if (cli.adjunto_bill_url) generalDocs.push({ src: cli.adjunto_bill_url, label: 'Bill Eléctrico' });
+            if (cli.adjunto_seguro_url) generalDocs.push({ src: cli.adjunto_seguro_url, label: 'Póliza Seguro' });
+            (cli.archivos_adjuntos || []).forEach((src, i) => generalDocs.push({ src, label: \`Evidencia #${i+1}\` }));
+
+            if (generalDocs.length > 0) {
+                generalDocsHtml = \`
+                <div class="mb-6 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <h4 class="text-[11px] font-black uppercase text-gray-500 mb-3 flex items-center gap-2"><i class="fa-solid fa-folder"></i> Documentos Generales</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        ${generalDocs.map((doc, idx) => {
+                            const isImage = doc.src.startsWith('data:image') || doc.src.match(/\.(jpg|jpeg|png|gif|webp)/i);
+                            return \`
+                            <div class="group relative bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                                <div class="relative aspect-video">
+                                    ${isImage 
+                                      ? \`<img src="${doc.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">\`
+                                      : \`<div class="w-full h-full flex flex-col items-center justify-center bg-gray-50"><i class="fas fa-file-pdf text-2xl text-red-400"></i></div>\`
+                                    }
+                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <button onclick="window.openFilePreview('gen_${idx}','${doc.label}',{valor:'${doc.src}'})" class="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center"><i class="fas fa-expand text-[10px]"></i></button>
+                                        <a href="${doc.src}" download="${doc.label}" class="w-8 h-8 rounded-full bg-tealAccent/80 text-white flex items-center justify-center"><i class="fas fa-download text-[10px]"></i></a>
+                                    </div>
+                                </div>
+                                <p class="text-[9px] font-bold text-center py-2 text-gray-600 truncate px-2">${doc.label}</p>
+                            </div>\`;
+                        }).join('')}
+                    </div>
+                </div>\`;
+            }
+
+            const proyectosHtml = proyectos.map(p => {
+                const pip = pipelines.find(pl => pl.id === p.pipeline_id) || { nombre: 'Pipeline', color: '#0d9488' };
+                const isCompleted = p.estado === 'Completado' || p.fase_id === 'Completado';
+                let faseNom = 'Completado';
+                if (!isCompleted && p.fase_id) {
+                    const f = fasesAll.find(x => x.id === p.fase_id);
+                    if (f) faseNom = f.nombre;
                 }
-            });
-        }
 
-        // 3. Legacy archivos_adjuntos
-        (cli.archivos_adjuntos || []).forEach((src, idx) => {
-            galleryItems.push({ src, label: `Archivo #${idx + 1}`, sublabel: cli.nombre });
-        });
+                // Gather files for this project
+                const pFiles = [];
+                const respuestas = (db2.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === p.id);
+                const campos = db2.Admin_Campos_Formulario || [];
+                respuestas.forEach(r => {
+                    const c = campos.find(x => x.id === r.campo_id);
+                    if (c && c.tipo === 'Archivo' && r.valor && r.valor.startsWith('http')) {
+                        pFiles.push({ src: r.valor, label: c.etiqueta, id: r.campo_id });
+                    }
+                });
 
-        if (galleryItems.length > 0) {
-            badge.textContent = `${galleryItems.length} ARCHIVOS`;
-            galleryItems.forEach((item, idx) => {
-                const filename = `${item.label.replace(/\s+/g,'_')}_${cli.nombre.replace(/\s+/g,'_')}`;
-                const el = document.createElement('div');
-                el.className = 'group relative bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all';
-                el.style.cssText = 'cursor:pointer;';
-                el.innerHTML = `
-                    <div class="relative aspect-video overflow-hidden">
-                        <img src="${item.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="${item.label}">
-                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button class="ev-zoom" data-idx="${idx}" title="Ampliar" style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.5);color:white;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;backdrop-filter:blur(4px);">
-                                <i class="fas fa-expand"></i>
+                // Office attachments matching pipeline
+                const adj = cli.adjuntos_oficina || {};
+                const pNameLower = pip.nombre.toLowerCase();
+                if (pNameLower.includes('solar') && adj.contrato_solar_url) pFiles.push({ src: adj.contrato_solar_url, label: 'Contrato Solar' });
+                else if (pNameLower.includes('water') && adj.contrato_water_url) pFiles.push({ src: adj.contrato_water_url, label: 'Contrato Water' });
+                else if (pNameLower.includes('home') && adj.contrato_home_url) pFiles.push({ src: adj.contrato_home_url, label: 'Contrato Home' });
+                else if (adj.contrato_url) pFiles.push({ src: adj.contrato_url, label: 'Contrato (General)' });
+
+                if (adj.app_url) pFiles.push({ src: adj.app_url, label: 'Hoja de Aplicación' });
+                if (adj.orden_trabajo_url) pFiles.push({ src: adj.orden_trabajo_url, label: 'Orden de Trabajo' });
+                const rUrl = adj.recibo_url || adj.recibo_vendedor_url || adj.recibo_tecnico_url;
+                if (rUrl) pFiles.push({ src: rUrl, label: 'Recibo de Pago' });
+
+                const filesGrid = pFiles.length > 0 ? pFiles.map((f, i) => {
+                    const isImage = f.src.startsWith('data:image') || f.src.match(/\.(jpg|jpeg|png|gif|webp)/i);
+                    return \`
+                    <div class="group relative bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
+                        <div class="relative aspect-[4/3]">
+                            ${isImage 
+                              ? \`<img src="${f.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">\`
+                              : \`<div class="w-full h-full flex flex-col items-center justify-center bg-gray-50"><i class="fas fa-file-pdf text-3xl text-red-400"></i></div>\`
+                            }
+                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button onclick="window.openFilePreview('${p.id}_${i}','${f.label}',{valor:'${f.src}'})" class="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center"><i class="fas fa-expand text-[10px]"></i></button>
+                                <a href="${f.src}" download="${f.label}" class="w-8 h-8 rounded-full bg-tealAccent/80 text-white flex items-center justify-center"><i class="fas fa-download text-[10px]"></i></a>
+                            </div>
+                        </div>
+                        <div class="px-2 py-2 flex items-center justify-between border-t border-gray-100">
+                            <p class="text-[9px] font-bold text-gray-700 truncate">${f.label}</p>
+                        </div>
+                    </div>\`;
+                }).join('') : \`<p class="col-span-full text-[10px] text-gray-400 font-bold uppercase italic text-center py-4">Sin archivos en este proyecto</p>\`;
+
+                return \`
+                <div class="mb-4 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors" style="border-left: 4px solid ${pip.color}" onclick="this.nextElementSibling.classList.toggle('hidden'); const i = this.querySelector('.fa-chevron-down'); if(i) { i.style.transform = this.nextElementSibling.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)'; i.style.transition = 'transform 0.2s'; }">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-black uppercase text-gray-800 tracking-wider">${pip.nombre}</span>
+                            <span class="px-2 py-0.5 rounded bg-gray-100 text-[9px] font-bold text-gray-500 uppercase">${p.id.substring(0,8)}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] font-bold text-gray-400 uppercase">Fase:</span>
+                            <span class="px-2 py-1 rounded-full text-[10px] font-black uppercase" style="background:${isCompleted ? '#10b98115' : pip.color+'15'}; color:${isCompleted ? '#10b981' : pip.color};">${faseNom}</span>
+                            <button class="ml-2 text-gray-400 hover:text-tealAccent transition-colors">
+                                <i class="fa-solid fa-chevron-down" style="transform: rotate(180deg);"></i>
                             </button>
-                            <a href="${item.src}" download="${filename}" title="Descargar" style="width:40px;height:40px;border-radius:50%;background:rgba(13,148,136,0.8);border:1.5px solid rgba(13,148,136,0.9);color:white;display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none;backdrop-filter:blur(4px);">
-                                <i class="fas fa-download"></i>
-                            </a>
                         </div>
                     </div>
-                    <div style="padding:8px 10px;background:white;border-top:1px solid #f0f0f0;">
-                        <p style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;margin:0;">${item.label}</p>
-                        <p style="font-size:11px;font-weight:600;color:#111827;margin:0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.sublabel}</p>
+                    <div class="p-4 bg-gray-50/50">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            ${filesGrid}
+                        </div>
                     </div>
-                `;
-                el.querySelector('.ev-zoom').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.openFilePreview(`ev_${idx}`, item.label, { valor: item.src });
-                });
-                el.querySelector('img').addEventListener('click', () => {
-                    window.openFilePreview(`ev_${idx}`, item.label, { valor: item.src });
-                });
-                galleryCont.appendChild(el);
-            });
+                </div>\`;
+            }).join('');
+
+            galleryCont.innerHTML = generalDocsHtml + proyectosHtml;
+
         } else {
-            badge.textContent = `0 ARCHIVOS`;
-            galleryCont.innerHTML = `
+            badge.textContent = \`0 PROYECTOS\`;
+            galleryCont.innerHTML = \`
                 <div class="col-span-full py-20 text-center opacity-30">
-                    <i class="fa-solid fa-camera text-4xl mb-3"></i>
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em]">No hay archivos adjuntos</p>
+                    <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em]">El cliente no tiene proyectos</p>
                 </div>
-            `;
+            \`;
         }
     }
 

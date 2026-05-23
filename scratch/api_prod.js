@@ -48,10 +48,8 @@ export async function initDB() {
                         anuncios_corporativos: 'anuncios_corporativos',
                         admin_meetings: 'admin_meetings',
                         admin_meetings_reads: 'admin_meetings_reads',
-                        calendario_eventos_reads: 'calendario_eventos_reads',
                         mensajes_internos: 'mensajes_internos',
-                        calendario_eventos: 'calendario_eventos',
-                        recibos_pagos: 'Recibos_Pagos'
+                        calendario_eventos: 'calendario_eventos'
                     };
 
                     const mappedDB = {};
@@ -108,10 +106,8 @@ export async function initDB() {
           anuncios_corporativos: 'anuncios_corporativos',
           admin_meetings: 'admin_meetings',
           admin_meetings_reads: 'admin_meetings_reads',
-          calendario_eventos_reads: 'calendario_eventos_reads',
           mensajes_internos: 'mensajes_internos',
-          calendario_eventos: 'calendario_eventos',
-          recibos_pagos: 'Recibos_Pagos'
+          calendario_eventos: 'calendario_eventos'
       };
 
       const mappedData = {};
@@ -217,7 +213,7 @@ export async function initDB() {
               Admin_Pipelines: [], Admin_Fases: [], Admin_Campos_Formulario: [],
               Clientes_Maestro: [], Proyectos_Dinamicos: [], Respuestas_Dinamicas: [],
               Usuarios: [], academiaContent: [], inventarioGlobal: [], historialInventario: [],
-              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], calendario_eventos_reads: [], Admin_Proveedores: [], 
+              anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], Admin_Proveedores: [], 
               calendario_eventos: [], mensajes_internos: [],
               Counters: { cli: 0, proy: 0, resp: 0, pip: 0, fase: 0, campo: 0 }
             };
@@ -277,8 +273,7 @@ export async function saveGranular(table, records) {
       ultima_actividad_label, rol_fase, is_locked,
       direccion, nombre_cliente, telefono_cliente, email_cliente,
       email, telefono, etapa, fase_orden, total_fases,
-      zip, licencia, id_photo, 
-      contrato_url, contrato_solar_url, contrato_water_url, contrato_home_url,
+      zip, licencia, id_photo,
       ...rest 
     }) => ({
       ...rest,
@@ -331,14 +326,8 @@ export async function saveGranular(table, records) {
     // ── SIDE EFFECT: Sync Receipt Uploads to Client Profile ──
     if (table === 'respuestas_dinamicas' && records.length > 0) {
       for (const r of records) {
-        // FIX: Accept both absolute URLs (http/https) AND relative storage-proxy paths (/api/storage-proxy/...)
-        const isFileValue = r.valor && (
-          r.valor.startsWith('http') ||
-          r.valor.startsWith('data:') ||
-          r.valor.startsWith('/api/storage-proxy/') ||
-          r.valor.startsWith('/uploads/')
-        );
-        if (isFileValue) {
+        if (r.valor && (r.valor.startsWith('http') || r.valor.startsWith('data:'))) {
+           // We need to check if this field is a receipt
            const db = getDB();
            const campo = (db.Admin_Campos_Formulario || []).find(c => String(c.id) === String(r.campo_id));
            if (campo) {
@@ -348,17 +337,20 @@ export async function saveGranular(table, records) {
              
              const isReceiptLabel = label.includes('recibo') || label.includes('pago') || label.includes('comisi') || label.includes('comprobante');
              
-             // Trigger sync if: it's in the Comision phase OR the label indicates a receipt
-             if (isComisionPhase || isReceiptLabel) {
+             if (isComisionPhase || (isReceiptLabel && (label.includes('vendedor') || label.includes('tecnico') || label.includes('técnico') || label.includes('instalador')))) {
+               
                let tipo = 'tecnico'; // default
-               if (label.includes('vendedor') || label.includes('representante') || label.includes('comision vendedor') || label.includes('comisión vendedor')) {
+               if (label.includes('vendedor') || label.includes('representante') || label.includes('comisión vendedor') || label.includes('comision vendedor')) {
                    tipo = 'vendedor';
-               } else if (label.includes('tecnico') || label.includes('técnico') || label.includes('instalador')) {
+               } else if (label.includes('tecnico') || label.includes('técnico') || label.includes('instalador') || label.includes('instalación')) {
                    tipo = 'tecnico';
+               } else {
+                   // If in Comision phase but label is vague, try to guess
+                   if (label.includes('vendedor')) tipo = 'vendedor';
                }
 
-               console.log(`[API-SYNC] 📎 Recibo detectado en campo "${campo.etiqueta}" (fase: ${fase ? fase.nombre : 'N/A'}, tipo: ${tipo}). Sincronizando...`);
-               _syncReceiptToClient(r.proyecto_id, r.valor, label, tipo).catch(e => console.error('[API-SYNC] ❌ Error sincronizando recibo:', e));
+               console.log(`[API-SYNC] Detecting receipt upload in field "${campo.etiqueta}". Syncing to client...`);
+               _syncReceiptToClient(r.proyecto_id, r.valor, label, tipo).catch(e => console.error("[API-SYNC] Failed to sync receipt:", e));
              }
            }
         }
@@ -380,68 +372,52 @@ export async function saveGranular(table, records) {
  * @private
  */
 async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
-  try {
-    const db = getDB();
-    const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(projectId));
-    if (!proy) { console.warn('[API-SYNC] ⚠️ Proyecto no encontrado:', projectId); return; }
-    if (!proy.cliente_id) { console.warn('[API-SYNC] ⚠️ Proyecto sin cliente_id:', projectId); return; }
-    
-    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id));
-    if (!cli) { console.warn('[API-SYNC] ⚠️ Cliente no encontrado:', proy.cliente_id); return; }
-    
-    const isVendedor = forceTipo ? (forceTipo === 'vendedor') : label.includes('vendedor');
-
-    // ── 1. Actualizar perfil del cliente (adjuntos_oficina) ──
-    const updatedCli = { ...cli };
-    let adjuntos = updatedCli.adjuntos_oficina;
-    if (!adjuntos || typeof adjuntos !== 'object' || Array.isArray(adjuntos)) adjuntos = {};
-    else adjuntos = { ...adjuntos };
-    
-    adjuntos.recibo_url = url;
-    if (isVendedor) {
-      adjuntos.recibo_vendedor_url = url;
-      adjuntos.ultima_comision_fecha = new Date().toISOString();
-    } else {
-      adjuntos.recibo_tecnico_url = url;
-      adjuntos.ultima_instalacion_fecha = new Date().toISOString();
-    }
-    updatedCli.adjuntos_oficina = adjuntos;
-    await saveGranular('clientes_maestro', [updatedCli]);
-    console.log('[API-SYNC] ✅ adjuntos_oficina actualizado en cliente', cli.id);
-
-    // ── 2. Crear registro en Recibos_Pagos para "Mis Recibos" ──
-    // El vendedor es el responsable_id del proyecto; el técnico es tecnico_id
-    const trabajadorId = isVendedor ? proy.responsable_id : (proy.tecnico_id || proy.responsable_id);
-    const user = (db.Usuarios || []).find(u => String(u.id) === String(trabajadorId));
-    const trabajadorNom = user ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : 'Staff';
-    const clienteNom = cli.nombre || cli.nombre_completo || `Cliente ${cli.id}`;
-
-    const reciboId = `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`;
-    const newRecibo = {
-      id: reciboId,
-      proyecto_id: projectId,
-      tipo: isVendedor ? 'vendedor' : 'tecnico',
-      trabajador_id: trabajadorId || null,
-      trabajador_nombre: trabajadorNom,
-      cliente_nombre: clienteNom,
-      direccion: cli.direccion || null,
-      fecha_recibo: new Date().toISOString().split('T')[0],
-      pdf_url: url,
-      datos_json: { source: 'upload', label: label }
-    };
-
-    // Optimistic local update
-    if (db.Recibos_Pagos) {
-      const idx = db.Recibos_Pagos.findIndex(r => r.id === reciboId);
-      if (idx !== -1) db.Recibos_Pagos[idx] = { ...db.Recibos_Pagos[idx], ...newRecibo };
-      else db.Recibos_Pagos.push(newRecibo);
-    }
-
-    await saveGranular('recibos_pagos', [newRecibo]);
-    console.log(`[API-SYNC] ✅ Recibo guardado (ID: ${reciboId}) para proyecto ${projectId}, trabajador: ${trabajadorNom}`);
-  } catch(syncErr) {
-    console.error('[API-SYNC] ❌ Error en _syncReceiptToClient:', syncErr);
+  const db = getDB();
+  const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(projectId));
+  if (!proy || !proy.cliente_id) return;
+  
+  const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id));
+  if (!cli) return;
+  
+  // 1. Update Client Profile (adjuntos_oficina)
+  const updatedCli = { ...cli };
+  let adjuntos = updatedCli.adjuntos_oficina;
+  if (!adjuntos || Array.isArray(adjuntos)) adjuntos = {};
+  else adjuntos = { ...adjuntos };
+  
+  const isVendedor = forceTipo ? (forceTipo === 'vendedor') : label.includes('vendedor');
+  adjuntos.recibo_url = url;
+  if (isVendedor) {
+    adjuntos.recibo_vendedor_url = url;
+    adjuntos.ultima_comision_fecha = new Date().toISOString();
+  } else {
+    adjuntos.recibo_tecnico_url = url;
+    adjuntos.ultima_instalacion_fecha = new Date().toISOString();
   }
+  updatedCli.adjuntos_oficina = adjuntos;
+  await saveGranular('clientes_maestro', [updatedCli]);
+
+  // 2. Create/Update Recibos_Pagos record for the "Mis Recibos" screen
+  // This allows technicians and vendors to see the uploaded PDF in their history
+  const trabajadorId = isVendedor ? (proy.responsable_id || proy.vendedor_asignado_id) : proy.tecnico_id;
+  const user = db.Usuarios.find(u => u.id === trabajadorId);
+  const trabajadorNom = user ? `${user.nombre} ${user.apellido || ''}`.trim() : 'Staff';
+
+  const newRecibo = {
+    id: `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`, // Deterministic ID to avoid duplicates
+    proyecto_id: projectId,
+    tipo: isVendedor ? 'vendedor' : 'tecnico',
+    trabajador_id: trabajadorId,
+    trabajador_nombre: trabajadorNom,
+    cliente_nombre: cli.nombre,
+    direccion: cli.direccion,
+    fecha_recibo: new Date().toISOString().split('T')[0],
+    pdf_url: url,
+    datos_json: { source: 'upload', label: label }
+  };
+
+  await saveGranular('recibos_pagos', [newRecibo]);
+  console.log(`[API-SYNC] ✅ Client and Receipt history updated for ${proy.cliente_id}`);
 }
 
 export async function deleteRecord(table, id, column) {
@@ -606,7 +582,7 @@ export function getDB() {
         'Admin_Pipelines', 'Admin_Fases', 'Admin_Campos_Formulario',
         'Clientes_Maestro', 'Proyectos_Dinamicos', 'Respuestas_Dinamicas',
         'Usuarios', 'academiaContent', 'inventarioGlobal', 'historialInventario',
-        'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'calendario_eventos_reads', 'Deleted_Workers', 'calendario_eventos',
+        'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'Deleted_Workers', 'calendario_eventos',
         'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos', 'mensajes_internos'
     ];
     
@@ -975,7 +951,7 @@ export async function createAdminPipeline(nombre, color, rolesConAcceso) {
   const id = genId('pip', db);
   const roles = rolesConAcceso && rolesConAcceso.length > 0
     ? rolesConAcceso
-    : ['Representante de Ventas', 'Project Manager', 'Técnico', 'Diseñador', 'Contabilidad', 'Supervisión', 'CEO', 'Admin'];
+    : ['Representante de Ventas', 'Procesador', 'Técnico', 'Diseñador', 'Contabilidad', 'Finanzas', 'Supervisión', 'CEO', 'Admin'];
   const p = { id, nombre, icono: 'circle', color: color || '#8b5cf6', rolesConAcceso: roles };
   db.Admin_Pipelines.push(p);
   await saveDB(db); 
@@ -1518,9 +1494,7 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
       pipeline_id: pipeline.id,
       fase_id: firstFaseId,
       responsable_id: responsable_id,
-      fecha: new Date().toISOString().split('T')[0],
-      observadores: [],
-      discusion: []
+      fecha: new Date().toISOString().split('T')[0]
     };
     db.Proyectos_Dinamicos.push(newProyecto);
   } else if (existingCli) {
@@ -1780,66 +1754,6 @@ export function syncKanbanActivity({ proyecto_id, evento, campo_etiqueta, archiv
   p.ultima_actividad_label = displayLabel;
 
   if (!skipSave) saveDB(db); 
-}
-
-/**
- * Adds a user as observer to a project and logs a system message in the project's discussion.
- * Only the project's responsable or admin/CEO can call this.
- * @param {string} projectId
- * @param {object} observerUser - { id, nombre, apellido, foto }
- * @returns {Promise<object>} updated project
- */
-export async function addObserver(projectId, observerUser) {
-  const db = getDB();
-  const p = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
-  if (!p) throw new Error('Proyecto no encontrado');
-
-  const currentUser = getCurrentUser();
-  const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
-  const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
-  if (!isAdmin && !isResponsable) throw new Error('Sin permisos para agregar observadores');
-
-  if (!p.observadores) p.observadores = [];
-  if (p.observadores.some(o => o.id === observerUser.id)) return p; // already watching
-
-  p.observadores.push({
-    id: observerUser.id,
-    nombre: `${observerUser.nombre || ''} ${observerUser.apellido || ''}`.trim(),
-    foto: observerUser.foto || null,
-    added_by: currentUser?.id,
-    added_at: new Date().toISOString()
-  });
-
-  // Add system event message in project discussion
-  if (!p.discusion) p.discusion = [];
-  p.discusion.push({
-    type: 'system',
-    text: `${currentUser?.nombre || 'Alguien'} agregó a ${observerUser.nombre || ''} como observador.`,
-    date: new Date().toISOString()
-  });
-
-  await saveGranular('proyectos_dinamicos', [p]);
-  return p;
-}
-
-/**
- * Removes a user from the observers list of a project.
- */
-export async function removeObserver(projectId, observerId) {
-  const db = getDB();
-  const p = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
-  if (!p) throw new Error('Proyecto no encontrado');
-
-  const currentUser = getCurrentUser();
-  const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
-  const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
-  if (!isAdmin && !isResponsable) throw new Error('Sin permisos');
-
-  p.observadores = (p.observadores || []).filter(o => o.id !== observerId);
-  await saveGranular('proyectos_dinamicos', [p]);
-  return p;
 }
 
 export function formatDate(dateStr) {

@@ -1950,7 +1950,7 @@
                 <!-- Navigation Tabs -->
                 <div class="flex items-center px-6 bg-white border-b border-gray-100 flex-shrink-0">
                     <button class="cli-tab-btn active border-b-2 border-tealAccent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-tealAccent transition-all" data-tab="info">General Info</button>
-                    <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="evidences">Archivos Adjuntos</button>
+                    <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="evidences">Proyectos</button>
                 </div>
 
                 <div class="p-6 overflow-y-auto flex-1">
@@ -2050,69 +2050,8 @@
                 </div>
                 </div>
 
-                <!-- Tab Content: Evidences -->
+                <!-- Tab Content: Proyectos -->
                 <div id="cli-tab-evidences" class="cli-tab-content hidden transition-all duration-300">
-                    <div class="bg-white rounded-lg shadow-sm p-6 overflow-y-auto max-h-[60vh] hide-scrollbar">
-                        <!-- â•â• DOCUMENTOS PRINCIPALES â•â• -->
-                        <div class="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 class="text-lg font-medium text-[#333]">Documentación Técnica</h3>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Archivos crÃ­ticos para la aprobación del proyecto</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4 mb-8">
-                            <!-- Adjunto ID -->
-                            <div id="drop-det-adj-id" class="border-2 border-dashed border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent/40 hover:bg-tealAccent/5 transition-all min-h-[100px]" onclick="document.getElementById('inp-det-adj-id').click()">
-                                <input type="file" id="inp-det-adj-id" class="hidden" accept="image/*,.pdf">
-                                <i class="fa-solid fa-address-card text-xl text-tealAccent mb-2"></i>
-                                <span id="lbl-det-adj-id" class="text-[10px] text-gray-400 font-black uppercase text-center">Foto ID</span>
-                            </div>
-                            <!-- Adjunto Bill -->
-                            <div id="drop-det-adj-bill" class="border-2 border-dashed border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/40 hover:bg-amber-400/5 transition-all min-h-[100px]" onclick="document.getElementById('inp-det-adj-bill').click()">
-                                <input type="file" id="inp-det-adj-bill" class="hidden" accept="image/*,.pdf">
-                                <i class="fa-solid fa-bolt text-xl text-amber-500 mb-2"></i>
-                                <span id="lbl-det-adj-bill" class="text-[10px] text-gray-400 font-black uppercase text-center">Bill Eléctrico</span>
-                            </div>
-                            <!-- Adjunto Seguro -->
-                            <div id="drop-det-adj-seguro" class="border-2 border-dashed border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-purple-400/40 hover:bg-purple-400/5 transition-all min-h-[100px]" onclick="document.getElementById('inp-det-adj-seguro').click()">
-                                <input type="file" id="inp-det-adj-seguro" class="hidden" accept="image/*,.pdf">
-                                <i class="fa-solid fa-shield-heart text-xl text-purple-500 mb-2"></i>
-                                <span id="lbl-det-adj-seguro" class="text-[10px] text-gray-400 font-black uppercase text-center">Póliza Seguro</span>
-                            </div>
-                        </div>
-
-                        <!-- â•â• SECCIÓN OFICINA (SOLO ADMIN) â•â• -->
-                        <div class="bg-amber-400/5 border border-amber-400/20 rounded-2xl p-6 mb-8">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="fa-solid fa-lock text-amber-500 text-xs"></i>
-                                <h4 class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Sección Oficina</h4>
-                                <span class="text-[9px] bg-amber-400 text-white px-2 py-0.5 rounded-full font-bold ml-1">SOLO ADMIN</span>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div id="drop-det-ofi-app" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-app').click()">
-                                    <input type="file" id="inp-det-ofi-app" class="hidden" accept="image/*,.pdf">
-                                    <i class="fa-solid fa-file-signature text-amber-500 mb-1"></i>
-                                    <span id="lbl-det-ofi-app" class="text-[9px] text-amber-700 font-bold uppercase text-center">Hoja Aplicación</span>
-                                </div>
-                                <div id="drop-det-ofi-recibo" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-recibo').click()">
-                                    <input type="file" id="inp-det-ofi-recibo" class="hidden" accept="image/*,.pdf">
-                                    <i class="fa-solid fa-receipt text-amber-500 mb-1"></i>
-                                    <span id="lbl-det-ofi-recibo" class="text-[9px] text-amber-700 font-bold uppercase text-center">Recibo de Pago</span>
-                                </div>
-                                <div id="drop-det-ofi-contrato" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-contrato').click()">
-                                    <input type="file" id="inp-det-ofi-contrato" class="hidden" accept="image/*,.pdf">
-                                    <i class="fa-solid fa-file-contract text-amber-500 mb-1"></i>
-                                    <span id="lbl-det-ofi-contrato" class="text-[9px] text-amber-700 font-bold uppercase text-center">Contrato Firmado</span>
-                                </div>
-                                <div id="drop-det-ofi-orden" class="border-2 border-dashed border-amber-400/20 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-400/10 transition-all min-h-[80px]" onclick="document.getElementById('inp-det-ofi-orden').click()">
-                                    <input type="file" id="inp-det-ofi-orden" class="hidden" accept="image/*,.pdf">
-                                    <i class="fa-solid fa-file-invoice text-amber-500 mb-1"></i>
-                                    <span id="lbl-det-ofi-orden" class="text-[9px] text-amber-700 font-bold uppercase text-center">Orden de Trabajo</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- â•â• GALERÃA DE EVIDENCIAS MÓVILES â•â• -->
                         <div class="flex justify-between items-center mb-6">
                             <div>
