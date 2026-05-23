@@ -9146,8 +9146,8 @@ window.openInviteModal = function() {
             return;
         }
         
-        const platformLinkApp = "https://renewgroup.site/index.html";
-        const platformLinkAdmin = "https://renewgroup.site/admin.html";
+        const platformLinkApp = "https://renewgroup.site";
+        const platformLinkAdmin = "https://renewgroup.site";
         const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
@@ -9157,7 +9157,7 @@ Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus cred
 
 🔗 Enlace de acceso: ${mainLink}
 ✉️ Usuario: ${user.email}
-🔑 Contraseña: ${user.pass}
+🔑 Contraseña: ${user.password || user.pass || 'renew123'}
 
 Si tienes alguna duda, no dudes en contactar al administrador.
 ¡Éxitos!`;
