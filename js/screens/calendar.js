@@ -242,10 +242,21 @@ export async function renderMiCalendario() {
     },
     
     
+    
     eventContent: function(arg) {
        // El color principal viene del "estado / clasificación"
        const baseColor = arg.event.backgroundColor || '#00f5d4';
        const colabs = arg.event.extendedProps?.colaboradores || [];
+       const deptos = arg.event.extendedProps?.departamentos || [];
+       
+       let deptHtml = '';
+       if (deptos.length > 0) {
+           const colors = { 'Solar': '#84cc16', 'Home': '#fbbf24', 'Water': '#38bdf8' };
+           const c = colors[deptos[0]];
+           if (c) {
+               deptHtml = `<span title="${deptos[0]}" style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${c}; margin-left:4px; vertical-align:middle; box-shadow:0 0 2px rgba(0,0,0,0.2);"></span>`;
+           }
+       }
        
        let avatarsHtml = '';
        if (colabs && colabs.length > 0) {
@@ -279,7 +290,7 @@ export async function renderMiCalendario() {
        
        let html = `
          <div style="${bgStyle} border-left: 4px solid ${baseColor}; border-radius: 8px; padding: ${p}; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
-            <div style="font-size: ${titleSize}; font-weight: 800; color: ${titleColor}; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; margin-bottom: 2px;">${arg.event.title}</div>
+            <div style="font-size: ${titleSize}; font-weight: 800; color: ${titleColor}; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; margin-bottom: 2px;">${arg.event.title} ${deptHtml}</div>
             ${timeText}
             ${avatarsHtml}
          </div>
