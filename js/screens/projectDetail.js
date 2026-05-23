@@ -981,7 +981,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
        let textLabel = ((c.etiqueta || "").toLowerCase().includes('subir') ? c.etiqueta : `Subir ${c.etiqueta}`) + (c.es_opcional ? ' (Opcional)' : '');
 
        // A field is "done" if it has a previously saved value (any format: base64 or URL)
-       const hasFile = !!(val && val !== 'No subido' && val !== 'No provisto' && (val.startsWith('data:') || val.startsWith('http')));
+       const hasFile = !!(val && val !== 'No subido' && val !== 'No provisto' && (val.startsWith('data:') || val.startsWith('http') || val.startsWith('/api/')));
        if (hasFile) fileAnswers[c.id] = val;
 
        // Also auto-fill from client's id_photo for ID photo fields
@@ -1037,8 +1037,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           </label>
          `;
        }
-     } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Tecnico') {
-      } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante' || c.tipo === 'Recibo Tecnico') {
+     } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante' || c.tipo === 'Recibo Tecnico') {
         const isRepresentante = c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante';
         const recColor   = isRepresentante ? '#3b82f6' : '#10b981';
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
@@ -1051,7 +1050,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${recColor}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                </div>
                <span style="color:${recColor};font-size:0.85rem;font-weight:700;">Recibo Completado ✓</span>
-                               <button onclick="${val && val.startsWith('http') ? `window.open('${val}','_blank')` : `window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')`}" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">${val && val.startsWith('http') ? '👁️ Ver PDF' : 'Ver'}</button>
+                               <button onclick="${val && (val.startsWith('http') || val.startsWith('/api/')) ? `window.open('${val}','_blank')` : `window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')`}" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">${val && (val.startsWith('http') || val.startsWith('/api/')) ? '👁️ Ver PDF' : 'Ver'}</button>
              </div>
            ` : `
              <button type="button" onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')"
@@ -1117,7 +1116,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   let extraHtml = '';
   if (!isLocked) {
       if (isCreditAppPhase && !hasCreditField) {
-          const isDone = existingResp.some(r => r.valor && r.valor.startsWith('http') && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Aplicación de Crédito'));
+          const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Aplicación de Crédito'));
           if (!isDone) {
             extraHtml += `
               <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
@@ -1134,7 +1133,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           }
       }
       if (isWorkOrderPhase && !hasWorkOrderField) {
-          const isDone = existingResp.some(r => r.valor && r.valor.startsWith('http') && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo'));
+          const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo'));
           if (!isDone) {
             extraHtml += `
               <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
@@ -1154,7 +1153,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
           const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
           
-          const hasProjectResp = existingResp.some(r => r.valor && r.valor.startsWith('http') && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Contrato'));
+          const hasProjectResp = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Contrato'));
           const hasClientMetadata = !!(deal[`contrato_${prefix}_url`] || deal.contrato_url);
           const isDone = hasProjectResp || hasClientMetadata;
 
@@ -1537,7 +1536,7 @@ function _buildFormTecnico(tecnicoNom = "", clienteNom = "") {
         <span></span>
       </div>
       <div class="item-row" style="display:grid;grid-template-columns:2fr 60px 1fr 80px 20px;gap:6px;margin-bottom:8px;align-items:center;">
-        <input type="text" placeholder="Water treatment system�" style="${st}"/>
+        <input type="text" placeholder="Water treatment system" style="${st}"/>
         <input type="number" placeholder="1" value="1" style="${st}"/>
         <input type="text" placeholder="Renew City 6" style="${st}"/>
         <input type="number" placeholder="0.00" style="${st}"/>
@@ -1580,13 +1579,13 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
         if (!val || val === 'No provisto' || val === 'No subido') {
             return `<span style="color:#94a3b8;font-style:italic;font-size:0.8rem;">Sin respuesta</span>`;
         }
-        if (val.startsWith('http') && (val.includes('.pdf') || val.includes('pdf'))) {
+        if (val.match(/\.(pdf)$/i) || ((val.startsWith('http') || val.startsWith('/api/')) && val.includes('pdf'))) {
             return `<a href="${val}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}40;border-radius:8px;padding:5px 12px;font-size:0.75rem;font-weight:700;text-decoration:none;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Ver PDF
             </a>`;
         }
-        if (val.startsWith('http') && (val.match(/\.(jpg|jpeg|png|webp|gif)$/i) || val.includes('storage'))) {
+        if (val.match(/\.(jpg|jpeg|png|webp|gif)$/i) || ((val.startsWith('http') || val.startsWith('/api/')) && val.includes('storage'))) {
             return `<img src="${val}" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid var(--border);object-fit:cover;" onclick="window.open('${val}')" title="Click para ampliar">`;
         }
         if (val.startsWith('data:image')) {
