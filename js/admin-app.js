@@ -9330,24 +9330,33 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
 window.saveDynamicFields = async function(dealId, respuestas) {
     const db = getDB();
     if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
+    
+    const recordsToSave = [];
+    const validCampoIds = new Set((db.Admin_Campos_Formulario || []).map(c => String(c.id)));
+    
     Object.keys(respuestas).forEach(campoId => {
         const val = respuestas[campoId];
         if (val === undefined || val === null) return;
-        const exist = db.Respuestas_Dinamicas.find(r => r.proyecto_id === dealId && r.campo_id === campoId);
+        
+        if (!validCampoIds.has(String(campoId))) return; // Skip orphaned
+        
+        const exist = db.Respuestas_Dinamicas.find(r => r.proyecto_id === dealId && String(r.campo_id) === String(campoId));
         if (exist) {
             exist.valor = val;
+            recordsToSave.push(exist);
         } else {
-            db.Respuestas_Dinamicas.push({
+            const newRec = {
                 id: genId('resp', db),
                 proyecto_id: dealId,
                 campo_id: campoId,
                 valor: val
-            });
+            };
+            db.Respuestas_Dinamicas.push(newRec);
+            recordsToSave.push(newRec);
         }
     });
-    const validCampoIds = new Set((db.Admin_Campos_Formulario || []).map(c => c.id));
-    const misRespuestas = db.Respuestas_Dinamicas.filter(r => r.proyecto_id === dealId && validCampoIds.has(r.campo_id));
-    if (misRespuestas.length > 0) {
-        await saveGranular('respuestas_dinamicas', misRespuestas);
+    
+    if (recordsToSave.length > 0) {
+        await saveGranular('respuestas_dinamicas', recordsToSave);
     }
 };
