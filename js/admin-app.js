@@ -8089,7 +8089,7 @@ async function showClientDetail(id) {
         const proyectos = (db2.Proyectos_Dinamicos || []).filter(p => p.cliente_id === cli.id);
 
         if (proyectos.length > 0) {
-            badge.textContent = \`${proyectos.length} PROYECTOS\`;
+            badge.textContent = `${proyectos.length} PROYECTOS`;
             
             // Build general client documents panel
             let generalDocsHtml = '';
@@ -8097,21 +8097,21 @@ async function showClientDetail(id) {
             if (cli.id_photo) generalDocs.push({ src: cli.id_photo, label: 'Foto ID' });
             if (cli.adjunto_bill_url) generalDocs.push({ src: cli.adjunto_bill_url, label: 'Bill Eléctrico' });
             if (cli.adjunto_seguro_url) generalDocs.push({ src: cli.adjunto_seguro_url, label: 'Póliza Seguro' });
-            (cli.archivos_adjuntos || []).forEach((src, i) => generalDocs.push({ src, label: \`Evidencia #${i+1}\` }));
+            (cli.archivos_adjuntos || []).forEach((src, i) => generalDocs.push({ src, label: `Evidencia #${i+1}` }));
 
             if (generalDocs.length > 0) {
-                generalDocsHtml = \`
+                generalDocsHtml = `
                 <div class="mb-6 bg-gray-50 rounded-xl p-4 border border-gray-100">
                     <h4 class="text-[11px] font-black uppercase text-gray-500 mb-3 flex items-center gap-2"><i class="fa-solid fa-folder"></i> Documentos Generales</h4>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         ${generalDocs.map((doc, idx) => {
                             const isImage = doc.src.startsWith('data:image') || doc.src.match(/\.(jpg|jpeg|png|gif|webp)/i);
-                            return \`
+                            return `
                             <div class="group relative bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
                                 <div class="relative aspect-video">
                                     ${isImage 
-                                      ? \`<img src="${doc.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">\`
-                                      : \`<div class="w-full h-full flex flex-col items-center justify-center bg-gray-50"><i class="fas fa-file-pdf text-2xl text-red-400"></i></div>\`
+                                      ? `<img src="${doc.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">`
+                                      : `<div class="w-full h-full flex flex-col items-center justify-center bg-gray-50"><i class="fas fa-file-pdf text-2xl text-red-400"></i></div>`
                                     }
                                     <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                         <button onclick="window.openFilePreview('gen_${idx}','${doc.label}',{valor:'${doc.src}'})" class="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center"><i class="fas fa-expand text-[10px]"></i></button>
@@ -8119,10 +8119,10 @@ async function showClientDetail(id) {
                                     </div>
                                 </div>
                                 <p class="text-[9px] font-bold text-center py-2 text-gray-600 truncate px-2">${doc.label}</p>
-                            </div>\`;
+                            </div>`;
                         }).join('')}
                     </div>
-                </div>\`;
+                </div>`;
             }
 
             const proyectosHtml = proyectos.map(p => {
@@ -8160,12 +8160,12 @@ async function showClientDetail(id) {
 
                 const filesGrid = pFiles.length > 0 ? pFiles.map((f, i) => {
                     const isImage = f.src.startsWith('data:image') || f.src.match(/\.(jpg|jpeg|png|gif|webp)/i);
-                    return \`
+                    return `
                     <div class="group relative bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
                         <div class="relative aspect-[4/3]">
                             ${isImage 
-                              ? \`<img src="${f.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">\`
-                              : \`<div class="w-full h-full flex flex-col items-center justify-center bg-gray-50"><i class="fas fa-file-pdf text-3xl text-red-400"></i></div>\`
+                              ? `<img src="${f.src}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">`
+                              : `<div class="w-full h-full flex flex-col items-center justify-center bg-gray-50"><i class="fas fa-file-pdf text-3xl text-red-400"></i></div>`
                             }
                             <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                 <button onclick="window.openFilePreview('${p.id}_${i}','${f.label}',{valor:'${f.src}'})" class="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center"><i class="fas fa-expand text-[10px]"></i></button>
@@ -8175,10 +8175,10 @@ async function showClientDetail(id) {
                         <div class="px-2 py-2 flex items-center justify-between border-t border-gray-100">
                             <p class="text-[9px] font-bold text-gray-700 truncate">${f.label}</p>
                         </div>
-                    </div>\`;
-                }).join('') : \`<p class="col-span-full text-[10px] text-gray-400 font-bold uppercase italic text-center py-4">Sin archivos en este proyecto</p>\`;
+                    </div>`;
+                }).join('') : `<p class="col-span-full text-[10px] text-gray-400 font-bold uppercase italic text-center py-4">Sin archivos en este proyecto</p>`;
 
-                return \`
+                return `
                 <div class="mb-4 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                     <div class="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors" style="border-left: 4px solid ${pip.color}" onclick="this.nextElementSibling.classList.toggle('hidden'); const i = this.querySelector('.fa-chevron-down'); if(i) { i.style.transform = this.nextElementSibling.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)'; i.style.transition = 'transform 0.2s'; }">
                         <div class="flex items-center gap-3">
@@ -8198,19 +8198,19 @@ async function showClientDetail(id) {
                             ${filesGrid}
                         </div>
                     </div>
-                </div>\`;
+                </div>`;
             }).join('');
 
             galleryCont.innerHTML = generalDocsHtml + proyectosHtml;
 
         } else {
-            badge.textContent = \`0 PROYECTOS\`;
-            galleryCont.innerHTML = \`
+            badge.textContent = `0 PROYECTOS`;
+            galleryCont.innerHTML = `
                 <div class="col-span-full py-20 text-center opacity-30">
                     <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
                     <p class="text-[10px] font-black uppercase tracking-[0.2em]">El cliente no tiene proyectos</p>
                 </div>
-            \`;
+            `;
         }
     }
 
