@@ -974,7 +974,7 @@ export async function createAdminPipeline(nombre, color, rolesConAcceso) {
   const id = genId('pip', db);
   const roles = rolesConAcceso && rolesConAcceso.length > 0
     ? rolesConAcceso
-    : ['Representante de Ventas', 'Procesador', 'Técnico', 'Diseñador', 'Contabilidad', 'Finanzas', 'Supervisión', 'CEO', 'Admin'];
+    : ['Representante de Ventas', 'Project Manager', 'Técnico', 'Diseñador', 'Contabilidad', 'Supervisión', 'CEO', 'Admin'];
   const p = { id, nombre, icono: 'circle', color: color || '#8b5cf6', rolesConAcceso: roles };
   db.Admin_Pipelines.push(p);
   await saveDB(db); 

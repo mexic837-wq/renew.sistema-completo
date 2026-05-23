@@ -2156,11 +2156,11 @@ function bindGlobalEvents() {
 
   // â”€â”€ Edit Pipeline Roles (pencil icon) â”€â”€
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
-  const ROLES_LIST = ['Call Center', 'Vendedor', 'Procesador', 'TÃ©cnico', 'DiseÃ±ador', 'Contabilidad', 'Finanzas', 'SupervisiÃ³n', 'CEO', 'Admin'];
+  const ROLES_LIST = ['Call Center', 'Vendedor', 'Project Manager', 'TÃ©cnico', 'DiseÃ±ador', 'Contabilidad', 'SupervisiÃ³n', 'CEO', 'Admin'];
   const ROLE_ICONS_MAP = {
     'Call Center': 'fa-headset',
-    'Vendedor': 'fa-handshake', 'Procesador': 'fa-gears', 'TÃ©cnico': 'fa-screwdriver-wrench',
-    'DiseÃ±ador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator', 'Finanzas': 'fa-coins',
+    'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'TÃ©cnico': 'fa-screwdriver-wrench',
+    'DiseÃ±ador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator': 'fa-coins',
     'SupervisiÃ³n': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
   };
 
@@ -4704,7 +4704,7 @@ window.renderView = async function renderView() {
         const anunciosHtml = sortedAnuncios.map(an => {
           const getTagBadge = (tag) => {
               if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
-              const roles = ['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Procesador', 'SupervisiÃ³n', 'CEO'];
+              const roles = ['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'];
               if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
               return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
           };
@@ -4772,7 +4772,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Procesador', 'SupervisiÃ³n', 'CEO'].map(r => `
+                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
@@ -4903,7 +4903,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Procesador', 'SupervisiÃ³n', 'CEO'].map(r => `
+                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
@@ -6050,11 +6050,11 @@ function renderConstructor() {
                 <select class="sel-fase-rol bg-transparent border-none text-[9px] font-black text-gray-400 dark:text-gray-500 p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors uppercase tracking-[0.05em]" data-faseid="${f.id}">
                   <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
                   <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Vendedor</option>
-                  <option value="Procesador" ${f.rol_encargado === 'Procesador' ? 'selected' : ''}>Procesador</option>
+                  <option value="Project Manager" ${f.rol_encargado === 'Project Manager' ? 'selected' : ''}>Project Manager</option>
                   <option value="TÃ©cnico" ${f.rol_encargado === 'TÃ©cnico' ? 'selected' : ''}>TÃ©cnico</option>
                   <option value="DiseÃ±ador" ${f.rol_encargado === 'DiseÃ±ador' ? 'selected' : ''}>DiseÃ±ador</option>
                   <option value="Contabilidad" ${f.rol_encargado === 'Contabilidad' ? 'selected' : ''}>Contabilidad</option>
-                  <option value="Finanzas" ${f.rol_encargado === 'Finanzas' ? 'selected' : ''}>Finanzas</option>
+                  
                   <option value="SupervisiÃ³n" ${f.rol_encargado === 'SupervisiÃ³n' ? 'selected' : ''}>SupervisiÃ³n</option>
                   <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Admin</option>
                   <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
