@@ -1717,7 +1717,7 @@ body.no-nav #bottom-nav {
     gap: 32px !important;
     padding: 40px 64px 100px !important;
     align-items: start !important;
-    max-width: 1200px !important;
+    max-width: 1500px !important;
     margin: 0 auto !important;
   }
 }
