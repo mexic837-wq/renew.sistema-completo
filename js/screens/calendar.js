@@ -319,8 +319,7 @@ export async function renderMiCalendario() {
           return hasColab || hasAttendee;
         });
 
-        const mapped = [];
-        userEvents.forEach(ev => {
+        const mapped = userEvents.map(ev => {
           const normalizedColab = (ev.colaboradores || []).map(c => {
             if (typeof c === 'string') {
               try { return JSON.parse(c); } catch(e) { return {}; }
@@ -332,73 +331,21 @@ export async function renderMiCalendario() {
             'Verde': '#4caf50', 'Amarillo': '#ffb300', 'Rojo': '#d32f2f', 'Azul': '#1e88e5', 'Naranja': '#ffb300'
           };
           
-          let startStr = ev.fecha_inicio;
-          let endStr = ev.fecha_fin;
-          if (!endStr && startStr) {
-             const d = new Date(startStr);
-             d.setHours(d.getHours() + 1);
-             endStr = d.toISOString();
-          }
-
-          const startDate = new Date(startStr);
-          const endDate = new Date(endStr);
-          
-          // Helper to check if same day
-          const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-
-          const mappedColor = colorMap[ev.color] || '#00f5d4';
-          const textColor = (ev.color === 'Amarillo' || ev.color === 'Hold') ? '#000' : '#fff';
-
-          if (!isSameDay(startDate, endDate)) {
-            let current = new Date(startDate);
-            while (current <= endDate) {
-              const dayStart = new Date(current);
-              dayStart.setHours(0,0,0,0);
-              const dayEnd = new Date(current);
-              dayEnd.setHours(23,59,59,999);
-
-              mapped.push({
-                id: ev.id + '_' + current.getTime(),
-                title: ev.nombre,
-                start: isSameDay(current, startDate) ? startStr : dayStart.toISOString(),
-                end: isSameDay(current, endDate) ? endStr : dayEnd.toISOString(),
-                backgroundColor: mappedColor,
-                textColor: textColor,
-                borderColor: 'transparent',
-                display: 'block', // Forzar modo bloque
-                allDay: !isSameDay(current, startDate),
-                extendedProps: {
-                  originalId: ev.id,
-                  real_end: ev.fecha_fin,
-                  direccion: ev.direccion,
-                  description: ev.descripcion,
-                  color: ev.color,
-                  colaboradores: normalizedColab,
-                  departamentos: ev.departamentos || []
-                }
-              });
-              current.setDate(current.getDate() + 1);
+          return {
+            id: ev.id,
+            title: ev.nombre,
+            start: ev.fecha_inicio,
+            backgroundColor: colorMap[ev.color] || '#00f5d4',
+            borderColor: 'transparent',
+            extendedProps: {
+              real_end: ev.fecha_fin,
+              direccion: ev.direccion,
+              description: ev.descripcion,
+              color: ev.color,
+              colaboradores: normalizedColab,
+              departamentos: ev.departamentos || []
             }
-          } else {
-            mapped.push({
-              id: ev.id,
-              title: ev.nombre,
-              start: startStr,
-              end: endStr,
-              backgroundColor: mappedColor,
-              textColor: textColor,
-              borderColor: 'transparent',
-              display: 'block',
-              extendedProps: {
-                real_end: ev.fecha_fin,
-                direccion: ev.direccion,
-                description: ev.descripcion,
-                color: ev.color,
-                colaboradores: normalizedColab,
-                departamentos: ev.departamentos || []
-              }
-            });
-          }
+          };
         });
         successCallback(mapped);
       } catch (error) { failureCallback(error); }
@@ -409,27 +356,7 @@ export async function renderMiCalendario() {
     },
     height: 'auto',
     themeSystem: 'standard',
-    eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' },
-    eventDidMount: function(arg) {
-       const legacyColor = arg.event.backgroundColor || '#00f5d4';
-       const deptos = arg.event.extendedProps.departamentos || [];
-       if (deptos.length > 0) {
-           const colors = { 'Solar': '#84cc16', 'Home': '#fbbf24', 'Water': '#38bdf8' };
-           const c = deptos.map(d => colors[d]).filter(Boolean);
-           if (c.length === 1) {
-               arg.el.style.background = c[0];
-           } else if (c.length === 2) {
-               arg.el.style.background = `linear-gradient(90deg, ${c[0]} 50%, ${c[1]} 50%)`;
-           } else if (c.length >= 3) {
-               arg.el.style.background = `linear-gradient(90deg, ${c[0]} 33.33%, ${c[1]} 33.33%, ${c[1]} 66.66%, ${c[2]} 66.66%)`;
-           }
-           arg.el.style.borderLeft = `4px solid ${legacyColor}`;
-           
-           // Ensure internal text elements inherit white for contrast
-           const mainEl = arg.el.querySelector('.fc-event-main');
-           if (mainEl) mainEl.style.color = '#fff';
-       }
-    }
+    eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' }
   });
 
   calendar.render();
