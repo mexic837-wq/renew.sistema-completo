@@ -143,6 +143,10 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
   const dbFull = getDB();
   const allWorkers = dbFull.Usuarios || [];
 
+  const assigneeId = deal.asignado_a || deal.responsable_id;
+  const assigneeUser = allWorkers.find(w => w.id === assigneeId);
+  const assigneeName = assigneeUser ? `${assigneeUser.nombre} ${assigneeUser.apellido || ''}`.trim() : 'Sin asignar';
+
   const observadores = Array.isArray(deal.observadores) ? deal.observadores : [];
   const obsHtml = observadores.map(o => {
       const oi = ((o.nombre || '?')[0]).toUpperCase();
@@ -202,6 +206,44 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
       ` : ''}
 
       <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
+          <div style="display:flex; flex-direction:column; gap:4px; grid-column: 1 / -1;">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Descripción</span>
+            <span style="font-size:0.85rem; font-weight:500; color:var(--text-primary); line-height:1.4">${deal.descripcion || '<span class="italic text-gray-400">Sin descripción</span>'}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Asignado a</span>
+            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px"><i class="fa-solid fa-user-circle text-gray-300"></i> ${assigneeName}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Proyecto</span>
+            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px"><span class="w-2 h-2 rounded-full inline-block" style="background:${pipeline.color}"></span> ${pipeline.nombre}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Creado el</span>
+            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${new Date(deal.fecha || Date.now()).toLocaleDateString()}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Fecha Límite</span>
+            <input type="date" id="pd-deadline-input" value="${deal.fecha_finalizacion ? deal.fecha_finalizacion.substring(0,10) : ''}" class="bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 transition-colors" style="font-size:0.85rem; max-width:140px;" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; grid-column: 1 / -1; margin-top:8px; border-top:1px dashed var(--border); padding-top:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Observadores</span>
+                ${canManageObservers ? `
+                <button id="btn-manage-obs" style="background:transparent; border:none; color:${pipeline.color}; font-size:0.75rem; font-weight:700; cursor:pointer;">
+                    <i class="fa-solid fa-plus mr-1"></i> Añadir
+                </button>` : ''}
+            </div>
+            <div style="display:flex; align-items:center; gap:4px; padding-left:8px;">
+                ${obsHtml || `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">No hay observadores</span>`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card slide-in-bottom" style="margin-top:24px; padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>
         <div style="display:flex; flex-direction:column; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
           <div style="display:flex; flex-direction:column; gap:4px">
@@ -236,16 +278,6 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
                    Atención Req.
                 </label>
             </div>
-            <!-- Observers list -->
-            <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between;">
-                <div style="display:flex; align-items:center; padding-left:8px;">
-                    ${obsHtml || `<span style="font-size:0.7rem;color:var(--text-muted);">Solo involucrados</span>`}
-                </div>
-                ${canManageObservers ? `
-                <button id="btn-manage-obs" style="background:transparent; border:1px solid var(--border); color:var(--text-primary); padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:700;">
-                    <i class="fa-solid fa-users mr-1"></i> Invitar
-                </button>` : ''}
-            </div>
         </div>
         
         <!-- Messages -->
@@ -266,6 +298,36 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
 
   const backBtn2 = document.getElementById('pd-back-btn2');
   if (backBtn2) backBtn2.addEventListener('click', () => navigate('dashboard'));
+
+  // Deadline logic
+  const deadlineInput = document.getElementById('pd-deadline-input');
+  if (deadlineInput && isAdmin) {
+      deadlineInput.addEventListener('change', async (e) => {
+          const newDate = e.target.value;
+          try {
+              const { saveGranular } = await import('../api.js');
+              deal.fecha_finalizacion = newDate ? new Date(newDate + 'T12:00:00').toISOString() : null;
+              await saveGranular('proyectos_dinamicos', [deal]);
+              
+              const { showToast } = await import('../components/toast.js');
+              showToast('Fecha límite actualizada', 'success');
+              
+              // Also sync kanban activity
+              const { syncKanbanActivity } = await import('../api.js');
+              syncKanbanActivity({
+                  proyecto_id: deal.id,
+                  evento: 'FECHA_LIMITE_ACTUALIZADA',
+                  responsable_id: currentUser?.id,
+                  fase_nombre: deal.etapa
+              });
+          } catch(err) {
+              console.error(err);
+              e.target.value = deal.fecha_finalizacion ? deal.fecha_finalizacion.substring(0,10) : '';
+              const { showToast } = await import('../components/toast.js');
+              showToast('Error al actualizar: ' + err.message, 'error');
+          }
+      });
+  }
 
   // Observers modal logic
   const btnManageObs = document.getElementById('btn-manage-obs');
