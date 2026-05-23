@@ -7109,11 +7109,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   // Combine dynamic file responses with fixed office attachments
   const fileRespuestas = respuestas.filter(r => {
-    const campo = campos.find(c => c.id === r.campo_id);
+    const campo = campos.find(c => String(c.id) === String(r.campo_id));
     return campo && campo.tipo === 'Archivo' && r.valor && (r.valor.startsWith('data:') || r.valor.startsWith('http'));
   });
   const combinedFiles = [...fileRespuestas.map(r => {
-      const campo = campos.find(c => c.id === r.campo_id);
+      const campo = campos.find(c => String(c.id) === String(r.campo_id));
       return { url: r.valor, etiqueta: campo?.etiqueta || 'Archivo', id: r.campo_id };
   })];
   
@@ -7345,11 +7345,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             }
           } else {
             const requiredCampos = phaseCampos.filter(c => !c.es_opcional);
-            const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+            const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => String(c.id) === String(r.campo_id)) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
             const isComplete = numRequiredFilled >= requiredCampos.length;
 
             const inputsHtml = phaseCampos.map(c => {
-              const saved = respuestas.find(r => r.campo_id === c.id);
+              const saved = respuestas.find(r => String(r.campo_id) === String(c.id));
               const val = saved ? saved.valor : '';
               let fieldHtml = '';
               
@@ -7466,7 +7466,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   
   // Store file data for preview access
   window._kanbanFileCache = {};
-  fileRespuestas.forEach(r => { window._kanbanFileCache[r.campo_id] = { valor: r.valor, campo: campos.find(c => c.id === r.campo_id) }; });
+  fileRespuestas.forEach(r => { window._kanbanFileCache[r.campo_id] = { valor: r.valor, campo: campos.find(c => String(c.id) === String(r.campo_id)) }; });
 
   // Close handlers
   const closeDrawer = () => {
