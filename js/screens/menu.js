@@ -232,7 +232,7 @@ function mostrarModalNotificaciones(user) {
 }
 
 function mostrarModalCuenta(user) {
-  const avatar = user.foto || 'assets/images/default-avatar.png';
+  const avatar = user.foto || user.photo || user.avatar_url || 'assets/images/default-avatar.png';
   const rank = user.rango || 'Novato';
   
   const modal = document.createElement('div');

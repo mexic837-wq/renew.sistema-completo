@@ -30,7 +30,7 @@ import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
 import { renderAcademy }    from './screens/academy.js';
-import { renderMenu }       from './screens/menu.js';
+import { renderMenu }       from './screens/menu.js?v=2';
 import { renderInventoryTech } from './screens/inventory.js';
 import { renderClients } from './screens/clients.js';
 import { renderCallCenter } from './screens/callCenter.js';
