@@ -8206,6 +8206,9 @@ async function showClientDetail(id) {
                         <div class="flex items-center gap-2">
                             <span class="text-[9px] font-bold text-gray-400 uppercase">Fase:</span>
                             <span class="px-2 py-1 rounded-full text-[10px] font-black uppercase" style="background:${isCompleted ? '#10b98115' : pip.color+'15'}; color:${isCompleted ? '#10b981' : pip.color};">${faseNom}</span>
+                            <button onclick="event.stopPropagation(); window.openKanbanDrawer('${p.id}');" class="ml-2 px-3 py-1.5 bg-tealAccent text-black rounded-lg text-[9px] font-black uppercase shadow-sm hover:bg-tealAccent/80 transition-colors flex items-center gap-1">
+                                <i class="fas fa-external-link-alt"></i> Ver Proyecto
+                            </button>
                             <button class="ml-2 text-gray-400 hover:text-tealAccent transition-colors">
                                 <i class="fa-solid fa-chevron-down" style="transform: rotate(180deg);"></i>
                             </button>
