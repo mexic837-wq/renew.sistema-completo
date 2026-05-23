@@ -429,7 +429,7 @@ window.handleGlobalAdd = async () => {
     }
     else if (curView === 'proveedores') {
       const title = document.getElementById('modal-partner-title');
-      if(title) title.textContent = 'AÃ±adir Partner / Proveedor';
+      if(title) title.textContent = 'Añadir Partner / Proveedor';
       if(document.getElementById('inp-partner-id')) document.getElementById('inp-partner-id').value = '';
       if(document.getElementById('inp-partner-empresa')) document.getElementById('inp-partner-empresa').value = '';
       if(document.getElementById('inp-partner-contacto')) document.getElementById('inp-partner-contacto').value = '';
@@ -3775,25 +3775,25 @@ window.renderView = async function renderView() {
         const s = (u.servicio || 'General').toLowerCase();
         
         if (s === 'fence') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">ðŸŸ© ${t('partner_cat_fence')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">🚧 ${t('partner_cat_fence')}</span>`;
         } else if (s === 'roofing' || s === 'roof') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">ðŸŸ¦ ${t('partner_cat_roofing')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">🏠 ${t('partner_cat_roofing')}</span>`;
         } else if (s === 'solar') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">ðŸŸ§ ${t('partner_cat_solar')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">☀️ ${t('partner_cat_solar')}</span>`;
         } else if (s === 'hvac' || s === 'aire') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">â„ï¸ ${t('partner_cat_hvac')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">❄️ ${t('partner_cat_hvac')}</span>`;
         } else if (s === 'painting' || s === 'pintura') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">ðŸŽ¨ ${t('partner_cat_painting')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">🎨 ${t('partner_cat_painting')}</span>`;
         } else if (s === 'remodelacion') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20">ðŸ—ï¸ ${t('partner_cat_remodelacion')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20">🛠️ ${t('partner_cat_remodelacion')}</span>`;
         } else if (s === 'dumpsters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20">ðŸ—‘ï¸ ${t('partner_cat_dumpsters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20">🗑️ ${t('partner_cat_dumpsters')}</span>`;
         } else if (s === 'gutters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20">ðŸŒ§ï¸ ${t('partner_cat_gutters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20">🌧️ ${t('partner_cat_gutters')}</span>`;
         } else if (s === 'screens') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">ðŸªŸ ${t('partner_cat_screens')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">🪟 ${t('partner_cat_screens')}</span>`;
         } else {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">âš™ï¸ ${t('partner_cat_general')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">⚙️ ${t('partner_cat_general')}</span>`;
         }
 
         return `
