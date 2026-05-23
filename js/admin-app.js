@@ -3012,7 +3012,7 @@ window.renderView = async function renderView() {
   } 
   else if (state.activeView === 'lista-precios') {
     UI.viewTitle.textContent = "Lista de Precios - Renew Water";
-    UI.viewDesc.textContent = "Gestiona los productos, categorÃ­as y precios por rango para Renew Water.";
+    UI.viewDesc.textContent = "Gestiona los productos, categorías y precios por rango para Renew Water.";
     setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> Nuevo Producto`);
     renderListaPreciosAdmin();
   }
@@ -3326,7 +3326,7 @@ window.renderView = async function renderView() {
     }
   } else if (state.activeView === 'hrhub') {
     if (UI.viewTitle) UI.viewTitle.textContent = "HR Hub";
-    if (UI.viewDesc) UI.viewDesc.textContent = "Centro de RRHH - GestiÃ³n de Talento y Onboarding";
+    if (UI.viewDesc) UI.viewDesc.textContent = "Centro de RRHH - Gestión de Talento y Onboarding";
     setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator'); 
     await renderHRHub();
   } else if (state.activeView === 'mapa-admin') {
@@ -3666,7 +3666,7 @@ window.renderView = async function renderView() {
     }, 300);
   } else if (state.activeView === 'calendario') {
     UI.viewTitle.innerHTML = '<i class="fa-solid fa-calendar-days text-tealAccent"></i> Calendario Maestro';
-    UI.viewDesc.textContent = 'GestiÃ³n y sincronizaciÃ³n en tiempo real con Google Calendar.';
+    UI.viewDesc.textContent = 'Gestión y sincronización en tiempo real con Google Calendar.';
     setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> AÃ±adir Evento');
     renderCalendario();
   } else if (state.activeView === 'usuarios' || state.activeView === 'equipo') {
@@ -7685,7 +7685,7 @@ function _showContractSelectorModal(contracts) {
                 }).join('')}
             </div>
             <div style="padding:16px 24px; background:rgba(0,0,0,0.2); text-align:center;">
-                <p style="color:#334155; font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Sistema de GestiÃ³n de Contratos Â© Renew</p>
+                <p style="color:#334155; font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Sistema de Gestión de Contratos - Renew</p>
             </div>
         </div>
     `;
@@ -8767,7 +8767,7 @@ async function renderListaPreciosAdmin() {
     <div class="max-w-7xl mx-auto animate-fadeIn">
       <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
           <div class="flex flex-col gap-3">
-              <h2 class="text-xl font-black text-white uppercase tracking-tighter">GestiÃ³n de Precios</h2>
+              <h2 class="text-xl font-black text-white uppercase tracking-tighter">Gestión de Precios</h2>
               <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
                  ${Object.entries(rankLabels).map(([key, label]) => `
                     <button class="precios-rank-tab px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
@@ -8798,7 +8798,7 @@ async function renderListaPreciosAdmin() {
               <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
                   <tr>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">FOTO</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">CATEGORÃA</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">CATEGORÍA</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRODUCTO</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">SPECS</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRECIO ${rankLabels[activeRank].toUpperCase()}</th>
