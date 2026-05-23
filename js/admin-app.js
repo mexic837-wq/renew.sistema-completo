@@ -9287,6 +9287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
 window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
     if (!inputEl.files || inputEl.files.length === 0) return;
     const file = inputEl.files[0];
@@ -9297,13 +9298,10 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
         label.innerText = 'Subiendo...';
         label.style.opacity = '0.7';
         
-        // Asumiendo que la funcion uploadFile de api.js esta disponible globalmente o exportada
-        // En admin-app.js se suele importar o usar uploadFile
         let fileUrl = '';
         if (typeof uploadFile === 'function') {
             fileUrl = await uploadFile(file, 'documents');
         } else {
-            // Fallback base64 temporal si uploadFile falla
             fileUrl = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
@@ -9314,23 +9312,24 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
         
         if (!fileUrl) throw new Error("No URL generated");
         
-        await saveDynamicFields(projectId, { [campoId]: fileUrl });
+        await window.saveDynamicFields(projectId, { [campoId]: fileUrl });
         showToast('Archivo subido con éxito', 'success');
         
         if (window.openKanbanDrawer && window._currentDrawerPhaseId !== undefined) {
              window.openKanbanDrawer(projectId, window._currentDrawerPhaseId);
         }
     } catch(e) {
-        console.error("Upload error:", e);
+        console.error("Upload error detallado:", e);
+        alert('Error al subir: ' + e.message);
         showToast('Error al subir archivo', 'error');
         label.innerText = originalText;
         label.style.opacity = '1';
     }
 };
 
-
 window.saveDynamicFields = async function(dealId, respuestas) {
     const db = getDB();
+    if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
     Object.keys(respuestas).forEach(campoId => {
         const val = respuestas[campoId];
         if (val === undefined || val === null) return;
@@ -9347,7 +9346,7 @@ window.saveDynamicFields = async function(dealId, respuestas) {
         }
     });
     const validCampoIds = new Set((db.Admin_Campos_Formulario || []).map(c => c.id));
-    const misRespuestas = (db.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === dealId && validCampoIds.has(r.campo_id));
+    const misRespuestas = db.Respuestas_Dinamicas.filter(r => r.proyecto_id === dealId && validCampoIds.has(r.campo_id));
     if (misRespuestas.length > 0) {
         await saveGranular('respuestas_dinamicas', misRespuestas);
     }
