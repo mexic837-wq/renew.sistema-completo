@@ -7354,7 +7354,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               let fieldHtml = '';
               
               if (c.tipo === 'Archivo') {
-                const hasFile = val && (val.startsWith('data:') || val.startsWith('http'));
+                const hasFile = val && (val.startsWith('data:') || val.startsWith('http') || val.startsWith('/api/') || val.startsWith('/uploads/') || val.includes('/'));
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
