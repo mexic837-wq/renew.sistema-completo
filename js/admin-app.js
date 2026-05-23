@@ -8080,8 +8080,6 @@ async function showClientDetail(id) {
     }
 
     // --- GALLERY & TABS ---
-    const galleryCont = document.getElementById('cli-evidence-gallery');
-    const badge = document.getElementById('evidence-count-badge');
 
     if (galleryCont) {
         // Build Projects view (replaces legacy gallery)
