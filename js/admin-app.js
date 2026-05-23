@@ -7025,6 +7025,52 @@ function updateSidebarUser() {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  KANBAN PROJECT DETAIL DRAWER
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function renderDiscussionHTML(discusion, pipelineColor) {
+    if (!discusion) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>';
+    let arr = discusion;
+    if (typeof arr === 'string') {
+        try { arr = JSON.parse(arr); } catch(e) { return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>'; }
+    }
+    if (!Array.isArray(arr) || arr.length === 0) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>';
+    
+    let lastDateLabel = '';
+    return arr.map(c => {
+        if (c.type === 'system') {
+            return `<div style="text-align:center;margin:8px 0;"><span style="display:inline-block;background:var(--surface);color:var(--text-muted);font-size:0.65rem;font-weight:700;padding:4px 12px;border-radius:99px;">${c.text}</span></div>`;
+        }
+        
+        const dateObj = new Date(c.date);
+        const dateLabel = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+        let dateSeparator = '';
+        if (dateLabel !== lastDateLabel) {
+            lastDateLabel = dateLabel;
+            dateSeparator = `<div style="text-align:center;margin:12px 0 8px;"><span style="display:inline-block;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.05);color:#64748b;font-size:0.65rem;font-weight:800;padding:3px 12px;border-radius:99px;text-transform:capitalize;">${dateLabel}</span></div>`;
+        }
+        
+        const isMe = getCurrentUser()?.id === c.user_id;
+        const initials = ((c.user || '?')[0]).toUpperCase();
+        const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const avatar = `<div style="width:28px;height:28px;border-radius:50%;background:${pipelineColor}20;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:${pipelineColor};flex-shrink:0;overflow:hidden;">
+            ${c.foto ? `<img src="${c.foto}" style="width:100%;height:100%;object-fit:cover;" />` : initials}
+        </div>`;
+        
+        const msgBubble = `
+        <div style="display:flex;align-items:flex-start;gap:8px;max-width:85%;${isMe ? 'flex-direction:row-reverse;margin-left:auto;' : ''}">
+            ${avatar}
+            <div style="display:flex;flex-direction:column;${isMe ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
+                <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;${isMe ? 'flex-direction:row-reverse;' : ''}">
+                    <span style="font-size:0.7rem;font-weight:800;color:#0f172a;">${isMe ? 'Tú' : c.user}</span>
+                    <span style="font-size:0.6rem;color:#64748b;">${time}</span>
+                </div>
+                <div style="background:${isMe ? pipelineColor : 'white'};color:${isMe ? 'white' : '#0f172a'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1);${!isMe ? 'border:1px solid #e2e8f0;' : ''}">${c.text}</div>
+            </div>
+        </div>`;
+        
+        return dateSeparator + msgBubble;
+    }).join('');
+}
+
 function openKanbanDrawer(projectId, targetPhaseId = null) {
   window.openKanbanDrawer = openKanbanDrawer;
   const db = getDB();
@@ -7043,13 +7089,29 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const campos = db.Admin_Campos_Formulario || [];
   const respuestas = (db.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === p.id);
 
-  // Build file gallery: file-type fields with real base64 data or URLs
+  const currentUser = getCurrentUser();
+  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((currentUser?.rol || '').toLowerCase());
+  const isResponsable = currentUser?.id === p.responsable_id;
+  const canManageObservers = isAdmin || isResponsable;
+  
+  const allWorkers = db.Usuarios || [];
+  const observadores = Array.isArray(p.observadores) ? p.observadores : [];
+
+  const obsHtml = observadores.map(o => {
+      const oi = ((o.nombre || '?')[0]).toUpperCase();
+      return `<div class="flex items-center gap-2 mb-2">
+        <div title="${o.nombre}" style="width:24px;height:24px;border-radius:50%;background:${pipeline.color}20;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:900;color:${pipeline.color};overflow:hidden;">
+            ${o.foto ? `<img src="${o.foto}" style="width:100%;height:100%;object-fit:cover;" />` : oi}
+        </div>
+        <span class="text-[11px] text-gray-600 font-medium">${o.nombre}</span>
+      </div>`;
+  }).join('');
+
+  // Combine dynamic file responses with fixed office attachments
   const fileRespuestas = respuestas.filter(r => {
     const campo = campos.find(c => c.id === r.campo_id);
     return campo && campo.tipo === 'Archivo' && r.valor && (r.valor.startsWith('data:') || r.valor.startsWith('http'));
   });
-
-    // Combine dynamic file responses with fixed office attachments
   const combinedFiles = [...fileRespuestas.map(r => {
       const campo = campos.find(c => c.id === r.campo_id);
       return { url: r.valor, etiqueta: campo?.etiqueta || 'Archivo', id: r.campo_id };
@@ -7069,66 +7131,25 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         const etiqueta = (f.etiqueta || 'Archivo').replace(/'/g, "\\'");
         const filename = etiqueta.replace(/\s+/g, '_');
         return `
-          <div class="group relative">
+          <div class="group relative bg-white p-2 rounded-lg border border-gray-200">
             ${isImage
-              ? `<div class="w-full aspect-video rounded-xl overflow-hidden border-2 border-gray-100 dark:border-white/10 group-hover:border-tealAccent transition-all shadow-sm relative">
-                  <img src="${f.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <!-- Action buttons overlay -->
-                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                    <button
-                      onclick="window.openFilePreview('${f.id}', '${etiqueta}')"
-                      style="background:rgba(255,255,255,0.95);color:#0f172a;border:none;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:transform 0.15s;"
-                      title="Ver en pantalla completa"
-                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                      <i class="fas fa-expand" style="font-size:14px;"></i>
-                    </button>
-                    <a
-                      href="${f.url}"
-                      download="${filename}"
-                      style="background:rgba(13,148,136,0.95);color:white;text-decoration:none;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:transform 0.15s;"
-                      title="Descargar imagen"
-                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                      <i class="fas fa-download" style="font-size:13px;"></i>
-                    </a>
-                  </div>
+              ? `<div class="w-full h-16 rounded overflow-hidden relative">
+                  <img src="${f.url}" class="w-full h-full object-cover" />
+                  <button onclick="window.openFilePreview('${f.id}', '${etiqueta}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-eye text-white"></i></button>
                 </div>`
-              : `<div class="w-full aspect-video rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 group-hover:border-tealAccent transition-all flex flex-col items-center justify-center gap-2 bg-gray-50 dark:bg-white/5 relative">
-                  <i class="fas fa-file-pdf text-4xl text-red-400"></i>
-                  <span class="text-[10px] font-bold text-gray-500 text-center px-2 truncate w-full">${etiqueta} PDF</span>
-                  <a href="${f.url}" target="_blank" download="${filename}" class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style="background:#ef4444;color:white;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:4px;">
-                    <i class="fas fa-download"></i> Ver PDF
-                  </a>
+              : `<div class="w-full h-16 rounded border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 relative">
+                  <i class="fas fa-file-pdf text-red-400 text-xl"></i>
+                  <a href="${f.url}" target="_blank" download="${filename}" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-download text-white"></i></a>
                 </div>`
             }
-            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-1.5 text-center truncate">${f.etiqueta}</p>
+            <p class="text-[9px] font-bold text-gray-500 mt-1 truncate" title="${f.etiqueta}">${f.etiqueta}</p>
           </div>
         `;
       }).join('')
-    : `<div class="col-span-2 py-8 text-center">
-        <i class="fas fa-images text-3xl text-gray-200 dark:text-white/10 mb-2 block"></i>
-        <p class="text-xs text-gray-400 dark:text-gray-600">No hay archivos subidos aÃºn</p>
-       </div>`;
+    : `<div class="col-span-3 py-4 text-center text-xs text-gray-400">Sin archivos</div>`;
 
-  // Activity log
-  const actividadHtml = (p.actividad && p.actividad.length > 0)
-    ? p.actividad.map(a => `
-        <div class="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-white/5 last:border-0">
-          <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs
-            ${a.tipo === 'ARCHIVO_SUBIDO' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' : 'bg-tealAccent/10 text-tealAccent'}">
-            <i class="fas ${a.tipo === 'ARCHIVO_SUBIDO' ? 'fa-paperclip' : 'fa-check'}"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">${a.campo}</p>
-            ${a.archivo ? `<p class="text-[10px] text-gray-400 truncate">${a.archivo}</p>` : ''}
-            <p class="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">${new Date(a.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-          </div>
-        </div>
-      `).join('')
-    : `<p class="text-xs text-gray-400 py-4 text-center">Sin actividad registrada</p>`;
-
-  // Initials avatar
-  const initials = cli.nombre ? cli.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+  const worker = allWorkers.find(w => w.id === cli.vendedor_asignado_id);
+  const assigneeName = worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Sin asignar';
 
   // Build drawer
   const existing = document.getElementById('kanban-drawer-overlay');
@@ -7136,82 +7157,138 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   const overlay = document.createElement('div');
   overlay.id = 'kanban-drawer-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;justify-content:flex-end;';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
   overlay.innerHTML = `
-    <!-- backdrop -->
-    <div id="kanban-drawer-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);"></div>
-
-    <!-- drawer panel -->
-    <div id="kanban-drawer-panel" style="
-      position:relative; width:480px; max-width:95vw; height:100vh;
-      box-shadow:-20px 0 60px rgba(0,0,0,0.15);
-      display:flex; flex-direction:column; overflow:hidden;
-      animation:slideInRight 0.3s cubic-bezier(0.16,1,0.3,1) both;
-    " class="bg-white dark:bg-darkBg">
-
-      <!-- Header -->
-      <div style="padding:24px 28px 20px; border-bottom:1px solid #f1f5f9; flex-shrink:0;" class="dark:border-white/5">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.2em; color:#94a3b8;">PROYECTO</span>
-            <button id="btn-delete-kanban-project" data-id="${p.id}" class="w-7 h-7 rounded-lg bg-red-500/5 text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/10 flex items-center justify-center" title="Eliminar Proyecto">
-                <i class="fa-solid fa-trash-can text-[10px]"></i>
+    <div id="kanban-split-modal" style="width:90vw;height:90vh;max-width:1400px;background:#f8fafc;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);display:flex;overflow:hidden;animation:zoomIn 0.2s ease-out;">
+      
+      <!-- LEFT PANEL: Info & Subtasks -->
+      <div style="width:380px;background:white;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;flex-shrink:0;">
+        
+        <!-- Header Left -->
+        <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                <div style="width:32px;height:32px;border-radius:8px;background:${pipeline.color};display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:12px;flex-shrink:0;">
+                    ${cli.nombre[0].toUpperCase()}
+                </div>
+                <div style="min-width:0;">
+                    <h2 class="text-sm font-bold text-gray-800 truncate" title="${cli.nombre}">${cli.nombre}</h2>
+                    <p class="text-[10px] text-gray-500">ID: ${p.id.substring(0,8).toUpperCase()}</p>
+                </div>
+            </div>
+            <button id="kanban-drawer-close-btn" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                <i class="fas fa-times"></i>
             </button>
-          </div>
-          <button id="kanban-drawer-close" style="width:36px;height:36px;border-radius:50%;border:none;background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:16px;" class="dark:bg-white/5 dark:text-gray-400 hover:text-red-400 transition-colors">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
-        <div style="display:flex; align-items:center; gap:16px;">
-          <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,${pipeline.color},${pipeline.color}99);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:white;flex-shrink:0;">
-            ${cli.foto ? `<img src="${cli.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;" />` : initials}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <h2 style="font-size:1.3rem;font-weight:900;color:#0f172a;margin:0;line-height:1.2;" class="dark:text-white">${cli.nombre}</h2>
-            <p style="font-size:12px;color:#64748b;margin:4px 0 0;" class="dark:text-gray-400">${cli.telefono || 'Sin telÃ©fono'}</p>
-          </div>
+
+        <div style="flex:1;overflow-y:auto;" class="hide-scrollbar">
+            <!-- Properties -->
+            <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;">
+                <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs">
+                    <div class="text-gray-400 font-medium">Description:</div>
+                    <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripciÃ³n'}</div>
+                    
+                    <div class="text-gray-400 font-medium">Assignee:</div>
+                    <div class="text-gray-800 font-medium flex items-center gap-2">
+                        <i class="fas fa-user-circle text-gray-300"></i> ${assigneeName}
+                    </div>
+
+                    <div class="text-gray-400 font-medium">Created:</div>
+                    <div class="text-gray-800">${new Date(p.fecha).toLocaleDateString()}</div>
+                    
+                    <div class="text-gray-400 font-medium mt-2">Project:</div>
+                    <div class="text-gray-800 mt-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full" style="background:${pipeline.color}"></span> ${pipeline.nombre}
+                    </div>
+                    
+                    <div class="text-gray-400 font-medium">Stage:</div>
+                    <div class="text-gray-800 font-medium">${faseActual.nombre}</div>
+                    
+                    <div class="text-gray-400 font-medium mt-2">Observers:</div>
+                    <div class="mt-2">
+                        ${obsHtml || '<span class="text-[10px] text-gray-400 italic">No hay observadores</span>'}
+                        ${canManageObservers ? `
+                        <button id="btn-manage-obs" class="text-[10px] text-blue-500 hover:underline mt-1"><i class="fas fa-plus"></i> Add observer</button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="padding:16px 20px 0;">
+                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-tasks text-blue-500"></i> Subtasks (Fases): ${fases.length}</h3>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    ${fases.map((f, i) => {
+                        const isDone = isProjectCompleted || i < fases.findIndex(fx => fx.id === p.fase_id);
+                        const isCurrent = !isProjectCompleted && f.id === p.fase_id;
+                        const isViewing = f.id === displayPhaseId;
+                        return `
+                        <div class="flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${isViewing ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:bg-gray-50'}"
+                             onclick="window.openKanbanDrawer('${p.id}', '${f.id}')">
+                            <div class="flex items-center gap-3">
+                                <i class="fas ${isDone ? 'fa-check-circle text-green-500' : (isCurrent ? 'fa-dot-circle text-blue-500' : 'fa-circle text-gray-200')}"></i>
+                                <span class="text-xs font-medium ${isViewing ? 'text-blue-700' : 'text-gray-700'}">${f.nombre}</span>
+                            </div>
+                            ${isViewing ? '<i class="fas fa-chevron-right text-[10px] text-blue-400"></i>' : ''}
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <div style="padding:20px;border-top:1px solid #f1f5f9;margin-top:16px;">
+                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-folder-open text-orange-400"></i> ${isCurrentPhase ? 'Fase Actual' : 'Viendo Fase'}: ${displayPhase.nombre}</h3>
+                <div id="drawer-dynamic-fields" class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <p style="font-size:11px; color:#64748b; font-style:italic;">Cargando campos...</p>
+                </div>
+            </div>
+            
+            <div style="padding:0 20px 20px;">
+                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-paperclip text-gray-400"></i> Archivos Globales</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    ${filesHtml}
+                </div>
+            </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center;">
-          <span style="padding:4px 12px;border-radius:99px;background:${pipeline.color}15;color:${pipeline.color};font-size:10px;font-weight:800;border:1px solid ${pipeline.color}30;">
-            ${pipeline.nombre}
-          </span>
-          <select style="padding:4px 24px 4px 12px;border-radius:99px;background:#f8fafc;color:#475569;font-size:10px;font-weight:700;border:1px solid #e2e8f0;appearance:none;cursor:pointer;outline:none;" class="dark:bg-white/5 dark:text-gray-400 dark:border-white/10" onchange="window.openKanbanDrawer('${p.id}', this.value)">
-            ${fases.map(f => `<option value="${f.id}" ${f.id === displayPhaseId ? 'selected' : ''}>${f.nombre}${f.id === p.fase_id ? ' (Fase Actual)' : ''}</option>`).join('')}
-          </select>
-          <span style="padding:4px 12px;border-radius:99px;background:#f8fafc;color:#94a3b8;font-size:10px;font-weight:700;" class="dark:bg-white/5 dark:text-gray-600">
-            ID: RENEW-${p.id.toUpperCase()}
-          </span>
+      </div>
+      
+      <!-- RIGHT PANEL: Task Chat -->
+      <div style="flex:1;display:flex;flex-direction:column;background:#dce9f5;position:relative;">
+        <!-- Chat Header -->
+        <div style="height:60px;background:white;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;">
+            <div>
+                <h2 class="text-[15px] font-bold text-gray-800 flex items-center gap-2"><i class="far fa-comments text-blue-500"></i> Task chat</h2>
+                <p class="text-[11px] text-gray-500">${observadores.length + 2} members</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-bold py-1.5 px-4 rounded-full flex items-center gap-2 shadow-sm transition-colors">
+                    <i class="fas fa-video"></i> Video call
+                </button>
+                <div class="w-px h-6 bg-gray-200 mx-1"></div>
+                <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+        
+        <!-- Chat Background Overlay (Optional pattern) -->
+        <div style="position:absolute;inset:0;top:60px;bottom:70px;background-image:radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px);background-size:20px 20px;pointer-events:none;opacity:0.6;"></div>
+        
+        <!-- Messages Area -->
+        <div id="discussion-list" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;">
+            ${renderDiscussionHTML(p.discusion, pipeline.color)}
+        </div>
+        
+        <!-- Chat Input -->
+        <div style="height:70px;background:white;border-top:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:1;">
+            <div class="flex-1 bg-white border border-gray-200 rounded-full flex items-center px-4 h-10 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                <i class="fas fa-paperclip text-gray-400 mr-2 cursor-pointer hover:text-gray-600"></i>
+                <input type="text" id="discussion-input" placeholder="Type @ or + to mention a person..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 h-full" />
+                <i class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600"></i>
+            </div>
+            <button id="btn-send-discussion" class="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-md transition-colors">
+                <i class="fas fa-paper-plane text-sm"></i>
+            </button>
         </div>
       </div>
 
-      <!-- Scrollable content -->
-      <div style="flex:1;overflow-y:auto;padding:24px 28px;" class="hide-scrollbar" id="kanban-drawer-scrollable">
-
-        <!-- NEW: Phase Form Section (Sync with ProjectDetail) -->
-        <div id="kanban-phase-form-container" style="margin-bottom:32px;">
-           <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin-bottom:16px;">${isCurrentPhase ? 'FASE ACTUAL' : 'HISTORIAL DE FASE'}: ${displayPhase.nombre.toUpperCase()}</p>
-           <div id="drawer-dynamic-fields">
-              <!-- Rendered via JS below -->
-              <p style="font-size:11px; color:#64748b; font-style:italic;">Cargando campos de fase...</p>
-           </div>
-        </div>
-
-        <!-- Files section -->
-        <div style="margin-bottom:32px;">
-          <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin-bottom:16px;">ARCHIVOS Y DOCUMENTOS</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            ${filesHtml}
-          </div>
-        </div>
-
-        <!-- Activity section -->
-        <div>
-          <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin-bottom:12px;">HISTORIAL DE ACTIVIDAD</p>
-          <div style="background:#f8fafc;border-radius:16px;padding:8px 16px;border:1px solid #f1f5f9;" class="dark:bg-white/[0.02] dark:border-white/5">
-            ${actividadHtml}
-          </div>
-        </div>
-      </div>
     </div>
   `;
 
@@ -7223,10 +7300,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   
   if (phaseCampos.length === 0) {
     fieldsContainer.innerHTML = `
-      <div style="padding:20px; background:#f8fafc; border-radius:12px; border:1px dashed #e2e8f0; text-align:center;" class="dark:bg-white/5 dark:border-white/10">
-        <p style="font-size:11px; color:#94a3b8; font-weight:700;">ESTA FASE NO TIENE CAMPOS REQUERIDOS</p>
-        ${isCurrentPhase ? `<button id="btn-advance-drawer-empty" style="margin-top:12px; width:100%; background:${pipeline.color}; color:white; border:none; padding:10px; border-radius:8px; font-weight:800; font-size:11px; cursor:pointer; box-shadow:0 4px 12px ${pipeline.color}30;">
-           AVANZAR A LA SIGUIENTE FASE
+      <div style="padding:20px; text-align:center;">
+        <p style="font-size:11px; color:#94a3b8; font-weight:700;">ESTA FASE NO TIENE CAMPOS</p>
+        ${isCurrentPhase ? `<button id="btn-advance-drawer-empty" style="margin-top:12px; width:100%; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:11px; cursor:pointer;">
+           AVANZAR FASE
         </button>` : ''}
       </div>
     `;
@@ -7243,8 +7320,6 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       };
     }
   } else {
-    // Render fields similar to projectDetail.js but styled for Admin Drawer
-    // Render fields similar to projectDetail.js but styled for Admin Drawer
     const requiredCampos = phaseCampos.filter(c => !c.es_opcional);
     const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
     const isComplete = numRequiredFilled >= requiredCampos.length;
@@ -7257,16 +7332,16 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       if (c.tipo === 'Archivo') {
         const hasFile = val && (val.startsWith('data:') || val.startsWith('http'));
         fieldHtml = `
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <div style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:10px;" class="dark:bg-white/5 dark:border-white/10">
-               <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'}"></i>
-               <span style="font-size:11px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? 'Cargado' : 'Pendiente'}</span>
+            <div style="display:flex; align-items:center; gap:8px; padding:8px; background:white; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:8px;">
+               <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'};font-size:14px;"></i>
+               <span style="font-size:10px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? 'Cargado' : 'Pendiente'}</span>
                <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
-               <label for="dfd_${c.id}" style="background:${hasFile ? '#64748b' : pipeline.color}; color:white; padding:4px 10px; border-radius:6px; font-size:9px; font-weight:800; cursor:pointer; text-transform:uppercase;">
-                 ${hasFile ? 'Actualizar' : 'Subir'}
+               <label for="dfd_${c.id}" style="background:${hasFile ? '#e2e8f0' : pipeline.color}; color:${hasFile ? '#475569' : 'white'}; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:800; cursor:pointer; text-transform:uppercase;">
+                 ${hasFile ? 'Editar' : 'Subir'}
                </label>
             </div>
           </div>
@@ -7274,318 +7349,224 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       } else if (c.tipo === 'Desplegable') {
         const options = (c.opciones || "").split(',').map(o => o.trim());
         fieldHtml = `
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <select id="dfd_${c.id}" 
-                    style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; appearance:none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto;"
-                    class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent">
+            <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:white;">
               <option value="">Seleccionar...</option>
               ${options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
             </select>
           </div>
         `;
       } else if (c.tipo === 'TÃ©cnico') {
-        const technicians = (state.workers || []).filter(w => w.rol === 'TÃ©cnico' || w.rol === 'Tecnico');
+        const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'TÃ©cnico' || w.rol === 'Tecnico');
         fieldHtml = `
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <select id="dfd_${c.id}" 
-                    style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; appearance:none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto;"
-                    class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent">
+            <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:white;">
               <option value="">Seleccionar TÃ©cnico...</option>
               ${technicians.map(w => `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${w.nombre} ${w.apellido || ''}</option>`).join('')}
             </select>
           </div>
         `;
-      } else if (c.tipo === 'Fecha y Hora') {
-        fieldHtml = `
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
-              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
-            </label>
-            <input type="datetime-local" id="dfd_${c.id}" value="${val}" 
-                   style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none;"
-                   class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent"
-                   onclick="this.showPicker ? this.showPicker() : ''">
-          </div>
-        `;
-      } else if (c.tipo === 'Fecha') {
-        fieldHtml = `
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
-              ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
-            </label>
-            <input type="date" id="dfd_${c.id}" value="${val}" 
-                   style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none;"
-                   class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent"
-                   onclick="this.showPicker ? this.showPicker() : ''">
-          </div>
-        `;
       } else {
         fieldHtml = `
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; margin-bottom:6px; text-transform:uppercase;">
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <input type="${c.tipo==='NÃºmero'?'number':'text'}" id="dfd_${c.id}" value="${val}" 
-                   style="width:100%; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; outline:none; transition:all;"
-                   class="bg-[#f8fafc] border border-[#e2e8f0] text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white dark:focus:border-tealAccent" placeholder="Escribir...">
+            <input type="${c.tipo === 'NÃºmero' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:white;">
           </div>
         `;
       }
       return fieldHtml;
     }).join('');
 
-    fieldsContainer.innerHTML = `
-      <style>
-        #kanban-phase-form-container input[type="text"],
-        #kanban-phase-form-container input[type="number"] {
-          color: #0f172a !important;
-        }
-        .dark #kanban-phase-form-container input[type="text"],
-        .dark #kanban-phase-form-container input[type="number"] {
-          color: #ffffff !important;
-        }
-      </style>
-      <div style="margin-bottom:16px;">
-        <p style="font-size:10px; color:#64748b; font-weight:600; margin-bottom:12px;">
-           ${isComplete ? 'Â¡Estructura completa! Ya puedes avanzar.' : `Faltan <strong>${requiredCampos.length - numRequiredFilled}</strong> campos obligatorios.`}
-        </p>
-        ${inputsHtml}
-      </div>
-      <button id="btn-save-drawer-phase" style="width:100%; height:48px; background:${isCurrentPhase ? pipeline.color : '#64748b'}; color:white; border:none; border-radius:12px; font-weight:900; font-size:12px; cursor:pointer; box-shadow:0 8px 24px ${isCurrentPhase ? pipeline.color + '30' : 'rgba(0,0,0,0.15)'}; display:flex; align-items:center; justify-content:center; gap:8px;">
-          <i class="fas ${isCurrentPhase ? 'fa-check-double' : 'fa-save'}"></i>
-          <span>${isCurrentPhase ? 'FINALIZAR FASE Y ENVIAR' : 'ACTUALIZAR HISTORIAL'}</span>
-      </button>
+    fieldsContainer.innerHTML = inputsHtml + `
+       <div style="margin-top:12px; display:flex; gap:8px;">
+          <button id="btn-save-drawer-fields" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">
+             Guardar
+          </button>
+          ${isCurrentPhase ? `
+          <button id="btn-advance-drawer-fields" ${!isComplete ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} style="flex:1; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer;">
+             Avanzar Fase
+          </button>
+          ` : ''}
+       </div>
     `;
 
-    // Handler for saving/advancing
-    const btnSave = document.getElementById('btn-save-drawer-phase');
+    const btnSave = document.getElementById('btn-save-drawer-fields');
     if (btnSave) {
-      btnSave.onclick = async () => {
-        const resp = {};
-        // RE-FETCH latest responses from DB to avoid overwriting recent file uploads with old closure state
-        const freshDb = getDB();
-        const currentResps = (freshDb.Respuestas_Dinamicas || []).filter(r => String(r.proyecto_id) === String(p.id));
+        btnSave.onclick = async () => {
+            btnSave.textContent = 'Guardando...';
+            const updates = {};
+            phaseCampos.forEach(c => {
+                if(c.tipo !== 'Archivo') {
+                    const el = document.getElementById('dfd_'+c.id);
+                    if(el) updates[c.id] = el.value;
+                }
+            });
+            await saveDynamicFields(p.id, updates);
+            showToast('Campos guardados', 'success');
+            openKanbanDrawer(p.id, displayPhaseId);
+        };
+    }
 
-        for (const c of phaseCampos) {
-          const el = document.getElementById(`dfd_${c.id}`);
-          let val = '';
-          if (c.tipo === 'Archivo') {
-             const existing = currentResps.find(r => String(r.campo_id) === String(c.id));
-             val = existing ? existing.valor : '';
-          } else {
-             val = (el?.value || "").trim();
-          }
-          resp[c.id] = val || "No provisto";
-        }
-        
-        btnSave.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Procesando...';
-        btnSave.disabled = true;
-
-        try {
-          if (!isCurrentPhase) {
-          // Just update historical answers without advancing phase
-          const db = getDB();
-          if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
-          for (const [cId, val] of Object.entries(resp)) {
-            const idx = db.Respuestas_Dinamicas.findIndex(r => String(r.proyecto_id) === String(p.id) && String(r.campo_id) === String(cId));
-            if (idx !== -1) {
-              db.Respuestas_Dinamicas[idx].valor = val;
-            } else {
-              db.Respuestas_Dinamicas.push({
-                id: genId('resp', db),
-                proyecto_id: p.id,
-                campo_id: cId,
-                valor: val
-              });
+    const btnAdv = document.getElementById('btn-advance-drawer-fields');
+    if (btnAdv && isComplete) {
+        btnAdv.onclick = async () => {
+            btnAdv.textContent = 'Espere...';
+            const updates = {};
+            phaseCampos.forEach(c => {
+                if(c.tipo !== 'Archivo') {
+                    const el = document.getElementById('dfd_'+c.id);
+                    if(el) updates[c.id] = el.value;
+                }
+            });
+            const res = await advanceDealPhase(p.id, updates);
+            if(res.didAdvance) {
+                showToast('Fase completada', 'success');
+                closeDrawer();
+                renderView();
             }
-          }
-          await saveDB(db);
-          showToast('Historial actualizado', 'success');
-          openKanbanDrawer(p.id, displayPhaseId);
-          return;
-        }
-
-        const res = await advanceDealPhase(p.id, resp);
-        if (res.didAdvance) {
-           showToast('Â¡Fase completada y enviada!', 'success');
-
-           // â”€â”€ TECHNICIAN ASSIGNMENT NOTIFICATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-           // Fires only when admin fills a TÃ©cnico-type field and advances the phase.
-           // This is the correct trigger: AFTER admin assigns the tech, not on form submit.
-           try {
-             const db2 = getDB();
-             const techCampo = phaseCampos.find(c => c.tipo === 'TÃ©cnico');
-             if (techCampo) {
-               const techId = resp[techCampo.id];
-               if (techId && techId !== 'No provisto') {
-                 const proyectoActualizado = (db2.Proyectos_Dinamicos || []).find(x => x.id === p.id) || p;
-                 const cliente2 = (db2.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
-                 const techWorker2 = (db2.Usuarios || []).find(u => u.id === techId);
-                 const pipeline2 = (db2.Admin_Pipelines || []).find(pip => pip.id === p.pipeline_id);
-
-                 // Remove previous pending response so the notification appears fresh in tech inbox
-                 if (db2.Respuestas_Dinamicas) {
-                   const prevIdx = db2.Respuestas_Dinamicas.findIndex(
-                     r => r.proyecto_id === p.id && r.campo_id === '__estado_asignacion_tecnico__'
-                   );
-                   if (prevIdx !== -1) db2.Respuestas_Dinamicas.splice(prevIdx, 1);
-                 }
-
-                 // Fire webhook â†’ n8n will email/WhatsApp the tech;
-                 // the tech's inbox in the app also shows it via notificaciones.js
-                 fetch('https://n8n.renewgroup.site/webhook/notificacion-flujo', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({
-                     proyecto_id:        p.id,
-                     pipeline_nombre:    pipeline2?.nombre || 'Renew Water',
-                     nombre_fase:        'AsignaciÃ³n de TÃ©cnico',
-                     rol_encargado:      'TÃ©cnico',
-                     accion:             'TECNICO_ASIGNADO',
-                     tecnico_id:         techId,
-                     tecnico_nombre:     techWorker2 ? `${techWorker2.nombre||''} ${techWorker2.apellido||''}`.trim() : '',
-                     tecnico_email:      techWorker2?.email || '',
-                     tecnico_telefono:   techWorker2?.telefono || '',
-                     vendedor_id:        proyectoActualizado.responsable_id || '',
-                     cliente_nombre:     cliente2.nombre || '',
-                     cliente_telefono:   cliente2.telefono || '',
-                     cliente_direccion:  cliente2.direccion || '',
-                     horario_solicitado: proyectoActualizado.horario_instalacion || '',
-                     fecha_instalacion:  proyectoActualizado.fecha_instalacion || '',
-                     admin_link:         'https://renewgroup.site/admin.html',
-                     timestamp:          new Date().toISOString()
-                   })
-                 }).catch(err => console.warn('[ADMIN] Webhook tecnico-asignado error:', err.message));
-
-                 console.log('[ADMIN] Technician assignment notification fired for tech:', techId);
-               }
-             }
-           } catch (notifErr) {
-             console.error('[ADMIN] Error dispatching tech assignment notification:', notifErr);
-           }
-           // â”€â”€ END TECHNICIAN ASSIGNMENT NOTIFICATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-           closeDrawer();
-           renderView();
-        } else if (isCurrentPhase) {
-           showToast(`Avances guardados, pero faltan ${res.missingCount} campos para avanzar de fase.`, 'warning');
-           openKanbanDrawer(p.id, displayPhaseId);
-        }
-        } catch (e) {
-          console.error("Error al guardar o avanzar fase:", e);
-          showToast('Error al procesar los datos', 'error');
-          btnSave.innerHTML = `<i class="fas ${isCurrentPhase ? 'fa-check-double' : 'fa-save'}"></i> <span>REINTENTAR</span>`;
-          btnSave.disabled = false;
-        }
-      };
+        };
     }
   }
 
-  // --- Helper for File Upload in Drawer ---
-  window.handleDrawerFileUpload = async (projectId, campoId, input) => {
-    if (!input.files.length) return;
-    const file = input.files[0];
-    const btn = input.nextElementSibling;
-    const originalText = btn.textContent;
-    btn.textContent = '...';
-    btn.disabled = true;
-
-    try {
-      const url = await uploadFile(file, 'projects');
-      const db = getDB();
-      if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
-      
-      const idx = db.Respuestas_Dinamicas.findIndex(r => String(r.proyecto_id) === String(projectId) && String(r.campo_id) === String(campoId));
-      let updatedResp = null;
-      if (idx !== -1) {
-        db.Respuestas_Dinamicas[idx].valor = url;
-        updatedResp = db.Respuestas_Dinamicas[idx];
-      } else {
-        updatedResp = {
-          id: genId('resp', db),
-          proyecto_id: projectId,
-          campo_id: campoId,
-          valor: url
-        };
-        db.Respuestas_Dinamicas.push(updatedResp);
-      }
-      
-      // Fast granular save
-      await saveGranular('respuestas_dinamicas', [updatedResp]);
-      
-      // Log activity
-      const p = db.Proyectos_Dinamicos.find(x => String(x.id) === String(projectId));
-      const campo = db.Admin_Campos_Formulario.find(c => String(c.id) === String(campoId));
-      const user = getCurrentUser();
-      
-      if (p) {
-          if (!p.actividad) p.actividad = [];
-          const newAct = {
-            tipo: 'ARCHIVO_SUBIDO',
-            campo: campo?.etiqueta || 'Archivo',
-            archivo: file.name,
-            timestamp: new Date().toISOString(),
-            responsable: user?.nombre || 'Staff'
-          };
-          p.actividad.unshift(newAct);
-          // Sync with API
-          syncKanbanActivity({
-            proyecto_id: projectId,
-            evento: 'ARCHIVO_SUBIDO',
-            campo_etiqueta: campo?.etiqueta || 'Archivo',
-            archivo_nombre: file.name,
-            responsable_id: user?.id,
-            fase_nombre: p.fase_id
-          });
-      }
-
-      showToast('Archivo cargado correctamente', 'success');
-      // Re-invoke drawer to refresh UI
-      openKanbanDrawer(projectId, window._currentDrawerPhaseId);
-    } catch (e) {
-      console.error("Error en handleDrawerFileUpload:", e);
-      showToast('Error al subir archivo', 'error');
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
-  };
-
-  document.body.appendChild(overlay);
-
+  // File Upload Handler is already globally attached to window.handleDrawerFileUpload
+  
   // Store file data for preview access
   window._kanbanFileCache = {};
   fileRespuestas.forEach(r => { window._kanbanFileCache[r.campo_id] = { valor: r.valor, campo: campos.find(c => c.id === r.campo_id) }; });
 
   // Close handlers
   const closeDrawer = () => {
-    const panel = document.getElementById('kanban-drawer-panel');
-    if (panel) panel.style.animation = 'slideOutRight 0.25s cubic-bezier(0.4,0,1,1) both';
-    setTimeout(() => overlay.remove(), 250);
+    const panel = document.getElementById('kanban-split-modal');
+    if (panel) panel.style.animation = 'zoomOut 0.2s ease-in both';
+    setTimeout(() => overlay.remove(), 200);
   };
-  document.getElementById('kanban-drawer-close').addEventListener('click', closeDrawer);
-  document.getElementById('kanban-drawer-backdrop').addEventListener('click', closeDrawer);
+  document.getElementById('kanban-drawer-close-btn').addEventListener('click', closeDrawer);
+  document.getElementById('kanban-drawer-overlay').addEventListener('click', (e) => {
+      if(e.target === overlay) closeDrawer();
+  });
   
-  const btnDelProj = document.getElementById('btn-delete-kanban-project');
-  if (btnDelProj) {
-      btnDelProj.addEventListener('click', async () => {
-          if (confirm('Â¿ESTÃS SEGURO DE ELIMINAR ESTE PROYECTO COMPLETAMENTE?')) {
-              const db = getDB();
-              db.Proyectos_Dinamicos = (db.Proyectos_Dinamicos || []).filter(proj => proj.id !== p.id);
-              await saveDB(db);
-              closeDrawer();
-              showToast('Proyecto eliminado.', 'warning');
-              await renderView(); // Refresh Kanban view
-          }
+  document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeDrawer(); document.removeEventListener('keydown', esc); } });
+
+  // Chat Observers Add logic
+  const btnManageObs = document.getElementById('btn-manage-obs');
+  if (btnManageObs) {
+      btnManageObs.addEventListener('click', () => {
+          const div = document.createElement('div');
+          div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+          
+          const curIds = new Set(observadores.map(o=>o.id));
+          const eligible = allWorkers.filter(w => w.id !== p.responsable_id && !curIds.has(w.id) && !w.is_suspended);
+          
+          div.innerHTML = `
+          <div style="background:white;width:400px;border-radius:12px;padding:24px;max-height:80vh;display:flex;flex-direction:column;animation:zoomIn 0.2s ease-out;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                  <h3 class="text-sm font-bold text-gray-800">Add Observer</h3>
+                  <button id="close-obs" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+              </div>
+              <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
+                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay más usuarios disponibles</p>' : ''}
+                  ${eligible.map(w => `
+                  <div class="obs-item flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 transition-colors" data-id="${w.id}">
+                      <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center font-bold text-xs">
+                              ${w.foto ? `<img src="${w.foto}" class="w-full h-full rounded-full object-cover">` : (w.nombre[0].toUpperCase())}
+                          </div>
+                          <div>
+                              <div class="text-xs font-bold text-gray-800">${w.nombre} ${w.apellido||''}</div>
+                              <div class="text-[10px] text-gray-500">${w.rol}</div>
+                          </div>
+                      </div>
+                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">Añadir</button>
+                  </div>
+                  `).join('')}
+              </div>
+          </div>`;
+          document.body.appendChild(div);
+          
+          div.querySelector('#close-obs').onclick = () => div.remove();
+          div.querySelectorAll('.add-obs-btn').forEach(btn => {
+              btn.onclick = async () => {
+                  const uid = btn.dataset.id;
+                  const worker = allWorkers.find(x => x.id === uid);
+                  if (worker) {
+                      import('./api.js').then(async ({addObserver}) => {
+                          try {
+                              await addObserver(p.id, worker);
+                              showToast('Observador añadido', 'success');
+                              div.remove();
+                              openKanbanDrawer(p.id, displayPhaseId);
+                          } catch(e) {
+                              showToast('Error: ' + e.message, 'error');
+                          }
+                      }).catch(e => {
+                         // Fallback si no carga el modulo
+                         showToast('Error de red', 'error');
+                      });
+                  }
+              };
+          });
       });
   }
 
-  document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeDrawer(); document.removeEventListener('keydown', esc); } });
+  // Chat Send Logic
+  const btnSend = document.getElementById('btn-send-discussion');
+  const inputDisc = document.getElementById('discussion-input');
+
+  if (btnSend && inputDisc) {
+      const sendComment = async () => {
+          const text = inputDisc.value.trim();
+          if (!text) return;
+          const user = getCurrentUser();
+          const comment = {
+              type: 'user',
+              user_id: user?.id,
+              foto: user?.foto,
+              user: user?.nombre || 'Usuario',
+              text: text,
+              date: new Date().toISOString()
+          };
+          
+          if (!p.discusion) p.discusion = [];
+          if (typeof p.discusion === 'string') {
+              try { p.discusion = JSON.parse(p.discusion); } catch(e) { p.discusion = []; }
+          }
+          
+          p.discusion.push(comment);
+
+          try {
+              btnSend.innerHTML = '...';
+              await saveGranular('proyectos_dinamicos', [p]);
+              inputDisc.value = '';
+              const list = document.getElementById('discussion-list');
+              list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color);
+              list.scrollTop = list.scrollHeight;
+          } catch(e) {
+              console.error("Save discussion error:", e);
+              showToast('Error al guardar: ' + e.message, 'error');
+              p.discusion.pop();
+          } finally {
+              btnSend.innerHTML = `<i class="fas fa-paper-plane text-sm"></i>`;
+          }
+      };
+
+      btnSend.addEventListener('click', sendComment);
+      inputDisc.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendComment();
+      });
+      // auto-scroll chat to bottom
+      setTimeout(() => {
+         const list = document.getElementById('discussion-list');
+         if(list) list.scrollTop = list.scrollHeight;
+      }, 50);
+  }
 }
 
 function openFilePreview(campoId, label, directData) {
