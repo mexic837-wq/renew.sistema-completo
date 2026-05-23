@@ -113,7 +113,10 @@ export async function renderMiMapa() {
       const userClientIds = new Set(userProjects.map(p => p.cliente_id));
       const allClientProjectIds = new Set(allProys.map(p => p.cliente_id));
 
-      const myClients = allClients.filter(c =>
+      const userRole = (user.rol || '').toLowerCase();
+      const isAdmin = ['admin', 'administrador', 'ceo', 'desenvolvedor', 'master'].includes(userRole);
+
+      const myClients = isAdmin ? allClients : allClients.filter(c =>
         c.vendedor_asignado_id === user.id ||
         c.creador_id === user.id ||
         userClientIds.has(c.id)
