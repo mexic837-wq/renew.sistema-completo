@@ -6359,7 +6359,21 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
     document.getElementById('det-usr-email').textContent = usr.email || '-';
     document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+    
     document.getElementById('det-usr-rank').textContent = usr.rango || 'novato';
+    
+    // Hide rank if not (Vendedor/Representante de Ventas + Water)
+    const viewRankContainer = document.getElementById('det-view-rank-container');
+    const editRankContainer = document.getElementById('det-edit-rank-container');
+    const isVendedor = usr.rol === 'Vendedor' || usr.rol === 'Representante de Ventas';
+    const isWater = usr.departamento && usr.departamento.toLowerCase().includes('water');
+    if (viewRankContainer) {
+        viewRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
+    }
+    if (editRankContainer) {
+        editRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
+    }
+
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
     document.getElementById('det-usr-sede').textContent = usr.sede || '-';
     document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
@@ -9066,3 +9080,26 @@ document.addEventListener('change', (e) => {
     }
 });
 
+\n
+  const detEditRol = document.getElementById('det-edit-rol');
+  const detEditDept = document.getElementById('det-edit-dept');
+  if (detEditRol) {
+      detEditRol.addEventListener('change', () => {
+          const rol = detEditRol.value;
+          const dept = detEditDept ? detEditDept.value : '';
+          const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas';
+          const isWater = dept && dept.toLowerCase().includes('water');
+          const editRankContainer = document.getElementById('det-edit-rank-container');
+          if (editRankContainer) {
+              editRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
+          }
+      });
+  }
+  if (detEditDept) {
+      detEditDept.addEventListener('input', () => {
+          if (detEditRol) {
+              const evt = new Event('change');
+              detEditRol.dispatchEvent(evt);
+          }
+      });
+  }
