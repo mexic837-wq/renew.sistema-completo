@@ -7992,7 +7992,22 @@ async function showClientDetail(id) {
     };
 
     updateBtn('adj-id', state.currentDetAdjID, 'Foto ID');
-    updateBtn('adj-bill', state.currentDetAdjBill, 'Bill ElÃ©ctrico');
+    updateBtn('adj-bill', state.currentDetAdjBill, 'Bill Eléctrico');
+    updateBtn('adj-seguro', state.currentDetAdjSeguro, 'Póliza de Seguro');
+
+    // Populate Workers (Vendedores)
+    const selAssigned = document.getElementById('det-assigned');
+    const selEditAssigned = document.getElementById('edit-assigned');
+    if (selAssigned) {
+        selAssigned.innerHTML = '<option value="">Sin Asignar</option>';
+        if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">Sin Asignar</option>';
+
+        const db = getDB();
+        const workers = db.Usuarios || [];
+        const vendedorRoles = ['vendedor', 'representante de ventas', 'técnico'];
+        const clientePipeline = cli.pipeline;
+
+        const filteredWorkers = workers.filter(w => {
             const isVendorRole = vendedorRoles.includes((w.rol || '').toLowerCase());
             if (!isVendorRole) return false;
             // Si hay un pipeline asignado al cliente, filtrar por acceso
