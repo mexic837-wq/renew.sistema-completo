@@ -18,7 +18,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   const currentUser = getCurrentUser();
   const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
+  const responsableIds = (p.responsable_id || '').split(',').map(id => id.trim()).filter(id => id);
+  const isResponsable = responsableIds.includes(String(currentUser?.id));
   const canManageObservers = isAdmin || isResponsable;
   
   const allWorkers = db.Usuarios || [];
@@ -75,8 +76,9 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       }).join('')
     : `<div class="col-span-3 py-4 text-center text-xs text-gray-400">Sin archivos</div>`;
 
-  const worker = allWorkers.find(w => w.id === cli.vendedor_asignado_id);
-  const assigneeName = worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Sin asignar';
+  const assignedIds = (cli.vendedor_asignado_id || '').split(',').map(id => id.trim()).filter(id => id);
+  const currentWorkers = allWorkers.filter(w => assignedIds.includes(w.id));
+  const assigneeName = currentWorkers.length > 0 ? currentWorkers.map(w => `${w.nombre} ${w.apellido || ''}`).join(', ') : 'Sin asignar';
 
   // Build drawer
   const existing = document.getElementById('kanban-drawer-overlay');
@@ -413,7 +415,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
           
           const curIds = new Set(observadores.map(o=>o.id));
-          const eligible = allWorkers.filter(w => w.id !== p.responsable_id && !curIds.has(w.id) && !w.is_suspended);
+          const pRespIds = (p.responsable_id || '').split(',').map(id => id.trim()).filter(id => id);
+          const eligible = allWorkers.filter(w => !pRespIds.includes(String(w.id)) && !curIds.has(w.id) && !w.is_suspended);
           
           div.innerHTML = `
           <div style="background:white;width:400px;border-radius:12px;padding:24px;max-height:80vh;display:flex;flex-direction:column;animation:zoomIn 0.2s ease-out;box-shadow:0 20px 40px rgba(0,0,0,0.2);">

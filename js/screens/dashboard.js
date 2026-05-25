@@ -36,7 +36,7 @@ function computeUserRank(userId, activeUnit, db) {
   const pipeline   = (db.Admin_Pipelines || []).find(p => p.nombre === activeUnit);
   const myProjects = (db.Proyectos_Dinamicos || []).filter(p => {
     // A project belongs to the user if they are the responsable OR the assigned vendor in the client record
-    const isResponsable = p.responsable_id === userId;
+    const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(userId));
     if (pipeline && p.pipeline_id !== pipeline.id) return false;
     return isProjectFinished(p, db);
   });
@@ -418,8 +418,8 @@ function _buildPipelineChips(user, activeUnit) {
       });
 
       if (c.creador_id !== user.id && 
-          c.responsable_id !== user.id && 
-          c.vendedor_asignado_id !== user.id &&
+          !(c.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) && 
+          !(c.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) &&
           c.tecnico_id !== user.id &&
           !isTecnicoOfProject) return false;
       const cDepts = getDeptArray(c).map(d => d.toLowerCase());
@@ -834,8 +834,8 @@ async function initRendimientoChart(user) {
   const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
   const userProjects = allProjects.filter(p => {
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-    const isAssignedVendor = String(cli.vendedor_asignado_id) === String(user.id);
-    const isCreator = String(p.responsable_id) === String(user.id);
+    const isAssignedVendor = (cli.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
+    const isCreator = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
     const isAssignedTech = isTecnico && String(p.tecnico_id) === String(user.id);
 
     return (isCreator || isAssignedVendor || isAssignedTech) && 
@@ -1375,7 +1375,7 @@ async function initLeaderboardChart(user) {
     if (isTecnico) {
       targetUserId = p.tecnico_id;
     } else {
-      targetUserId = cli.vendedor_asignado_id || p.responsable_id;
+      targetUserId = (cli.vendedor_asignado_id || '').split(',')[0].trim() || (p.responsable_id || '').split(',')[0].trim();
     }
     
     if (!targetUserId) return;

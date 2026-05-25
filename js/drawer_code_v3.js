@@ -18,7 +18,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   const currentUser = getCurrentUser();
   const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
+  const responsableIds = (p.responsable_id || '').split(',').map(id => id.trim()).filter(id => id);
+  const isResponsable = responsableIds.includes(String(currentUser?.id));
   const canManageObservers = isAdmin || isResponsable;
   
   const allWorkers = db.Usuarios || [];
@@ -75,8 +76,9 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       }).join('')
     : `<div class="col-span-3 py-4 text-center text-xs text-gray-400">Sin archivos</div>`;
 
-  const worker = allWorkers.find(w => w.id === cli.vendedor_asignado_id);
-  const assigneeName = worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Sin asignar';
+  const assignedIds = (cli.vendedor_asignado_id || '').split(',').map(id => id.trim()).filter(id => id);
+  const currentWorkers = allWorkers.filter(w => assignedIds.includes(w.id));
+  const assigneeName = currentWorkers.length > 0 ? currentWorkers.map(w => `${w.nombre} ${w.apellido || ''}`).join(', ') : 'Sin asignar';
 
   // Build drawer
   const existing = document.getElementById('kanban-drawer-overlay');
@@ -198,7 +200,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <i class="fas fa-video"></i> Videollamada
                 </button>
                 <div class="w-px h-6 bg-gray-200 mx-1"></div>
-                <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-search"></i></button>
+                <div class="relative bg-gray-50 rounded-full flex items-center px-3 h-8 shadow-inner transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:bg-white border border-transparent focus-within:border-blue-300">
+                    <i class="fas fa-search text-gray-400 text-xs mr-2"></i>
+                    <input type="text" id="chat-search-input" placeholder="Buscar mensaje..." class="bg-transparent outline-none text-xs text-gray-700 w-24 focus:w-40 transition-all duration-300" />
+                </div>
             </div>
         </div>
         
@@ -213,7 +218,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         <!-- Chat Input -->
         <div style="height:70px;background:white;border-top:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:1;">
             <div class="flex-1 bg-white border border-gray-200 rounded-full flex items-center px-4 h-10 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                <i class="fas fa-paperclip text-gray-400 mr-2 cursor-pointer hover:text-gray-600"></i>
+                <input type="file" id="chat-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" />
+                <label for="chat-file-input" style="margin:0;cursor:pointer;display:flex;align-items:center;">
+                    <i class="fas fa-paperclip text-gray-400 mr-2 hover:text-gray-600"></i>
+                </label>
+                <div id="chat-file-preview" style="display:none; font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px; margin-right:4px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;" onclick="document.getElementById('chat-file-input').value='';this.style.display='none';" title="Click para quitar"></div>
                 <input type="text" id="discussion-input" placeholder="Escribe un mensaje o menciona a alguien..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 h-full" />
                 <i class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600"></i>
             </div>
@@ -416,7 +425,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
           
           const curIds = new Set(observadores.map(o=>o.id));
-          const eligible = allWorkers.filter(w => w.id !== p.responsable_id && !curIds.has(w.id) && !w.is_suspended);
+          const pRespIds = (p.responsable_id || '').split(',').map(id => id.trim()).filter(id => id);
+          const eligible = allWorkers.filter(w => !pRespIds.includes(String(w.id)) && !curIds.has(w.id) && !w.is_suspended);
           
           div.innerHTML = `
           <div style="background:white;width:400px;border-radius:12px;padding:24px;max-height:80vh;display:flex;flex-direction:column;animation:zoomIn 0.2s ease-out;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
@@ -468,21 +478,89 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       });
   }
 
+  // Chat Search Logic
+  const chatSearchInput = document.getElementById('chat-search-input');
+  if (chatSearchInput) {
+      chatSearchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase().trim();
+          let filtered = p.discusion || [];
+          if (typeof filtered === 'string') {
+              try { filtered = JSON.parse(filtered); } catch(err) { filtered = []; }
+          }
+          if (query) {
+              filtered = filtered.filter(c => 
+                  (c.text && c.text.toLowerCase().includes(query)) || 
+                  (c.user && c.user.toLowerCase().includes(query)) ||
+                  (c.fileName && c.fileName.toLowerCase().includes(query))
+              );
+          }
+          const list = document.getElementById('discussion-list');
+          if (list) {
+              list.innerHTML = renderDiscussionHTML(filtered, pipeline.color);
+          }
+      });
+  }
+
   // Chat Send Logic
   const btnSend = document.getElementById('btn-send-discussion');
   const inputDisc = document.getElementById('discussion-input');
 
   if (btnSend && inputDisc) {
+      // Chat input file listener
+      const chatFileInput = document.getElementById('chat-file-input');
+      const chatFilePreview = document.getElementById('chat-file-preview');
+      if (chatFileInput && chatFilePreview) {
+          chatFileInput.addEventListener('change', (e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                  chatFilePreview.textContent = e.target.files[0].name;
+                  chatFilePreview.style.display = 'block';
+              } else {
+                  chatFilePreview.style.display = 'none';
+              }
+          });
+      }
+
       const sendComment = async () => {
           const text = inputDisc.value.trim();
-          if (!text) return;
+          const hasFile = chatFileInput && chatFileInput.files && chatFileInput.files.length > 0;
+          
+          if (!text && !hasFile) return;
           const user = getCurrentUser();
+          
+          let fileUrl = null;
+          let fileName = null;
+          
+          if (hasFile) {
+              const file = chatFileInput.files[0];
+              fileName = file.name;
+              try {
+                  btnSend.innerHTML = '...';
+                  if (typeof uploadFile === 'function') {
+                      fileUrl = await uploadFile(file, 'chat');
+                  } else {
+                      fileUrl = await new Promise((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = () => resolve(reader.result);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(file);
+                      });
+                  }
+              } catch(e) {
+                  console.error("Chat file upload error", e);
+                  showToast('Error subiendo archivo', 'error');
+                  btnSend.innerHTML = `<i class="fas fa-paper-plane text-sm"></i>`;
+                  return;
+              }
+          }
+          
           const comment = {
               type: 'user',
               user_id: user?.id,
               foto: user?.foto,
               user: user?.nombre || 'Usuario',
               text: text,
+              fileUrl: fileUrl,
+              fileName: fileName,
               date: new Date().toISOString()
           };
           
@@ -497,6 +575,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               btnSend.innerHTML = '...';
               await saveGranular('proyectos_dinamicos', [p]);
               inputDisc.value = '';
+              if (chatFileInput) chatFileInput.value = '';
+              if (chatFilePreview) chatFilePreview.style.display = 'none';
               const list = document.getElementById('discussion-list');
               list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color);
               list.scrollTop = list.scrollHeight;

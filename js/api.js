@@ -410,8 +410,8 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     console.log('[API-SYNC] ✅ adjuntos_oficina actualizado en cliente', cli.id);
 
     // ── 2. Crear registro en Recibos_Pagos para "Mis Recibos" ──
-    // El vendedor es el responsable_id del proyecto; el técnico es tecnico_id
-    const trabajadorId = isVendedor ? proy.responsable_id : (proy.tecnico_id || proy.responsable_id);
+    // El vendedor es el responsable_id (primero de la lista) del proyecto; el técnico es tecnico_id
+    const trabajadorId = isVendedor ? (proy.responsable_id || '').split(',')[0].trim() : (proy.tecnico_id || (proy.responsable_id || '').split(',')[0].trim());
     const user = (db.Usuarios || []).find(u => String(u.id) === String(trabajadorId));
     const trabajadorNom = user ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : 'Staff';
     const clienteNom = cli.nombre || cli.nombre_completo || `Cliente ${cli.id}`;
@@ -537,7 +537,7 @@ export function getRecibos(trabajadorId = null) {
     
     if (r.proyecto_id) {
       const proy = (db.Proyectos_Dinamicos || []).find(p => p.id === r.proyecto_id);
-      if (proy && String(proy.responsable_id) === String(trabajadorId)) return true;
+      if (proy && (proy.responsable_id || '').split(',').map(id=>id.trim()).includes(String(trabajadorId))) return true;
     }
     
     return false;
@@ -978,7 +978,7 @@ export async function createAdminPipeline(nombre, color, rolesConAcceso) {
     : ['Representante de Ventas', 'Project Manager', 'Técnico', 'Diseñador', 'Contabilidad', 'Supervisión', 'CEO', 'Admin'];
   const p = { id, nombre, icono: 'circle', color: color || '#8b5cf6', rolesConAcceso: roles };
   db.Admin_Pipelines.push(p);
-  await saveDB(db); 
+  await saveGranular('admin_pipelines', [p]); 
   return p;
 }
 
@@ -1035,7 +1035,7 @@ export async function createAdminFase(pipeline_id, nombre, orden, rol_encargado 
   const id = genId('fase', db);
   const f = { id, pipeline_id, orden: Number(orden) || 1, nombre, rol_encargado };
   db.Admin_Fases.push(f);
-  await saveDB(db); 
+  await saveGranular('admin_fases', [f]); 
   return f;
 }
 
@@ -1044,7 +1044,7 @@ export async function updateAdminFaseRole(faseId, nuevoRol) {
   const fase = db.Admin_Fases.find(f => f.id === faseId);
   if (fase) {
     fase.rol_encargado = nuevoRol;
-    await saveDB(db);
+    await saveGranular('admin_fases', [fase]);
   }
 }
 
@@ -1096,9 +1096,10 @@ export async function getAdminCampos() { return getDB().Admin_Campos_Formulario;
 export async function createAdminCampo(fase_id, etiqueta, tipo, opciones, es_opcional = false) {
   const db = getDB();
   const id = genId('campo', db);
-  const c = { id, fase_id, etiqueta, tipo, opciones, es_opcional };
+  const orden = (db.Admin_Campos_Formulario.filter(x => x.fase_id === fase_id).length || 0) + 1;
+  const c = { id, fase_id, etiqueta, tipo, opciones, es_opcional, orden };
   db.Admin_Campos_Formulario.push(c);
-  await saveDB(db); 
+  await saveGranular('admin_campos_formulario', [c]);
   return c;
 }
 
@@ -1144,9 +1145,13 @@ export async function updateAdminCampo(campoId, etiqueta, tipo, opciones, es_opc
 export async function reorderAdminCampos(faseId, newOrderIds) {
   const db = getDB();
   const otherCampos = db.Admin_Campos_Formulario.filter(c => c.fase_id !== faseId);
-  const phaseCampos = newOrderIds.map(id => db.Admin_Campos_Formulario.find(c => c.id === id)).filter(Boolean);
+  const phaseCampos = newOrderIds.map((id, index) => {
+      const c = db.Admin_Campos_Formulario.find(c => c.id === id);
+      if (c) c.orden = index + 1;
+      return c;
+  }).filter(Boolean);
   db.Admin_Campos_Formulario = [...otherCampos, ...phaseCampos];
-  await saveDB(db);
+  await saveGranular('admin_campos_formulario', phaseCampos);
 }
 
 export async function reorderAdminFases(pipelineId, newOrderIds) {
@@ -1159,7 +1164,7 @@ export async function reorderAdminFases(pipelineId, newOrderIds) {
   }).filter(Boolean);
   
   db.Admin_Fases = [...otherFases, ...phaseFases];
-  await saveDB(db);
+  await saveGranular('admin_fases', phaseFases);
 }
 
 export async function nukeAndResetDB() {
@@ -1321,7 +1326,7 @@ export async function getDealsByUser(userId, pipelineName) {
       if (isAdminUser) return true; 
       
       // Creator ALWAYS sees their project
-      if (p.responsable_id === userId) return true;
+      if ((p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(userId))) return true;
 
       // Workers assigned to the current phase see it
       const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id);
@@ -1797,7 +1802,7 @@ export async function addObserver(projectId, observerUser) {
   const currentUser = getCurrentUser();
   const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
   const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
+  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id));
   if (!isAdmin && !isResponsable) throw new Error('Sin permisos para agregar observadores');
 
   if (!p.observadores) p.observadores = [];
@@ -1834,7 +1839,7 @@ export async function removeObserver(projectId, observerId) {
   const currentUser = getCurrentUser();
   const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
   const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
+  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id));
   if (!isAdmin && !isResponsable) throw new Error('Sin permisos');
 
   p.observadores = (p.observadores || []).filter(o => o.id !== observerId);
@@ -2133,7 +2138,7 @@ async function _checkAndPromoteVendor(db, userId) {
 
   // 1. Count completed sales in Renew Water
   const salesCount = (db.Proyectos_Dinamicos || []).filter(p => 
-    p.responsable_id === userId && 
+    (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(userId)) && 
     p.pipeline_id === waterPipeline.id &&
     isProjectFinished(p, db)
   ).length;

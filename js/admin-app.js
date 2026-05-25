@@ -3130,10 +3130,10 @@ window.renderView = async function renderView() {
     if (state.crmKanbanActive) {
       // â”€â”€ KANBAN LIFECYCLE VIEW â”€â”€
       const MACRO_COLS = [
-        { key: 'Prospecto',     emoji: 'ðŸ”µ', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
-        { key: 'En Proceso',    emoji: 'ðŸŸ¡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
-        { key: 'Cliente',        emoji: 'ðŸŸ¢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
-        { key: 'Cancelado',     emoji: 'ðŸ”´', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+        { key: 'Prospecto',     emoji: '🔵', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
+        { key: 'En Proceso',    emoji: '🟡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
+        { key: 'Cliente',        emoji: '🟢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
+        { key: 'Cancelado',     emoji: '🔴', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
       ];
 
       const allClientes = clientesFiltrados;
@@ -3156,7 +3156,7 @@ window.renderView = async function renderView() {
                 <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">${c.nombre || 'Sin nombre'}</span>
                 <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">${c.state_id || ''}</span>
               </div>
-              <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? 'Â· ' + c.email : ''}</div>
+              <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? '· ' + c.email : ''}</div>
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                 <i class="fa-solid fa-user-tie text-[10px] text-tealAccent"></i>
                 <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">${getRepName(c) || 'Sin asignar'}</span>
@@ -3629,7 +3629,7 @@ window.renderView = async function renderView() {
                   <div style="width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#00dfbf,#0ea5e9); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:white; flex-shrink:0;">${initials}</div>
                   <div style="flex:1; min-width:0;">
                     <div style="font-size:13px; font-weight:700; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${fullName}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${dept} Â· ${clientCount} en mapa</div>
+                    <div style="font-size:11px; color:#94a3b8;">${dept} · ${clientCount} en mapa</div>
                   </div>
                 </div>`;
               }).join('');
@@ -7055,6 +7055,16 @@ function renderDiscussionHTML(discusion, pipelineColor) {
             ${c.foto ? `<img src="${c.foto}" style="width:100%;height:100%;object-fit:cover;" />` : initials}
         </div>`;
         
+        let attachmentHtml = '';
+        if (c.fileUrl) {
+            const isImage = c.fileUrl.startsWith('data:image') || c.fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+            if (isImage) {
+                attachmentHtml = `<div style="margin-top:6px;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,0.1);max-width:200px;"><a href="${c.fileUrl}" target="_blank"><img src="${c.fileUrl}" style="width:100%;display:block;cursor:pointer;"></a></div>`;
+            } else {
+                attachmentHtml = `<div style="margin-top:6px;"><a href="${c.fileUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);padding:6px 10px;border-radius:6px;text-decoration:none;color:inherit;font-size:0.75rem;border:1px solid rgba(0,0,0,0.1);"><i class="fas fa-file-alt"></i> <span style="truncate">${c.fileName || 'Archivo adjunto'}</span></a></div>`;
+            }
+        }
+        
         const msgBubble = `
         <div style="display:flex;align-items:flex-start;gap:8px;max-width:85%;${isMe ? 'flex-direction:row-reverse;margin-left:auto;' : ''}">
             ${avatar}
@@ -7063,7 +7073,7 @@ function renderDiscussionHTML(discusion, pipelineColor) {
                     <span style="font-size:0.7rem;font-weight:800;color:#0f172a;">${isMe ? 'Tú' : c.user}</span>
                     <span style="font-size:0.6rem;color:#64748b;">${time}</span>
                 </div>
-                <div style="background:${isMe ? pipelineColor : 'white'};color:${isMe ? 'white' : '#0f172a'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1);${!isMe ? 'border:1px solid #e2e8f0;' : ''}">${c.text}</div>
+                <div style="background:${isMe ? pipelineColor : 'white'};color:${isMe ? 'white' : '#0f172a'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1);${!isMe ? 'border:1px solid #e2e8f0;' : ''}">${c.text || ''}${attachmentHtml}</div>
             </div>
         </div>`;
         
@@ -7273,7 +7283,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                 <p class="text-[11px] text-gray-500">${observadores.length + 2} participantes</p>
             </div>
             <div class="flex items-center gap-3">
-                <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-search"></i></button>
+                <div class="relative bg-gray-50 rounded-full flex items-center px-3 h-8 shadow-inner transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:bg-white border border-transparent focus-within:border-blue-300">
+                    <i class="fas fa-search text-gray-400 text-xs mr-2"></i>
+                    <input type="text" id="chat-search-input" placeholder="Buscar mensaje..." class="bg-transparent outline-none text-xs text-gray-700 w-24 focus:w-40 transition-all duration-300" />
+                </div>
             </div>
         </div>
         
@@ -7288,7 +7301,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         <!-- Chat Input -->
         <div style="height:70px;background:white;border-top:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:1;">
             <div class="flex-1 bg-white border border-gray-200 rounded-full flex items-center px-4 h-10 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                <i class="fas fa-paperclip text-gray-400 mr-2 cursor-pointer hover:text-gray-600"></i>
+                <input type="file" id="chat-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" />
+                <label for="chat-file-input" style="margin:0;cursor:pointer;display:flex;align-items:center;">
+                    <i class="fas fa-paperclip text-gray-400 mr-2 hover:text-gray-600"></i>
+                </label>
+                <div id="chat-file-preview" style="display:none; font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px; margin-right:4px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;" onclick="document.getElementById('chat-file-input').value='';this.style.display='none';" title="Click para quitar"></div>
                 <input type="text" id="discussion-input" placeholder="Escribe un mensaje o menciona a alguien..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 h-full" />
                 <i class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600"></i>
             </div>
@@ -7356,19 +7373,26 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               let fieldHtml = '';
               
               if (c.tipo === 'Archivo') {
-                const hasFile = val && (val.startsWith('data:') || val.startsWith('http') || val.startsWith('/api/') || val.startsWith('/uploads/') || val.includes('/'));
-                const isImage = hasFile && (val.startsWith('data:image') || val.match(/\.(jpg|jpeg|png|gif|webp|svg)/i));
+                const files = val ? val.split(',').map(s=>s.trim()).filter(s=>s) : [];
+                const hasFile = files.length > 0;
                 const safeLabel = c.etiqueta.replace(/'/g, "\\'");
                 
                 const previewHtml = hasFile ? `
-                  <div class="mt-2 group relative rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" style="height: 60px; width: 100%;">
-                    ${isImage
-                      ? `<img src="${val}" class="w-full h-full object-cover" />`
-                      : `<i class="fas fa-file-pdf text-red-400 text-2xl"></i>`
-                    }
-                    <button onclick="window.openFilePreview('${c.id}', '${safeLabel}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <i class="fas ${isImage ? 'fa-eye' : 'fa-download'} text-white text-lg"></i>
-                    </button>
+                  <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] gap-2">
+                    ${files.map(fUrl => {
+                       const isImg = fUrl.startsWith('data:image') || fUrl.match(/\\.(jpg|jpeg|png|gif|webp|svg)/i);
+                       return `
+                       <div class="group relative rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" style="height: 60px;">
+                         ${isImg
+                           ? `<img src="${fUrl}" class="w-full h-full object-cover" />`
+                           : `<i class="fas fa-file-pdf text-red-400 text-2xl"></i>`
+                         }
+                         <button onclick="window.openFilePreview('${c.id}', '${safeLabel}', '${fUrl}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                           <i class="fas ${isImg ? 'fa-eye' : 'fa-download'} text-white text-lg"></i>
+                         </button>
+                       </div>
+                       `;
+                    }).join('')}
                   </div>
                 ` : '';
 
@@ -7379,10 +7403,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     </label>
                     <div style="display:flex; align-items:center; gap:8px; padding:8px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:8px;">
                        <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'};font-size:14px;"></i>
-                       <span style="font-size:10px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? 'Cargado' : 'Pendiente'}</span>
-                       <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
+                       <span style="font-size:10px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? files.length + ' archivo(s)' : 'Pendiente'}</span>
+                       <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" multiple onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
                        <label for="dfd_${c.id}" style="background:${hasFile ? '#e2e8f0' : pipeline.color}; color:${hasFile ? '#475569' : 'white'}; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:800; cursor:pointer; text-transform:uppercase;">
-                         ${hasFile ? 'Editar' : 'Subir'}
+                         ${hasFile ? 'Añadir' : 'Subir'}
                        </label>
                     </div>
                     ${previewHtml}
@@ -7566,21 +7590,89 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       });
   }
 
+  // Chat Search Logic
+  const chatSearchInput = document.getElementById('chat-search-input');
+  if (chatSearchInput) {
+      chatSearchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase().trim();
+          let filtered = p.discusion || [];
+          if (typeof filtered === 'string') {
+              try { filtered = JSON.parse(filtered); } catch(err) { filtered = []; }
+          }
+          if (query) {
+              filtered = filtered.filter(c => 
+                  (c.text && c.text.toLowerCase().includes(query)) || 
+                  (c.user && c.user.toLowerCase().includes(query)) ||
+                  (c.fileName && c.fileName.toLowerCase().includes(query))
+              );
+          }
+          const list = document.getElementById('discussion-list');
+          if (list) {
+              list.innerHTML = renderDiscussionHTML(filtered, pipeline.color);
+          }
+      });
+  }
+
   // Chat Send Logic
   const btnSend = document.getElementById('btn-send-discussion');
   const inputDisc = document.getElementById('discussion-input');
 
   if (btnSend && inputDisc) {
+      // Chat input file listener
+      const chatFileInput = document.getElementById('chat-file-input');
+      const chatFilePreview = document.getElementById('chat-file-preview');
+      if (chatFileInput && chatFilePreview) {
+          chatFileInput.addEventListener('change', (e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                  chatFilePreview.textContent = e.target.files[0].name;
+                  chatFilePreview.style.display = 'block';
+              } else {
+                  chatFilePreview.style.display = 'none';
+              }
+          });
+      }
+
       const sendComment = async () => {
           const text = inputDisc.value.trim();
-          if (!text) return;
+          const hasFile = chatFileInput && chatFileInput.files && chatFileInput.files.length > 0;
+          
+          if (!text && !hasFile) return;
           const user = getCurrentUser();
+          
+          let fileUrl = null;
+          let fileName = null;
+          
+          if (hasFile) {
+              const file = chatFileInput.files[0];
+              fileName = file.name;
+              try {
+                  btnSend.innerHTML = '...';
+                  if (typeof uploadFile === 'function') {
+                      fileUrl = await uploadFile(file, 'chat');
+                  } else {
+                      fileUrl = await new Promise((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = () => resolve(reader.result);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(file);
+                      });
+                  }
+              } catch(e) {
+                  console.error("Chat file upload error", e);
+                  showToast('Error subiendo archivo', 'error');
+                  btnSend.innerHTML = `<i class="fas fa-paper-plane text-sm"></i>`;
+                  return;
+              }
+          }
+          
           const comment = {
               type: 'user',
               user_id: user?.id,
               foto: user?.foto,
               user: user?.nombre || 'Usuario',
               text: text,
+              fileUrl: fileUrl,
+              fileName: fileName,
               date: new Date().toISOString()
           };
           
@@ -7595,6 +7687,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               btnSend.innerHTML = '...';
               await saveGranular('proyectos_dinamicos', [p]);
               inputDisc.value = '';
+              if (chatFileInput) chatFileInput.value = '';
+              if (chatFilePreview) chatFilePreview.style.display = 'none';
               const list = document.getElementById('discussion-list');
               list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color);
               list.scrollTop = list.scrollHeight;
@@ -7899,109 +7993,6 @@ async function showClientDetail(id) {
 
     updateBtn('adj-id', state.currentDetAdjID, 'Foto ID');
     updateBtn('adj-bill', state.currentDetAdjBill, 'Bill ElÃ©ctrico');
-    updateBtn('adj-seguro', state.currentDetAdjSeguro, 'PÃ³liza Seguro');
-    updateBtn('ofi-app', state.currentDetOfiApp, 'Hoja AplicaciÃ³n');
-    updateBtn('ofi-recibo', state.currentDetOfiRecibo, 'Recibo de Pago');
-    
-    // Handle specific contracts
-    const contractArea = document.getElementById('drop-det-ofi-contrato')?.parentElement;
-    if (contractArea) {
-        // Count total contracts
-        const contractUrls = [state.currentDetOfiContratoSolar, state.currentDetOfiContratoWater, state.currentDetOfiContratoHome, state.currentDetOfiContrato].filter(u => !!u);
-        
-        if (contractUrls.length > 1) {
-            // MULTIPLE: Show generic label and use the selector handler
-            updateBtn('ofi-contrato', contractUrls[0], 'CONTRATOS MULTIPLES', `window.handleContractView('${cli.id}')`);
-        } else if (contractUrls.length === 1) {
-            // SINGLE: Label it specifically if we know which one it is
-            let specificLabel = 'Contrato Firmado';
-            if (state.currentDetOfiContratoSolar) specificLabel = 'Contrato SOLAR';
-            else if (state.currentDetOfiContratoWater) specificLabel = 'Contrato WATER';
-            else if (state.currentDetOfiContratoHome) specificLabel = 'Contrato HOME';
-            
-            updateBtn('ofi-contrato', contractUrls[0], specificLabel);
-        } else {
-            // NONE:
-            updateBtn('ofi-contrato', null, 'Contrato Firmado');
-        }
-    }
-
-    updateBtn('ofi-orden', state.currentDetOfiOrden, 'Orden de Trabajo');
-    
-    // ID Photo View Logic
-    const btnViewId = document.getElementById('btn-view-cli-id-photo');
-    const noIdMsg = document.getElementById('det-cli-id-no-photo');
-    if (cli.id_photo) {
-        if(btnViewId) {
-            btnViewId.classList.remove('hidden');
-            btnViewId.classList.add('flex');
-            btnViewId.onclick = () => {
-                window.openFilePreview('id_photo_temp', 'Documento de Identidad del Cliente', { valor: cli.id_photo });
-            };
-        }
-        if(noIdMsg) noIdMsg.classList.add('hidden');
-    } else {
-        if(btnViewId) {
-            btnViewId.classList.add('hidden');
-            btnViewId.classList.remove('flex');
-        }
-        if(noIdMsg) noIdMsg.classList.remove('hidden');
-    }
-
-    // Status label
-    const statLbl = document.getElementById('det-cli-status-label');
-    if (statLbl) {
-        statLbl.innerHTML = `<span class="w-2 h-2 rounded-full ${cli.estado === 'Completado' ? 'bg-teal-400' : 'bg-tealAccent'}"></span> ${cli.estado || 'PROSPECTO'}`;
-    }
-
-    const avatarBox = document.getElementById('det-cli-avatar');
-    if (avatarBox) {
-        if (cli.foto) {
-            avatarBox.style.backgroundImage = `url(${cli.foto})`;
-            avatarBox.innerHTML = '';
-        } else {
-            avatarBox.style.backgroundImage = 'none';
-            avatarBox.innerHTML = `<i class="fa-solid fa-user text-6xl text-gray-200"></i>`;
-        }
-    }
-
-    // WA and Call Buttons
-    const btnWA = document.getElementById('btn-cli-whatsapp');
-    if (btnWA && cli.telefono) {
-        btnWA.onclick = () => window.open(`https://wa.me/${cli.telefono.replace(/\D/g, '')}`, '_blank');
-    }
-    const btnCall = document.getElementById('btn-cli-call');
-    if (btnCall && cli.telefono) {
-        btnCall.onclick = () => window.open(`tel:${cli.telefono}`, '_blank');
-    }
-    const btnEmail = document.getElementById('btn-cli-email');
-    if (btnEmail && cli.email) {
-        btnEmail.onclick = () => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${cli.email}`, '_blank');
-    }
-
-    if (UI.btnEditCliFromDetail) UI.btnEditCliFromDetail.dataset.id = id;
-
-    // --- ASSIGNMENT LOGIC ---
-    const workers = await getAdminWorkers();
-    const selAssigned = document.getElementById('sel-vendedor-asignar');
-    const selEditAssigned = document.getElementById('det-cli-edit-vendedor');
-    const assignedNameText = document.getElementById('det-cli-vendedor-nombre');
-    const assignedAvatar = document.getElementById('det-cli-vendedor-avatar');
-    const reassignBtn = document.getElementById('btn-reassign-vendedor');
-    const selectorWrap = document.getElementById('vendedor-selector-wrap');
-    const badge = document.getElementById('evidence-count-badge');
-    const galleryCont = document.getElementById('cli-evidence-gallery');
-
-    if (selAssigned) {
-        selAssigned.innerHTML = '<option value="">-- Seleccionar Vendedor --</option>';
-        if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">No asignado</option>';
-        
-        // ―――― FILTRO DE PIPELINE: Solo mostrar vendedores con acceso al ecosistema del cliente ――――
-        const clientePipeline = cli.empresa || cli.departamento || null;
-        const vendedorRoles = ['vendedor', 'admin', 'administrador', 'ceo', 'supervisor', 'supervisión'];
-        
-        const filteredWorkers = workers.filter(w => {
-            // Solo roles de venta
             const isVendorRole = vendedorRoles.includes((w.rol || '').toLowerCase());
             if (!isVendorRole) return false;
             // Si hay un pipeline asignado al cliente, filtrar por acceso
@@ -9318,7 +9309,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
     if (!inputEl.files || inputEl.files.length === 0) return;
-    const file = inputEl.files[0];
     const label = inputEl.nextElementSibling;
     const originalText = label.innerText;
     
@@ -9326,22 +9316,33 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
         label.innerText = 'Subiendo...';
         label.style.opacity = '0.7';
         
-        let fileUrl = '';
-        if (typeof uploadFile === 'function') {
-            fileUrl = await uploadFile(file, 'documents');
-        } else {
-            fileUrl = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
+        let fileUrls = [];
+        for (let i = 0; i < inputEl.files.length; i++) {
+            const file = inputEl.files[i];
+            let fileUrl = '';
+            if (typeof uploadFile === 'function') {
+                fileUrl = await uploadFile(file, 'documents');
+            } else {
+                fileUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+            if (fileUrl) fileUrls.push(fileUrl);
         }
         
-        if (!fileUrl) throw new Error("No URL generated");
+        if (fileUrls.length === 0) throw new Error("No URL generated");
         
-        await window.saveDynamicFields(projectId, { [campoId]: fileUrl });
-        showToast('Archivo subido con éxito', 'success');
+        // Fetch existing val to append
+        const db = typeof getDB === 'function' ? getDB() : window.state.db || {};
+        const resp = (db.Respuestas_Dinamicas || []).find(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
+        let existingVals = resp && resp.valor ? resp.valor.split(',').map(s=>s.trim()).filter(s=>s) : [];
+        const finalUrlStr = [...existingVals, ...fileUrls].join(',');
+
+        await window.saveDynamicFields(projectId, { [campoId]: finalUrlStr });
+        showToast('Archivo(s) subido(s) con éxito', 'success');
         
         if (window.openKanbanDrawer && window._currentDrawerPhaseId !== undefined) {
              window.openKanbanDrawer(projectId, window._currentDrawerPhaseId);
