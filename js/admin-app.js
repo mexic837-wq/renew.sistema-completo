@@ -7996,7 +7996,6 @@ async function showClientDetail(id) {
     updateBtn('adj-seguro', state.currentDetAdjSeguro, 'Póliza de Seguro');
 
     // --- ASSIGNMENT LOGIC ---
-    const db = getDB();
     const workers = db.Usuarios || [];
     const selAssigned = document.getElementById('sel-vendedor-asignar');
     const selEditAssigned = document.getElementById('det-cli-edit-vendedor');
