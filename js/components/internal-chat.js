@@ -157,8 +157,16 @@ async function renderMessages() {
         `;
     }
     
-    const messages = await getInternalMessages();
+    let messages = await getInternalMessages();
     const currentUser = getCurrentUser();
+    
+    // Filter messages: if it has mentions, only show to sender and mentioned users
+    messages = messages.filter(msg => {
+        if (msg.mentions && msg.mentions.length > 0) {
+            return msg.sender_id === currentUser?.id || msg.mentions.includes(currentUser?.id);
+        }
+        return true;
+    });
     
     console.log('[CHAT] Rendering messages:', messages.length, messages);
     
