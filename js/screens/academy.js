@@ -4,7 +4,7 @@
 import { getCurrentUser } from '../app.js';
 import { getDB } from '../api.js';
 import { t } from '../i18n.js';
-
+let activeAcademyDeptFilter = 'Todos';
 
 export function renderAcademy() {
   const user = getCurrentUser();
@@ -14,13 +14,29 @@ export function renderAcademy() {
   const dbLocal = getDB();
   const allContent = dbLocal.academiaContent || [];
 
-  // Filter content logic
   const isHighRole = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+  const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || ['Renew Solar']);
+  const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
+  
+  if (activeAcademyDeptFilter === null) activeAcademyDeptFilter = localStorage.getItem('active_unit') || 'Todos';
+
   const userPipelines = user.unidades || [];
   const visibleContent = allContent.filter(item => {
-    if (isHighRole) return true;
-    if (!item.permisos || item.permisos.length === 0) return true;
-    return item.permisos.some(p => userPipelines.includes(p));
+    let hasAccess = false;
+    if (isHighRole) hasAccess = true;
+    else if (!item.permisos || item.permisos.length === 0) hasAccess = true;
+    else hasAccess = item.permisos.some(p => userPipelines.includes(p));
+
+    if (!hasAccess) return false;
+
+    // Filter by selected tab
+    if (activeAcademyDeptFilter !== 'Todos') {
+      if (!item.permisos || item.permisos.length === 0) return true;
+      const activePipName = 'Renew ' + activeAcademyDeptFilter.replace('Renew ', '');
+      return item.permisos.includes(activePipName);
+    }
+    
+    return true;
   });
 
   screen.innerHTML = `
@@ -39,6 +55,23 @@ export function renderAcademy() {
           </p>
 
         </header>
+
+        <!-- Filtros de Departamento (Pipeline) -->
+        <div id="academy-dept-filter" style="display:flex; justify-content:center; gap:10px; padding:0 30px 20px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;">
+          ${depts.map(dept => {
+            const isActive = activeAcademyDeptFilter.toLowerCase().includes(dept.toLowerCase()) || (activeAcademyDeptFilter === 'Todos' && dept === 'Todos');
+            let color = 'var(--text-secondary)';
+            let bg = 'transparent';
+            let border = 'var(--border)';
+            if (isActive) {
+              if (dept === 'Todos') { color = 'var(--primary)'; bg = 'rgba(0, 223, 191, 0.1)'; border = 'var(--primary)'; }
+              else if (dept === 'Solar') { color = '#f59e0b'; bg = 'rgba(245, 158, 11, 0.1)'; border = '#f59e0b'; }
+              else if (dept === 'Water') { color = '#0ea5e9'; bg = 'rgba(14, 165, 233, 0.1)'; border = '#0ea5e9'; }
+              else if (dept === 'Home') { color = '#a855f7'; bg = 'rgba(168, 85, 247, 0.1)'; border = '#a855f7'; }
+            }
+            return `<button class="academy-dept-filter-pill" data-dept="${dept}" style="padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; color: ${color}; background: ${bg}; border: 1px solid ${border}; flex-shrink: 0;">${dept.toUpperCase()}</button>`;
+          }).join('')}
+        </div>
 
         <!-- Contenedor con ancho limitado para "Respiro" -->
         <div class="academy-grid px-10">
@@ -125,12 +158,18 @@ export function renderAcademy() {
     </div>
   `;
 
-  // Lógica de Navegación
   const menuPrincipal = document.getElementById('academia-menu-principal');
   const subVista = document.getElementById('academia-subvista');
   const btnRegresar = document.getElementById('btn-regresar-academia');
   const tituloSub = document.getElementById('titulo-subvista');
   const contenedorFinal = document.getElementById('contenedor-recursos-finales');
+
+  document.querySelectorAll('.academy-dept-filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      activeAcademyDeptFilter = pill.dataset.dept === 'Todos' ? 'Todos' : pill.dataset.dept;
+      renderAcademy(); 
+    });
+  });
 
   const cards = document.querySelectorAll('.academy-hero-card');
   cards.forEach(card => {
