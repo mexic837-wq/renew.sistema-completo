@@ -98,6 +98,27 @@ export function renderMisRecibos() {
   });
 
   _attachReciboCardListeners();
+
+  window.deleteReciboApp = async (id) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este recibo?')) return;
+    try {
+      const { deleteRecord } = await import('../api.js');
+      await deleteRecord('recibos_pagos', id);
+      
+      const db = window.getDB ? window.getDB() : null;
+      if (db && db.Recibos_Pagos) {
+          db.Recibos_Pagos = db.Recibos_Pagos.filter(r => r.id !== id);
+          localStorage.setItem('rs_app_db', JSON.stringify(db)); // O ajusta si la DB es distinta en la app
+      }
+      
+      // Re-render
+      renderMisRecibos();
+      
+    } catch (err) {
+      console.error("Error deleting recibo:", err);
+      alert('Error al eliminar recibo');
+    }
+  };
 }
 
 function _renderRecibosList(recibos, isAdmin) {
@@ -140,7 +161,10 @@ function _renderRecibosList(recibos, isAdmin) {
         <div style="text-align:right;flex-shrink:0;">
           <p style="font-size:1.05rem;font-weight:900;color:${color};margin:0;">${monto}</p>
           <p style="font-size:0.65rem;color:var(--text-muted);margin:2px 0;">${fecha}</p>
-          ${r.pdf_url ? `<a href="${r.pdf_url}" target="_blank" onclick="event.stopPropagation();" style="font-size:0.6rem;font-weight:800;color:${color};text-decoration:none;background:${color}12;padding:3px 8px;border-radius:6px;">Ver PDF</a>` : ''}
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:4px;">
+            ${r.pdf_url ? `<a href="${r.pdf_url}" target="_blank" onclick="event.stopPropagation();" style="font-size:0.6rem;font-weight:800;color:${color};text-decoration:none;background:${color}12;padding:3px 8px;border-radius:6px;">Ver PDF</a>` : ''}
+            ${isAdmin ? `<button onclick="event.stopPropagation(); window.deleteReciboApp('${r.id}')" style="font-size:0.6rem;font-weight:800;color:#ef4444;background:#ef444412;padding:3px 8px;border:none;border-radius:6px;cursor:pointer;"><i class="fa-solid fa-trash"></i></button>` : ''}
+          </div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="2.5">
           <polyline points="9 18 15 12 9 6"/>

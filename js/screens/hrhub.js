@@ -191,6 +191,31 @@ export async function renderHRHub() {
         // Initial binding for buttons that are part of the main HTML
         const addAdelantoBtn = document.getElementById('btn-add-adelanto');
         if (addAdelantoBtn) addAdelantoBtn.onclick = openAdelantoModal;
+
+        window.deleteRecibo = async (id) => {
+            if (!confirm('¿Estás seguro de que deseas eliminar este recibo? Esta acción no se puede deshacer.')) return;
+            try {
+                const { deleteRecord } = await import('../api.js');
+                await deleteRecord('recibos_pagos', id);
+                
+                const db = getDB();
+                if (db.Recibos_Pagos) {
+                    db.Recibos_Pagos = db.Recibos_Pagos.filter(r => r.id !== id);
+                    localStorage.setItem('rs_admin_db', JSON.stringify(db));
+                }
+                
+                import('../components/toast.js').then(m => m.showToast('Recibo eliminado exitosamente', 'success'));
+                
+                // Determine current active filter and re-render
+                const roleBtn = document.querySelector('.rrhh-rf-btn.active');
+                const deptBtn = document.querySelector('.rrhh-dept-btn.active');
+                renderRecibos(roleBtn ? roleBtn.dataset.rf : 'all', deptBtn ? deptBtn.dataset.dept : 'all');
+                
+            } catch (err) {
+                console.error("Error deleting recibo:", err);
+                import('../components/toast.js').then(m => m.showToast('Error al eliminar recibo', 'error'));
+            }
+        };
     }
 
     function bindHRToggle() {
@@ -556,6 +581,7 @@ export async function renderHRHub() {
                                <i class="fa-solid fa-file-pdf"></i> Ver PDF</a>`
                         : `<span class="text-[9px] text-gray-300 italic">Sin PDF</span>`
                     }
+                    <button onclick="event.stopPropagation(); window.deleteRecibo('${r.id}')" class="ml-2 text-red-400 hover:text-red-600 transition-colors p-2" title="Eliminar Recibo"><i class="fa-solid fa-trash text-[10px]"></i></button>
                 </td>
             </tr>`;
         }).join('');
