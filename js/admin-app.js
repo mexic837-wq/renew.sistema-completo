@@ -7535,7 +7535,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   if (btnManageObs) {
       btnManageObs.addEventListener('click', () => {
           const div = document.createElement('div');
-          div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+          div.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
           
           const curIds = new Set(observadores.map(o=>o.id));
           const eligible = allWorkers.filter(w => w.id !== p.responsable_id && !curIds.has(w.id) && !w.is_suspended);

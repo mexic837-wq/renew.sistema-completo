@@ -422,7 +422,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   if (btnManageObs) {
       btnManageObs.addEventListener('click', () => {
           const div = document.createElement('div');
-          div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+          div.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
           
           const curIds = new Set(observadores.map(o=>o.id));
           const pRespIds = (p.responsable_id || '').split(',').map(id => id.trim()).filter(id => id);

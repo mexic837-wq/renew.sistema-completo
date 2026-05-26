@@ -108,7 +108,27 @@ export async function renderNotificaciones() {
       };
   });
 
-  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario].sort((a,b) => b.date - a.date);
+  // Recopilar Asignaciones como Observador
+  const misObservaciones = (db.Proyectos_Dinamicos || []).filter(p => {
+      if (!p.observadores) return false;
+      return p.observadores.some(o => String(o.id) === String(user.id));
+  }).map(p => {
+      const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
+      const obs = p.observadores.find(o => String(o.id) === String(user.id));
+      const isRead = (db.Observadores_Reads || []).some(r => r.proyecto_id === p.id && String(r.user_id) === String(user.id));
+      return {
+          type: 'observador',
+          id: p.id,
+          title: `Observador en Proyecto`,
+          message: `Has sido añadido como observador en el proyecto de ${cli.nombre || 'Cliente'}.`,
+          date: new Date(obs.added_at || p.created_at || Date.now()),
+          isRead: isRead,
+          originalData: p,
+          cliente: cli
+      };
+  });
+
+  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario, ...misObservaciones].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
@@ -132,8 +152,10 @@ export async function renderNotificaciones() {
           ? 'background: rgba(245, 158, 11, 0.15); color: #f59e0b;' 
           : item.type === 'evento_calendario'
             ? 'background: rgba(16, 185, 129, 0.15); color: #10b981;'
-            : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
-      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : 'fa-bullhorn';
+            : item.type === 'observador'
+              ? 'background: rgba(139, 92, 246, 0.15); color: #8b5cf6;'
+              : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
+      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : item.type === 'observador' ? 'fa-eye' : 'fa-bullhorn';
 
       return `
         <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
@@ -210,8 +232,8 @@ export async function renderNotificaciones() {
           let html = `
             <div style="height: 32px;"></div>
             <div style="padding: 0 24px;">
-              <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: ${item.type === 'meeting' ? 'rgba(59, 130, 246, 0.15)' : item.type === 'asignacion' ? 'rgba(245, 158, 11, 0.15)' : item.type === 'evento_calendario' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(0, 245, 212, 0.15)'}; color: ${item.type === 'meeting' ? '#60a5fa' : item.type === 'asignacion' ? '#f59e0b' : item.type === 'evento_calendario' ? '#10b981' : 'var(--primary)'}; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  ${item.type === 'meeting' ? '<i class="fa-solid fa-video" style="margin-right: 8px;"></i> Reunión' : item.type === 'asignacion' ? '<i class="fa-solid fa-clipboard-user" style="margin-right: 8px;"></i> Asignación de Proyecto' : item.type === 'evento_calendario' ? '<i class="fa-solid fa-calendar-check" style="margin-right: 8px;"></i> Invitación a Evento' : '<i class="fa-solid fa-bullhorn" style="margin-right: 8px;"></i> Anuncio Corporativo'}
+              <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: ${item.type === 'meeting' ? 'rgba(59, 130, 246, 0.15)' : item.type === 'asignacion' ? 'rgba(245, 158, 11, 0.15)' : item.type === 'evento_calendario' ? 'rgba(16, 185, 129, 0.15)' : item.type === 'observador' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0, 245, 212, 0.15)'}; color: ${item.type === 'meeting' ? '#60a5fa' : item.type === 'asignacion' ? '#f59e0b' : item.type === 'evento_calendario' ? '#10b981' : item.type === 'observador' ? '#8b5cf6' : 'var(--primary)'}; border-radius: 20px; font-size: 0.75rem; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+                  ${item.type === 'meeting' ? '<i class="fa-solid fa-video" style="margin-right: 8px;"></i> Reunión' : item.type === 'asignacion' ? '<i class="fa-solid fa-clipboard-user" style="margin-right: 8px;"></i> Asignación de Proyecto' : item.type === 'evento_calendario' ? '<i class="fa-solid fa-calendar-check" style="margin-right: 8px;"></i> Invitación a Evento' : item.type === 'observador' ? '<i class="fa-solid fa-eye" style="margin-right: 8px;"></i> Observador de Proyecto' : '<i class="fa-solid fa-bullhorn" style="margin-right: 8px;"></i> Anuncio Corporativo'}
               </div>
               <h2 style="font-size: 1.7rem; font-weight: 900; color: var(--text-primary); margin: 0 0 12px 0; line-height: 1.25; letter-spacing: -0.5px;">${item.title}</h2>
               <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 32px; display: flex; align-items: center; font-weight: 500;">
@@ -353,6 +375,16 @@ export async function renderNotificaciones() {
                       read_at: new Date().toISOString()
                   });
                   await saveGranular('calendario_eventos_reads', db.calendario_eventos_reads);
+                  await initDB();
+              } else if (item.type === 'observador') {
+                  if (!db.Observadores_Reads) db.Observadores_Reads = [];
+                  db.Observadores_Reads.push({
+                      id: 'rd_' + Date.now().toString(36),
+                      proyecto_id: item.id,
+                      user_id: user.id,
+                      read_at: new Date().toISOString()
+                  });
+                  await saveGranular('observadores_reads', db.Observadores_Reads);
                   await initDB();
               }
               
