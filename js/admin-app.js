@@ -6775,6 +6775,11 @@ async function toggleDetailEditMode(id) {
                         if (lbl) lbl.textContent = e.target.checked ? 'Autorizado' : 'Sin acceso';
                     });
                 });
+                
+                // Update rank visibility initially when modal opens
+                if (typeof window.updateEditWorkerRankVisibility === 'function') {
+                    window.updateEditWorkerRankVisibility();
+                }
             }
         }
     }
@@ -9334,30 +9339,33 @@ document.addEventListener('change', (e) => {
 
 
 
-  const detEditRol = document.getElementById('det-edit-rol');
-  const detEditDept = document.getElementById('det-edit-dept');
-  if (detEditRol) {
-      detEditRol.addEventListener('change', () => {
-          const rol = detEditRol.value;
-          const dept = detEditDept ? detEditDept.value : '';
-          const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas';
-          const isWater = dept && dept.toLowerCase().includes('water');
-          const editRankContainer = document.getElementById('det-edit-rank-container');
-          if (editRankContainer) {
-              editRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
-          }
-      });
-  }
-  if (detEditDept) {
-      detEditDept.addEventListener('input', () => {
-          if (detEditRol) {
-              const evt = new Event('change');
-              detEditRol.dispatchEvent(evt);
-          }
-      });
-  }
+window.updateEditWorkerRankVisibility = function() {
+    const rol = document.getElementById('det-edit-rol');
+    const rankContainer = document.getElementById('det-edit-rank-container');
+    if (!rankContainer || !rol) return;
+    
+    const waterChecked = Array.from(document.querySelectorAll('.pip-perm-chk:checked')).some(chk => {
+        const pipName = chk.dataset.pip || chk.value || '';
+        return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
+    });
 
+    const isVendedor = rol.value === 'Vendedor' || rol.value === 'Representante de Ventas';
+    if (isVendedor && waterChecked) {
+        rankContainer.style.display = 'block';
+    } else {
+        rankContainer.style.display = 'none';
+        const rankSelect = document.getElementById('det-edit-rank');
+        if (rankSelect) rankSelect.value = 'novato'; 
+    }
+};
 
+document.addEventListener('change', (e) => {
+    if (e.target.id === 'det-edit-rol' || (e.target.classList && e.target.classList.contains('pip-perm-chk'))) {
+        if (typeof window.updateEditWorkerRankVisibility === 'function') {
+            window.updateEditWorkerRankVisibility();
+        }
+    }
+});
 // ==========================================
 // LOGICA DE INVITACION DE TRABAJADORES
 // ==========================================
