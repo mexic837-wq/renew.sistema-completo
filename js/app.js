@@ -696,21 +696,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Desktop Sidebar Toggle
-  const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
-  if (btnToggleSidebar) {
-    // Load initial state
-    if (localStorage.getItem('sidebar_collapsed') === 'true') {
-      document.body.classList.add('sidebar-collapsed');
-    }
-
-    btnToggleSidebar.addEventListener('click', () => {
-      document.body.classList.toggle('sidebar-collapsed');
-      localStorage.setItem('sidebar_collapsed', document.body.classList.contains('sidebar-collapsed'));
-    });
+  // Desktop Sidebar Toggle (Delegated below)
+  if (localStorage.getItem('sidebar_collapsed') === 'true') {
+    document.body.classList.add('sidebar-collapsed');
   }
 
-  // ── Theme Toggle – Robust Delegation ─────────
   const applyTheme = (theme) => {
     if (theme === 'dark') {
       document.body.classList.add('dark-theme');
@@ -729,6 +719,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.addEventListener('click', (e) => {
     const themeBtn = e.target.closest('#btn-theme-toggle') || e.target.closest('#btn-theme-toggle-mobile');
+    const sidebarToggleBtn = e.target.closest('#btn-toggle-sidebar');
+    
+    if (sidebarToggleBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem('sidebar_collapsed', document.body.classList.contains('sidebar-collapsed'));
+      return;
+    }
+
     if (themeBtn) {
       const isCurrentlyDark = document.body.classList.contains('dark-theme');
       const newTheme = isCurrentlyDark ? 'light' : 'dark';
