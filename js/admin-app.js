@@ -2761,9 +2761,9 @@ window.showInvHistoryDetails = (clientName) => {
             </div>
             <div class="mt-6 p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
                 <p class="text-[10px] text-blue-500 font-black uppercase tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-circle-info"></i> InformaciÃ³n de Registro
+                    <i class="fa-solid fa-circle-info"></i> Información de Registro
                 </p>
-                <p class="text-[10px] text-gray-500 mt-2">Este reporte consolida todos los materiales retirados del inventario vinculados a este proyecto/cliente especÃ­fico.</p>
+                <p class="text-[10px] text-gray-500 mt-2">Este reporte consolida todos los materiales retirados del inventario vinculados a este proyecto/cliente específico.</p>
             </div>
         `;
     }
@@ -4225,7 +4225,7 @@ window.renderView = async function renderView() {
             <select id="aca-tipo" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
                <option value="Video de Entrenamiento">${t('aca_type_video')}</option>
                <option value="Documento/PDF">${t('aca_type_doc')}</option>
-               <option value="InformaciÃ³n Bancaria">${t('aca_type_bank')}</option>
+               <option value="Información Bancaria">${t('aca_type_bank')}</option>
                <option value="Detalles de equipo">${t('aca_type_equipment')}</option>
                <option value="FAQ">${t('aca_type_faq')}</option>
             </select>
@@ -6512,7 +6512,7 @@ function exitDetailEditMode() {
     if (saveBar) saveBar.classList.add('hidden');
     if (gearBtn) {
         gearBtn.classList.remove('text-tealAccent', 'bg-tealAccent/10', 'rotate-45');
-        gearBtn.title = 'Editar informaciÃ³n';
+        gearBtn.title = 'Editar información';
     }
 }
 
