@@ -5413,6 +5413,38 @@ function renderCalendario() {
                     }
                 };
              });
+
+             // Add birthdays
+             const workers = db.Admin_Workers || [];
+             const yearStart = parseInt(fetchInfo.startStr.substring(0, 4)) || new Date().getFullYear();
+             const yearEnd = parseInt(fetchInfo.endStr.substring(0, 4)) || new Date().getFullYear();
+
+             workers.forEach(w => {
+                 if (!w.dob) return;
+                 let month, day;
+                 if (w.dob.includes('/')) {
+                     const p = w.dob.split('/');
+                     month = p[0].padStart(2, '0');
+                     day = p[1].padStart(2, '0');
+                 } else if (w.dob.includes('-')) {
+                     const p = w.dob.split('-');
+                     if (p[0].length === 4) { month = p[1]; day = p[2]; } else { month = p[0]; day = p[1]; }
+                 }
+                 if (!month || !day) return;
+
+                 for (let y = yearStart; y <= yearEnd; y++) {
+                     mapped.push({
+                         id: 'bday_' + w.id + '_' + y,
+                         title: '🎂 Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
+                         start: `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+                         allDay: true,
+                         backgroundColor: '#ec4899',
+                         borderColor: 'transparent',
+                         extendedProps: { isBirthday: true, workerId: w.id }
+                     });
+                 }
+             });
+
              successCallback(mapped);
         } catch (error) {
              console.error("Error fetching events", error);
@@ -5484,6 +5516,7 @@ function renderCalendario() {
     },
     eventClick: function(info) {
       info.jsEvent.preventDefault();
+      if (info.event.extendedProps && info.event.extendedProps.isBirthday) return;
       // Si el evento tiene URL (ej: Google Calendar), evitamos que navegue
       mostrarDetalleEventoCalendario(info.event);
     },
