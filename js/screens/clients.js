@@ -404,11 +404,20 @@ async function _renderList(user, container) {
     const dateStr = c.fecha ? new Date(c.fecha).toLocaleDateString('en-US') : 'Reciente';
     const targetId = proy ? proy.id : null;
 
+    let deleteBtnHtml = '';
+    const isDeletableRole = ['admin', 'administrador', 'ceo', 'vendedor', 'representante'].some(r => userRolNorm.includes(r));
+    if (isDeletableRole) {
+      deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="Eliminar Cliente"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
+    }
+
     return `
       <div class="deal-card" style="--card-accent:var(--primary); background:var(--surface); border-radius:16px; padding:16px; border-left:4px solid var(--primary); margin-bottom:12px; cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
         <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
           <div class="deal-client-name" style="color:var(--text-primary); font-weight:bold; font-size:1.1rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.2;">${c.nombre} ${deptBadgeHtml}</div>
-          <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}" style="padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${etapaLabel}</span>
+          <div style="display:flex; align-items:center;">
+             ${deleteBtnHtml}
+             <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}" style="padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${etapaLabel}</span>
+          </div>
         </div>
         
         <div class="deal-progress-wrap" style="margin-bottom:12px;">
@@ -479,6 +488,42 @@ async function _renderList(user, container) {
 
       // All data complete → show pipeline selector
       _showPipelineSelector(client, user);
+    });
+  });
+
+  // ── Delete client logic ──────────────────────────────────
+  container.querySelectorAll('.btn-eliminar-cliente').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const clientId = btn.dataset.clientId;
+      const client = misClientes.find(c => c.id === clientId);
+      if (!client) return;
+
+      if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente al cliente/prospecto ${client.nombre}? Esta acción no se puede deshacer.`)) return;
+
+      try {
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+        btn.disabled = true;
+
+        const db = getDB();
+        if (db.Clientes_Maestro) {
+          db.Clientes_Maestro = db.Clientes_Maestro.filter(c => c.id !== clientId);
+        }
+        if (db.Proyectos_Dinamicos) {
+          db.Proyectos_Dinamicos = db.Proyectos_Dinamicos.filter(p => p.cliente_id !== clientId);
+        }
+        
+        const { saveGranular, deleteRecord } = await import('../api.js');
+        await deleteRecord('Clientes_Maestro', clientId);
+        
+        import('../components/toast.js').then(m => m.showToast('Cliente eliminado', 'success'));
+        _renderList(user, container);
+      } catch (err) {
+        console.error(err);
+        import('../components/toast.js').then(m => m.showToast('Error al eliminar cliente', 'error'));
+        btn.innerHTML = `<i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i>`;
+        btn.disabled = false;
+      }
     });
   });
 }
