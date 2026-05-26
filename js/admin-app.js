@@ -9109,11 +9109,48 @@ window.adminUploadPrecioFoto = async function(id) {
     input.type = 'file';
     input.accept = 'image/*';
     input.onchange = async (e) => {
-        const file = e.target.files[0];
+        let file = e.target.files[0];
         if (!file) return;
 
         showToast('Subiendo imagen...', 'info');
         try {
+            // Compress image to avoid 413 Request Entity Too Large
+            if (file.type.startsWith('image/')) {
+                file = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            const maxDim = 1000;
+                            
+                            if (width > height && width > maxDim) {
+                                height *= maxDim / width;
+                                width = maxDim;
+                            } else if (height > maxDim) {
+                                width *= maxDim / height;
+                                height = maxDim;
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            canvas.toBlob((blob) => {
+                                resolve(blob ? new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }) : file);
+                            }, 'image/jpeg', 0.8);
+                        };
+                        img.onerror = () => resolve(file);
+                    };
+                    reader.onerror = () => resolve(file);
+                });
+            }
+
             const formData = new FormData();
             formData.append('file', file);
             formData.append('type', 'productos');
