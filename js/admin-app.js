@@ -5415,7 +5415,7 @@ function renderCalendario() {
              });
 
              // Add birthdays
-             const workers = db.Admin_Workers || [];
+             const workers = db.Usuarios || [];
              const yearStart = parseInt(fetchInfo.startStr.substring(0, 4)) || new Date().getFullYear();
              const yearEnd = parseInt(fetchInfo.endStr.substring(0, 4)) || new Date().getFullYear();
 
