@@ -7995,15 +7995,20 @@ async function showClientDetail(id) {
     updateBtn('adj-bill', state.currentDetAdjBill, 'Bill Eléctrico');
     updateBtn('adj-seguro', state.currentDetAdjSeguro, 'Póliza de Seguro');
 
-    // Populate Workers (Vendedores)
-    const selAssigned = document.getElementById('det-assigned');
-    const selEditAssigned = document.getElementById('edit-assigned');
+    // --- ASSIGNMENT LOGIC ---
+    const db = getDB();
+    const workers = db.Usuarios || [];
+    const selAssigned = document.getElementById('sel-vendedor-asignar');
+    const selEditAssigned = document.getElementById('det-cli-edit-vendedor');
+    const assignedNameText = document.getElementById('det-cli-vendedor-nombre');
+    const assignedAvatar = document.getElementById('det-cli-vendedor-avatar');
+    const reassignBtn = document.getElementById('btn-reassign-vendedor');
+    const selectorWrap = document.getElementById('vendedor-selector-wrap');
+
     if (selAssigned) {
         selAssigned.innerHTML = '<option value="">Sin Asignar</option>';
         if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">Sin Asignar</option>';
 
-        const db = getDB();
-        const workers = db.Usuarios || [];
         const vendedorRoles = ['vendedor', 'representante de ventas', 'técnico'];
         const clientePipeline = cli.pipeline;
 
