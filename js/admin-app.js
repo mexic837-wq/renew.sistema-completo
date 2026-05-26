@@ -3667,11 +3667,11 @@ window.renderView = async function renderView() {
   } else if (state.activeView === 'calendario') {
     UI.viewTitle.innerHTML = '<i class="fa-solid fa-calendar-days text-tealAccent"></i> Calendario Maestro';
     UI.viewDesc.textContent = 'Gestión y sincronización en tiempo real con Google Calendar.';
-    setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> AÃ±adir Evento');
+    setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> Añadir Evento');
     renderCalendario();
   } else if (state.activeView === 'usuarios' || state.activeView === 'equipo') {
     UI.viewTitle.textContent = "Equipo Renew";
-    UI.viewDesc.textContent = "CompaÃ±eros de trabajo en Renew Group.";
+    UI.viewDesc.textContent = "Compañeros de trabajo en Renew Group.";
     setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator');
     
     let items = await getAdminWorkers();
@@ -5617,7 +5617,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
   } else {
     // ADD NEW EVENT MODE (Triggered genericlly)
-    titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> AÃ±adir Evento`;
+    titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
     btnGuardar.classList.remove('hidden');
     form.reset();
 
