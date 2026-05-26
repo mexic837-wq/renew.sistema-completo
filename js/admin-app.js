@@ -3055,7 +3055,7 @@ window.renderView = async function renderView() {
             const repData = repByClientId[c.id];
             const dateStr = repData ? (repData.fecha || '') : '';
             const repName = getRepName(c) || '';
-            const searchStr = `${c.nombre || ''} ${c.telefono || ''} ${c.empresa || ''} ${c.estado || ''} ${c.state_id || ''} ${dateStr} ${repName}`.toLowerCase();
+            const searchStr = window.normalizeSearchString(`${c.nombre || ''} ${c.telefono || ''} ${c.empresa || ''} ${c.estado || ''} ${c.state_id || ''} ${dateStr} ${repName}`);
             return searchStr.includes(window.globalSearchQuery);
         });
     }
@@ -3678,7 +3678,7 @@ window.renderView = async function renderView() {
     
     if (window.globalSearchQuery) {
         items = items.filter(u => {
-            const searchStr = `${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${u.rol || ''} ${u.email || ''} ${u.telefono || ''}`.toLowerCase();
+            const searchStr = window.normalizeSearchString(`${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${u.rol || ''} ${u.email || ''} ${u.telefono || ''}`);
             return searchStr.includes(window.globalSearchQuery);
         });
     }
@@ -3760,7 +3760,7 @@ window.renderView = async function renderView() {
     
     if (window.globalSearchQuery) {
         items = items.filter(u => {
-            const searchStr = `${u.empresa || ''} ${u.contacto || ''} ${u.servicio || ''} ${u.telefono || ''} ${u.area || ''}`.toLowerCase();
+            const searchStr = window.normalizeSearchString(`${u.empresa || ''} ${u.contacto || ''} ${u.servicio || ''} ${u.telefono || ''} ${u.area || ''}`);
             return searchStr.includes(window.globalSearchQuery);
         });
     }
@@ -8726,6 +8726,11 @@ document.addEventListener('click', (e) => {
 // â”€â”€ Global Search Listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.globalSearchQuery = '';
 
+window.normalizeSearchString = (str) => {
+    if (!str) return '';
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
+
 function initGlobalSearch() {
     const searchInput = document.getElementById('global-search-input');
     if (searchInput) {
@@ -8734,7 +8739,7 @@ function initGlobalSearch() {
         searchInput._hasListener = true;
 
         searchInput.addEventListener('input', (e) => {
-            window.globalSearchQuery = e.target.value.toLowerCase();
+            window.globalSearchQuery = window.normalizeSearchString(e.target.value);
             if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
                  renderView();
             }
