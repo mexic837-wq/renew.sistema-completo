@@ -5355,6 +5355,55 @@ function crearPasoMarketingHTML(index) {
 
 function renderCalendario() {
   UI.canvas.innerHTML = `
+    <style>
+        /* --- NUEVOS ESTILOS PARA PROPORCIONES DE TARJETAS --- */
+        .fc-daygrid-event {
+          border: none !important;
+          border-radius: 8px !important;
+          padding: 0 !important;
+          margin: 2px auto !important;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+          height: auto !important;
+          min-height: 40px !important;
+          display: flex !important;
+          align-items: stretch !important;
+          overflow: hidden !important;
+          width: 95% !important;
+          background-color: transparent !important;
+          white-space: normal !important;
+        }
+        .fc-daygrid-event-harness {
+          display: flex !important;
+          justify-content: center !important;
+        }
+        .fc-daygrid-event:hover {
+          transform: translateY(-1px) scale(1.02) !important;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
+          filter: brightness(1.1);
+        }
+        .fc-daygrid-event .fc-event-main {
+          color: inherit !important;
+          font-weight: 800 !important;
+          font-size: 0.68rem !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          width: 100%;
+          overflow: hidden;
+        }
+        /* Ajustes para la vista de lista (semanal) */
+        .fc-list-event { cursor: pointer !important; }
+        .fc-list-event-title { font-weight: 800 !important; font-size: 0.85rem !important; }
+        .fc-list-event-time { font-weight: 900 !important; color: var(--primary) !important; }
+        .fc-list-day-cushion { background-color: var(--surface-alt) !important; color: var(--text-primary) !important; padding: 12px 16px !important; }
+        .fc-list-day-text, .fc-list-day-side-text { font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-size: 0.7rem !important; color: var(--text-primary) !important; }
+        .fc-list-table { background-color: transparent !important; }
+        .fc-list-empty { background-color: var(--surface) !important; color: var(--text-muted) !important; }
+        .fc-event-time { background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 8px; font-size: 0.6rem !important; font-weight: 900 !important; color: rgba(0,0,0,0.7) !important; flex-shrink: 0; }
+        .fc-event-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    </style>
     <div class="mt-6 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-premium transition-all animate-fadeIn">
       <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
