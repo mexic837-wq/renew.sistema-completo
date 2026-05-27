@@ -98,8 +98,7 @@ export async function renderHRHub() {
                 <!-- Row 1: Role Filter -->
                 <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest w-14">Rol:</span>
-                    <button data-rf="all"      class="rrhh-rf-btn active px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-tealAccent bg-tealAccent/10 text-tealAccent transition-all">Todos</button>
-                    <button data-rf="vendedor" class="rrhh-rf-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-blue-500 hover:border-blue-300 transition-all">
+                    <button data-rf="vendedor" class="rrhh-rf-btn active px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-tealAccent bg-tealAccent/10 text-tealAccent transition-all">
                         <i class="fa-solid fa-dollar-sign mr-1"></i>Vendedores
                     </button>
                     <button data-rf="tecnico"  class="rrhh-rf-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-emerald-500 hover:border-emerald-300 transition-all">
@@ -119,6 +118,13 @@ export async function renderHRHub() {
                     <button data-dept="home"  class="rrhh-dept-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-purple-500 hover:border-purple-300 transition-all">
                         🏠 Home
                     </button>
+                </div>
+
+                <!-- Search bar -->
+                <div class="relative mb-4">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[11px] pointer-events-none"></i>
+                    <input id="rrhh-recibos-search" type="text" placeholder="Buscar por nombre de representante o cliente..."
+                        class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.03] text-xs font-semibold text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-tealAccent transition-all">
                 </div>
 
                 <!-- Table -->
@@ -242,8 +248,8 @@ export async function renderHRHub() {
                 else showContainer.classList.add('block');
 
                 // Render views when tab is clicked
-                if (target === 'recibos') renderRecibos('all');
-                if (target === 'adelantos') renderAdelantos();
+        if (target === 'recibos') renderRecibos('vendedor');
+        if (target === 'adelantos') renderAdelantos();
             });
         });
     }
@@ -475,7 +481,7 @@ export async function renderHRHub() {
         });
     }
 
-    function renderRecibos(roleFilter = 'all', deptFilter = 'all') {
+    function renderRecibos(roleFilter = 'vendedor', deptFilter = 'all', searchQuery = '') {
         const db = getDB();
         const allRecibos   = db.Recibos_Pagos     || [];
         const usuarios     = db.Usuarios           || [];
@@ -508,10 +514,18 @@ export async function renderHRHub() {
             otro:  { label: 'Otro',  color: '#94a3b8', icon: '📋' }
         };
 
-        // Apply both filters
+        // Apply role + dept filters
         let filtered = allRecibos;
         if (roleFilter !== 'all') filtered = filtered.filter(r => r.tipo === roleFilter);
         if (deptFilter !== 'all') filtered = filtered.filter(r => getDeptKey(r) === deptFilter);
+
+        // Apply search query (worker name or client name)
+        if (searchQuery) {
+            filtered = filtered.filter(r =>
+                (r.trabajador_nombre || '').toLowerCase().includes(searchQuery) ||
+                (r.cliente_nombre   || '').toLowerCase().includes(searchQuery)
+            );
+        }
 
         const tbody = document.getElementById('rrhh-recibos-body');
         if (!tbody) return;
@@ -748,7 +762,8 @@ export async function renderHRHub() {
                 btn.classList.add('border-tealAccent', 'bg-tealAccent/10', 'text-tealAccent', 'active');
                 btn.classList.remove('border-gray-200', 'text-gray-500');
                 const activeDept = document.querySelector('.rrhh-dept-btn.active')?.dataset.dept || 'all';
-                renderRecibos(btn.dataset.rf, activeDept);
+                const searchQ = (document.getElementById('rrhh-recibos-search')?.value || '').toLowerCase().trim();
+                renderRecibos(btn.dataset.rf, activeDept, searchQ);
             };
         });
 
@@ -776,10 +791,23 @@ export async function renderHRHub() {
                     btn.style.background  = c + '15';
                     btn.style.color       = c;
                 }
-                const activeRole = document.querySelector('.rrhh-rf-btn.active')?.dataset.rf || 'all';
-                renderRecibos(activeRole, dk);
+                const activeRole = document.querySelector('.rrhh-rf-btn.active')?.dataset.rf || 'vendedor';
+                const searchQ = (document.getElementById('rrhh-recibos-search')?.value || '').toLowerCase().trim();
+                renderRecibos(activeRole, dk, searchQ);
             };
         });
+
+        // Search input
+        const searchInp = document.getElementById('rrhh-recibos-search');
+        if (searchInp && !searchInp._wired) {
+            searchInp._wired = true;
+            searchInp.addEventListener('input', () => {
+                const q = searchInp.value.toLowerCase().trim();
+                const activeRole = document.querySelector('.rrhh-rf-btn.active')?.dataset.rf || 'vendedor';
+                const activeDept = document.querySelector('.rrhh-dept-btn.active')?.dataset.dept || 'all';
+                renderRecibos(activeRole, activeDept, q);
+            });
+        }
     }
 
     function openHRPanel(empId) {

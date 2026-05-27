@@ -31,14 +31,21 @@ export function renderMisRecibos() {
     </div>
 
     <div style="padding:16px 16px 100px;">
+      <!-- Search bar (Admins Only) -->
+      ${isAdmin ? `
+      <div style="position:relative;margin-bottom:14px;">
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
+        <input id="recibos-search" type="text" placeholder="Buscar por nombre de cliente o trabajador..." autocomplete="off"
+          style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
+          onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      ` : ''}
+
       <!-- Filter tabs (Admins Only) -->
       ${isAdmin ? `
       <div style="display:flex;gap:8px;margin-bottom:20px;">
-        <button data-filter="all"
-          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--primary);background:rgba(0,223,191,0.12);color:var(--primary);font-size:0.8rem;font-weight:800;cursor:pointer;"
-          id="rfil-all">Todos</button>
         <button data-filter="vendedor"
-          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
+          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--primary);background:rgba(0,223,191,0.12);color:var(--primary);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-vendedor">Representantes</button>
         <button data-filter="tecnico"
           style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
@@ -48,7 +55,7 @@ export function renderMisRecibos() {
 
       <!-- Receipts list -->
       <div id="recibos-list">
-        ${_renderRecibosList(allRecibos, isAdmin)}
+        ${_renderRecibosList(isAdmin ? allRecibos.filter(r => r.tipo === 'vendedor') : allRecibos, isAdmin)}
       </div>
     </div>
 
@@ -72,25 +79,42 @@ export function renderMisRecibos() {
   // Back button
   document.getElementById('recibos-back-btn')?.addEventListener('click', () => window.appNavigate('dashboard'));
 
-  // Filter buttons
-  let currentFilter = 'all';
-  ['all','vendedor','tecnico'].forEach(f => {
+  // Filter buttons (vendedor & tecnico only – no Todos)
+  let currentFilter = 'vendedor'; // default to vendedor
+  ['vendedor','tecnico'].forEach(f => {
     document.getElementById(`rfil-${f}`)?.addEventListener('click', () => {
       currentFilter = f;
-      const filtered = f === 'all' ? allRecibos : allRecibos.filter(r => r.tipo === f);
-      document.getElementById('recibos-list').innerHTML = _renderRecibosList(filtered, isAdmin);
-      _attachReciboCardListeners();
+      applyReciboFilters();
       // Update button styles
-      ['all','vendedor','tecnico'].forEach(btn => {
+      ['vendedor','tecnico'].forEach(btn => {
         const el = document.getElementById(`rfil-${btn}`);
         if (!el) return;
         const isActive = btn === f;
-        el.style.borderColor    = isActive ? 'var(--primary)' : 'var(--border)';
-        el.style.background     = isActive ? 'rgba(0,223,191,0.12)' : 'var(--surface)';
-        el.style.color          = isActive ? 'var(--primary)' : 'var(--text-muted)';
+        el.style.borderColor = isActive ? 'var(--primary)' : 'var(--border)';
+        el.style.background  = isActive ? 'rgba(0,223,191,0.12)' : 'var(--surface)';
+        el.style.color       = isActive ? 'var(--primary)' : 'var(--text-muted)';
       });
     });
   });
+
+  // Search input
+  const searchInput = document.getElementById('recibos-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => applyReciboFilters());
+  }
+
+  function applyReciboFilters() {
+    const query = (document.getElementById('recibos-search')?.value || '').toLowerCase().trim();
+    let filtered = allRecibos.filter(r => r.tipo === currentFilter);
+    if (query) {
+      filtered = filtered.filter(r =>
+        (r.cliente_nombre || '').toLowerCase().includes(query) ||
+        (r.trabajador_nombre || '').toLowerCase().includes(query)
+      );
+    }
+    document.getElementById('recibos-list').innerHTML = _renderRecibosList(filtered, isAdmin);
+    _attachReciboCardListeners();
+  }
 
   // Close modal
   document.getElementById('btn-cerrar-recibo-modal')?.addEventListener('click', () => {
