@@ -3258,6 +3258,43 @@ window.renderView = async function renderView() {
             cli.departamento = 'CANCELADO'; // Force legacy field as backup
           }
 
+          // ++ NEW LOGIC: AUTO-CREATE OR UPDATE PROJECT TO "Completado" IF DROPPED IN "Cliente"
+          if (newMacro === 'Cliente') {
+              let pipelineToUse = null;
+              const depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento ? [cli.departamento] : []);
+              if (depts.length > 0) {
+                  const deptStr = depts[0].toLowerCase();
+                  pipelineToUse = (_db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().includes(deptStr.replace('renew ', '').trim()));
+              }
+              if (!pipelineToUse) {
+                  pipelineToUse = (_db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().includes('water')); // fallback
+              }
+
+              if (pipelineToUse) {
+                  const existingProy = (_db.Proyectos_Dinamicos || []).find(p => p.cliente_id === cli.id && p.pipeline_id === pipelineToUse.id);
+                  if (existingProy) {
+                      existingProy.fase_id = 'Completado';
+                      existingProy.estado = 'Completado';
+                      existingProy.fecha_cierre = new Date().toISOString();
+                  } else {
+                      const newProy = {
+                          id: 'RENEW-PROY_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                          cliente_id: cli.id,
+                          pipeline_id: pipelineToUse.id,
+                          fase_id: 'Completado',
+                          estado: 'Completado',
+                          responsable_id: cli.vendedor_asignado_id || cli.creador_id || (window.user ? window.user.id : 'system'),
+                          creador_id: (window.user ? window.user.id : 'system'),
+                          created_at: new Date().toISOString(),
+                          fecha: new Date().toISOString(),
+                          fecha_cierre: new Date().toISOString()
+                      };
+                      _db.Proyectos_Dinamicos = _db.Proyectos_Dinamicos || [];
+                      _db.Proyectos_Dinamicos.push(newProy);
+                  }
+              }
+          }
+
           try {
             await saveDB(_db);
             window.addNotification('CRM', `${cli.nombre} movido a ${newMacro}`, 'success');
@@ -3989,7 +4026,7 @@ window.renderView = async function renderView() {
             </h3>
             <span class="bg-teal-500/10 text-teal-600 text-[9px] px-2 py-0.5 rounded-full font-black border border-teal-500/20 shrink-0">${completedDeals.length}</span>
           </div>
-          <div class="kanban-drop-zone flex-1 overflow-y-auto pb-12 hide-scrollbar min-h-[500px]" data-faseid="Completado">
+          <div class="kanban-drop-zone flex-1 overflow-y-auto pb-12 custom-h-scrollbar min-h-[500px]" data-faseid="Completado">
             ${cardsHtml}
           </div>
         </div>
@@ -3997,10 +4034,10 @@ window.renderView = async function renderView() {
     }
 
     UI.canvas.innerHTML = `
-      <div class="flex gap-4 border-b border-gray-100 dark:border-white/5 mb-10 overflow-x-auto hide-scrollbar">
+      <div class="flex gap-4 border-b border-gray-100 dark:border-white/5 mb-10 overflow-x-auto custom-h-scrollbar">
         ${tabsHtml}
       </div>
-      <div class="scroll-container-kanban flex flex-nowrap gap-4 overflow-x-auto h-[calc(100vh-280px)] items-start pb-12 hide-scrollbar scroll-smooth" id="kanban-wrapper" style="width: 100%; max-width: 100%;">
+      <div class="scroll-container-kanban flex flex-nowrap gap-4 overflow-x-auto h-[calc(100vh-280px)] items-start pb-12 custom-h-scrollbar scroll-smooth" id="kanban-wrapper" style="width: 100%; max-width: 100%;">
         ${columnsHtml}
         ${completedColumnHtml}
       </div>
