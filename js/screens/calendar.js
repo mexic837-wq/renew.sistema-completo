@@ -382,6 +382,58 @@ export async function renderMiCalendario() {
         successCallback(mapped);
       } catch (error) { failureCallback(error); }
     },
+    eventContent: function(arg) {
+       const baseColor = arg.event.backgroundColor || '#00f5d4';
+       const colabs = arg.event.extendedProps?.colaboradores || [];
+       const deptos = arg.event.extendedProps?.departamentos || [];
+       
+       let deptHtml = '';
+       if (deptos.length > 0) {
+           const colors = { 'Solar': '#84cc16', 'Home': '#fbbf24', 'Water': '#38bdf8' };
+           const c = colors[deptos[0]];
+           if (c) {
+               deptHtml = `<span title="${deptos[0]}" style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${c}; margin-left:4px; vertical-align:middle; box-shadow:0 0 2px rgba(0,0,0,0.2);"></span>`;
+           }
+       }
+       
+       let avatarsHtml = '';
+       if (colabs && colabs.length > 0) {
+           const maxAvatares = 3;
+           const showColabs = colabs.slice(0, maxAvatares);
+           const extraCount = colabs.length - maxAvatares;
+           
+           avatarsHtml = '<div style="display: flex; align-items: center; justify-content: flex-end; margin-top: auto; padding-top: 4px;">';
+           showColabs.forEach(c => {
+               const nameStr = (c && c.nombre) ? c.nombre : (typeof c === 'string' ? c : 'U');
+               const initial = nameStr.charAt(0).toUpperCase();
+               avatarsHtml += `<div title="${nameStr}" style="width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #444; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2; cursor: help;">${initial}</div>`;
+           });
+           if (extraCount > 0) {
+               avatarsHtml += `<div title="+${extraCount} colaboradores más" style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
+           }
+           avatarsHtml += '</div>';
+       }
+
+       const isLightMode = !document.documentElement.classList.contains('dark');
+       const bgStyle = `background-color: ${baseColor}20;`;
+       const titleColor = isLightMode ? '#1e293b' : '#f8fafc';
+       const timeColor = isLightMode ? '#64748b' : '#94a3b8';
+
+       const isMonth = arg.view.type === 'dayGridMonth';
+       const p = isMonth ? '2px 4px' : '6px 8px';
+       const titleSize = isMonth ? '0.7rem' : '0.8rem';
+       
+       const timeText = arg.timeText ? `<div style="font-size: 0.7rem; color: ${timeColor}; font-weight: 600; margin-bottom: 2px;">${arg.timeText}</div>` : '';
+       
+       let html = `
+         <div style="${bgStyle} border-left: 4px solid ${baseColor}; border-radius: 8px; padding: ${p}; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
+            <div style="font-size: ${titleSize}; font-weight: 800; color: ${titleColor}; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; margin-bottom: 2px;">${arg.event.title} ${deptHtml}</div>
+            ${timeText}
+            ${avatarsHtml}
+         </div>
+       `;
+       return { html: html };
+    },
     eventClick: function(info) {
       info.jsEvent.preventDefault();
       if (info.event.extendedProps.isBirthday) return;
