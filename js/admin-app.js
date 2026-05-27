@@ -6588,16 +6588,15 @@ async function showWorkerDetail(id) {
         displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
     }
     document.getElementById('det-usr-rank').textContent = displayRank;
-    // Hide rank if not (Vendedor/Representante de Ventas + Water)
+    // Hide rank if not (Vendedor/Representante de Ventas)
     const viewRankContainer = document.getElementById('det-view-rank-container');
     const editRankContainer = document.getElementById('det-edit-rank-container');
     const isVendedor = usr.rol === 'Vendedor' || usr.rol === 'Representante de Ventas';
-    const isWater = usr.departamento && usr.departamento.toLowerCase().includes('water');
     if (viewRankContainer) {
-        viewRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
+        viewRankContainer.style.display = isVendedor ? 'block' : 'none';
     }
     if (editRankContainer) {
-        editRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
+        editRankContainer.style.display = isVendedor ? 'block' : 'none';
     }
 
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
