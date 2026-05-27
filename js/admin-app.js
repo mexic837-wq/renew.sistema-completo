@@ -5618,8 +5618,8 @@ window.mostrarDetalleEventoCalendario = async function(event) {
       btnEliminar.dataset.eventId = event.id || '';
     }
 
-    const props = event.extendedProps || {};
     
+
     document.getElementById('ev-nombre').value = event.title || '';
     document.getElementById('ev-nombre').readOnly = true;
 
