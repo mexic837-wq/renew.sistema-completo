@@ -87,12 +87,12 @@ let state = {
   crmKanbanActive: false
 };
 
-// â”€â”€ GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) Ã¢â€â‚¬Ã¢â€â‚¬
 window.addStock = (id) => {
     console.log("Global addStock called for ID:", id);
     const invData = getInventario();
     const item = invData.find(i => i.id === id);
-    if (!item) return showToast("Artículo no encontrado", "error");
+    if (!item) return showToast("ArtÃ­culo no encontrado", "error");
     
     // Fix IDs to match admin.html
     const labelName = document.getElementById('lbl-add-stock-name');
@@ -103,7 +103,7 @@ window.addStock = (id) => {
     if (inputQty) inputQty.value = 1;
     
     const modalTitle = document.querySelector('#modal-quick-stock h3');
-    if (modalTitle) modalTitle.textContent = 'Añadir Stock Rápido';
+    if (modalTitle) modalTitle.textContent = 'AÃ±adir Stock RÃ¡pido';
 
     if (btnConfirm) {
         btnConfirm.innerHTML = '<i class="fa-solid fa-plus"></i> Confirmar Ingreso';
@@ -130,7 +130,7 @@ window.addStock = (id) => {
 
                 window.closeModals();
                 await renderView();
-                window.addNotification('Inventario', `Se añadieron ${val} unidades a ${item.nombreItem}`, 'success');
+                window.addNotification('Inventario', `Se aÃ±adieron ${val} unidades a ${item.nombreItem}`, 'success');
             }
         };
     }
@@ -142,7 +142,7 @@ window.subtractStock = (id) => {
     console.log("Global subtractStock called for ID:", id);
     const invData = getInventario();
     const item = invData.find(i => i.id === id);
-    if (!item) return showToast("Artículo no encontrado", "error");
+    if (!item) return showToast("ArtÃ­culo no encontrado", "error");
     
     const labelName = document.getElementById('lbl-add-stock-name');
     const inputQty = document.getElementById('inp-quick-stock-qty');
@@ -159,7 +159,7 @@ window.subtractStock = (id) => {
             const val = parseInt(inputQty.value) || 0;
             if (val > 0) {
                 if (item.stockActual < val) {
-                    if (!confirm('El stock actual es menor a la cantidad a retirar. ¿Continuar con stock negativo?')) return;
+                    if (!confirm('El stock actual es menor a la cantidad a retirar. Â¿Continuar con stock negativo?')) return;
                 }
                 item.stockActual = (parseInt(item.stockActual) || 0) - val;
                 saveInventario(invData);
@@ -193,24 +193,24 @@ window.editStock = (id) => {
     console.log("Global editStock called for ID:", id);
     const invData = getInventario();
     const item = invData.find(i => i.id === id);
-    if (!item) return showToast("Artículo no encontrado", "error");
+    if (!item) return showToast("ArtÃ­culo no encontrado", "error");
 
     const modInv = document.getElementById('modal-nuclear-inv');
     const btnSave = document.getElementById('btn-save-inv');
     
     if (modInv) {
-        modInv.querySelector('h3').textContent = 'Editar Artículo';
+        modInv.querySelector('h3').textContent = 'Editar ArtÃ­culo';
         if (btnSave) {
-            btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Actualizar Artículo';
+            btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Actualizar ArtÃ­culo';
             btnSave.dataset.editId = id;
         }
         
         document.getElementById('inp-inv-codigo').value = item.id;
         document.getElementById('inp-inv-linea').value = item.ecosistema;
         document.getElementById('inp-inv-nombre').value = item.nombreItem;
-        if(document.getElementById('inp-inv-medida')) document.getElementById('inp-inv-medida').value = item.medida || '';
-        if(document.getElementById('inp-inv-boton')) document.getElementById('inp-inv-boton').value = item.boton || '';
-        if(document.getElementById('inp-inv-color')) document.getElementById('inp-inv-color').value = item.color || '';
+        if(document.getElementById('inp-inv-medida')) document.getElementById('inp-inv-medida').value = item.medida || '-';
+        if(document.getElementById('inp-inv-boton')) document.getElementById('inp-inv-boton').value = item.boton || '-';
+        if(document.getElementById('inp-inv-color')) document.getElementById('inp-inv-color').value = item.color || '-';
         
         // As we merged locacion and storage, set the locacion to the select
         const sedeSelect = document.getElementById('inp-inv-sede-select');
@@ -228,9 +228,34 @@ window.deleteItem = async (id) => {
     window.addNotification("Inventario", "Artículo eliminado", "warning");
 };
 
+window.clearInventarioHistorial = async () => {
+    if (!confirm('¿Seguro que deseas borrar TODO el historial de inventario? Esta acción no se puede deshacer.')) return;
+    const db = getDB();
+    if (!db.historialInventario || db.historialInventario.length === 0) return;
+    
+    const fechas = db.historialInventario.map(h => h.fecha);
+    
+    // Clear locally
+    db.historialInventario = [];
+    
+    try {
+        // Clear on cloud
+        await fetch('/api/delete-bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'historial_inventario', ids: fechas, column: 'fecha' })
+        });
+    } catch(err) { console.error('Error on cloud bulk delete history', err); }
+    
+    await saveDB(db);
+    renderView();
+    if(window.showToast) window.showToast('Historial borrado', 'warning');
+    else window.addNotification("Inventario", "Historial borrado", "warning");
+};
+
 window.adminDeletePartner = async (id, e) => {
     e.stopPropagation();
-    if (!confirm('¿Seguro que deseas eliminar este partner/proveedor?')) return;
+    if (!confirm('Â¿Seguro que deseas eliminar este partner/proveedor?')) return;
     const db = getDB();
     if (!db.Admin_Proveedores) return;
     db.Admin_Proveedores = db.Admin_Proveedores.filter(p => String(p.id) !== String(id));
@@ -248,7 +273,7 @@ window.adminBulkDeletePartners = async () => {
         showToast('Debes seleccionar al menos un partner', 'error');
         return;
     }
-    if (!confirm(`¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
+    if (!confirm(`Â¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
     
     const ids = Array.from(checked).map(c => c.dataset.id);
     const db = getDB();
@@ -267,7 +292,7 @@ window.adminBulkDeletePartners = async () => {
 };
 
 
-// â”€â”€ Global Header Action Wrapper â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Global Header Action Wrapper Ã¢â€â‚¬Ã¢â€â‚¬
 window.handleGlobalAdd = async () => {
     const curView = state.activeView;
     console.log("handleGlobalAdd for view:", curView);
@@ -279,8 +304,8 @@ window.handleGlobalAdd = async () => {
         
         if(modInv) {
             const h3 = modInv.querySelector('h3');
-            if(h3) h3.textContent = 'Añadir Artículo al Inventario';
-            if(btnSave) btnSave.innerHTML = 'Guardar Artículo';
+            if(h3) h3.textContent = 'AÃ±adir ArtÃ­culo al Inventario';
+            if(btnSave) btnSave.innerHTML = 'Guardar ArtÃ­culo';
             
             if(document.getElementById('inp-inv-codigo')) document.getElementById('inp-inv-codigo').value = '';
             if(document.getElementById('inp-inv-linea')) document.getElementById('inp-inv-linea').value = '';
@@ -400,7 +425,7 @@ window.handleGlobalAdd = async () => {
         const dbLocal = getDB();
         const pipelines = dbLocal.Admin_Pipelines || [];
         if (pipelines.length === 0) {
-          usrPipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aún.</p>';
+          usrPipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aÃºn.</p>';
         } else {
           const getPipIcon = (n) => {
             const nl = n.toLowerCase();
@@ -434,7 +459,7 @@ window.handleGlobalAdd = async () => {
     }
     else if (curView === 'proveedores') {
       const title = document.getElementById('modal-partner-title');
-      if(title) title.textContent = 'Añadir Partner / Proveedor';
+      if(title) title.textContent = 'AÃ±adir Partner / Proveedor';
       if(document.getElementById('inp-partner-id')) document.getElementById('inp-partner-id').value = '';
       if(document.getElementById('inp-partner-empresa')) document.getElementById('inp-partner-empresa').value = '';
       if(document.getElementById('inp-partner-contacto')) document.getElementById('inp-partner-contacto').value = '';
@@ -468,7 +493,7 @@ async function init() {
     if (txt && text) txt.textContent = text;
   };
 
-  // â”€â”€ Safety net: force-remove preloader after 30s no matter what â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Safety net: force-remove preloader after 30s no matter what Ã¢â€â‚¬Ã¢â€â‚¬
   const safetyTimer = setTimeout(() => {
     const p = document.getElementById('admin-preloader');
     if (p) { p.classList.add('fade-out'); setTimeout(() => p.remove(), 800); }
@@ -494,7 +519,7 @@ async function init() {
 
       // Deep Linking Logic
       if (hash && hash.startsWith('#crmDetail?id=')) {
-          const allowedRoles = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
+          const allowedRoles = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'SupervisiÃ³n'];
           if (allowedRoles.includes(user.rol)) {
               const qs = hash.split('?')[1];
               const params = new URLSearchParams(qs);
@@ -512,8 +537,8 @@ async function init() {
           }
       }
 
-      // â”€â”€ ?reasignar=PROJECT_ID deep link (from rejection email) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // When admin clicks "Reasignar Técnico Ahora" in the email, this opens
+      // Ã¢â€â‚¬Ã¢â€â‚¬ ?reasignar=PROJECT_ID deep link (from rejection email) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+      // When admin clicks "Reasignar TÃ©cnico Ahora" in the email, this opens
       // the Kanban drawer directly on that project so they can assign a new tech.
       const urlSearchParams = new URLSearchParams(window.location.search);
       const reasignarId = urlSearchParams.get('reasignar');
@@ -549,11 +574,11 @@ async function init() {
                           animation: slideDown 0.4s ease;
                       `;
                       banner.innerHTML = `
-                          <span>âš ï¸ El técnico rechazó esta cita. Asigna un nuevo técnico al proyecto <strong>RENEW-${reasignarId.toUpperCase()}</strong></span>
+                          <span>Ã¢Å¡Â Ã¯Â¸Â El tÃ©cnico rechazÃ³ esta cita. Asigna un nuevo tÃ©cnico al proyecto <strong>RENEW-${reasignarId.toUpperCase()}</strong></span>
                           <button onclick="document.getElementById('reasignar-banner').remove()"
                               style="background:rgba(255,255,255,0.2); border:none; color:white; width:28px; height:28px;
                                      border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">
-                              Á—
+                              Ãâ€”
                           </button>
                       `;
                       document.body.appendChild(banner);
@@ -574,7 +599,7 @@ async function init() {
                           }
                       }, 800);
                   } else {
-                      showToast(`âš ï¸ Proyecto RENEW-${reasignarId} no encontrado. Búscalo manualmente.`, 'warning');
+                      showToast(`Ã¢Å¡Â Ã¯Â¸Â Proyecto RENEW-${reasignarId} no encontrado. BÃºscalo manualmente.`, 'warning');
                       console.warn('[DeepLink] Project not found for reasignar:', reasignarId);
                   }
               } catch (deepLinkErr) {
@@ -582,7 +607,7 @@ async function init() {
               }
           }, 2000);
       }
-      // â”€â”€ END ?reasignar deep link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ END ?reasignar deep link Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
       updateProgress(50, 'Configurando Interfaz...');
       cacheElements();
@@ -603,14 +628,14 @@ async function init() {
       console.log('--- MOTOR LISTO ---');
       updateProgress(100, 'Motor Listo');
       initSuccess = true;
-      window.addNotification('Sistema Iniciado', 'Conexión a la nube establecida.', 'success');
+      window.addNotification('Sistema Iniciado', 'ConexiÃ³n a la nube establecida.', 'success');
 
   } catch (err) {
       console.error('[INIT FATAL] Initialization failed:', err);
       initError = err;
-      updateProgress(0, 'Error â€” revisa la consola');
+      updateProgress(0, 'Error Ã¢â‚¬â€ revisa la consola');
   } finally {
-      // â”€â”€ ALWAYS remove the preloader, success or failure â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ ALWAYS remove the preloader, success or failure Ã¢â€â‚¬Ã¢â€â‚¬
       clearTimeout(safetyTimer);
       setTimeout(() => {
         const preloader = document.getElementById('admin-preloader');
@@ -623,7 +648,7 @@ async function init() {
         if (!initSuccess && initError) {
           const banner = document.getElementById('init-error-banner');
           if (banner) {
-            banner.textContent = 'âš  Error al iniciar: ' + (initError.message || initError);
+            banner.textContent = 'Ã¢Å¡Â  Error al iniciar: ' + (initError.message || initError);
             banner.style.display = 'block';
           }
         }
@@ -669,7 +694,7 @@ window.setAdminLang = (lang) => {
     localStorage.setItem('app_lang', lang);
     window.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
     updateAdminLangUI();
-    showToast(lang === 'es' ? '🇪🇸 Idioma: Español' : '🇺🇸 Language: English', 'success');
+    showToast(lang === 'es' ? 'ðŸ‡ªðŸ‡¸ Idioma: EspaÃ±ol' : 'ðŸ‡ºðŸ‡¸ Language: English', 'success');
 };
 
 window.addEventListener('db_synced', async () => {
@@ -728,7 +753,7 @@ const updateAdminNavLabels = () => {
 // Administrative Actions Attached to Window for Inline Buttons
 window.adminDeletePipeline = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
+    if (confirm('Â¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -767,7 +792,7 @@ window.adminEditFaseName = async (id, e) => {
 
 window.adminDeleteFase = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
+    if (confirm('Â¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -782,7 +807,7 @@ window.adminDeleteFase = async (id, e) => {
 
 window.adminDeleteCampo = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('¿ELIMINAR ESTA PREGUNTA?')) {
+    if (confirm('Â¿ELIMINAR ESTA PREGUNTA?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -827,7 +852,7 @@ window.adminEditCampo = (id, e) => {
 };
 
 window.adminDeleteAcademia = async (id) => {
-    if (confirm('¿Eliminar este contenido?')) {
+    if (confirm('Â¿Eliminar este contenido?')) {
         try {
             const db = getDB();
             db.academiaContent = (db.academiaContent || []).filter(i => i.id !== id);
@@ -835,7 +860,7 @@ window.adminDeleteAcademia = async (id) => {
             await deleteRecord('academia_content', id);
             await saveDB(db);
             await renderView();
-            window.addNotification('Gestor Academia', `Se eliminó el material`, 'warning');
+            window.addNotification('Gestor Academia', `Se eliminÃ³ el material`, 'warning');
         } catch (err) {
             console.error('Error al eliminar material:', err);
         }
@@ -844,7 +869,7 @@ window.adminDeleteAcademia = async (id) => {
 
 window.adminDeleteWorker = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
+    if (confirm('Â¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
       await deleteAdminWorker(id);
       await renderView();
     }
@@ -864,7 +889,7 @@ window.adminToggleWorkerStatus = async (id, isEnabled, e) => {
 
 window.adminDeleteClient = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
+    if (confirm('Â¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
       const btn = e.target.closest('.btn-delete-client');
       const originalHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -874,7 +899,7 @@ window.adminDeleteClient = async (id, e) => {
 
       try {
         // deleteClientesMaestro already updates local state atomically.
-        // Do NOT call initDB() â€” it re-fetches from cloud and races the delete,
+        // Do NOT call initDB() Ã¢â‚¬â€ it re-fetches from cloud and races the delete,
         // causing the deleted client to reappear before Supabase propagates.
         await deleteClientesMaestro(id);
         await renderView(); // Refresh UI immediately from updated local state
@@ -893,7 +918,7 @@ window.adminDeleteClient = async (id, e) => {
 window.adminBulkDeleteWorkers = async () => {
     const checked = Array.from(document.querySelectorAll('.worker-chk:checked')).map(chk => chk.dataset.id);
     if(checked.length === 0) return alert('Selecciona al menos un trabajador');
-    if (confirm(`¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
+    if (confirm(`Â¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
       await deleteAdminWorker(checked);
       await renderView();
     }
@@ -905,7 +930,7 @@ window.adminBulkDeleteClients = async () => {
     
     if(checked.length === 0) return alert('Selecciona al menos un cliente');
     
-    if (confirm(`¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
+    if (confirm(`Â¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
       const btn = document.getElementById('btn-bulk-delete-cli');
       const originalHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -932,7 +957,7 @@ window.adminBulkDeleteClients = async () => {
 
 window.adminDeleteProject = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('¿ESTÁS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
+    if (confirm('Â¿ESTÃÂS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
         await deleteAdminProject(id);
         const drawer = document.getElementById('kanban-drawer-overlay');
         if(drawer) drawer.remove();
@@ -945,7 +970,7 @@ window.adminDeleteProject = async (id, e) => {
 const UI = {};
 function cacheElements() {
   UI.canvas = document.getElementById('main-canvas') || document.getElementById('view-canvas') || document.getElementById('canvas');
-  if (!UI.canvas) console.warn('[RENEW-WARN] No se encontró el contenedor principal (main-canvas/view-canvas)');
+  if (!UI.canvas) console.warn('[RENEW-WARN] No se encontrÃ³ el contenedor principal (main-canvas/view-canvas)');
 
   UI.sidebar = document.getElementById('admin-sidebar');
   UI.hambBtn = document.getElementById('admin-hamburger-btn');
@@ -1096,7 +1121,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // â”€â”€ Sidebar Toggle (Collapse) â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Toggle (Collapse) Ã¢â€â‚¬Ã¢â€â‚¬
   if (UI.hambBtn && UI.sidebar) {
     UI.hambBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1109,7 +1134,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // â”€â”€ Global Action Button (Ensure reliability) â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Global Action Button (Ensure reliability) Ã¢â€â‚¬Ã¢â€â‚¬
   if (UI.btnAddGlobal) {
       UI.btnAddGlobal.addEventListener('click', (e) => {
           e.preventDefault();
@@ -1119,9 +1144,9 @@ function bindGlobalEvents() {
       });
   }
 
-  // â”€â”€ Global Edit Delegate (Most Robust) â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Global Edit Delegate (Most Robust) Ã¢â€â‚¬Ã¢â€â‚¬
   document.addEventListener('click', async (e) => {
-    // â”€â”€ Theme Toggle Handle â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Theme Toggle Handle Ã¢â€â‚¬Ã¢â€â‚¬
     const themeBtn = e.target.closest('#btn-theme-toggle');
     if (themeBtn) {
       const isCurrentlyDark = document.documentElement.classList.contains('dark');
@@ -1132,12 +1157,12 @@ function bindGlobalEvents() {
         document.documentElement.classList.remove('dark');
       }
       localStorage.setItem('theme', newTheme);
-      showToast(newTheme === 'dark' ? '🌙 Modo Oscuro' : 'â˜€ï¸ Modo Claro', 'success');
+      showToast(newTheme === 'dark' ? 'ðŸŒ™ Modo Oscuro' : 'Ã¢Ëœâ‚¬Ã¯Â¸Â Modo Claro', 'success');
       return;
     }
 
     try {
-        // â”€â”€ Inventory & Global Actions (Prioritized) â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Inventory & Global Actions (Prioritized) Ã¢â€â‚¬Ã¢â€â‚¬
         // (Global Action is handled via inline onclick in admin.html)
 
         // (Inventory button clicks are handled via inline onclick in renderView)
@@ -1165,7 +1190,7 @@ function bindGlobalEvents() {
         }
     } catch (err) {
         console.error("Delegation Error (Inventory):", err);
-        showToast("Error en acción de inventario: " + err.message, "error");
+        showToast("Error en acciÃ³n de inventario: " + err.message, "error");
     }
 
     // 1. Edit User Button
@@ -1229,7 +1254,7 @@ function bindGlobalEvents() {
         const locacion = document.getElementById('inp-inv-sede-select').value;
         const stock = parseInt(document.getElementById('inp-inv-stock').value) || 0;
 
-        if (!nombre || !codigo) return alert('Código y Producto son obligatorios');
+        if (!nombre || !codigo) return alert('CÃ³digo y Producto son obligatorios');
 
         const invData = getInventario();
 
@@ -1269,7 +1294,7 @@ function bindGlobalEvents() {
         
         window.closeModals();
         await renderView();
-        window.addNotification('Inventario', editId ? 'Artículo actualizado' : 'Nuevo artículo registrado', 'success');
+        window.addNotification('Inventario', editId ? 'ArtÃ­culo actualizado' : 'Nuevo artÃ­culo registrado', 'success');
         return;
     }
 
@@ -1344,7 +1369,7 @@ function bindGlobalEvents() {
         if (usr.w9Url) {
           if (w9Placeholder) w9Placeholder.classList.add('hidden');
           if (w9Success) { w9Success.classList.remove('hidden'); w9Success.classList.add('flex'); }
-          if (w9NameEl) w9NameEl.textContent = 'Archivo cargado âœ“';
+          if (w9NameEl) w9NameEl.textContent = 'Archivo cargado Ã¢Å“â€œ';
         } else {
           if (w9Placeholder) w9Placeholder.classList.remove('hidden');
           if (w9Success) { w9Success.classList.add('hidden'); w9Success.classList.remove('flex'); }
@@ -1493,7 +1518,7 @@ function bindGlobalEvents() {
         apellido: 'Vercetti',
         email: 'julian@renewsolar.com',
         rol: 'Admin',
-        department: 'Dirección General',
+        department: 'DirecciÃ³n General',
         telefono: '+1 (305) 555-9988'
       });
     });
@@ -1520,7 +1545,7 @@ function bindGlobalEvents() {
 
 
 
-  // â”€â”€ Save/Edit Usuario Event â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Save/Edit Usuario Event Ã¢â€â‚¬Ã¢â€â‚¬
   if (UI.btnSaveUsr) {
     UI.btnSaveUsr.addEventListener('click', async () => {
       const id = UI.inpUsrId.value;
@@ -1558,7 +1583,7 @@ function bindGlobalEvents() {
 
       if (!newUsr.nombre || !newUsr.apellido || !newUsr.email) return showToast('Datos obligatorios incompletos', 'error');
 
-      // Bloquear botón y mostrar animación
+      // Bloquear botÃ³n y mostrar animaciÃ³n
       const originalText = UI.btnSaveUsr.innerHTML;
       UI.btnSaveUsr.disabled = true;
       UI.btnSaveUsr.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creando...`;
@@ -1573,7 +1598,7 @@ function bindGlobalEvents() {
           console.error('[ERROR] Guardando trabajador:', error);
           showToast('Hubo un problema al crear el perfil.', 'error');
       } finally {
-          // Restaurar botón (por si el modal se vuelve a abrir luego)
+          // Restaurar botÃ³n (por si el modal se vuelve a abrir luego)
           UI.btnSaveUsr.disabled = false;
           UI.btnSaveUsr.innerHTML = originalText;
           UI.btnSaveUsr.classList.remove('opacity-70', 'cursor-not-allowed');
@@ -1581,7 +1606,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // â”€â”€ User Photo Upload â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ User Photo Upload Ã¢â€â‚¬Ã¢â€â‚¬
   if (UI.dropUsrFoto) {
     UI.dropUsrFoto.addEventListener('click', () => UI.inpUsrFotoFile.click());
     UI.dropUsrFoto.addEventListener('dragover', (e) => {
@@ -1628,7 +1653,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // â”€â”€ W-9 File Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ W-9 File Upload Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   state.currentUsrW9Url = null;
 
   window.clearW9Upload = function() {
@@ -1660,16 +1685,16 @@ function bindGlobalEvents() {
           success.classList.remove('hidden');
           success.classList.add('flex');
         }
-        showToast('Documento subido con éxito', 'success');
+        showToast('Documento subido con Ã©xito', 'success');
       } catch(e) {
         console.error('Error subiendo W-9:', e);
         showToast('Error al subir el documento', 'error');
       }
     });
   }
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-  // â”€â”€ Upload Partners W9 â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Upload Partners W9 Ã¢â€â‚¬Ã¢â€â‚¬
   const inpPartnerW9 = document.getElementById('inp-partner-w9-file');
   if (inpPartnerW9) {
       inpPartnerW9.addEventListener('change', async () => {
@@ -1685,7 +1710,7 @@ function bindGlobalEvents() {
       });
   }
 
-  // â”€â”€ Upload Partners Seguro â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Upload Partners Seguro Ã¢â€â‚¬Ã¢â€â‚¬
   const inpPartnerSeguro = document.getElementById('inp-partner-seguro-file');
   if (inpPartnerSeguro) {
       inpPartnerSeguro.addEventListener('change', async () => {
@@ -1701,7 +1726,7 @@ function bindGlobalEvents() {
       });
   }
 
-  // â”€â”€ Save Partner / Proveedor â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Save Partner / Proveedor Ã¢â€â‚¬Ã¢â€â‚¬
   const btnSavePartner = document.getElementById('btn-save-partner');
   if (btnSavePartner) {
       btnSavePartner.addEventListener('click', async () => {
@@ -1790,9 +1815,9 @@ function bindGlobalEvents() {
 
       window.showModal(document.getElementById('modal-nuclear-partner'));
   };
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-  // â”€â”€ Detail User Photo Upload â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Detail User Photo Upload Ã¢â€â‚¬Ã¢â€â‚¬
   const inpDetUsrFotoFile = document.getElementById('det-usr-foto-file');
   if (inpDetUsrFotoFile) {
       inpDetUsrFotoFile.addEventListener('change', async (e) => {
@@ -1948,7 +1973,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // Kanban Card Click â€“ Open Project Detail Drawer
+  // Kanban Card Click Ã¢â‚¬â€œ Open Project Detail Drawer
   document.addEventListener('click', (e) => {
     const card = e.target.closest('.kanban-card');
     // Ignore if currently dragging
@@ -1958,7 +1983,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // â”€â”€ Global Modal Close Delegate â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Global Modal Close Delegate Ã¢â€â‚¬Ã¢â€â‚¬
   document.addEventListener('click', (e) => {
     const btnCancel = e.target.closest('.btn-cancel');
     if (btnCancel) {
@@ -1968,9 +1993,9 @@ function bindGlobalEvents() {
     }
   });
 
-  // Save Cliente (CRM) Event â€” with Document Upload (Phase 4)
+  // Save Cliente (CRM) Event Ã¢â‚¬â€ with Document Upload (Phase 4)
   if (UI.btnSaveCli) {
-    // â”€â”€ File Upload Visual Feedback Helper â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ File Upload Visual Feedback Helper Ã¢â€â‚¬Ã¢â€â‚¬
     const setupDocUpload = (inputId, dropId, labelId, successColor) => {
       const inp = document.getElementById(inputId);
       const drop = document.getElementById(dropId);
@@ -1979,7 +2004,7 @@ function bindGlobalEvents() {
       inp.addEventListener('change', () => {
         if (inp.files.length) {
           if (drop) { drop.style.borderColor = successColor; drop.style.background = successColor + '10'; }
-          if (lbl) { lbl.textContent = 'âœ“ ' + inp.files[0].name.substring(0, 20); lbl.style.color = successColor; }
+          if (lbl) { lbl.textContent = 'Ã¢Å“â€œ ' + inp.files[0].name.substring(0, 20); lbl.style.color = successColor; }
         }
       });
     };
@@ -2002,7 +2027,7 @@ function bindGlobalEvents() {
       const empresa = document.getElementById('inp-cli-empresa').value.trim();
       const estado = document.getElementById('inp-cli-estado').value;
 
-      // New fields â€” multi-department checkboxes
+      // New fields Ã¢â‚¬â€ multi-department checkboxes
       const deptChecks = document.querySelectorAll('input[name="chk-cli-dept"]:checked');
       const departamentos_activos = Array.from(deptChecks).map(cb => cb.value);
       const departamento = departamentos_activos[0] || '';
@@ -2010,14 +2035,14 @@ function bindGlobalEvents() {
       const notas = document.getElementById('inp-cli-notas') ? document.getElementById('inp-cli-notas').value.trim() : '';
       const macro_estado = document.getElementById('inp-cli-macro-estado') ? document.getElementById('inp-cli-macro-estado').value : 'Prospecto';
 
-      // â”€â”€ VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ VALIDATION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       if (!firstNom || !apellido) { alert('El Nombre y Apellido son obligatorios'); return; }
       if (!email) { alert('El Email es obligatorio'); return; }
-      if (!direccion) { alert('La Dirección es obligatoria'); return; }
-      if (!telVal) { alert('El Teléfono es obligatorio'); return; }
-      // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      if (!direccion) { alert('La DirecciÃ³n es obligatoria'); return; }
+      if (!telVal) { alert('El TelÃ©fono es obligatorio'); return; }
+      // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-      // â”€â”€ DISABLE BUTTON WHILE SAVING â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ DISABLE BUTTON WHILE SAVING Ã¢â€â‚¬Ã¢â€â‚¬
       const originalBtnHtml = UI.btnSaveCli.innerHTML;
       UI.btnSaveCli.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
       UI.btnSaveCli.disabled = true;
@@ -2026,7 +2051,7 @@ function bindGlobalEvents() {
       try {
         const fullNombre = `${firstNom} ${apellido}`.trim();
 
-        // â”€â”€ UPLOAD DOCUMENTS TO SUPABASE STORAGE â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ UPLOAD DOCUMENTS TO SUPABASE STORAGE Ã¢â€â‚¬Ã¢â€â‚¬
         const uploadIfPresent = async (inputId, folder) => {
           const inp = document.getElementById(inputId);
           if (inp && inp.files && inp.files.length > 0) {
@@ -2061,7 +2086,7 @@ function bindGlobalEvents() {
           state_id, dob, empresa, 
           estado: estado === 'Not selected' ? 'Lead' : estado,
           foto: state.currentCliFoto,
-          // â”€â”€ MULTI-DEPT & LIFECYCLE â”€â”€
+          // Ã¢â€â‚¬Ã¢â€â‚¬ MULTI-DEPT & LIFECYCLE Ã¢â€â‚¬Ã¢â€â‚¬
           departamento: departamento || null,
           departamentos_activos: departamentos_activos.length > 0 ? departamentos_activos : [],
           macro_estado: macro_estado,
@@ -2144,7 +2169,7 @@ function bindGlobalEvents() {
             UI.inpPipCol.value,
             rolesConAcceso
           );
-          await createAdminFase(newPip.id, 'Fase 1: Recolección', 1);
+          await createAdminFase(newPip.id, 'Fase 1: RecolecciÃ³n', 1);
           window.closeModals();
           await loadData();
           state.activePipId = newPip.id;
@@ -2159,14 +2184,14 @@ function bindGlobalEvents() {
     });
   }
 
-  // â”€â”€ Edit Pipeline Roles (pencil icon) â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Edit Pipeline Roles (pencil icon) Ã¢â€â‚¬Ã¢â€â‚¬
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
-  const ROLES_LIST = ['Call Center', 'Vendedor', 'Project Manager', 'Técnico', 'Diseñador', 'Contabilidad', 'Supervisión', 'CEO', 'Admin'];
+  const ROLES_LIST = ['Call Center', 'Vendedor', 'Project Manager', 'TÃ©cnico', 'DiseÃ±ador', 'Contabilidad', 'SupervisiÃ³n', 'CEO', 'Admin'];
   const ROLE_ICONS_MAP = {
     'Call Center': 'fa-headset',
-    'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'Técnico': 'fa-screwdriver-wrench',
-    'Diseñador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator',
-    'Supervisión': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
+    'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'TÃ©cnico': 'fa-screwdriver-wrench',
+    'DiseÃ±ador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator',
+    'SupervisiÃ³n': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
   };
 
   // Event delegation on canvas for pencil icon
@@ -2187,7 +2212,7 @@ function bindGlobalEvents() {
     // Set color values
     const colInput = document.getElementById('edit-pip-color');
     const hexInput = document.getElementById('edit-pip-hex');
-    const currentPipColor = pip?.color || '#00f5d4';
+    const currentPipColor = pip?.color || '-';
     if (colInput) colInput.value = currentPipColor;
     if (hexInput) hexInput.value = currentPipColor;
 
@@ -2289,9 +2314,9 @@ function bindGlobalEvents() {
     });
   }
 
-  // â”€â”€ Unified Delegation for Generic View Actions â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Unified Delegation for Generic View Actions Ã¢â€â‚¬Ã¢â€â‚¬
   document.body.addEventListener('click', async (e) => {
-    // â”€â”€ GENERAL ACTIONS (Only if inside canvas and not a delete) â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ GENERAL ACTIONS (Only if inside canvas and not a delete) Ã¢â€â‚¬Ã¢â€â‚¬
     const target = e.target;
     
     // 0. Global Modal Actions (Cancel / Success Close)
@@ -2397,7 +2422,7 @@ function bindGlobalEvents() {
       return;
     }
 
-    // â”€â”€ Marketing / WA â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Marketing / WA Ã¢â€â‚¬Ã¢â€â‚¬
     const btnAddPaso = e.target.closest('#btn-add-paso');
     if (btnAddPaso) {
       const container = document.getElementById('mk-secuencia-container');
@@ -2486,7 +2511,7 @@ function bindGlobalEvents() {
         btnSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
         btnSend.classList.remove('bg-tealAccent');
         btnSend.classList.add('bg-green-500');
-        showSuccessModal('¡Ya está activado! Los protocolos de Email Engine se han sincronizado con éxito.');
+        showSuccessModal('Â¡Ya estÃ¡ activado! Los protocolos de Email Engine se han sincronizado con Ã©xito.');
       })
       .catch(err => {
         console.error('Email Engine Error:', err);
@@ -2584,7 +2609,7 @@ function bindGlobalEvents() {
         btnWaSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
         btnWaSend.classList.remove('bg-tealAccent');
         btnWaSend.classList.add('bg-green-500');
-        showSuccessModal('¡Protocolo WhatsApp Activado! Las señales se están transmitiendo a la red.');
+        showSuccessModal('Â¡Protocolo WhatsApp Activado! Las seÃ±ales se estÃ¡n transmitiendo a la red.');
       })
       .catch(err => {
         console.error('WhatsApp Engine Error:', err);
@@ -2604,7 +2629,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // â”€â”€ Audience Search Filtering â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Audience Search Filtering Ã¢â€â‚¬Ã¢â€â‚¬
   UI.canvas.addEventListener('input', (e) => {
     if (e.target.classList.contains('chk-search-input')) {
       const q = e.target.value.toLowerCase();
@@ -2666,7 +2691,7 @@ function bindGlobalEvents() {
                 <input type="checkbox" value="${item.email}" data-telefono="${item.telefono || ''}" class="${chkClass} w-4 h-4 rounded ${accentColor} ${ringColor}">
                 <div class="flex flex-col">
                   <span class="text-xs font-bold text-gray-800 dark:text-white">${item.nombre} ${item.apellido || ''}</span>
-                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin teléfono') : (item.email || 'Sin email')}</span>
+                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin telÃ©fono') : (item.email || 'Sin email')}</span>
                 </div>
               </label>
             `).join('')}
@@ -2686,7 +2711,7 @@ function bindGlobalEvents() {
       await updateAdminFaseRole(faseId, nuevoRol);
       const stFaseObj = state.fases.find(f => f.id === faseId);
       if (stFaseObj) stFaseObj.rol_encargado = nuevoRol;
-      renderConstructor(); // Sincronizar UI para mostrar/ocultar botón de asignación
+      renderConstructor(); // Sincronizar UI para mostrar/ocultar botÃ³n de asignaciÃ³n
     }
   });
 }
@@ -2696,7 +2721,7 @@ window.showSuccessModal = (msg) => {
   window.showModal(UI.modSuccess);
 };
 
-// â”€â”€ W-9 Viewer: opens base64 data URLs as Blob to avoid Chrome blank page â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ W-9 Viewer: opens base64 data URLs as Blob to avoid Chrome blank page Ã¢â€â‚¬Ã¢â€â‚¬
 window.openW9File = function(dataUrl) {
   if (!dataUrl) return;
   try {
@@ -2746,7 +2771,7 @@ window.showInvHistoryDetails = (clientName) => {
                 <table class="w-full text-[11px]">
                     <thead class="bg-gray-100 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
                         <tr>
-                            <th class="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-widest">Artículo</th>
+                            <th class="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-widest">ArtÃ­culo</th>
                             <th class="px-4 py-3 text-right font-black text-gray-400 uppercase tracking-widest">Cant. Total</th>
                         </tr>
                     </thead>
@@ -2766,9 +2791,9 @@ window.showInvHistoryDetails = (clientName) => {
             </div>
             <div class="mt-6 p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
                 <p class="text-[10px] text-blue-500 font-black uppercase tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-circle-info"></i> Información de Registro
+                    <i class="fa-solid fa-circle-info"></i> InformaciÃ³n de Registro
                 </p>
-                <p class="text-[10px] text-gray-500 mt-2">Este reporte consolida todos los materiales retirados del inventario vinculados a este proyecto/cliente específico.</p>
+                <p class="text-[10px] text-gray-500 mt-2">Este reporte consolida todos los materiales retirados del inventario vinculados a este proyecto/cliente especÃ­fico.</p>
             </div>
         `;
     }
@@ -2817,8 +2842,8 @@ window.showModal = (m) => {
   if (m.id === 'modal-nuclear-inv') {
       const btnSave = document.getElementById('btn-save-inv');
       if (btnSave && !btnSave.dataset.editId) {
-          m.querySelector('h3').textContent = 'Añadir Artículo al Inventario';
-          btnSave.innerHTML = 'Guardar Artículo';
+          m.querySelector('h3').textContent = 'AÃ±adir ArtÃ­culo al Inventario';
+          btnSave.innerHTML = 'Guardar ArtÃ­culo';
           // Clear inputs
           if(document.getElementById('inp-inv-codigo')) document.getElementById('inp-inv-codigo').value = '';
           if(document.getElementById('inp-inv-linea')) document.getElementById('inp-inv-linea').value = '';
@@ -2939,7 +2964,7 @@ window.showProblemModal = (proyId) => {
         <div class="bg-white dark:bg-[#1a1c23] w-full max-w-lg rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-scaleIn">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-red-50 dark:bg-red-500/10">
                 <h3 class="font-black text-red-600 dark:text-red-400 uppercase tracking-widest text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Discusión Interna
+                    <i class="fa-solid fa-triangle-exclamation"></i> DiscusiÃ³n Interna
                 </h3>
                 <button onclick="this.closest('.fixed').remove()" class="text-red-400 hover:text-red-600 transition-colors">
                     <i class="fa-solid fa-xmark text-lg"></i>
@@ -2990,7 +3015,7 @@ window.renderView = async function renderView() {
   } 
   else if (state.activeView === 'lista-precios') {
     UI.viewTitle.textContent = "Lista de Precios - Renew Water";
-    UI.viewDesc.textContent = "Gestiona los productos, categorías y precios por rango para Renew Water.";
+    UI.viewDesc.textContent = "Gestiona los productos, categorÃ­as y precios por rango para Renew Water.";
     setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> Nuevo Producto`);
     renderListaPreciosAdmin();
   }
@@ -2999,7 +3024,7 @@ window.renderView = async function renderView() {
     if (UI.viewDesc) UI.viewDesc.textContent = t('crm_desc');
     setGlobalButton(true, `<i class="fa-solid fa-user-plus"></i> ${t('crm_btn_add')}`);
 
-    // â”€â”€ Build a responsable lookup: clienteId â†’ worker name â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Build a responsable lookup: clienteId Ã¢â€ â€™ worker name Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     const allWorkers = await getAdminWorkers(); // mock + dynamic merged
     const allProys = db.Proyectos_Dinamicos || [];
 
@@ -3025,7 +3050,7 @@ window.renderView = async function renderView() {
       if (!worker) return null;
       return [worker.nombre, worker.apellido].filter(Boolean).join(' ');
     }
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     
     let clientesFiltrados = db.Clientes_Maestro || [];
     if (window.globalSearchQuery) {
@@ -3050,8 +3075,8 @@ window.renderView = async function renderView() {
            </div>`
         : `<span class="text-[9px] text-gray-300 dark:text-gray-700 italic">Sin asignar</span>`;
 
-      // ORIGEN BADGE â€” 3 tipos: call_center | vendedor | referido
-      let origenHtml = `<span class="text-[9px] text-gray-300 dark:text-gray-600 italic">â€“</span>`;
+      // ORIGEN BADGE Ã¢â‚¬â€ 3 tipos: call_center | vendedor | referido
+      let origenHtml = `<span class="text-[9px] text-gray-300 dark:text-gray-600 italic">Ã¢â‚¬â€œ</span>`;
       if (c.origen_tipo === 'call_center') {
         origenHtml = `
           <div class="flex items-center gap-1.5">
@@ -3093,7 +3118,7 @@ window.renderView = async function renderView() {
       ];
     });
 
-    // â”€â”€ CRM Sub-View Tabs: Table | Kanban Lifecycle â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ CRM Sub-View Tabs: Table | Kanban Lifecycle Ã¢â€â‚¬Ã¢â€â‚¬
     const crmTabsHtml = `
       <div class="flex items-center gap-2 mb-5 mt-2" id="crm-view-tabs">
         <button class="crm-sub-tab px-4 py-2 rounded-xl text-xs font-bold border transition-all ${!state.crmKanbanActive ? 'bg-tealAccent/10 text-tealAccent border-tealAccent/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-gray-200 dark:border-white/10 hover:text-tealAccent'}" data-crm-tab="table">
@@ -3106,12 +3131,12 @@ window.renderView = async function renderView() {
     `;
 
     if (state.crmKanbanActive) {
-      // â”€â”€ KANBAN LIFECYCLE VIEW â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ KANBAN LIFECYCLE VIEW Ã¢â€â‚¬Ã¢â€â‚¬
       const MACRO_COLS = [
-        { key: 'Prospecto',     emoji: '🔵', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
-        { key: 'En Proceso',    emoji: '🟡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
-        { key: 'Cliente',        emoji: '🟢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
-        { key: 'Cancelado',     emoji: '🔴', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+        { key: 'Prospecto',     emoji: 'ðŸ”µ', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
+        { key: 'En Proceso',    emoji: 'ðŸŸ¡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
+        { key: 'Cliente',        emoji: 'ðŸŸ¢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
+        { key: 'Cancelado',     emoji: 'ðŸ”´', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
       ];
 
       const allClientes = clientesFiltrados;
@@ -3134,7 +3159,7 @@ window.renderView = async function renderView() {
                 <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">${c.nombre || 'Sin nombre'}</span>
                 <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">${c.state_id || ''}</span>
               </div>
-              <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? '· ' + c.email : ''}</div>
+              <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? 'Â· ' + c.email : ''}</div>
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                 <i class="fa-solid fa-user-tie text-[10px] text-tealAccent"></i>
                 <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">${getRepName(c) || 'Sin asignar'}</span>
@@ -3163,7 +3188,7 @@ window.renderView = async function renderView() {
               flex:1;overflow-y:auto;padding:20px 14px;min-height:400px;
               transition:all 0.3s;border-radius:0 0 20px 20px;
             ">
-              ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Arrastra clientes aquí</div>`}
+              ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Arrastra clientes aquÃ­</div>`}
             </div>
           </div>
         `;
@@ -3184,7 +3209,7 @@ window.renderView = async function renderView() {
         </div>
       `;
 
-      // â”€â”€ Drag & Drop Logic â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Drag & Drop Logic Ã¢â€â‚¬Ã¢â€â‚¬
       const cards = UI.canvas.querySelectorAll('.kanban-card');
       const zones = UI.canvas.querySelectorAll('.kanban-drop-zone');
 
@@ -3321,7 +3346,7 @@ window.renderView = async function renderView() {
       });
 
     } else {
-      // â”€â”€ TABLE VIEW (original) â”€â”€
+      // Ã¢â€â‚¬Ã¢â€â‚¬ TABLE VIEW (original) Ã¢â€â‚¬Ã¢â€â‚¬
       renderTable(
         [`<button id="btn-bulk-delete-cli" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('crm_col_id'), t('crm_col_name'), t('crm_col_contact'), t('crm_col_email'), t('crm_col_address'), t('crm_col_dept'), 'ORIGEN', t('crm_col_rep'), t('crm_col_status'), ""],
         rows
@@ -3341,7 +3366,7 @@ window.renderView = async function renderView() {
     }
   } else if (state.activeView === 'hrhub') {
     if (UI.viewTitle) UI.viewTitle.textContent = "HR Hub";
-    if (UI.viewDesc) UI.viewDesc.textContent = "Centro de RRHH - Gestión de Talento y Onboarding";
+    if (UI.viewDesc) UI.viewDesc.textContent = "Centro de RRHH - GestiÃ³n de Talento y Onboarding";
     setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator'); 
     await renderHRHub();
   } else if (state.activeView === 'mapa-admin') {
@@ -3586,11 +3611,11 @@ window.renderView = async function renderView() {
                               <span style="font-size: 10px; background:${statusCfg.color}20; color:${statusCfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${statusCfg.color}40;">${statusCfg.label}</span>
                             </div>
                             <div style="margin-top:8px; font-size:12px; color:#555; display:flex; flex-direction:column; gap:4px;">
-                              <span style="color:#00dfbf; font-weight:700;">🧑‍💼 Rep: ${repName}</span>
-                              <span>📞 ${c.telefono || 'Sin teléfono'}</span>
-                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">📍 ${c.direccion}</span>
+                              <span style="color:#00dfbf; font-weight:700;">ðŸ§‘â€ðŸ’¼ Rep: ${repName}</span>
+                              <span>ðŸ“ž ${c.telefono || 'Sin telÃ©fono'}</span>
+                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">ðŸ“ ${c.direccion}</span>
                               ${c.nota_mapa ? `<div style="margin-top:6px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; border-left:3px solid #00dfbf;">
-                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">📝 Nota del vendedor</div>
+                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">ðŸ“ Nota del vendedor</div>
                                 <div style="font-size:12px; color:#374151;">${c.nota_mapa}</div>
                               </div>` : ''}
                             </div>
@@ -3605,7 +3630,7 @@ window.renderView = async function renderView() {
           });
         });
 
-        // â”€â”€ Vendor Search Bar Logic â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Vendor Search Bar Logic Ã¢â€â‚¬Ã¢â€â‚¬
         const searchInput = document.getElementById('rep-search-input');
         const searchDropdown = document.getElementById('rep-search-dropdown');
         const searchClear = document.getElementById('rep-search-clear');
@@ -3644,7 +3669,7 @@ window.renderView = async function renderView() {
                   <div style="width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#00dfbf,#0ea5e9); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:white; flex-shrink:0;">${initials}</div>
                   <div style="flex:1; min-width:0;">
                     <div style="font-size:13px; font-weight:700; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${fullName}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${dept} · ${clientCount} en mapa</div>
+                    <div style="font-size:11px; color:#94a3b8;">${dept} Â· ${clientCount} en mapa</div>
                   </div>
                 </div>`;
               }).join('');
@@ -3681,12 +3706,12 @@ window.renderView = async function renderView() {
     }, 300);
   } else if (state.activeView === 'calendario') {
     UI.viewTitle.innerHTML = '<i class="fa-solid fa-calendar-days text-tealAccent"></i> Calendario Maestro';
-    UI.viewDesc.textContent = 'Gestión y sincronización en tiempo real con Google Calendar.';
-    setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> Añadir Evento');
+    UI.viewDesc.textContent = 'GestiÃ³n y sincronizaciÃ³n en tiempo real con Google Calendar.';
+    setGlobalButton(true, '<i class="fa-solid fa-calendar-plus text-lg"></i> AÃ±adir Evento');
     renderCalendario();
   } else if (state.activeView === 'usuarios' || state.activeView === 'equipo') {
     UI.viewTitle.textContent = "Equipo Renew";
-    UI.viewDesc.textContent = "Compañeros de trabajo en Renew Group.";
+    UI.viewDesc.textContent = "CompaÃ±eros de trabajo en Renew Group.";
     setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator');
     
     let items = await getAdminWorkers();
@@ -3783,7 +3808,7 @@ window.renderView = async function renderView() {
         });
     }
 
-    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
+    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "TelÃ©fono", "ÃÂrea de Cobertura", "Documentos", ""];
     const rowsHtml = items.map(u => {
         const safeEmpresa = u.empresa || 'Empresa Desconocida';
         const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
@@ -3793,25 +3818,25 @@ window.renderView = async function renderView() {
         const s = (u.servicio || 'General').toLowerCase();
         
         if (s === 'fence') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">🚧 ${t('partner_cat_fence')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">ðŸš§ ${t('partner_cat_fence')}</span>`;
         } else if (s === 'roofing' || s === 'roof') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">🏠 ${t('partner_cat_roofing')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">ðŸ  ${t('partner_cat_roofing')}</span>`;
         } else if (s === 'solar') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">☀️ ${t('partner_cat_solar')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">â˜€ï¸ ${t('partner_cat_solar')}</span>`;
         } else if (s === 'hvac' || s === 'aire') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">❄️ ${t('partner_cat_hvac')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">â„ï¸ ${t('partner_cat_hvac')}</span>`;
         } else if (s === 'painting' || s === 'pintura') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">🎨 ${t('partner_cat_painting')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">ðŸŽ¨ ${t('partner_cat_painting')}</span>`;
         } else if (s === 'remodelacion') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20">🛠️ ${t('partner_cat_remodelacion')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20">ðŸ› ï¸ ${t('partner_cat_remodelacion')}</span>`;
         } else if (s === 'dumpsters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20">🗑️ ${t('partner_cat_dumpsters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20">ðŸ—‘ï¸ ${t('partner_cat_dumpsters')}</span>`;
         } else if (s === 'gutters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20">🌧️ ${t('partner_cat_gutters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20">ðŸŒ§ï¸ ${t('partner_cat_gutters')}</span>`;
         } else if (s === 'screens') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">🪟 ${t('partner_cat_screens')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">ðŸªŸ ${t('partner_cat_screens')}</span>`;
         } else {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">⚙️ ${t('partner_cat_general')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">âš™ï¸ ${t('partner_cat_general')}</span>`;
         }
 
         return `
@@ -3929,7 +3954,7 @@ window.renderView = async function renderView() {
 
             ${d.ultima_actividad_label ? `
             <div class="bg-gray-50 dark:bg-white/[0.03] rounded-lg px-2.5 py-1.5 mb-3 border border-gray-100 dark:border-white/5">
-              <p class="text-[8px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-0.5">Ášltima Actividad</p>
+              <p class="text-[8px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-0.5">ÃÅ¡ltima Actividad</p>
               <p class="text-[10px] font-bold text-gray-700 dark:text-gray-300 truncate">${d.ultima_actividad_label}</p>
               <p class="text-[8px] text-gray-400 dark:text-gray-600">${d.ultima_actividad ? new Date(d.ultima_actividad).toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : ''}</p>
             </div>` : ''}
@@ -4091,7 +4116,7 @@ window.renderView = async function renderView() {
       updateArrows();
     }, 200);
 
-    // â”€â”€â”€ Kanban Project Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Kanban Project Drawer Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     renderView._openKanbanDrawer = openKanbanDrawer;
   }
   else if (state.activeView === 'rendimiento-global') {
@@ -4194,7 +4219,7 @@ window.renderView = async function renderView() {
   }
   else if (state.activeView === 'academia') {
     UI.viewTitle.textContent = "Gestor Academia";
-    UI.viewDesc.textContent = "Sube y administra el contenido de formación y biblioteca virtual.";
+    UI.viewDesc.textContent = "Sube y administra el contenido de formaciÃ³n y biblioteca virtual.";
     setGlobalButton(false);
     
     const dbLocal = getDB();
@@ -4243,7 +4268,7 @@ window.renderView = async function renderView() {
             <select id="aca-tipo" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
                <option value="Video de Entrenamiento">${t('aca_type_video')}</option>
                <option value="Documento/PDF">${t('aca_type_doc')}</option>
-               <option value="Información Bancaria">${t('aca_type_bank')}</option>
+               <option value="InformaciÃ³n Bancaria">${t('aca_type_bank')}</option>
                <option value="Detalles de equipo">${t('aca_type_equipment')}</option>
                <option value="FAQ">${t('aca_type_faq')}</option>
             </select>
@@ -4257,7 +4282,7 @@ window.renderView = async function renderView() {
             </div>
 
             <label class="aqua-label">${t('aca_field_vis')}</label>
-            <p class="text-[10px] text-gray-400 mb-3 ml-1">Selecciona qué unidades pueden ver este recurso en la app móvil.</p>
+            <p class="text-[10px] text-gray-400 mb-3 ml-1">Selecciona quÃ© unidades pueden ver este recurso en la app mÃ³vil.</p>
             <div class="grid grid-cols-2 gap-3 mb-8">
                ${pipsOptionsHtml}
             </div>
@@ -4289,7 +4314,7 @@ window.renderView = async function renderView() {
                <span class="bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full text-xs font-bold text-gray-500">${academiaContent.length} items</span>
             </div>
             <div class="overflow-y-auto max-h-[600px] hide-scrollbar custom-scrollbar pr-2">
-              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Base de datos vacía</p></div>'}
+              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Base de datos vacÃ­a</p></div>'}
             </div>
          </div>
       </div>
@@ -4311,7 +4336,7 @@ window.renderView = async function renderView() {
        const permisos = Array.from(document.querySelectorAll('.aca-pip-chk:checked')).map(cb => cb.value);
 
        if(!titulo || (!file && !editId)) {
-          window.addNotification('Gestor Academia', editId ? 'El título es obligatorio' : 'El título y el archivo adjunto son obligatorios', 'error');
+          window.addNotification('Gestor Academia', editId ? 'El tÃ­tulo es obligatorio' : 'El tÃ­tulo y el archivo adjunto son obligatorios', 'error');
           return;
        }
        if(permisos.length === 0) {
@@ -4331,7 +4356,7 @@ window.renderView = async function renderView() {
        const onProgress = (pct, msg) => {
            if (progressFill) progressFill.style.width = `${pct}%`;
            if (progressText) progressText.textContent = msg;
-           btnSave.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${pct}% â€“ ${msg}`;
+           btnSave.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${pct}% Ã¢â‚¬â€œ ${msg}`;
        };
 
        try {
@@ -4345,7 +4370,7 @@ window.renderView = async function renderView() {
                    if(data.miniaturaUrl) miniaturaUrl = data.miniaturaUrl;
                } catch (err) {
                    console.error('Upload Error:', err);
-                   throw new Error('Error al subir el archivo: ' + (err.message || 'Verifica tu conexión y vuelve a intentarlo.'));
+                   throw new Error('Error al subir el archivo: ' + (err.message || 'Verifica tu conexiÃ³n y vuelve a intentarlo.'));
 
                }
            }
@@ -4418,7 +4443,7 @@ window.renderView = async function renderView() {
     const acaTipoSelect = document.getElementById('aca-tipo');
     const thumbWrapCont = document.getElementById('aca-thumb-wrap');
     if(acaTipoSelect && thumbWrapCont) {
-       // Mostrar/ocultar al cargar según valor inicial
+       // Mostrar/ocultar al cargar segÃºn valor inicial
        thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
         acaTipoSelect.addEventListener('change', () => {
           thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
@@ -4472,16 +4497,16 @@ window.renderView = async function renderView() {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[9px] text-gray-400 font-bold">M: ${ite.medida || 'â€”'}</span>
-                        <span class="text-[9px] text-gray-400 font-bold">B: ${ite.boton || 'â€”'}</span>
-                        <span class="text-[9px] text-gray-400 font-bold">C: ${ite.color || 'â€”'}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">M: ${ite.medida || '-'}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">B: ${ite.boton || '-'}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">C: ${ite.color || '-'}</span>
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-[10px] font-black text-gray-400 uppercase tracking-widest">${ite.storage || ite.locacion}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-xs font-black text-tealAccent">${ite.stockActual}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                    <div class="flex items-center gap-3">
-                       <button onclick="window.addStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center" title="Suma Rápida de Stock">
+                       <button onclick="window.addStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center" title="Suma RÃ¡pida de Stock">
                            <i class="fa-solid fa-plus text-[10px]" style="pointer-events: none;"></i>
                        </button>
                        <button onclick="window.subtractStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center" title="Restar Stock">
@@ -4662,13 +4687,18 @@ window.renderView = async function renderView() {
             </table>
         </div>
 
-        <!-- â”€â”€ Historial de Movimientos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- Ã¢â€â‚¬Ã¢â€â‚¬ Historial de Movimientos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
         <div class="mt-8">
           <div class="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
-              <h2 class="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-orange-400"></i>
-                ${t('inv_history_title')}
-              </h2>
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                  <i class="fa-solid fa-clock-rotate-left text-orange-400"></i>
+                  ${t('inv_history_title')}
+                </h2>
+                <button id="btn-clear-historial" onclick="window.clearInventarioHistorial && window.clearInventarioHistorial()" class="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                  <i class="fa-solid fa-trash-can"></i> Borrar Historial
+                </button>
+              </div>
             </div>
 
           <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
@@ -4689,7 +4719,7 @@ window.renderView = async function renderView() {
             </table>
           </div>
         </div>
-        <!-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
 
       </div>
     `;
@@ -4697,7 +4727,7 @@ window.renderView = async function renderView() {
   }
   else if (state.activeView === 'anuncios') {
     UI.viewTitle.textContent = "GESTOR DE ANUNCIOS GLOBALES";
-    UI.viewDesc.textContent = "Publica comunicados para la aplicación móvil y rastrea su lectura.";
+    UI.viewDesc.textContent = "Publica comunicados para la aplicaciÃ³n mÃ³vil y rastrea su lectura.";
     setGlobalButton(false);
     
     const annTabsHtml = `
@@ -4722,7 +4752,7 @@ window.renderView = async function renderView() {
         const anunciosHtml = sortedAnuncios.map(an => {
           const getTagBadge = (tag) => {
               if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
-              const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'];
+              const roles = ['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'];
               if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
               return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
           };
@@ -4761,16 +4791,16 @@ window.renderView = async function renderView() {
                 <div class="w-10 h-10 rounded-full bg-tealAccent/10 flex items-center justify-center text-tealAccent"><i class="fa-solid fa-bullhorn text-lg"></i></div>
                 <div>
                   <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Nuevo Comunicado</h3>
-                  <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Envío Inmediato</p>
+                  <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">EnvÃ­o Inmediato</p>
                 </div>
               </div>
               <div class="space-y-4 flex-1">
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título del Anuncio</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">TÃ­tulo del Anuncio</label>
                     <input type="text" id="ann-input-title" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (SelecciÃ³n MÃºltiple)</label>
                     <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <input type="checkbox" id="aud-all" class="aud-check w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="todos">
@@ -4790,7 +4820,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'].map(r => `
+                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
@@ -4842,7 +4872,7 @@ window.renderView = async function renderView() {
                   <div id="ann-report-placeholder" class="py-20 text-center">
                     <i class="fa-solid fa-chart-pie text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
                     <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Lectura</h4>
-                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona un anuncio para ver quiénes lo han leído.</p>
+                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona un anuncio para ver quiÃ©nes lo han leÃ­do.</p>
                   </div>
                 </div>
               </div>
@@ -4864,7 +4894,7 @@ window.renderView = async function renderView() {
                </button>
                <div class="flex-1">
                  <div class="flex justify-between items-start mb-3 pr-10">
-                   <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'Reunión'}</h4>
+                   <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'ReuniÃ³n'}</h4>
                    <div class="flex flex-wrap gap-1 justify-end">
                      ${(mt.audiencia_tags || [mt.audiencia || 'Todos']).map(tag => {
                         const displayTag = (tag === 'todos' || tag === 'Todos') ? 'Renew Group' : tag;
@@ -4897,11 +4927,11 @@ window.renderView = async function renderView() {
               </div>
               <div class="space-y-4 flex-1">
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título de la Reunión</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">TÃ­tulo de la ReuniÃ³n</label>
                     <input type="text" id="mt-input-title" placeholder="Ej: Weekly Sync" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (SelecciÃ³n MÃºltiple)</label>
                     <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <input type="checkbox" id="mt-aud-all" class="mt-aud-check w-4 h-4 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="todos">
@@ -4921,7 +4951,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'].map(r => `
+                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
@@ -4975,8 +5005,8 @@ window.renderView = async function renderView() {
                 <div id="mt-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
                   <div id="mt-report-placeholder" class="py-20 text-center">
                     <i class="fa-solid fa-users-viewfinder text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
-                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Confirmación</h4>
-                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reunión para ver quiénes la han leído.</p>
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de ConfirmaciÃ³n</h4>
+                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reuniÃ³n para ver quiÃ©nes la han leÃ­do.</p>
                   </div>
                 </div>
               </div>
@@ -5005,7 +5035,7 @@ window.renderView = async function renderView() {
                   const audTags = checked.map(c => c.value);
                   const isAll = audTags.includes('todos');
                   
-                  if (!tit || !msj) return showToast('Título y mensaje obligatorios', 'error');
+                  if (!tit || !msj) return showToast('TÃ­tulo y mensaje obligatorios', 'error');
                   if (audTags.length === 0) return showToast('Selecciona al menos una audiencia', 'warning');
                   
                   btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
@@ -5041,7 +5071,7 @@ window.renderView = async function renderView() {
                   dbLoc.anuncios_corporativos.push(nuevoAnuncio);
                   await saveDB(dbLoc);
                   state.currentAnnFoto = null;
-                  showToast('¡Anuncio publicado globalmente!', 'success');
+                  showToast('Â¡Anuncio publicado globalmente!', 'success');
                   renderView();
                 };
             }
@@ -5111,11 +5141,11 @@ window.renderView = async function renderView() {
                     try {
                         await saveGranular('admin_meetings', [newMt]);
                         state.currentMtFoto = null;
-                        showToast('Reunión publicada correctamente', 'success');
+                        showToast('ReuniÃ³n publicada correctamente', 'success');
                         await initDB();
                         renderView();
                     } catch (err) {
-                        showToast('Error al publicar reunión', 'error');
+                        showToast('Error al publicar reuniÃ³n', 'error');
                         btnPub.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Llamada';
                         btnPub.disabled = false;
                     }
@@ -5151,7 +5181,7 @@ window.renderView = async function renderView() {
 
 // Ventana global para visualizar reporte de lectura
 window.deleteAnuncio = async (id, btn) => {
-    if (!confirm('¿Seguro que deseas eliminar este anuncio? No podrá recuperarse.')) return;
+    if (!confirm('Â¿Seguro que deseas eliminar este anuncio? No podrÃ¡ recuperarse.')) return;
     
     try {
         if (btn) {
@@ -5180,7 +5210,7 @@ window.deleteAnuncio = async (id, btn) => {
 };
 
 window.deleteMeeting = async (id, btn) => {
-    if (!confirm('¿Seguro que deseas eliminar esta reunión?')) return;
+    if (!confirm('Â¿Seguro que deseas eliminar esta reuniÃ³n?')) return;
     
     try {
         if (btn) {
@@ -5195,11 +5225,11 @@ window.deleteMeeting = async (id, btn) => {
         });
 
         await initDB();
-        showToast('Reunión eliminada', 'warning');
+        showToast('ReuniÃ³n eliminada', 'warning');
         renderView();
     } catch (err) {
         console.error(err);
-        showToast('Error al eliminar reunión', 'error');
+        showToast('Error al eliminar reuniÃ³n', 'error');
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-trash-can text-[10px]"></i>';
@@ -5230,7 +5260,7 @@ window.mostrarReporteMeeting = async (id) => {
                         <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${w.nombre} ${w.apellido}</span>
                         <i class="fa-solid fa-check text-emerald-500 text-[8px]"></i>
                     </div>
-                `).join('') || '<p class="text-[10px] text-gray-400 italic">Nadie ha confirmado aún</p>'}
+                `).join('') || '<p class="text-[10px] text-gray-400 italic">Nadie ha confirmado aÃºn</p>'}
             </div>
 
             <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-100 dark:border-white/5 pb-2 text-left">Pendientes (${pendingWorkers.length})</h4>
@@ -5279,7 +5309,7 @@ window.mostrarReporteAnuncio = function(id) {
          <p class="text-lg font-black text-gray-900 dark:text-white leading-none">${ann.titulo}</p>
          <div class="mt-4 bg-white dark:bg-black/30 border border-gray-100 dark:border-white/5 p-3 rounded-xl flex items-center justify-between">
            <div>
-             <p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Aceptación (Lectura)</p>
+             <p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">AceptaciÃ³n (Lectura)</p>
              <p class="text-2xl font-black text-tealAccent leading-none mt-1">${pct}%</p>
            </div>
            <div class="text-right">
@@ -5427,7 +5457,7 @@ function renderCalendario() {
         </label>
         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
           <input type="checkbox" id="chk-admin-cumple" checked style="width: 16px; height: 16px; accent-color: #ec4899;">
-          <span>Cumpleaños</span>
+          <span>CumpleaÃ±os</span>
         </label>
       </div>
       <div id="calendar-master" class="min-h-[750px]"></div>
@@ -5520,7 +5550,7 @@ function renderCalendario() {
                  for (let y = yearStart; y <= yearEnd; y++) {
                      mappedBirthdays.push({
                          id: 'bday_' + w.id + '_' + y,
-                         title: '🎂 Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
+                         title: 'ðŸŽ‚ CumpleaÃ±os de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
                          start: `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
                          allDay: true,
                          backgroundColor: '#ec4899',
@@ -5552,8 +5582,8 @@ function renderCalendario() {
     
     
     eventContent: function(arg) {
-       // El color principal viene del "estado / clasificación"
-       const baseColor = arg.event.backgroundColor || '#00f5d4';
+       // El color principal viene del "estado / clasificaciÃ³n"
+       const baseColor = arg.event.backgroundcolor || '-';
        const colabs = arg.event.extendedProps?.colaboradores || [];
        const deptos = arg.event.extendedProps?.departamentos || [];
        
@@ -5580,7 +5610,7 @@ function renderCalendario() {
                avatarsHtml += `<div title="${nameStr}" style="width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #444; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2; cursor: help;">${initial}</div>`;
            });
            if (extraCount > 0) {
-               avatarsHtml += `<div title="+${extraCount} colaboradores más" style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
+               avatarsHtml += `<div title="+${extraCount} colaboradores mÃ¡s" style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
            }
            avatarsHtml += '</div>';
        }
@@ -5617,7 +5647,7 @@ function renderCalendario() {
       mostrarDetalleEventoCalendario(info.event);
     },
     dateClick: function(info) {
-      // Al hacer click en un dia libre, abre modal en modo creación
+      // Al hacer click en un dia libre, abre modal en modo creaciÃ³n
       mostrarDetalleEventoCalendario({ date: info.date });
     },
     height: 'auto',
@@ -5634,7 +5664,7 @@ function renderCalendario() {
   window.currentCalendar = calendar;
 }
 
-// â”€â”€ Auto-fill end date when start date changes â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Auto-fill end date when start date changes Ã¢â€â‚¬Ã¢â€â‚¬
 window.onStartDateChange = function(startInput) {
     const finInput = document.getElementById('ev-fecha-fin');
     if (!startInput.value) return;
@@ -5662,7 +5692,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
   const titleEl = document.getElementById('modo-texto');
   const form = document.getElementById('form-calendario-evento');
   
-  // Función para convertir fecha JS a YYYY-MM-DDThh:mm
+  // FunciÃ³n para convertir fecha JS a YYYY-MM-DDThh:mm
   const toLocalISOString = (d) => {
       const pad = n => n < 10 ? '0'+n : n;
       return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
@@ -5671,7 +5701,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
   // Set in View Mode if event exists
   if (event && event.title) {
     const props = event.extendedProps || {};
-    titleEl.innerHTML = props.isBirthday ? `<i class="fa-solid fa-cake-candles"></i> ${event.title}` : `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de Instalación'}`;
+    titleEl.innerHTML = props.isBirthday ? `<i class="fa-solid fa-cake-candles"></i> ${event.title}` : `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de InstalaciÃ³n'}`;
     btnGuardar.classList.add('hidden');
 
     // Show delete button and store event ID
@@ -5713,7 +5743,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     }
 
     if (props.isBirthday) {
-        document.getElementById('ev-descripcion').value = 'Cumpleaños generado desde el perfil del usuario.';
+        document.getElementById('ev-descripcion').value = 'CumpleaÃ±os generado desde el perfil del usuario.';
         document.getElementById('ev-descripcion').readOnly = true;
         
         document.getElementById('ev-adjunto').parentElement.classList.add('hidden');
@@ -5727,7 +5757,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
         if (btnEliminar) {
             const u = getCurrentUser();
-            if (u && ['Admin', 'Súper Admin', 'Gerente', 'Administrador'].includes(u.rango || u.rol)) {
+            if (u && ['Admin', 'SÃºper Admin', 'Gerente', 'Administrador'].includes(u.rango || u.rol)) {
                 btnEliminar.classList.remove('hidden');
             } else {
                 btnEliminar.classList.add('hidden');
@@ -5806,7 +5836,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
   } else {
     // ADD NEW EVENT MODE (Triggered genericlly)
-    titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
+    titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> AÃ±adir Evento`;
     btnGuardar.classList.remove('hidden');
     form.reset();
     // Clear read-only participants panel
@@ -5855,7 +5885,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         r.checked = false;
     });
 
-    // â”€â”€ Load collaborators as checkboxes with email for Google Calendar attendees â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Load collaborators as checkboxes with email for Google Calendar attendees Ã¢â€â‚¬Ã¢â€â‚¬
     const container = document.getElementById('ev-colaboradores-container');
     if (container) {
         container.innerHTML = '<p class="text-xs text-gray-400 italic">Cargando equipo...</p>';
@@ -5893,7 +5923,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     }
   }
 
-  // â”€â”€ Google Places Autocomplete for address field (Exact match from mobile version) â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Google Places Autocomplete for address field (Exact match from mobile version) Ã¢â€â‚¬Ã¢â€â‚¬
   const evDirInput = document.getElementById('ev-direccion');
   const evMapPreview = document.getElementById('ev-map-preview');
   const evMapCanvas = document.getElementById('ev-map-canvas');
@@ -5975,7 +6005,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
   window.showModal(modal);
 };
 
-// â”€â”€ Eliminar Evento del Calendario (Admin) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Eliminar Evento del Calendario (Admin) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 window.eliminarEventoCalendarioAdmin = async function() {
   const btn = document.getElementById('btn-eliminar-evento-admin');
   const eventId = btn?.dataset?.eventId;
@@ -5985,7 +6015,7 @@ window.eliminarEventoCalendarioAdmin = async function() {
     return;
   }
 
-  if (!confirm('¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) return;
+  if (!confirm('Â¿EstÃ¡s seguro de que deseas eliminar este evento? Esta acciÃ³n no se puede deshacer.')) return;
 
   try {
     btn.disabled = true;
@@ -6001,7 +6031,7 @@ window.eliminarEventoCalendarioAdmin = async function() {
             const { saveGranular } = await import('./api.js');
             await saveGranular('Usuarios', [worker]);
         }
-        showToast('Cumpleaños eliminado (fecha de nacimiento borrada)', 'success');
+        showToast('CumpleaÃ±os eliminado (fecha de nacimiento borrada)', 'success');
     } else {
         // Remove from local DB
         const db = getDB();
@@ -6031,7 +6061,7 @@ window.eliminarEventoCalendarioAdmin = async function() {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>'; }
   }
 };
-// â”€â”€ END Eliminar Evento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ END Eliminar Evento Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 window.guardarEventoCalendario = async function(e) {
   if (e) e.preventDefault();
@@ -6062,7 +6092,7 @@ window.guardarEventoCalendario = async function(e) {
     
     const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
     
-    // â”€â”€ Read collaborators from checkboxes (stores id + email for Google Calendar) â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Read collaborators from checkboxes (stores id + email for Google Calendar) Ã¢â€â‚¬Ã¢â€â‚¬
     const colaboradores = [];
     document.querySelectorAll('.ev-colab-chk:checked').forEach(chk => {
         try {
@@ -6107,7 +6137,7 @@ window.guardarEventoCalendario = async function(e) {
     db.calendario_eventos.push(nuevoEvento);
     await saveDB(db);
     
-    // â”€â”€ SYNC WITH GOOGLE CALENDAR VIA SERVER (SERVICE ACCOUNT) â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ SYNC WITH GOOGLE CALENDAR VIA SERVER (SERVICE ACCOUNT) Ã¢â€â‚¬Ã¢â€â‚¬
     try {
         const CALENDAR_ID = 'c_0300a26935f9ffbe1772a440f9070fa95f02f551157e69bd0d71092777559943@group.calendar.google.com';
         
@@ -6146,7 +6176,7 @@ window.guardarEventoCalendario = async function(e) {
         console.error('[RENEW-GCAL] Error communicating with sync server:', syncErr);
     }
 
-    showToast('Evento guardado con éxito', 'success');
+    showToast('Evento guardado con Ã©xito', 'success');
     window.closeModals();
     
     // Refresh calendar to show the new event
@@ -6156,7 +6186,7 @@ window.guardarEventoCalendario = async function(e) {
 
   } catch (err) {
     console.error("Error guardando evento:", err);
-    showToast('Ocurrió un error al guardar', 'error');
+    showToast('OcurriÃ³ un error al guardar', 'error');
   } finally {
     const btnGuardar = document.getElementById('btn-guardar-evento');
     if (btnGuardar) {
@@ -6176,7 +6206,7 @@ function renderTable(headers, rows) {
   `).join('');
 
   if (!UI.canvas) {
-    console.error('[RENEW-ERROR] UI.canvas no está definido. Re-intentando cacheElements...');
+    console.error('[RENEW-ERROR] UI.canvas no estÃ¡ definido. Re-intentando cacheElements...');
     cacheElements();
   }
 
@@ -6284,14 +6314,14 @@ function renderConstructor() {
                   <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
                   <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Vendedor</option>
                   <option value="Project Manager" ${f.rol_encargado === 'Project Manager' ? 'selected' : ''}>Project Manager</option>
-                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
-                  <option value="Diseñador" ${f.rol_encargado === 'Diseñador' ? 'selected' : ''}>Diseñador</option>
+                  <option value="TÃ©cnico" ${f.rol_encargado === 'TÃ©cnico' ? 'selected' : ''}>TÃ©cnico</option>
+                  <option value="DiseÃ±ador" ${f.rol_encargado === 'DiseÃ±ador' ? 'selected' : ''}>DiseÃ±ador</option>
                   <option value="Contabilidad" ${f.rol_encargado === 'Contabilidad' ? 'selected' : ''}>Contabilidad</option>
                   
-                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
+                  <option value="SupervisiÃ³n" ${f.rol_encargado === 'SupervisiÃ³n' ? 'selected' : ''}>SupervisiÃ³n</option>
                   <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Admin</option>
                   <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
-                  <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
+                  <option value="AsignaciÃ³n EspecÃ­fica" ${f.rol_encargado === 'AsignaciÃ³n EspecÃ­fica' ? 'selected' : ''}>AsignaciÃ³n EspecÃ­fica</option>
                 </select>
               </div>
               <p class="bg-tealAccent/5 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/10 font-bold text-[8px] uppercase mb-0">N: ${cCampos.length}</p>
@@ -6305,7 +6335,7 @@ function renderConstructor() {
                   return `<div class="inline-block h-5 w-5 rounded-full ring-2 ring-white dark:ring-[#1a1a1a] bg-tealAccent flex items-center justify-center text-[7px] font-black text-white uppercase" title="${u.nombre}">${u.initials || u.nombre.substring(0,2)}</div>`;
                 }).join('')}
               </div>
-              ${f.rol_encargado === 'Asignación Específica' ? `
+              ${f.rol_encargado === 'AsignaciÃ³n EspecÃ­fica' ? `
               <button class="btn-assign-users text-[8px] font-black text-tealAccent hover:underline uppercase tracking-widest" data-faseid="${f.id}">
                 ${(f.usuarios_especificos || []).length > 0 ? 'Editar Usuarios' : '+ Asignar Usuarios'}
               </button>
@@ -6443,7 +6473,7 @@ async function openFaseUserPicker(faseId) {
         modal.classList.add('nuclear-hidden');
       }
       
-      showToast('Asignación de usuarios actualizada', 'success');
+      showToast('AsignaciÃ³n de usuarios actualizada', 'success');
       
       // 3. Recargar datos y refrescar UI
       await loadData();
@@ -6454,7 +6484,7 @@ async function openFaseUserPicker(faseId) {
       showToast('Error al guardar: ' + err.message, 'error');
     } finally {
       btnConfirm.disabled = false;
-      btnConfirm.innerHTML = 'Confirmar Asignación';
+      btnConfirm.innerHTML = 'Confirmar AsignaciÃ³n';
     }
   };
   
@@ -6603,12 +6633,12 @@ async function showWorkerDetail(id) {
             const db = getDB();
             const rankInfo = computeUserRank(id, 'Renew Water', db);
             if (rankInfo && rankInfo.cur) {
-                displayRank = rankInfo.cur.name + ' (Automático)';
+                displayRank = rankInfo.cur.name + ' (AutomÃ¡tico)';
             } else {
-                displayRank = 'Novato por Referidos (Automático)';
+                displayRank = 'Novato por Referidos (AutomÃ¡tico)';
             }
         } catch(e) {
-            displayRank = 'Automático';
+            displayRank = 'AutomÃ¡tico';
         }
     } else {
         const rankMap = {
@@ -6647,7 +6677,7 @@ async function showWorkerDetail(id) {
     if (document.getElementById('det-usr-banco-cuenta')) document.getElementById('det-usr-banco-cuenta').textContent = usr.banco_cuenta || '-';
     if (document.getElementById('det-usr-banco-ruta'))   document.getElementById('det-usr-banco-ruta').textContent   = usr.banco_ruta   || '-';
 
-    // Format DOB for view mode (mes dia año)
+    // Format DOB for view mode (mes dia aÃ±o)
     const dobViewEl = document.getElementById('det-usr-dob-view');
     if (dobViewEl) {
         if (usr.dob && usr.dob.includes('-')) {
@@ -6663,7 +6693,7 @@ async function showWorkerDetail(id) {
         }
     }
 
-    // â”€â”€ Interactive Documentation Zones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Interactive Documentation Zones Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     const docsZone = document.getElementById('det-usr-docs-interactive');
     if (docsZone) {
         const renderDocBtn = (type, label, url, icon) => {
@@ -6703,7 +6733,7 @@ async function showWorkerDetail(id) {
             </div>
         `;
     }
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     const avatarBox = document.getElementById('det-usr-avatar');
     if (usr.foto) {
@@ -6748,7 +6778,7 @@ function exitDetailEditMode() {
     if (saveBar) saveBar.classList.add('hidden');
     if (gearBtn) {
         gearBtn.classList.remove('text-tealAccent', 'bg-tealAccent/10', 'rotate-45');
-        gearBtn.title = 'Editar información';
+        gearBtn.title = 'Editar informaciÃ³n';
     }
 }
 
@@ -6765,7 +6795,7 @@ async function toggleDetailEditMode(id) {
     const isEditing = editPanel && !editPanel.classList.contains('hidden');
 
     if (isEditing) {
-        // Cancel â†’ return to view mode
+        // Cancel Ã¢â€ â€™ return to view mode
         exitDetailEditMode();
         // Restore view data
         document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
@@ -6781,12 +6811,12 @@ async function toggleDetailEditMode(id) {
                 const db = getDB();
                 const rankInfo = computeUserRank(id, 'Renew Water', db);
                 if (rankInfo && rankInfo.cur) {
-                    displayRank = rankInfo.cur.name + ' (Automático)';
+                    displayRank = rankInfo.cur.name + ' (AutomÃ¡tico)';
                 } else {
-                    displayRank = 'Novato por Referidos (Automático)';
+                    displayRank = 'Novato por Referidos (AutomÃ¡tico)';
                 }
             } catch(e) {
-                displayRank = 'Automático';
+                displayRank = 'AutomÃ¡tico';
             }
         } else {
             const rankMap = {
@@ -6877,7 +6907,7 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-banco-cuenta')) document.getElementById('det-edit-banco-cuenta').value = usr.banco_cuenta || '';
         if (document.getElementById('det-edit-banco-ruta'))   document.getElementById('det-edit-banco-ruta').value   = usr.banco_ruta   || '';
 
-        // â”€â”€ Pre-fill W-9 state in edit panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Pre-fill W-9 state in edit panel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         state.detEditW9Url = usr.w9Url || usr.w9_url || null;
         const detW9Placeholder = document.getElementById('det-edit-w9-placeholder');
         const detW9Success = document.getElementById('det-edit-w9-success');
@@ -6918,7 +6948,7 @@ async function toggleDetailEditMode(id) {
             });
         }
 
-        // â”€â”€ Pre-fill Carnet state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Pre-fill Carnet state Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         state.detEditCarnetUrl = usr.carnet_url || usr.carnetUrl || null;
         const detCarnetPlaceholder = document.getElementById('det-edit-carnet-placeholder');
         const detCarnetSuccess = document.getElementById('det-edit-carnet-success');
@@ -6959,7 +6989,7 @@ async function toggleDetailEditMode(id) {
             });
         }
 
-        // â”€â”€ Pre-fill Contrato state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Pre-fill Contrato state Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         state.detEditContratoUrl = usr.contrato_url || usr.contratoUrl || null;
         const detContratoPlaceholder = document.getElementById('det-edit-contrato-placeholder');
         const detContratoSuccess = document.getElementById('det-edit-contrato-success');
@@ -6999,9 +7029,9 @@ async function toggleDetailEditMode(id) {
                 }
             });
         }
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-        // â”€â”€ Pipeline Permissions â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Pipeline Permissions Ã¢â€â‚¬Ã¢â€â‚¬
         const pipBox = document.getElementById('det-edit-pipeline-perms');
         if (pipBox) {
             const dbLocal = getDB();
@@ -7018,7 +7048,7 @@ async function toggleDetailEditMode(id) {
             };
 
             if (pipelines.length === 0) {
-                pipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aún.</p>';
+                pipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aÃºn.</p>';
             } else {
                 pipBox.innerHTML = pipelines.map(pip => {
                     const checked = userUnidades.includes(pip.nombre) ? 'checked' : '';
@@ -7052,7 +7082,7 @@ async function toggleDetailEditMode(id) {
     if (saveBar) saveBar.classList.remove('hidden');
     if (gearBtn) {
         gearBtn.classList.add('text-tealAccent', 'bg-tealAccent/10');
-        gearBtn.title = 'Cancelar edición';
+        gearBtn.title = 'Cancelar ediciÃ³n';
     }
 
     // Back Arrow handler
@@ -7181,7 +7211,7 @@ async function toggleDetailEditMode(id) {
                     }
                 }
 
-                // â”€â”€ Update interactive docs in view panel â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬ Update interactive docs in view panel Ã¢â€â‚¬Ã¢â€â‚¬
                 showWorkerDetail(updatedUsr.id);
 
                 exitDetailEditMode();
@@ -7189,7 +7219,7 @@ async function toggleDetailEditMode(id) {
                 await renderView();
             } catch (error) {
                 console.error("Error updating worker:", error);
-                showToast("Ocurrió un error al guardar: " + (error.message || "Revisa la consola"), "error");
+                showToast("OcurriÃ³ un error al guardar: " + (error.message || "Revisa la consola"), "error");
             } finally {
                 newSaveBtn.innerHTML = originalText;
                 newSaveBtn.disabled = false;
@@ -7215,7 +7245,7 @@ window.handleInstantDocUpload = async function(event, usrId, docType) {
     zone.classList.add('pointer-events-none', 'bg-tealAccent/5');
 
     try {
-        // USAR UPLOAD REAL EN LUGAR DE BASE64 (Más estable para Supabase)
+        // USAR UPLOAD REAL EN LUGAR DE BASE64 (MÃ¡s estable para Supabase)
         const fileUrl = await uploadFile(file, 'rrhh_docs');
         
         const workers = await getAdminWorkers();
@@ -7293,16 +7323,16 @@ function updateSidebarUser() {
     }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 //  KANBAN PROJECT DETAIL DRAWER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 function renderDiscussionHTML(discusion, pipelineColor) {
-    if (!discusion) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>';
+    if (!discusion) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aÃºn.</div>';
     let arr = discusion;
     if (typeof arr === 'string') {
-        try { arr = JSON.parse(arr); } catch(e) { return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>'; }
+        try { arr = JSON.parse(arr); } catch(e) { return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aÃºn.</div>'; }
     }
-    if (!Array.isArray(arr) || arr.length === 0) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>';
+    if (!Array.isArray(arr) || arr.length === 0) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aÃºn.</div>';
     
     let lastDateLabel = '';
     return arr.map(c => {
@@ -7341,7 +7371,7 @@ function renderDiscussionHTML(discusion, pipelineColor) {
             ${avatar}
             <div style="display:flex;flex-direction:column;${isMe ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
                 <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;${isMe ? 'flex-direction:row-reverse;' : ''}">
-                    <span style="font-size:0.7rem;font-weight:800;color:#0f172a;">${isMe ? 'Tú' : c.user}</span>
+                    <span style="font-size:0.7rem;font-weight:800;color:#0f172a;">${isMe ? 'TÃº' : c.user}</span>
                     <span style="font-size:0.6rem;color:#64748b;">${time}</span>
                 </div>
                 <div style="background:${isMe ? pipelineColor : 'white'};color:${isMe ? 'white' : '#0f172a'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1);${!isMe ? 'border:1px solid #e2e8f0;' : ''}">${c.text || ''}${attachmentHtml}</div>
@@ -7401,7 +7431,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   if (cli.adjuntos_oficina) {
       if (cli.adjuntos_oficina.orden_trabajo_url) combinedFiles.push({ url: cli.adjuntos_oficina.orden_trabajo_url, etiqueta: 'Orden de Trabajo', id: 'sys-orden' });
       if (cli.adjuntos_oficina.contrato_url) combinedFiles.push({ url: cli.adjuntos_oficina.contrato_url, etiqueta: 'Contrato Firmado', id: 'sys-contrato' });
-      if (cli.adjuntos_oficina.app_url) combinedFiles.push({ url: cli.adjuntos_oficina.app_url, etiqueta: 'Hoja de Aplicación', id: 'sys-app' });
+      if (cli.adjuntos_oficina.app_url) combinedFiles.push({ url: cli.adjuntos_oficina.app_url, etiqueta: 'Hoja de AplicaciÃ³n', id: 'sys-app' });
       const rUrl = cli.adjuntos_oficina.recibo_url || cli.adjuntos_oficina.recibo_vendedor_url || cli.adjuntos_oficina.recibo_tecnico_url;
       if (rUrl) combinedFiles.push({ url: rUrl, etiqueta: 'Recibo de Pago', id: 'sys-recibo' });
   }
@@ -7436,7 +7466,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const existing = document.getElementById('kanban-drawer-overlay');
   if (existing) existing.remove();
 
-  // Forzar que otros modales se pongan detrás
+  // Forzar que otros modales se pongan detrÃ¡s
   ['modal-client-detail', 'modal-project-detail'].forEach(id => {
       const m = document.getElementById(id);
       if (m) m.style.setProperty('z-index', '50', 'important');
@@ -7471,8 +7501,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <!-- Properties -->
             <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;">
                 <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs items-center">
-                    <div class="text-gray-400 font-medium">Descripción:</div>
-                    <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripción'}</div>
+                    <div class="text-gray-400 font-medium">DescripciÃ³n:</div>
+                    <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripciÃ³n'}</div>
                     
                     <div class="text-gray-400 font-medium">Asignado a:</div>
                     <div class="text-gray-800 font-medium flex items-center gap-2">
@@ -7482,7 +7512,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <div class="text-gray-400 font-medium">Creado el:</div>
                     <div class="text-gray-800">${new Date(p.fecha).toLocaleDateString()}</div>
                     
-                    <div class="text-gray-400 font-medium">Fecha Límite:</div>
+                    <div class="text-gray-400 font-medium">Fecha LÃ­mite:</div>
                     <div class="text-gray-800">
                         <input type="date" id="proj-deadline-input" value="${p.fecha_finalizacion ? p.fecha_finalizacion.substring(0,10) : ''}" class="text-[11px] bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 w-full max-w-[130px] transition-colors" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
                     </div>
@@ -7499,7 +7529,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <div class="mt-2">
                         ${obsHtml || '<span class="text-[10px] text-gray-400 italic">No hay observadores</span>'}
                         ${canManageObservers ? `
-                        <button id="btn-manage-obs" class="text-[10px] text-blue-500 hover:underline mt-1"><i class="fas fa-plus"></i> Añadir observador</button>
+                        <button id="btn-manage-obs" class="text-[10px] text-blue-500 hover:underline mt-1"><i class="fas fa-plus"></i> AÃ±adir observador</button>
                         ` : ''}
                     </div>
                 </div>
@@ -7582,12 +7612,12 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <i id="btn-chat-emoji" class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600 transition-colors"></i>
                     <!-- Emoji Picker Popup -->
                     <div id="chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex gap-2 z-[60]">
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">👍</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">🔥</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">😊</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">✅</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">👀</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">🚀</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ‘</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ”¥</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ˜Š</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">âœ…</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ‘€</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸš€</button>
                     </div>
                 </div>
             </div>
@@ -7609,7 +7639,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           p.fecha_finalizacion = e.target.value;
           try {
               await saveGranular('proyectos_dinamicos', [p]);
-              showToast('Fecha de finalización guardada', 'success');
+              showToast('Fecha de finalizaciÃ³n guardada', 'success');
           } catch(err) {
               console.error(err);
               showToast('Error al guardar fecha', 'error');
@@ -7688,7 +7718,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                        <span style="font-size:10px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? files.length + ' archivo(s)' : 'Pendiente'}</span>
                        <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" multiple onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
                        <label for="dfd_${c.id}" style="background:${hasFile ? '#e2e8f0' : pipeline.color}; color:${hasFile ? '#475569' : 'white'}; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:800; cursor:pointer; text-transform:uppercase;">
-                         ${hasFile ? 'Añadir' : 'Subir'}
+                         ${hasFile ? 'AÃ±adir' : 'Subir'}
                        </label>
                     </div>
                     ${previewHtml}
@@ -7707,15 +7737,15 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     </select>
                   </div>
                 `;
-              } else if (c.tipo === 'Técnico') {
-                const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico');
+              } else if (c.tipo === 'TÃ©cnico') {
+                const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'TÃ©cnico' || w.rol === 'Tecnico');
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
                       ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
                     </label>
                     <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
-                      <option value="">Seleccionar Técnico...</option>
+                      <option value="">Seleccionar TÃ©cnico...</option>
                       ${technicians.map(w => `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${w.nombre} ${w.apellido || ''}</option>`).join('')}
                     </select>
                   </div>
@@ -7726,7 +7756,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
                       ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
                     </label>
-                    <input type="${c.tipo === 'Número' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
+                    <input type="${c.tipo === 'NÃºmero' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
                   </div>
                 `;
               }
@@ -7825,11 +7855,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           div.innerHTML = `
           <div style="background:white;width:400px;border-radius:12px;padding:24px;max-height:80vh;display:flex;flex-direction:column;animation:zoomIn 0.2s ease-out;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                  <h3 class="text-sm font-bold text-gray-800">Añadir Observador</h3>
+                  <h3 class="text-sm font-bold text-gray-800">AÃ±adir Observador</h3>
                   <button id="close-obs" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
               </div>
               <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
-                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay más usuarios disponibles</p>' : ''}
+                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay mÃ¡s usuarios disponibles</p>' : ''}
                   ${eligible.map(w => `
                   <div class="obs-item flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 transition-colors" data-id="${w.id}">
                       <div class="flex items-center gap-3">
@@ -7841,7 +7871,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                               <div class="text-[10px] text-gray-500">${w.rol}</div>
                           </div>
                       </div>
-                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">Añadir</button>
+                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">AÃ±adir</button>
                   </div>
                   `).join('')}
               </div>
@@ -7857,7 +7887,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                       import('./api.js').then(async ({addObserver}) => {
                           try {
                               await addObserver(p.id, worker);
-                              showToast('Observador añadido', 'success');
+                              showToast('Observador aÃ±adido', 'success');
                               div.remove();
                               openKanbanDrawer(p.id, displayPhaseId);
                           } catch(e) {
@@ -8021,7 +8051,7 @@ function openFilePreview(campoId, label, directData) {
   const cached = directData || window._kanbanFileCache?.[campoId];
   if (!cached || !cached.valor) {
     console.warn('[openFilePreview] No data found for', campoId);
-    showToast('No se encontró el archivo para previsualizar', 'error');
+    showToast('No se encontrÃ³ el archivo para previsualizar', 'error');
     return;
   }
 
@@ -8043,7 +8073,7 @@ function openFilePreview(campoId, label, directData) {
         </div>
         <div>
             <p style="color:white;font-weight:800;font-size:12px;margin:0;letter-spacing:1px;text-transform:uppercase;">${label}</p>
-            <p style="color:rgba(255,255,255,0.5);font-size:10px;margin:0;">Previsualización de Documento</p>
+            <p style="color:rgba(255,255,255,0.5);font-size:10px;margin:0;">PrevisualizaciÃ³n de Documento</p>
         </div>
       </div>
       <div style="display:flex;gap:12px;">
@@ -8077,14 +8107,14 @@ function openFilePreview(campoId, label, directData) {
         <div style="color:white;text-align:center;">
             <i class="fas fa-exclamation-triangle" style="font-size:3rem;color:#facc15;margin-bottom:20px;"></i>
             <p style="font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Error al cargar imagen</p>
-            <p style="opacity:0.6;font-size:12px;">El archivo podría no existir o la URL es inválida</p>
+            <p style="opacity:0.6;font-size:12px;">El archivo podrÃ­a no existir o la URL es invÃ¡lida</p>
         </div>
     `;
   };
 
   document.body.appendChild(lightbox);
 
-  // Forzar que otros modales se pongan detrás (importante para evitar el conflicto con el z-index 2147483647 de showModal)
+  // Forzar que otros modales se pongan detrÃ¡s (importante para evitar el conflicto con el z-index 2147483647 de showModal)
   ['modal-client-detail', 'modal-project-detail', 'kanban-drawer-overlay'].forEach(id => {
       const m = document.getElementById(id);
       if (m) m.style.setProperty('z-index', '50', 'important');
@@ -8109,7 +8139,7 @@ function _showContractSelectorModal(contracts) {
     const existing = document.getElementById('contract-selector-modal');
     if (existing) existing.remove();
 
-    // Forzar que otros modales se pongan detrás
+    // Forzar que otros modales se pongan detrÃ¡s
     ['modal-client-detail', 'modal-project-detail', 'kanban-drawer-overlay'].forEach(id => {
         const m = document.getElementById(id);
         if (m) m.style.setProperty('z-index', '50', 'important');
@@ -8128,7 +8158,7 @@ function _showContractSelectorModal(contracts) {
                 </button>
             </div>
             <div style="padding:24px; display:flex; flex-direction:column; gap:12px;">
-                <p style="color:#475569; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; margin-left:4px;">Selecciona la versión:</p>
+                <p style="color:#475569; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; margin-left:4px;">Selecciona la versiÃ³n:</p>
                 ${contracts.map(c => {
                     const isSolar = c.label.toLowerCase().includes('solar');
                     const isWater = c.label.toLowerCase().includes('water');
@@ -8156,7 +8186,7 @@ function _showContractSelectorModal(contracts) {
                 }).join('')}
             </div>
             <div style="padding:16px 24px; background:rgba(0,0,0,0.2); text-align:center;">
-                <p style="color:#334155; font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Sistema de Gestión de Contratos - Renew</p>
+                <p style="color:#334155; font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Sistema de GestiÃ³n de Contratos - Renew</p>
             </div>
         </div>
     `;
@@ -8185,7 +8215,7 @@ window.handleContractView = (clientId) => {
     }
 
     if (contracts.length === 0) {
-        showToast('No se encontró ningún contrato para este cliente', 'info');
+        showToast('No se encontrÃ³ ningÃºn contrato para este cliente', 'info');
         return;
     }
 
@@ -8196,7 +8226,7 @@ window.handleContractView = (clientId) => {
     }
 };
 
-// â”€â”€ CLIENT PROFILE LOGIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ CLIENT PROFILE LOGIC Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 async function showClientDetail(id) {
     const db = getDB();
@@ -8210,7 +8240,7 @@ async function showClientDetail(id) {
     if(document.getElementById('det-cli-nombre')) document.getElementById('det-cli-nombre').textContent = cli.nombre || '-';
     if(document.getElementById('det-cli-email')) document.getElementById('det-cli-email').textContent = cli.email || '-';
     if(document.getElementById('det-cli-tel')) document.getElementById('det-cli-tel').textContent = cli.telefono || '-';
-    // â”€â”€ Multi-dept badges â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Multi-dept badges Ã¢â€â‚¬Ã¢â€â‚¬
     const detDeptEl = document.getElementById('det-cli-dept');
     if (detDeptEl) {
       const _depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento || cli.empresa ? [cli.departamento || cli.empresa] : []);
@@ -8224,7 +8254,7 @@ async function showClientDetail(id) {
         detDeptEl.innerHTML = '<span class="text-sm text-gray-300 italic">Sin departamento</span>';
       }
     }
-    // â”€â”€ Macro estado â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Macro estado Ã¢â€â‚¬Ã¢â€â‚¬
     const detMacroEl = document.getElementById('det-cli-macro-estado');
     if (detMacroEl) {
       let _me = cli.macro_estado || 'Prospecto';
@@ -8296,9 +8326,9 @@ async function showClientDetail(id) {
     };
 
     updateBtn('adj-id', state.currentDetAdjID, 'Foto ID');
-    updateBtn('adj-bill', state.currentDetAdjBill, 'Bill Eléctrico');
-    updateBtn('adj-seguro', state.currentDetAdjSeguro, 'Póliza de Seguro');
-    updateBtn('ofi-app', state.currentDetOfiApp, 'Hoja Aplicación');
+    updateBtn('adj-bill', state.currentDetAdjBill, 'Bill ElÃ©ctrico');
+    updateBtn('adj-seguro', state.currentDetAdjSeguro, 'PÃ³liza de Seguro');
+    updateBtn('ofi-app', state.currentDetOfiApp, 'Hoja AplicaciÃ³n');
     updateBtn('ofi-recibo', state.currentDetOfiRecibo, 'Recibo de Pago');
     
     // Handle specific contracts
@@ -8392,7 +8422,7 @@ async function showClientDetail(id) {
         selAssigned.innerHTML = '<option value="">Sin Asignar</option>';
         if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">Sin Asignar</option>';
 
-        const vendedorRoles = ['vendedor', 'representante de ventas', 'técnico'];
+        const vendedorRoles = ['vendedor', 'representante de ventas', 'tÃ©cnico'];
         const clientePipeline = cli.pipeline;
 
         const filteredWorkers = workers.filter(w => {
@@ -8444,7 +8474,7 @@ async function showClientDetail(id) {
     if (reassignBtn && selectorWrap) {
         reassignBtn.onclick = () => {
             selectorWrap.classList.toggle('hidden');
-            reassignBtn.textContent = selectorWrap.classList.contains('hidden') ? 'Cambiar Asignación' : 'Cancelar';
+            reassignBtn.textContent = selectorWrap.classList.contains('hidden') ? 'Cambiar AsignaciÃ³n' : 'Cancelar';
         };
     }
 
@@ -8453,7 +8483,7 @@ async function showClientDetail(id) {
             const newId = selAssigned.value;
             cli.vendedor_asignado_id = newId || null;
             await saveDB(db);
-            showToast('Asignación actualizada', 'success');
+            showToast('AsignaciÃ³n actualizada', 'success');
             
             // Refresh mini-view
             const worker = workers.find(w => w.id === newId);
@@ -8499,7 +8529,7 @@ async function showClientDetail(id) {
                 assignedAvatar.classList.replace('text-white', 'text-tealAccent');
             }
             selectorWrap.classList.add('hidden');
-            reassignBtn.textContent = 'Cambiar Asignación';
+            reassignBtn.textContent = 'Cambiar AsignaciÃ³n';
             await renderView(); // Refresh table background
         };
     }
@@ -8522,8 +8552,8 @@ async function showClientDetail(id) {
             let generalDocsHtml = '';
             const generalDocs = [];
             if (cli.id_photo) generalDocs.push({ src: cli.id_photo, label: 'Foto ID' });
-            if (cli.adjunto_bill_url) generalDocs.push({ src: cli.adjunto_bill_url, label: 'Bill Eléctrico' });
-            if (cli.adjunto_seguro_url) generalDocs.push({ src: cli.adjunto_seguro_url, label: 'Póliza Seguro' });
+            if (cli.adjunto_bill_url) generalDocs.push({ src: cli.adjunto_bill_url, label: 'Bill ElÃ©ctrico' });
+            if (cli.adjunto_seguro_url) generalDocs.push({ src: cli.adjunto_seguro_url, label: 'PÃ³liza Seguro' });
             (cli.archivos_adjuntos || []).forEach((src, i) => generalDocs.push({ src, label: `Evidencia #${i+1}` }));
 
             if (generalDocs.length > 0) {
@@ -8580,7 +8610,7 @@ async function showClientDetail(id) {
                 else if (pNameLower.includes('home') && adj.contrato_home_url) pFiles.push({ src: adj.contrato_home_url, label: 'Contrato Home' });
                 else if (adj.contrato_url) pFiles.push({ src: adj.contrato_url, label: 'Contrato (General)' });
 
-                if (adj.app_url) pFiles.push({ src: adj.app_url, label: 'Hoja de Aplicación' });
+                if (adj.app_url) pFiles.push({ src: adj.app_url, label: 'Hoja de AplicaciÃ³n' });
                 if (adj.orden_trabajo_url) pFiles.push({ src: adj.orden_trabajo_url, label: 'Orden de Trabajo' });
                 const rUrl = adj.recibo_url || adj.recibo_vendedor_url || adj.recibo_tecnico_url;
                 if (rUrl) pFiles.push({ src: rUrl, label: 'Recibo de Pago' });
@@ -8716,10 +8746,10 @@ function toggleClientEditMode(id) {
         if(document.getElementById('det-cli-edit-nombre')) document.getElementById('det-cli-edit-nombre').value = cli.nombre || '';
         if(document.getElementById('det-cli-edit-email')) document.getElementById('det-cli-edit-email').value = cli.email || '';
         if(document.getElementById('det-cli-edit-tel')) document.getElementById('det-cli-edit-tel').value = cli.telefono || '';
-        // â”€â”€ Populate multi-dept checkboxes â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Populate multi-dept checkboxes Ã¢â€â‚¬Ã¢â€â‚¬
         const _deptArr = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento || cli.empresa ? [(cli.departamento || cli.empresa).replace('Renew ','')] : []);
         document.querySelectorAll('input[name="det-chk-dept"]').forEach(cb => { cb.checked = _deptArr.some(d => d.replace('Renew ','').toLowerCase() === cb.value.toLowerCase()); });
-        // â”€â”€ Populate macro_estado â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Populate macro_estado Ã¢â€â‚¬Ã¢â€â‚¬
         if(document.getElementById('det-cli-edit-macro-estado')) document.getElementById('det-cli-edit-macro-estado').value = cli.macro_estado || 'Prospecto';
         if(document.getElementById('det-cli-edit-fecha-inicio')) document.getElementById('det-cli-edit-fecha-inicio').value = cli.fecha_inicio || '';
         if(document.getElementById('det-cli-edit-direccion')) document.getElementById('det-cli-edit-direccion').value = cli.direccion || '';
@@ -8787,7 +8817,7 @@ async function saveClientChanges() {
         nombre,
         email: document.getElementById('det-cli-edit-email').value.trim(),
         telefono: document.getElementById('det-cli-edit-tel').value.trim(),
-        // â”€â”€ Multi-dept from checkboxes â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Multi-dept from checkboxes Ã¢â€â‚¬Ã¢â€â‚¬
         departamentos_activos: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value),
         departamento: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value)[0] || null,
         empresa: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value).join(', ') || null,
@@ -8862,7 +8892,7 @@ async function saveClientChanges() {
 window.saveClientChanges = saveClientChanges;
 window.toggleClientEditMode = toggleClientEditMode;
 
-// â”€â”€ NEW: EVENT LISTENERS FOR CLIENT PHOTO & EVIDENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ NEW: EVENT LISTENERS FOR CLIENT PHOTO & EVIDENCE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 // 1. Photo Upload (ID Photo) in Edit Modal
 document.addEventListener('click', (e) => {
@@ -8963,9 +8993,9 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', async (e) => {
     const handlers = {
         'inp-det-adj-id': { stateKey: 'currentDetAdjID', label: 'Foto ID', dropId: 'drop-det-adj-id', lblId: 'lbl-det-adj-id' },
-        'inp-det-adj-bill': { stateKey: 'currentDetAdjBill', label: 'Bill Eléctrico', dropId: 'drop-det-adj-bill', lblId: 'lbl-det-adj-bill' },
-        'inp-det-adj-seguro': { stateKey: 'currentDetAdjSeguro', label: 'Póliza Seguro', dropId: 'drop-det-adj-seguro', lblId: 'lbl-det-adj-seguro' },
-        'inp-det-ofi-app': { stateKey: 'currentDetOfiApp', label: 'Hoja Aplicación', dropId: 'drop-det-ofi-app', lblId: 'lbl-det-ofi-app' },
+        'inp-det-adj-bill': { stateKey: 'currentDetAdjBill', label: 'Bill ElÃ©ctrico', dropId: 'drop-det-adj-bill', lblId: 'lbl-det-adj-bill' },
+        'inp-det-adj-seguro': { stateKey: 'currentDetAdjSeguro', label: 'PÃ³liza Seguro', dropId: 'drop-det-adj-seguro', lblId: 'lbl-det-adj-seguro' },
+        'inp-det-ofi-app': { stateKey: 'currentDetOfiApp', label: 'Hoja AplicaciÃ³n', dropId: 'drop-det-ofi-app', lblId: 'lbl-det-ofi-app' },
         'inp-det-ofi-recibo': { stateKey: 'currentDetOfiRecibo', label: 'Recibo de Pago', dropId: 'drop-det-ofi-recibo', lblId: 'lbl-det-ofi-recibo' },
         'inp-det-ofi-contrato': { stateKey: 'currentDetOfiContrato', label: 'Contrato Firmado', dropId: 'drop-det-ofi-contrato', lblId: 'lbl-det-ofi-contrato' }
     };
@@ -8998,7 +9028,7 @@ document.addEventListener('change', async (e) => {
                 if (cli) {
                     if (handler.stateKey === 'currentDetAdjID') {
                         cli.adjunto_id_url = url;
-                        cli.id_photo = url; // Sincronización crucial
+                        cli.id_photo = url; // SincronizaciÃ³n crucial
                     }
                     else if (handler.stateKey === 'currentDetAdjBill') cli.adjunto_bill_url = url;
                     else if (handler.stateKey === 'currentDetAdjSeguro') cli.adjunto_seguro_url = url;
@@ -9041,7 +9071,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// â”€â”€ Global Search Listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Global Search Listener Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 window.globalSearchQuery = '';
 
 window.normalizeSearchString = (str) => {
@@ -9083,7 +9113,7 @@ if (document.readyState === 'loading') {
     initGlobalSearch();
 }
 
-// â”€â”€ IFRAME FORM MESSAGE LISTENER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ IFRAME FORM MESSAGE LISTENER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Handles WORK_ORDER_SUBMITTED and CREDIT_APP_SUBMITTED messages
 // from embedded iframes (credit app, work order forms).
 // Updates the local cachedDB with the PDF URL and saves to Supabase.
@@ -9158,7 +9188,7 @@ window._verRecibosWorker = async function(workerId, workerName, workerRol) {
     // Determine which tabs to show based on the WORKER'S role
     const rol = (workerRol || '').toLowerCase();
     const isVendedorRol = rol.includes('vendedor') || rol.includes('sales') || rol.includes('representante');
-    const isTecnicoRol  = rol.includes('tecnico') || rol.includes('técnico') || rol.includes('instalador') || rol.includes('installer');
+    const isTecnicoRol  = rol.includes('tecnico') || rol.includes('tÃ©cnico') || rol.includes('instalador') || rol.includes('installer');
     const isAdminRol    = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(rol);
 
     // showBoth: admin roles or if worker has both types of receipts
@@ -9202,7 +9232,7 @@ window._verRecibosWorker = async function(workerId, workerName, workerRol) {
         <div style="padding:16px 24px 0;display:flex;gap:8px;">
             <button data-rf="all"      class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
             <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
-            <button data-rf="tecnico"  class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Técnico</button>
+            <button data-rf="tecnico"  class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">TÃ©cnico</button>
         </div>` : '';
 
     const modal = document.createElement('div');
@@ -9255,7 +9285,7 @@ window._verAdelantosWorker = async function(workerId, workerName) {
     const adelantos = (db.rrhh_adelantos || []).filter(a => String(a.trabajador_id) === String(workerId));
 
     const renderList = () => {
-        if (!adelantos.length) return '<p style="text-align:center;color:#94a3b8;padding:40px 20px;font-size:0.85rem;">No se han registrado préstamos ni adelantos.</p>';
+        if (!adelantos.length) return '<p style="text-align:center;color:#94a3b8;padding:40px 20px;font-size:0.85rem;">No se han registrado prÃ©stamos ni adelantos.</p>';
         return adelantos.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(r => {
             const color = '#14b8a6';
             const monto = '$' + Number(r.monto || 0).toLocaleString('en-US',{minimumFractionDigits:2});
@@ -9270,7 +9300,7 @@ window._verAdelantosWorker = async function(workerId, workerName) {
                 '<div style="width:40px;height:40px;background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;display:flex;align-items:center;justify-content:center;color:' + color + ';flex-shrink:0;">' +
                 '<i class="fa-solid fa-hand-holding-dollar"></i></div>' +
                 '<div style="flex:1;min-width:0;">' +
-                '<p style="font-size:0.65rem;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:0;">Adelanto/Préstamo ' + estadoHtml + '</p>' +
+                '<p style="font-size:0.65rem;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:0;">Adelanto/PrÃ©stamo ' + estadoHtml + '</p>' +
                 '<p style="font-size:0.9rem;font-weight:700;color:#1e293b;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (r.motivo || '-') + '</p>' +
                 '<p style="font-size:0.7rem;color:#94a3b8;margin:0;">' + (r.fecha || (r.created_at ? r.created_at.split('T')[0] : '-')) + '</p>' +
                 '</div>' +
@@ -9288,7 +9318,7 @@ window._verAdelantosWorker = async function(workerId, workerName) {
         <div style="background:white;border-radius:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.25); border:1px solid #e2e8f0;">
             <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                    <h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">Préstamos y Adelantos</h3>
+                    <h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">PrÃ©stamos y Adelantos</h3>
                     <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} &bull; ${adelantos.length} registros</p>
                 </div>
                 <button id="btn-close-admin-adelantos" style="background:#f1f5f9;border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#64748b;display:flex;align-items:center;justify-content:center;">&times;</button>
@@ -9306,7 +9336,7 @@ window._verAdelantosWorker = async function(workerId, workerName) {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
 
-// â”€â”€â”€ LISTA DE PRECIOS RENEW WATER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ LISTA DE PRECIOS RENEW WATER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function renderListaPreciosAdmin() {
   const db = getDB();
   const allProducts = db.Water_Productos || [];
@@ -9329,7 +9359,7 @@ async function renderListaPreciosAdmin() {
   const activePdf = pdfMap[activeRank] || '#';
 
   const rowsHtml = allProducts.map(p => {
-    const foto = p.foto_url || 'https://via.placeholder.com/100?text=💧';
+    const foto = p.foto_url || 'https://via.placeholder.com/100?text=ðŸ’§';
     return `
     <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
       <td class="px-6 py-4 whitespace-nowrap">
@@ -9351,9 +9381,9 @@ async function renderListaPreciosAdmin() {
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <div class="flex flex-col gap-0.5">
-            <span class="text-[9px] text-gray-400 font-bold">M: ${p.medida || 'â€”'}</span>
-            <span class="text-[9px] text-gray-400 font-bold">B: ${p.boton || 'â€”'}</span>
-            <span class="text-[9px] text-gray-400 font-bold">C: ${p.color || 'â€”'}</span>
+            <span class="text-[9px] text-gray-400 font-bold">M: ${p.medida || '-'}</span>
+            <span class="text-[9px] text-gray-400 font-bold">B: ${p.boton || '-'}</span>
+            <span class="text-[9px] text-gray-400 font-bold">C: ${p.color || '-'}</span>
         </div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-tealAccent">
@@ -9386,7 +9416,7 @@ async function renderListaPreciosAdmin() {
     <div class="max-w-7xl mx-auto animate-fadeIn">
       <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
           <div class="flex flex-col gap-3">
-              <h2 class="text-xl font-black text-white uppercase tracking-tighter">Gestión de Precios</h2>
+              <h2 class="text-xl font-black text-white uppercase tracking-tighter">GestiÃ³n de Precios</h2>
               <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
                  ${Object.entries(rankLabels).map(([key, label]) => `
                     <button class="precios-rank-tab px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
@@ -9417,7 +9447,7 @@ async function renderListaPreciosAdmin() {
               <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
                   <tr>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">FOTO</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">CATEGORÍA</th>
+                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">CATEGORÃA</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRODUCTO</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">SPECS</th>
                       <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRECIO ${rankLabels[activeRank].toUpperCase()}</th>
@@ -9610,12 +9640,12 @@ window.adminUploadCatalogo = async function(rank) {
 
             if (data.url) {
                 await saveCatalogo(rank, data.url);
-                showToast('Catálogo actualizado en la nube', 'success');
+                showToast('CatÃ¡logo actualizado en la nube', 'success');
                 renderListaPreciosAdmin();
             }
         } catch (err) {
             console.error(err);
-            showToast('Error al subir catálogo: ' + err.message, 'error');
+            showToast('Error al subir catÃ¡logo: ' + err.message, 'error');
         }
     };
     input.click();
@@ -9672,7 +9702,7 @@ window.savePrecio = async function() {
 };
 
 window.deleteListaPrecioItem = async function(id) {
-    if (!confirm('¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
+    if (!confirm('Â¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
     try {
         const { deleteListaPrecio } = await import('./api.js');
         const success = await deleteListaPrecio(id);
@@ -9696,7 +9726,7 @@ document.addEventListener('click', async e => {
 });
 
 
-// -- Rango de Trabajadores (Visibilidad Dinámica) -------------------------
+// -- Rango de Trabajadores (Visibilidad DinÃ¡mica) -------------------------
 window.updateWorkerRankVisibility = function() {
     const rol = document.getElementById('inp-usr-rol');
     const rankContainer = document.getElementById('container-usr-rank');
@@ -9795,19 +9825,19 @@ window.openInviteModal = function() {
         
         const platformLinkApp = "https://renewgroup.site";
         const platformLinkAdmin = "https://renewgroup.site";
-        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
+        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'TÃ©cnico';
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
-        const msg = `¡Hola ${user.nombre}! 👋
+        const msg = `Â¡Hola ${user.nombre}! ðŸ‘‹
 
-Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.
+Te damos la bienvenida al equipo Renew. A continuaciÃ³n, te compartimos tus credenciales de acceso a nuestra plataforma.
 
-🔗 Enlace de acceso: ${mainLink}
-✉️ Usuario: ${user.email}
-🔑 Contraseña: ${user.password || user.pass || 'renew123'}
+ðŸ”— Enlace de acceso: ${mainLink}
+âœ‰ï¸ Usuario: ${user.email}
+ðŸ”‘ ContraseÃ±a: ${user.password || user.pass || 'renew123'}
 
 Si tienes alguna duda, no dudes en contactar al administrador.
-¡Éxitos!`;
+Â¡Ã‰xitos!`;
         
         previewText.textContent = msg;
         previewBox.classList.remove('hidden');
@@ -9880,7 +9910,7 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
         const finalUrlStr = [...existingVals, ...fileUrls].join(',');
 
         await window.saveDynamicFields(projectId, { [campoId]: finalUrlStr });
-        showToast('Archivo(s) subido(s) con éxito', 'success');
+        showToast('Archivo(s) subido(s) con Ã©xito', 'success');
         
         if (window.openKanbanDrawer && window._currentDrawerPhaseId !== undefined) {
              window.openKanbanDrawer(projectId, window._currentDrawerPhaseId);
