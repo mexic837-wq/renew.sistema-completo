@@ -639,58 +639,20 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     if (globalChartInstance) { globalChartInstance.destroy(); globalChartInstance = null; }
 
     globalChartInstance = new Chart(ctx, {
-        type: 'line',
+        type: 'doughnut',
         data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Prospectos',
-                    data: dataProspectos,
-                    borderColor: '#60a5fa',
-                    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#60a5fa',
-                    pointBorderWidth: 0,
-                    pointRadius: 0,
-                    pointHoverRadius: 6
-                },
-                {
-                    label: 'Presentaciones',
-                    data: dataPresentaciones,
-                    borderColor: '#fbbf24',
-                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#fbbf24',
-                    pointBorderWidth: 0,
-                    pointRadius: 0,
-                    pointHoverRadius: 6
-                },
-                {
-                    label: 'Ventas',
-                    data: dataVentas,
-                    borderColor: '#34d399',
-                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#34d399',
-                    pointBorderWidth: 0,
-                    pointRadius: 0,
-                    pointHoverRadius: 6
-                }
-            ]
+            labels: ['Prospectos', 'Presentaciones', 'Ventas'],
+            datasets: [{
+                data: [totalProspectos, totalPresentaciones, totalVentas],
+                backgroundColor: ['#60a5fa', '#fbbf24', '#34d399'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
+            cutout: '75%',
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -703,17 +665,6 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                     borderWidth: 1,
                     displayColors: true,
                     usePointStyle: true
-                }
-            },
-            scales: {
-                x: {
-                    grid: { display: false, drawBorder: false },
-                    ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(0,0,0,0.03)', drawBorder: false },
-                    ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' }, stepSize: 1 }
                 }
             }
         }
