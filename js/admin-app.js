@@ -6558,9 +6558,36 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
     document.getElementById('det-usr-email').textContent = usr.email || '-';
     document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+    // Update Rank Display
+    let usrRango = usr.rango || 'auto';
+    if (usrRango === 'novato') usrRango = 'auto'; // Legacy migration
+    let displayRank = usrRango;
     
-    document.getElementById('det-usr-rank').textContent = usr.rango || 'novato';
-    
+    if (displayRank === 'auto') {
+        try {
+            const { computeUserRank } = await import('./screens/dashboard.js');
+            const db = getDB();
+            const rankInfo = computeUserRank(id, 'Renew Water', db);
+            if (rankInfo && rankInfo.cur) {
+                displayRank = rankInfo.cur.name + ' (Automático)';
+            } else {
+                displayRank = 'Novato por Referidos (Automático)';
+            }
+        } catch(e) {
+            displayRank = 'Automático';
+        }
+    } else {
+        const rankMap = {
+            'referidos': 'Novato por Referidos',
+            'subvendedor': 'Subvendedor',
+            'iniciante': 'Iniciante',
+            'junior': 'Junior',
+            'representante': 'Representante de Ventas',
+            'analista': 'Distribuidor (Analista)'
+        };
+        displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
+    }
+    document.getElementById('det-usr-rank').textContent = displayRank;
     // Hide rank if not (Vendedor/Representante de Ventas + Water)
     const viewRankContainer = document.getElementById('det-view-rank-container');
     const editRankContainer = document.getElementById('det-edit-rank-container');
@@ -6706,9 +6733,35 @@ async function toggleDetailEditMode(id) {
         document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
         document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
         document.getElementById('det-usr-email').textContent = usr.email || '-';
-        document.getElementById('det-usr-rol').textContent = usr.rol || '-';
-        document.getElementById('det-usr-rank').textContent = usr.rango || 'novato';
-        document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
+        // Restore rank display
+        let usrRango = usr.rango || 'auto';
+        if (usrRango === 'novato') usrRango = 'auto';
+        let displayRank = usrRango;
+        if (displayRank === 'auto') {
+            try {
+                const { computeUserRank } = await import('./screens/dashboard.js');
+                const db = getDB();
+                const rankInfo = computeUserRank(id, 'Renew Water', db);
+                if (rankInfo && rankInfo.cur) {
+                    displayRank = rankInfo.cur.name + ' (Automático)';
+                } else {
+                    displayRank = 'Novato por Referidos (Automático)';
+                }
+            } catch(e) {
+                displayRank = 'Automático';
+            }
+        } else {
+            const rankMap = {
+                'referidos': 'Novato por Referidos',
+                'subvendedor': 'Subvendedor',
+                'iniciante': 'Iniciante',
+                'junior': 'Junior',
+                'representante': 'Representante de Ventas',
+                'analista': 'Distribuidor (Analista)'
+            };
+            displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
+        }
+        document.getElementById('det-usr-rank').textContent = displayRank;
         document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
         return;
     }
@@ -6767,7 +6820,11 @@ async function toggleDetailEditMode(id) {
         }
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
         if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'Vendedor';
-        if (document.getElementById('det-edit-rank')) document.getElementById('det-edit-rank').value = usr.rango || 'novato';
+        if (document.getElementById('det-edit-rank')) {
+            let rv = usr.rango || 'auto';
+            if (rv === 'novato') rv = 'auto'; // legacy migration
+            document.getElementById('det-edit-rank').value = rv;
+        }
         if (document.getElementById('det-edit-pass')) document.getElementById('det-edit-pass').value = usr.password || usr.pass || 'renew123';
         
         // Populate new fields
@@ -7001,7 +7058,7 @@ async function toggleDetailEditMode(id) {
             const dobEl = document.getElementById('det-edit-dob');
             
             const rol = rolEl ? rolEl.value : (usr.rol || 'Vendedor');
-            const rango = rankEl ? rankEl.value : (usr.rango || 'novato');
+            const rango = rankEl ? rankEl.value : (usr.rango || 'auto');
             const department = deptEl ? deptEl.value.trim() : (usr.department || '');
             const sede = document.getElementById('det-edit-sede')?.value || (usr.sede || 'orlando');
             const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');

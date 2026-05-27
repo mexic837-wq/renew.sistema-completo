@@ -35,6 +35,30 @@ export function computeUserRank(userId, activeUnit, db) {
   const ranks = RANK_CONFIG[activeUnit];
   if (!ranks) return null;
 
+  // Check for manual rank override
+  const usr = (db.Usuarios || []).find(u => String(u.id) === String(userId));
+  if (usr && usr.rango && usr.rango !== 'auto' && usr.rango !== 'novato') {
+    // Map the stored manual rank value to the corresponding RANK_CONFIG entry
+    let targetRankName = '';
+    if (usr.rango === 'referidos') targetRankName = 'Novato por Referidos';
+    else if (usr.rango === 'subvendedor') targetRankName = 'Subvendedor';
+    else if (usr.rango === 'iniciante') targetRankName = 'Iniciante';
+    else if (usr.rango === 'junior') targetRankName = 'Junior';
+    else if (usr.rango === 'representante') targetRankName = 'Representante de Ventas';
+    else if (usr.rango === 'analista') targetRankName = 'Distribuidor (Analista)';
+    
+    const manualRank = ranks.find(r => r.name === targetRankName);
+    if (manualRank) {
+      const idx = ranks.indexOf(manualRank);
+      return {
+        cur: manualRank,
+        next: ranks[idx + 1] || null,
+        progress: { count: 'N/A', total: manualRank.minSales, pct: 100 },
+        isManual: true
+      };
+    }
+  }
+
   const pipeline   = (db.Admin_Pipelines || []).find(p => p.nombre === activeUnit);
   const myProjects = (db.Proyectos_Dinamicos || []).filter(p => {
     if (pipeline && p.pipeline_id !== pipeline.id) return false;
@@ -84,11 +108,18 @@ export function computeUserRank(userId, activeUnit, db) {
 }
 
 function buildRankBannerHTML(rd, barId = 'rank-prog-bar') {
-  const { cur, next, progress, remaining, totalAT, totalMonth, isMax } = rd;
-  const displayCount = cur.type === 'monthly' ? totalMonth : totalAT;
-  const displayLabel = cur.type === 'monthly' ? 'este mes' : 'ventas totales';
+  const { cur, next, progress, remaining, totalAT, totalMonth, isMax, isManual } = rd;
+  const displayCount = isManual ? '-' : (cur.type === 'monthly' ? totalMonth : totalAT);
+  const displayLabel = isManual ? 'Asignación' : (cur.type === 'monthly' ? 'este mes' : 'ventas totales');
 
-  const progressSection = isMax ? `
+  const progressSection = isManual ? `
+    <div style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,245,212,.08));border:1px solid rgba(168,85,247,.3);border-radius:14px;padding:12px 14px;text-align:center;">
+      <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">\uD83D\uDC51 RANGO ASIGNADO MANUALMENTE</span>
+      <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
+        Tu rango actual fue configurado por administraci\u00F3n, tu lista de precios coincidir\u00E1 con \u00E9ste.
+      </div>
+    </div>
+  ` : (isMax ? `
     <div style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,245,212,.08));border:1px solid rgba(168,85,247,.3);border-radius:14px;padding:12px 14px;text-align:center;">
       <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">\uD83D\uDC51 \u00A1RANGO M\u00C1XIMO ALCANZADO!</span>
       <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
@@ -118,7 +149,7 @@ function buildRankBannerHTML(rd, barId = 'rank-prog-bar') {
         Cada 20 familias que ayudas a transformar su vida, desbloquean autom\u00E1ticamente tu siguiente escal\u00F3n profesional.
       </div>
     </div>
-  `;
+  `);
 
   return `
     <style id="rank-anim-css">
