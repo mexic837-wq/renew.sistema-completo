@@ -5711,14 +5711,12 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         
         const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
         if (btnEliminar) {
-            import('./api.js').then(({ getCurrentUser }) => {
-                const u = getCurrentUser();
-                if (u && ['Admin', 'Súper Admin', 'Gerente'].includes(u.rango)) {
-                    btnEliminar.classList.remove('hidden');
-                } else {
-                    btnEliminar.classList.add('hidden');
-                }
-            }).catch(() => { btnEliminar.classList.add('hidden'); });
+            const u = getCurrentUser();
+            if (u && ['Admin', 'Súper Admin', 'Gerente', 'Administrador'].includes(u.rango || u.rol)) {
+                btnEliminar.classList.remove('hidden');
+            } else {
+                btnEliminar.classList.add('hidden');
+            }
         }
     } else {
         // Restore hidden containers
@@ -7470,7 +7468,18 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                 </label>
                 <div id="chat-file-preview" style="display:none; font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px; margin-right:4px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;" onclick="document.getElementById('chat-file-input').value='';this.style.display='none';" title="Click para quitar"></div>
                 <input type="text" id="discussion-input" placeholder="Escribe un mensaje o menciona a alguien..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 h-full" />
-                <i class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600"></i>
+                <div class="relative flex items-center">
+                    <i id="btn-chat-emoji" class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600 transition-colors"></i>
+                    <!-- Emoji Picker Popup -->
+                    <div id="chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex gap-2 z-[60]">
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">👍</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">🔥</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">😊</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">✅</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">👀</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">🚀</button>
+                    </div>
+                </div>
             </div>
             <button id="btn-send-discussion" class="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-md transition-colors">
                 <i class="fas fa-paper-plane text-sm"></i>
@@ -7781,6 +7790,28 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const inputDisc = document.getElementById('discussion-input');
 
   if (btnSend && inputDisc) {
+      const btnChatEmoji = document.getElementById('btn-chat-emoji');
+      const emojiPicker = document.getElementById('chat-emoji-picker');
+      if (btnChatEmoji && emojiPicker) {
+          btnChatEmoji.addEventListener('click', (e) => {
+              e.stopPropagation();
+              emojiPicker.classList.toggle('hidden');
+          });
+          document.addEventListener('click', (e) => {
+              if (!emojiPicker.contains(e.target) && e.target !== btnChatEmoji) {
+                  emojiPicker.classList.add('hidden');
+              }
+          });
+          document.querySelectorAll('.chat-emoji-btn').forEach(btn => {
+              btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  inputDisc.value += btn.textContent;
+                  emojiPicker.classList.add('hidden');
+                  inputDisc.focus();
+              });
+          });
+      }
+
       // Chat input file listener
       const chatFileInput = document.getElementById('chat-file-input');
       const chatFilePreview = document.getElementById('chat-file-preview');
