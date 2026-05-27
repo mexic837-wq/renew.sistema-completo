@@ -15,10 +15,11 @@ export function renderAcademy() {
   const allContent = dbLocal.academiaContent || [];
 
   const isHighRole = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
-  const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || ['Renew Solar']);
-  const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
+  const units = isHighRole ? ['Renew Solar', 'Renew Water'] : (user.unidades || ['Renew Solar']).filter(u => u === 'Renew Solar' || u === 'Renew Water');
+  let depts = units.map(u => u.replace('Renew ', ''));
+  if (depts.length === 0) depts = ['Solar']; // Fallback
   
-  if (activeAcademyDeptFilter === null) activeAcademyDeptFilter = localStorage.getItem('active_unit') || 'Todos';
+  if (!depts.includes(activeAcademyDeptFilter)) activeAcademyDeptFilter = depts[0];
 
   const userPipelines = user.unidades || [];
   const visibleContent = allContent.filter(item => {
@@ -119,6 +120,7 @@ export function renderAcademy() {
             </div>
           </div>
 
+          ${activeAcademyDeptFilter === 'Water' ? `
           <!-- Card 6: Renew Water -->
           <div class="academy-hero-card" data-link="https://renewwaterus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
             <div class="card-overlay" style="padding: 16px;">
@@ -126,7 +128,9 @@ export function renderAcademy() {
               <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Water</h3>
             </div>
           </div>
+          ` : ''}
 
+          ${activeAcademyDeptFilter === 'Solar' ? `
           <!-- Card 7: Renew Solar -->
           <div class="academy-hero-card" data-link="https://www.renewsolarus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
             <div class="card-overlay" style="padding: 16px;">
@@ -134,6 +138,7 @@ export function renderAcademy() {
               <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Solar</h3>
             </div>
           </div>
+          ` : ''}
 
         </div>
       </div>
