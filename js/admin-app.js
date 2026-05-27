@@ -8964,7 +8964,7 @@ async function renderListaPreciosAdmin() {
   const activeRank = state.activePreciosRank || 'vendedor';
   const rankLabels = {
     'junior': 'Junior',
-    'subvende': 'Subvendedor',
+    'subvende': 'Novato',
     'vendedor': 'Vendedor',
     'analista': 'Analista',
     'oficina': 'Oficina/Admin'
