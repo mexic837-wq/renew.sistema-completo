@@ -864,7 +864,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
             area.classList.add('has-file');
             area.style.borderColor = pipeline.color;
             area.style.background = pipeline.color + '10';
-            label.textContent = "Documento Listo <i class="fa-solid fa-check text-green-500"></i>";
+            label.innerHTML = "Documento Listo <i class='fa-solid fa-check text-green-500'></i>";
             label.style.color = pipeline.color;
             label.style.fontWeight = '700';
             showToast('Archivo subido', 'success');
