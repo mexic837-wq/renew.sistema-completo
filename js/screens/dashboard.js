@@ -37,10 +37,19 @@ function computeUserRank(userId, activeUnit, db) {
 
   const pipeline   = (db.Admin_Pipelines || []).find(p => p.nombre === activeUnit);
   const myProjects = (db.Proyectos_Dinamicos || []).filter(p => {
+    if (pipeline && p.pipeline_id !== pipeline.id) return false;
+    if (!isProjectFinished(p, db)) return false;
+    
     // A project belongs to the user if they are the responsable OR the assigned vendor in the client record
     const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(userId));
-    if (pipeline && p.pipeline_id !== pipeline.id) return false;
-    return isProjectFinished(p, db);
+    if (isResponsable) return true;
+    
+    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+    if (cli) {
+      const isVendor = (cli.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(userId));
+      return isVendor;
+    }
+    return false;
   });
 
   const now        = new Date();
