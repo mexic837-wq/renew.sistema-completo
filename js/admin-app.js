@@ -8637,6 +8637,19 @@ async function saveClientChanges() {
     const oldVendedorId = db.Clientes_Maestro[cliIdx].vendedor_asignado_id;
     const newVendedorId = document.getElementById('det-cli-edit-vendedor').value || null;
 
+    const currentMacroEstado = db.Clientes_Maestro[cliIdx].macro_estado;
+    const newMacroEstado = document.getElementById('det-cli-edit-macro-estado') ? document.getElementById('det-cli-edit-macro-estado').value : 'Prospecto';
+
+    let newFechaConversion = db.Clientes_Maestro[cliIdx].fecha_conversion || db.Clientes_Maestro[cliIdx].fecha_cierre || null;
+    if (newMacroEstado === 'Cliente' && currentMacroEstado !== 'Cliente' && !newFechaConversion) {
+        newFechaConversion = new Date().toISOString();
+    }
+
+    let inputFechaInicio = document.getElementById('det-cli-edit-fecha-inicio').value;
+    if (!inputFechaInicio) {
+        inputFechaInicio = db.Clientes_Maestro[cliIdx].fecha_inicio || db.Clientes_Maestro[cliIdx].created_at || new Date().toISOString().split('T')[0];
+    }
+
     const updated = {
         ...db.Clientes_Maestro[cliIdx],
         nombre,
@@ -8646,8 +8659,10 @@ async function saveClientChanges() {
         departamentos_activos: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value),
         departamento: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value)[0] || null,
         empresa: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value).join(', ') || null,
-        macro_estado: document.getElementById('det-cli-edit-macro-estado') ? document.getElementById('det-cli-edit-macro-estado').value : 'Prospecto',
-        fecha_inicio: document.getElementById('det-cli-edit-fecha-inicio').value,
+        macro_estado: newMacroEstado,
+        fecha_inicio: inputFechaInicio,
+        fecha_conversion: newFechaConversion,
+        fecha_cierre: newFechaConversion,
         direccion: document.getElementById('det-cli-edit-direccion').value.trim(),
         state_id: document.getElementById('det-cli-edit-state-id').value.trim(),
         dob: document.getElementById('det-cli-edit-dob').value,
