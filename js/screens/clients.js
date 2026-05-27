@@ -197,33 +197,6 @@ async function _renderList(user, container) {
   const activePipelineObj = pipelineToMatch ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === pipelineToMatch.toLowerCase().trim()) : null;
   const allProys = [...(db.Proyectos_Dinamicos || [])].sort((a,b) => new Date(b.created_at || b.fecha || 0) - new Date(a.created_at || a.fecha || 0));
 
-  // ++ AUTO-INJECT VIRTUAL PROJECTS FOR OLD CLIENTS WITHOUT PROJECTS ++
-  todosClientes.forEach(cli => {
-      if (cli.macro_estado === 'Cliente') {
-          const hasProy = allProys.some(p => p.cliente_id === cli.id);
-          if (!hasProy) {
-              const depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento ? [cli.departamento] : []);
-              let pipId = null;
-              if (depts.length > 0) {
-                  const deptStr = depts[0].toLowerCase();
-                  const pip = (db.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes(deptStr.replace('renew ', '').trim()));
-                  if (pip) pipId = pip.id;
-              }
-              if (!pipId) {
-                  const pip = (db.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes('water'));
-                  if (pip) pipId = pip.id;
-              }
-              allProys.push({
-                  id: 'VIRTUAL_' + cli.id,
-                  cliente_id: cli.id,
-                  pipeline_id: pipId,
-                  fase_id: 'Completado',
-                  estado: 'Completado',
-                  created_at: cli.created_at || new Date().toISOString()
-              });
-          }
-      }
-  });
   const allFases = db.Admin_Fases || [];
 
   // RBAC filter

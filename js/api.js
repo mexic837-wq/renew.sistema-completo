@@ -136,6 +136,39 @@ export async function initDB() {
       }
       
       // POST-PROCESSING
+      if (freshDB.Clientes_Maestro && freshDB.Proyectos_Dinamicos) {
+          freshDB.Clientes_Maestro.forEach(cli => {
+              if (cli.macro_estado === 'Cliente') {
+                  const hasProy = freshDB.Proyectos_Dinamicos.some(p => String(p.cliente_id) === String(cli.id));
+                  if (!hasProy) {
+                      const depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento ? [cli.departamento] : []);
+                      let pipId = null;
+                      if (depts.length > 0) {
+                          const deptStr = depts[0].toLowerCase();
+                          const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes(deptStr.replace('renew ', '').trim()));
+                          if (pip) pipId = pip.id;
+                      }
+                      if (!pipId) {
+                          const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes('water'));
+                          if (pip) pipId = pip.id;
+                      }
+                      freshDB.Proyectos_Dinamicos.push({
+                          id: 'VIRTUAL_' + cli.id,
+                          cliente_id: cli.id,
+                          pipeline_id: pipId,
+                          fase_id: 'Completado',
+                          estado: 'Completado',
+                          creador_id: cli.creador_id || cli.vendedor_asignado_id,
+                          responsable_id: cli.vendedor_asignado_id || cli.creador_id,
+                          created_at: cli.created_at || new Date().toISOString(),
+                          fecha: cli.created_at || new Date().toISOString(),
+                          fecha_cierre: cli.created_at || new Date().toISOString()
+                      });
+                  }
+              }
+          });
+      }
+      
       if (freshDB.Respuestas_Dinamicas) {
         const rrResp = freshDB.Respuestas_Dinamicas.find(r => r.campo_id === '__round_robin_cc__');
         if (rrResp) {
