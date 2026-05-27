@@ -86,7 +86,11 @@ export async function initDB() {
 
     try {
       console.log('[DB] Synchronizing with Cloud Server...');
-      const res = await fetch(`${API_BASE}/db`, { signal: controller.signal });
+      const cacheBuster = `?t=${Date.now()}`;
+      const res = await fetch(`${API_BASE}/db${cacheBuster}`, { 
+          signal: controller.signal,
+          cache: 'no-store'
+      });
       clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error('Servidor de nube no disponible.');
