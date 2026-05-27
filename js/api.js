@@ -365,7 +365,9 @@ export async function saveGranular(table, records) {
             'Usuarios': 'Usuarios',
             'Historial_Inventario': 'historialInventario',
             'Mensajes_Internos': 'mensajes_internos',
-            'mensajes_internos': 'mensajes_internos'
+            'mensajes_internos': 'mensajes_internos',
+            'Rrhh_Adelantos': 'rrhh_adelantos',
+            'rrhh_adelantos': 'rrhh_adelantos'
         };
         const dbKey = dbKeyMap[tableName] || tableName;
         

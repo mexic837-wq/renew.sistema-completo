@@ -128,8 +128,21 @@ export async function renderNotificaciones() {
       };
   });
 
+  // Recopilar Mis Adelantos (worker sees their own)
+  const misAdelantos = (db.rrhh_adelantos || []).filter(adel => 
+      String(adel.trabajador_id) === String(user.id)
+  ).map(adel => ({
+      type: 'adelanto',
+      id: adel.id,
+      title: `Adelanto Registrado: $${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}`,
+      message: `Tienes un adelanto registrado por $${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}. Motivo: ${adel.motivo || 'Sin motivo'}.`,
+      date: new Date(adel.created_at || Date.now()),
+      isRead: false,
+      originalData: adel
+  }));
+
   // Only show global announcements and meetings in the app notification inbox
-  const allItems = [...misAnuncios, ...misMeetings].sort((a,b) => b.date - a.date);
+  const allItems = [...misAnuncios, ...misMeetings, ...misAdelantos].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
@@ -155,8 +168,10 @@ export async function renderNotificaciones() {
             ? 'background: rgba(16, 185, 129, 0.15); color: #10b981;'
             : item.type === 'observador'
               ? 'background: rgba(139, 92, 246, 0.15); color: #8b5cf6;'
-              : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
-      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : item.type === 'observador' ? 'fa-eye' : 'fa-bullhorn';
+              : item.type === 'adelanto'
+                ? 'background: rgba(14, 165, 233, 0.15); color: #0ea5e9;'
+                : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
+      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : item.type === 'observador' ? 'fa-eye' : item.type === 'adelanto' ? 'fa-hand-holding-dollar' : 'fa-bullhorn';
 
       return `
         <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
@@ -293,6 +308,17 @@ export async function renderNotificaciones() {
                   <h4 style="margin: 0 0 16px 0; color: #e2e8f0; font-size: 1.15rem; font-weight: 800; position: relative; z-index: 1;">Ir al Calendario</h4>
                   <a href="#" onclick="window.appNavigate('mi-calendario'); document.getElementById('notif-detail-view').style.display = 'none'; document.getElementById('notif-list-view').style.display = 'block'; return false;" style="display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; background: #10b981; color: white; border-radius: 16px; font-weight: 800; text-decoration: none; width: 100%; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35); transition: all 0.2s ease; font-size: 1.05rem; position: relative; z-index: 1;">
                       <i class="fa-solid fa-calendar-check" style="margin-right: 12px; font-size: 1.2rem;"></i> Ver en mi Calendario
+                  </a>
+                </div>
+              `;
+          }
+
+          if (item.type === 'adelanto') {
+              html += `
+                <div style="background: rgba(14, 165, 233, 0.04); border: 1px solid rgba(14, 165, 233, 0.15); border-radius: 20px; padding: 28px 24px; text-align: center; margin-top: 20px; position: relative; overflow: hidden;">
+                  <h4 style="margin: 0 0 16px 0; color: #e2e8f0; font-size: 1.15rem; font-weight: 800; position: relative; z-index: 1;">Ver mis Adelantos</h4>
+                  <a href="#" onclick="window.appNavigate('mis-adelantos'); document.getElementById('notif-detail-view').style.display = 'none'; document.getElementById('notif-list-view').style.display = 'block'; return false;" style="display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; background: #0ea5e9; color: white; border-radius: 16px; font-weight: 800; text-decoration: none; width: 100%; box-shadow: 0 10px 25px rgba(14, 165, 233, 0.35); transition: all 0.2s ease; font-size: 1.05rem; position: relative; z-index: 1;">
+                      <i class="fa-solid fa-hand-holding-dollar" style="margin-right: 12px; font-size: 1.2rem;"></i> Ver Mis Adelantos
                   </a>
                 </div>
               `;
