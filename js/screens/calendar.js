@@ -67,20 +67,20 @@ export async function renderMiCalendario() {
         /* Estilo píldora específico para la cuadrícula del mes */
         .fc-daygrid-event {
           border: none !important;
-          border-radius: 100px !important;
-          padding: 2px 10px !important;
+          border-radius: 8px !important;
+          padding: 0 !important;
           margin: 2px auto !important;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
           cursor: pointer !important;
           transition: all 0.2s ease !important;
-          height: 24px !important;
+          height: auto !important;
+          min-height: 40px !important;
           display: flex !important;
-          align-items: center !important;
+          align-items: stretch !important;
           overflow: hidden !important;
-          width: fit-content !important;
-          min-width: 60px !important;
-          max-width: 95% !important;
-          background-color: var(--fc-event-bg-color, #00f5d4) !important;
+          width: 95% !important;
+          background-color: transparent !important;
+          white-space: normal !important;
         }
         .fc-daygrid-event-harness {
           display: flex !important;
