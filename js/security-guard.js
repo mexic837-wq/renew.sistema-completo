@@ -88,5 +88,5 @@
     `;
     document.head.appendChild(style);
 
-    console.log('🛡️ RENEW Security Guard Active');
+    console.log('<i class="fa-solid fa-shield"></i>️ RENEW Security Guard Active');
 })();

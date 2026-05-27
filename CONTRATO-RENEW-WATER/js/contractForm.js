@@ -115,7 +115,7 @@ async function handleContractSubmit(e) {
 
     if (response.ok) {
       const result = await response.json();
-      showToast('¡Contrato generado y guardado exitosamente! ✅', 'success');
+      showToast('¡Contrato generado y guardado exitosamente! <i class="fa-solid fa-check text-green-500"></i>', 'success');
       form.reset();
       if (typeof clearSignature === 'function') clearSignature('firma-contract-client');
       

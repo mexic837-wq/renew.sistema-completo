@@ -13,7 +13,7 @@ function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Buenos días ☀️';
   if (h < 18) return 'Buenas tardes 🌤️';
-  return 'Buenas noches 🌙';
+  return 'Buenas noches <i class="fa-solid fa-moon"></i>';
 }
 
 // ── Main render ──────────────────────────────────────────────
@@ -588,7 +588,7 @@ function _showCallCenterLeadModal(client, allProys, db) {
           <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">${client.nombre || 'Sin nombre'}</h2>
           <span style="display:inline-block;margin-top:6px;background:rgba(0,245,212,0.12);color:var(--primary);font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:99px;border:1px solid rgba(0,245,212,0.25);">${pipelineLabel}</span>
         </div>
-        <button id="btn-cc-lead-close" style="background:var(--surface-alt);border:none;color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        <button id="btn-cc-lead-close" style="background:var(--surface-alt);border:none;color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-xmark text-red-500"></i></button>
       </div>
 
       <!-- Phase stepper -->
@@ -675,7 +675,7 @@ function _showIncompleteDataModal(client, user, missingFields, container) {
       <div style="padding:8px 24px 24px; display:flex; flex-direction:column; gap:16px;">
         <div style="display:flex; align-items:center; gap:12px;">
           <div style="width:44px; height:44px; border-radius:50%; background:#fef3c7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <span style="font-size:1.3rem;">📋</span>
+            <span style="font-size:1.3rem;"><i class="fa-solid fa-clipboard"></i></span>
           </div>
           <div>
             <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin:0;">Datos Incompletos</h3>
@@ -688,7 +688,7 @@ function _showIncompleteDataModal(client, user, missingFields, container) {
             ${missingFields.map(f => `<li>${f}</li>`).join('')}
           </ul>
         </div>
-        <button id="btn-complete-client-data" style="width:100%; background:var(--primary); color:#0f172a; border:none; border-radius:14px; padding:16px; font-weight:800; font-size:1rem; cursor:pointer;">✏️ Completar Datos del Cliente</button>
+        <button id="btn-complete-client-data" style="width:100%; background:var(--primary); color:#0f172a; border:none; border-radius:14px; padding:16px; font-weight:800; font-size:1rem; cursor:pointer;"><i class="fa-solid fa-pencil"></i>️ Completar Datos del Cliente</button>
         <button id="btn-cancel-incomplete" style="width:100%; background:transparent; color:var(--text-muted); border:none; padding:8px; font-size:0.9rem; cursor:pointer;">Cancelar</button>
       </div>
     </div>
@@ -747,7 +747,7 @@ function _showIncompleteDataModal(client, user, missingFields, container) {
     }
 
     const title = document.querySelector('#modal-nuevo-cliente h3');
-    if (title) title.textContent = '✏️ Completar Datos del Cliente';
+    if (title) title.textContent = '<i class="fa-solid fa-pencil"></i>️ Completar Datos del Cliente';
     const editModal = document.getElementById('modal-nuevo-cliente');
     if (editModal) editModal.style.display = 'flex';
 
@@ -910,7 +910,7 @@ function _showPipelineSelector(client, user) {
 
       if (missingClientFields.length > 0) {
         showToast(
-          `⚠️ Para crear un proyecto, completa los datos del cliente: ${missingClientFields.join(', ')}.`,
+          `<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Para crear un proyecto, completa los datos del cliente: ${missingClientFields.join(', ')}.`,
           'error'
         );
         return;
@@ -1189,15 +1189,15 @@ function _wireModalControls(user, container) {
                           // Update document labels visually
                           if (quickAdjID) {
                               const lbl = document.querySelector('#btn-quick-adj-id p');
-                              if (lbl) { lbl.textContent = '✓ CARGADO'; lbl.style.color = 'var(--primary)'; }
+                              if (lbl) { lbl.textContent = '<i class="fa-solid fa-check text-green-500"></i> CARGADO'; lbl.style.color = 'var(--primary)'; }
                           }
                           if (quickAdjBill) {
                               const lbl = document.querySelector('#btn-quick-adj-bill p');
-                              if (lbl) { lbl.textContent = '✓ CARGADO'; lbl.style.color = 'var(--primary)'; }
+                              if (lbl) { lbl.textContent = '<i class="fa-solid fa-check text-green-500"></i> CARGADO'; lbl.style.color = 'var(--primary)'; }
                           }
                           if (quickAdjSeguro) {
                               const lbl = document.querySelector('#btn-quick-adj-seguro p');
-                              if (lbl) { lbl.textContent = '✓ CARGADO'; lbl.style.color = 'var(--primary)'; }
+                              if (lbl) { lbl.textContent = '<i class="fa-solid fa-check text-green-500"></i> CARGADO'; lbl.style.color = 'var(--primary)'; }
                           }
                           
 
@@ -1557,7 +1557,7 @@ function _wireModalControls(user, container) {
             pipelineName: null,
             responsable_id: user.id
           });
-          showToast('Prospecto guardado con éxito ✅', 'success');
+          showToast('Prospecto guardado con éxito <i class="fa-solid fa-check text-green-500"></i>', 'success');
         }
 
         closeModals();

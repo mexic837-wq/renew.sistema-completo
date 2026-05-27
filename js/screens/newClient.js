@@ -205,7 +205,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
             <label style="color:var(--text-secondary); font-size:0.8rem; font-weight:700; text-transform:uppercase; margin-bottom:8px; display:block;">Departamentos Activos</label>
             <div style="display:flex; flex-wrap:wrap; gap:10px; background:var(--bg); padding:12px; border-radius:12px; border:1.5px solid var(--border);">
               <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:var(--text-primary); cursor:pointer;">
-                <input type="checkbox" name="nc-dept-chk" value="Water" style="width:18px; height:18px; accent-color:var(--primary);"> 🌊 Water
+                <input type="checkbox" name="nc-dept-chk" value="Water" style="width:18px; height:18px; accent-color:var(--primary);"> <i class="fa-solid fa-water"></i> Water
               </label>
               <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:var(--text-primary); cursor:pointer;">
                 <input type="checkbox" name="nc-dept-chk" value="Solar" style="width:18px; height:18px; accent-color:var(--primary);"> ☀️ Solar
@@ -421,7 +421,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
                 _prevFoto.style.display = 'block';
             }
             if (_iconFoto) _iconFoto.style.display = 'none';
-            if (_lblFoto)  _lblFoto.textContent = '✓ Foto guardada — toca para cambiar';
+            if (_lblFoto)  _lblFoto.textContent = '<i class="fa-solid fa-check text-green-500"></i> Foto guardada — toca para cambiar';
         } else {
             if (_prevFoto) _prevFoto.style.display = 'none';
             if (_iconFoto) _iconFoto.style.display = 'block';
@@ -864,7 +864,7 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
             area.classList.add('has-file');
             area.style.borderColor = pipeline.color;
             area.style.background = pipeline.color + '10';
-            label.textContent = "Documento Listo ✓";
+            label.textContent = "Documento Listo <i class="fa-solid fa-check text-green-500"></i>";
             label.style.color = pipeline.color;
             label.style.fontWeight = '700';
             showToast('Archivo subido', 'success');

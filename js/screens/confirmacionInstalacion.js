@@ -63,7 +63,7 @@ export function renderConfirmacionInstalacion() {
     <!-- Datos del Cliente -->
     <div class="ci-section">
       <div class="ci-section-hdr">
-        <div class="ci-section-icon" style="background:rgba(14,165,233,.1);">🧾</div>
+        <div class="ci-section-icon" style="background:rgba(14,165,233,.1);"><i class="fa-solid fa-receipt"></i></div>
         <div>
           <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Datos del Cliente</div>
           <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Purchaser Information</div>
@@ -112,7 +112,7 @@ export function renderConfirmacionInstalacion() {
     <!-- Instalación -->
     <div class="ci-section">
       <div class="ci-section-hdr">
-        <div class="ci-section-icon" style="background:rgba(20,184,166,.1);">🔧</div>
+        <div class="ci-section-icon" style="background:rgba(20,184,166,.1);"><i class="fa-solid fa-wrench"></i></div>
         <div>
           <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Detalles de Instalación</div>
         </div>
@@ -138,7 +138,7 @@ export function renderConfirmacionInstalacion() {
     <!-- Confirmaciones (Sí/No) -->
     <div class="ci-section">
       <div class="ci-section-hdr">
-        <div class="ci-section-icon" style="background:rgba(168,85,247,.1);">✅</div>
+        <div class="ci-section-icon" style="background:rgba(168,85,247,.1);"><i class="fa-solid fa-check text-green-500"></i></div>
         <div>
           <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Confirmaciones</div>
           <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Responder Sí / No + Iniciales</div>
@@ -150,8 +150,8 @@ export function renderConfirmacionInstalacion() {
         <div class="ci-field">
           <label class="ci-label">¿Se enseñó cómo programar el LED del equipo?</label>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-            <div class="ci-radio-btn" data-group="enseno_programar" data-val="si" onclick="window.ciPickRadio(this)">✅ Sí</div>
-            <div class="ci-radio-btn" data-group="enseno_programar" data-val="no" onclick="window.ciPickRadio(this)">❌ No</div>
+            <div class="ci-radio-btn" data-group="enseno_programar" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
+            <div class="ci-radio-btn" data-group="enseno_programar" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
             <input class="ci-input" type="text" id="ci-ini-1" placeholder="Iniciales" style="width:90px;flex-shrink:0">
           </div>
         </div>
@@ -160,8 +160,8 @@ export function renderConfirmacionInstalacion() {
         <div class="ci-field">
           <label class="ci-label">¿El cliente está de acuerdo con el lugar de instalación?</label>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-            <div class="ci-radio-btn" data-group="acuerdo_ubicacion" data-val="si" onclick="window.ciPickRadio(this)">✅ Sí</div>
-            <div class="ci-radio-btn" data-group="acuerdo_ubicacion" data-val="no" onclick="window.ciPickRadio(this)">❌ No</div>
+            <div class="ci-radio-btn" data-group="acuerdo_ubicacion" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
+            <div class="ci-radio-btn" data-group="acuerdo_ubicacion" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
             <input class="ci-input" type="text" id="ci-ini-2" placeholder="Iniciales" style="width:90px;flex-shrink:0">
           </div>
         </div>
@@ -170,8 +170,8 @@ export function renderConfirmacionInstalacion() {
         <div class="ci-field">
           <label class="ci-label">¿Se informó al cliente sobre precauciones de congelamiento?</label>
           <div style="display:flex;gap:8px;align-items:center;">
-            <div class="ci-radio-btn" data-group="info_congelamiento" data-val="si" onclick="window.ciPickRadio(this)">✅ Sí</div>
-            <div class="ci-radio-btn" data-group="info_congelamiento" data-val="no" onclick="window.ciPickRadio(this)">❌ No</div>
+            <div class="ci-radio-btn" data-group="info_congelamiento" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
+            <div class="ci-radio-btn" data-group="info_congelamiento" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
             <input class="ci-input" type="text" id="ci-ini-3" placeholder="Iniciales" style="width:90px;flex-shrink:0">
           </div>
         </div>
@@ -235,7 +235,7 @@ export function renderConfirmacionInstalacion() {
     <!-- Costos -->
     <div class="ci-section">
       <div class="ci-section-hdr">
-        <div class="ci-section-icon" style="background:rgba(245,158,11,.1);">💰</div>
+        <div class="ci-section-icon" style="background:rgba(245,158,11,.1);"><i class="fa-solid fa-sack-dollar"></i></div>
         <div>
           <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Costos Adicionales</div>
           <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Si aplica</div>
@@ -270,7 +270,7 @@ export function renderConfirmacionInstalacion() {
     <!-- Firma -->
     <div class="ci-section">
       <div class="ci-section-hdr">
-        <div class="ci-section-icon" style="background:rgba(239,68,68,.1);">✍️</div>
+        <div class="ci-section-icon" style="background:rgba(239,68,68,.1);"><i class="fa-solid fa-pen-nib"></i>️</div>
         <div>
           <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Firma del Cliente</div>
           <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Firme dentro del recuadro</div>
@@ -354,7 +354,7 @@ window.ciPickRadio = (el) => {
   el.classList.add(el.dataset.val === 'si' ? 'active-yes' : 'active-no');
 };
 
-window.ciToggleChk = (el) => { el.classList.toggle('checked'); el.textContent = el.classList.contains('checked') ? '✓' : ''; };
+window.ciToggleChk = (el) => { el.classList.toggle('checked'); el.textContent = el.classList.contains('checked') ? '<i class="fa-solid fa-check text-green-500"></i>' : ''; };
 
 const _getRadio = (group) => { const el = document.querySelector(`[data-group="${group}"].active-yes, [data-group="${group}"].active-no`); return el ? el.dataset.val : ''; };
 const _isChecked = (key) => document.querySelector(`[data-key="${key}"].checked`) !== null;
@@ -428,7 +428,7 @@ window.ciSubmit = async () => {
 
     if (!resp.ok || !result.success) throw new Error(result.error || 'Error del servidor');
 
-    showToast('¡Confirmación generada y guardada! ✅', 'success');
+    showToast('¡Confirmación generada y guardada! <i class="fa-solid fa-check text-green-500"></i>', 'success');
     if (result.url) {
       setTimeout(() => { window.open(result.url, '_blank'); }, 500);
     }

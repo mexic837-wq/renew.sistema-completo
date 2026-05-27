@@ -16,7 +16,7 @@ const TRANSLATIONS = {
 
     // ── Login ──────────────────────────────────────────────
     login_tagline:      'Portal del Equipo de Ventas',
-    login_welcome:      'Bienvenido 👋',
+    login_welcome:      'Bienvenido <i class="fa-solid fa-handshake"></i>',
     login_subtitle:     'Ingresa tus credenciales para continuar.',
     login_email:        'Correo Electrónico',
     login_password:     'Contraseña',
@@ -50,7 +50,7 @@ const TRANSLATIONS = {
     // ── New Client ─────────────────────────────────────────
     nc_title:           'Datos del Cliente',
     nc_search:          'Buscar por nombre o teléfono...',
-    nc_selected:        'Cliente Seleccionado ✓',
+    nc_selected:        'Cliente Seleccionado <i class="fa-solid fa-check text-green-500"></i>',
     nc_edit:            'Completar Perfil / Editar',
     nc_address:         'Dirección completa',
     nc_address_label:   'Dirección GPS',
@@ -208,7 +208,7 @@ const TRANSLATIONS = {
     nc_search_results:  'Resultados',
     nc_add_new:         '¿No existe? Crear Nuevo Cliente',
     nc_search_placeholder: 'Buscar por nombre o teléfono...',
-    nc_client_selected: 'Cliente Seleccionado ✓',
+    nc_client_selected: 'Cliente Seleccionado <i class="fa-solid fa-check text-green-500"></i>',
     nc_btn_edit_profile: 'Completar Perfil / Editar',
     nc_field_state_id:  'State ID',
     nc_field_dob:       'DOB',
@@ -327,7 +327,7 @@ const TRANSLATIONS = {
 
     // ── Login ──────────────────────────────────────────────
     login_tagline:      'Sales Team Portal',
-    login_welcome:      'Welcome 👋',
+    login_welcome:      'Welcome <i class="fa-solid fa-handshake"></i>',
     login_subtitle:     'Enter your credentials to continue.',
     login_email:        'Email Address',
     login_password:     'Password',
@@ -361,7 +361,7 @@ const TRANSLATIONS = {
     // ── New Client ─────────────────────────────────────────
     nc_title:           'Client Info',
     nc_search:          'Search by name or phone...',
-    nc_selected:        'Selected Client ✓',
+    nc_selected:        'Selected Client <i class="fa-solid fa-check text-green-500"></i>',
     nc_edit:            'Complete Profile / Edit',
     nc_address:         'Full address',
     nc_address_label:   'GPS Address',
@@ -519,7 +519,7 @@ const TRANSLATIONS = {
     nc_search_results:  'Results',
     nc_add_new:         'Not there? Create New Customer',
     nc_search_placeholder: 'Search by name or phone...',
-    nc_client_selected: 'Client Selected ✓',
+    nc_client_selected: 'Client Selected <i class="fa-solid fa-check text-green-500"></i>',
     nc_btn_edit_profile: 'Complete Profile / Edit',
     nc_field_state_id:  'State ID',
     nc_field_dob:       'DOB',
@@ -667,7 +667,7 @@ export function langSwitcherHTML() {
         >
           <span style="font-size:1.1rem">${l.flag}</span>
           ${l.label}
-          ${current === l.code ? '<span style="margin-left:2px;font-size:0.8rem">✓</span>' : ''}
+          ${current === l.code ? '<span style="margin-left:2px;font-size:0.8rem"><i class="fa-solid fa-check text-green-500"></i></span>' : ''}
         </button>
       `).join('')}
     </div>

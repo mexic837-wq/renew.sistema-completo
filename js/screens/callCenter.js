@@ -132,7 +132,7 @@ function renderFase1(screen, user) {
   const cards = pendientes.length > 0
     ? pendientes.map((p, i) => buildFase1Card(p, i)).join('')
     : `<div style="text-align:center;padding:60px 24px;opacity:0.5;">
-        <div style="font-size:3rem;margin-bottom:12px;">📭</div>
+        <div style="font-size:3rem;margin-bottom:12px;"><i class="fa-solid fa-envelope-open"></i></div>
         <p style="font-size:14px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.1em;">Sin prospectos pendientes</p>
         <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">Los leads del scraper aparecerán aquí automáticamente</p>
       </div>`;
@@ -144,7 +144,7 @@ function renderFase1(screen, user) {
       <div style="background:var(--surface);padding:20px 20px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,245,212,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;">🎧</div>
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,245,212,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;"><i class="fa-solid fa-headphones"></i></div>
             <div>
               <p style="font-size:9px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.14em;margin:0;">FASE 1 · RECOLECCIÓN</p>
               <h1 style="font-size:17px;font-weight:900;color:var(--text);margin:0;line-height:1.2;">Prospectos del Día</h1>
@@ -172,7 +172,7 @@ function renderFase1(screen, user) {
             <p style="font-size:9px;font-weight:800;color:#ef4444;margin:0;">${rej} rechazados</p>
           </div>
         </div>
-        <p style="font-size:10px;color:var(--text-secondary);margin:8px 0 0;text-transform:capitalize;">${fecha} · Hola, ${user.nombre} 👋</p>
+        <p style="font-size:10px;color:var(--text-secondary);margin:8px 0 0;text-transform:capitalize;">${fecha} · Hola, ${user.nombre} <i class="fa-solid fa-handshake"></i></p>
       </div>
 
       <!-- CARDS -->
@@ -227,15 +227,15 @@ function buildFase1Card(p, index) {
 
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
-          <span style="font-size:15px;">📞</span>
+          <span style="font-size:15px;"><i class="fa-solid fa-phone"></i></span>
           <div style="flex:1;">
             <p style="font-size:9px;color:var(--text-secondary);font-weight:700;text-transform:uppercase;margin:0;">Teléfono</p>
             <p style="font-size:14px;font-weight:800;color:var(--text);margin:0;">${tel}</p>
           </div>
-          <a href="sip:${tel}" style="background:rgba(0,245,212,0.1);color:var(--primary);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:800;text-decoration:none;">📲 Llamar</a>
+          <a href="sip:${tel}" style="background:rgba(0,245,212,0.1);color:var(--primary);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:800;text-decoration:none;"><i class="fa-solid fa-mobile-screen"></i> Llamar</a>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
-          <span style="font-size:15px;">📍</span>
+          <span style="font-size:15px;"><i class="fa-solid fa-location-dot"></i></span>
           <div style="overflow:hidden;">
             <p style="font-size:9px;color:var(--text-secondary);font-weight:700;text-transform:uppercase;margin:0;">Dirección</p>
             <p style="font-size:12px;font-weight:700;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${dir}</p>
@@ -247,11 +247,11 @@ function buildFase1Card(p, index) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <button class="btn-p1-rechazar" data-id="${p.id}"
                 style="padding:14px;background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.25);border-radius:14px;color:#ef4444;font-size:13px;font-weight:800;cursor:pointer;">
-          ❌ Rechazar
+          <i class="fa-solid fa-xmark text-red-500"></i> Rechazar
         </button>
         <button class="btn-p1-aceptar" data-id="${p.id}"
                 style="padding:14px;background:var(--primary);border:none;border-radius:14px;color:black;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(0,245,212,0.3);">
-          ✅ Aceptar
+          <i class="fa-solid fa-check text-green-500"></i> Aceptar
         </button>
       </div>
     </div>
@@ -394,15 +394,15 @@ function renderFase2(screen, user, prospecto) {
           <p style="font-size:9px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;">Prospecto seleccionado</p>
           <p style="font-size:17px;font-weight:900;color:var(--text);margin:0 0 6px;">${nombre}</p>
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--text-secondary);">📞 ${tel}</span>
-            <span style="font-size:11px;color:var(--text-secondary);">📍 ${dir}</span>
+            <span style="font-size:11px;color:var(--text-secondary);"><i class="fa-solid fa-phone"></i> ${tel}</span>
+            <span style="font-size:11px;color:var(--text-secondary);"><i class="fa-solid fa-location-dot"></i> ${dir}</span>
           </div>
         </div>
 
         <!-- Ecosistema -->
         <div style="margin-bottom:20px;">
           <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.12em;display:block;margin-bottom:10px;">
-            🌿 Ecosistema de interés *
+            <i class="fa-solid fa-leaf"></i> Ecosistema de interés *
           </label>
           <div id="cc-eco-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
             ${ecoOptions.map(eco => `
@@ -417,7 +417,7 @@ function renderFase2(screen, user, prospecto) {
         <!-- Notas extra -->
         <div style="margin-bottom:20px;">
           <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.12em;display:block;margin-bottom:8px;">
-            📝 Notas Extra <span style="opacity:0.5;font-weight:600;">(opcional)</span>
+            <i class="fa-solid fa-file-pen"></i> Notas Extra <span style="opacity:0.5;font-weight:600;">(opcional)</span>
           </label>
           <textarea id="cc-notas-input" rows="4" placeholder="Ej: Tiene panel viejo, interesado en financiamiento, llamar tarde..."
                     style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;font-size:13px;color:var(--text-primary);resize:none;font-family:inherit;box-sizing:border-box;outline:none;transition:border-color 0.2s;"
@@ -429,7 +429,7 @@ function renderFase2(screen, user, prospecto) {
       <div style="position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:16px 20px;z-index:20;">
         <button id="btn-cc-finalizar"
                 style="width:100%;padding:17px;background:rgba(0,245,212,0.3);color:var(--text);border:none;border-radius:16px;font-size:15px;font-weight:900;cursor:pointer;opacity:0.45;pointer-events:none;transition:all 0.2s;" disabled>
-          ⚡ Guardar Lead y Notificar Administración
+          <i class="fa-solid fa-bolt"></i> Guardar Lead y Notificar Administración
         </button>
         <p style="text-align:center;font-size:10px;color:var(--text-secondary);margin:8px 0 0;">El lead se notificará a administración para asignación manual</p>
       </div>
@@ -491,14 +491,14 @@ function renderFase2(screen, user, prospecto) {
 
         const vendMsg = 'Pendiente de asignación manual';
 
-        showToast(`✅ Lead guardado · ${vendMsg}`, 'success');
+        showToast(`<i class="fa-solid fa-check text-green-500"></i> Lead guardado · ${vendMsg}`, 'success');
 
         // Show success screen then go back to Fase 1
         renderSuccessScreen(screen, user, cliente, vendedor);
       } catch (err) {
         console.error('[CC Finalizar Error]', err);
         showToast('Error al guardar el lead', 'error');
-        if (btnF) { btnF.textContent = '⚡ Guardar Lead y Notificar Administración'; btnF.disabled = false; }
+        if (btnF) { btnF.textContent = '<i class="fa-solid fa-bolt"></i> Guardar Lead y Notificar Administración'; btnF.disabled = false; }
       }
     }
   };
@@ -515,7 +515,7 @@ function renderSuccessScreen(screen, user, cliente, vendedor) {
 
   screen.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:var(--bg);">
-      <div style="width:80px;height:80px;border-radius:50%;background:rgba(0,245,212,0.12);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;animation:bounceIn 0.5s ease;">✅</div>
+      <div style="width:80px;height:80px;border-radius:50%;background:rgba(0,245,212,0.12);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;animation:bounceIn 0.5s ease;"><i class="fa-solid fa-check text-green-500"></i></div>
       <p style="font-size:10px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.15em;margin:0 0 6px;">Lead Guardado</p>
       <h2 style="font-size:22px;font-weight:900;color:var(--text);margin:0 0 8px;">${cliente.nombre}</h2>
       <p style="font-size:13px;color:var(--text-secondary);margin:0 0 24px;">Ecosistema: <strong style="color:var(--primary);">${cliente.empresa}</strong></p>
@@ -532,7 +532,7 @@ function renderSuccessScreen(screen, user, cliente, vendedor) {
              Siguiente prospecto (${remaining}) →
            </button>`
         : `<div style="background:rgba(0,245,212,0.06);border:1px solid rgba(0,245,212,0.15);border-radius:16px;padding:16px 24px;margin-bottom:12px;">
-             <p style="font-size:13px;color:var(--text-secondary);margin:0;">🎉 ¡Completaste todos los prospectos del día!</p>
+             <p style="font-size:13px;color:var(--text-secondary);margin:0;"><i class="fa-solid fa-champagne-glasses"></i> ¡Completaste todos los prospectos del día!</p>
            </div>`}
       <button id="btn-cc-golist" style="padding:14px 24px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-size:13px;font-weight:700;color:var(--text-secondary);cursor:pointer;">
         Ver lista

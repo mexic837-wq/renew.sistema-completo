@@ -100,7 +100,7 @@ window.openInviteModal = function() {
         const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
-        const msg = \`¡Hola \${user.nombre}! 👋\\n\\nTe damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.\\n\\n🔗 Enlace de acceso: \${mainLink}\\n✉️ Usuario: \${user.email}\\n🔑 Contraseña: \${user.pass}\\n\\nSi tienes alguna duda, no dudes en contactar al administrador.\\n¡Éxitos!\`;
+        const msg = \`¡Hola \${user.nombre}! <i class="fa-solid fa-handshake"></i>\\n\\nTe damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.\\n\\n<i class="fa-solid fa-link"></i> Enlace de acceso: \${mainLink}\\n✉️ Usuario: \${user.email}\\n🔑 Contraseña: \${user.pass}\\n\\nSi tienes alguna duda, no dudes en contactar al administrador.\\n¡Éxitos!\`;
         
         previewText.textContent = msg;
         previewBox.classList.remove('hidden');

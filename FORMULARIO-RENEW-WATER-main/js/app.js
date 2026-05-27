@@ -9,7 +9,7 @@
    ============================================================ */
 
 /* ════════════════════════════════════════════════════════════
-   CONFIGURACIÓN — ⭐ Solo edita esta sección
+   CONFIGURACIÓN — <i class="fa-solid fa-star"></i> Solo edita esta sección
 ════════════════════════════════════════════════════════════ */
 const APP_CONFIG = {
   /**
@@ -64,7 +64,7 @@ function showToast(msg, type = 'success', duration = APP_CONFIG.toastDuration) {
   const text  = document.getElementById('toast-message');
 
   toast.className = '';
-  icon.textContent = type === 'success' ? '✅' : '❌';
+  icon.textContent = type === 'success' ? '<i class="fa-solid fa-check text-green-500"></i>' : '<i class="fa-solid fa-xmark text-red-500"></i>';
   text.textContent = msg;
   toast.classList.add(type, 'show');
 
@@ -202,7 +202,7 @@ async function handleFileSelect(input, previewId) {
   if (file) {
     try {
       // Mostrar estado de "procesando"
-      preview.innerHTML = '<p style="font-size: 0.8rem; color: #666; margin-top: 5px;">🔥 Comprimiendo imagen...</p>';
+      preview.innerHTML = '<p style="font-size: 0.8rem; color: #666; margin-top: 5px;"><i class="fa-solid fa-fire text-orange-500"></i> Comprimiendo imagen...</p>';
       
       const compressedBase64 = await compressImage(file);
       
@@ -235,10 +235,10 @@ function togglePassword(id) {
   const btn = input.nextElementSibling;
   if (input.type === 'password') {
     input.type = 'text';
-    btn.textContent = '🔒';
+    btn.textContent = '<i class="fa-solid fa-lock"></i>';
   } else {
     input.type = 'password';
-    btn.textContent = '👁️';
+    btn.textContent = '<i class="fa-solid fa-eye"></i>️';
   }
 }
 

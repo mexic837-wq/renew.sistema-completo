@@ -206,7 +206,7 @@ async function handleWorkOrderSubmit(e) {
   // Estado de carga
   btn.classList.add('loading');
   span.textContent = 'Enviando…';
-  showToast('Procesando Orden de Trabajo… 📡', 'success', 10000);
+  showToast('Procesando Orden de Trabajo… <i class="fa-solid fa-satellite-dish"></i>', 'success', 10000);
 
   const payload = collectWorkOrderData(form);
 
@@ -225,7 +225,7 @@ async function handleWorkOrderSubmit(e) {
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      showToast('¡Orden de Trabajo enviada exitosamente! ✅', 'success');
+      showToast('¡Orden de Trabajo enviada exitosamente! <i class="fa-solid fa-check text-green-500"></i>', 'success');
       resetWorkOrderForm(form);
       
       const urlParams = new URLSearchParams(window.location.search);

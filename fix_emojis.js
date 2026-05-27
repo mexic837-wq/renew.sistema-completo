@@ -4,11 +4,11 @@ let content = fs.readFileSync('./js/admin-app.js', 'utf8');
 
 const fixes = {
     'ðŸ§\'â€ðŸ\'¼': '🧑‍💼',
-    'ðŸ"ž': '📞',
-    'ðŸ" ': '📍',
+    'ðŸ"ž': '<i class="fa-solid fa-phone"></i>',
+    'ðŸ" ': '<i class="fa-solid fa-location-dot"></i>',
     'ðŸ‡ªðŸ‡¸': '🇪🇸',
     'ðŸ‡ºðŸ‡¸': '🇺🇸',
-    'ðŸŒ™': '🌙',
+    'ðŸŒ™': '<i class="fa-solid fa-moon"></i>',
     'â˜€ï¸ ': '☀️',
     'ðŸ\'§': '💧'
 };
@@ -17,8 +17,8 @@ const fixes = {
 // "ðŸ§‘â€ ðŸ’¼", "ðŸ“ž", "ðŸ“ "
 const mapFixes = {
     'ðŸ§‘â€ ðŸ’¼': '🧑‍💼',
-    'ðŸ“ž': '📞',
-    'ðŸ“ ': '📍',
+    'ðŸ“ž': '<i class="fa-solid fa-phone"></i>',
+    'ðŸ“ ': '<i class="fa-solid fa-location-dot"></i>',
     'ðŸ’§': '💧'
 };
 

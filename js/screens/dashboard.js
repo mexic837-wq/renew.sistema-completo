@@ -15,19 +15,19 @@ import { initAdminBell, updateAdminBellBadge } from '../components/admin-notif-b
 //  type: 'total' = all-time accumulated sales
 //        'monthly' = current month only (resets 1st of each month)
 //
-//  ⚠️   UPDATE: Change 'minSales' for Iniciante and Junior once
+//  <i class="fa-solid fa-triangle-exclamation text-orange-500"></i>   UPDATE: Change 'minSales' for Iniciante and Junior once
 //               the user provides those numbers.
 // ════════════════════════════════════════════════════════════
 // ========================================================================================================================
 export const RANK_CONFIG = {
   'Renew Water': [
-    { name: 'Novato por Referidos', emoji: '🌱', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total', priceKey: 'precio_subvende' },
-    { name: 'Subvendedor',         emoji: '🥉', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total', priceKey: 'precio_subvende' },
-    { name: 'Iniciante',           emoji: '🥈', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total', priceKey: 'precio_iniciante' },
-    { name: 'Junior',              emoji: '🥇', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total', priceKey: 'precio_junior' },
-    { name: 'Representante de Ventas',            emoji: '⚡',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total', priceKey: 'precio_vendedor' },
-    { name: 'Distribuidor (Analista)', emoji: '👑', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total', priceKey: 'precio_analista' },
-    { name: 'Distribuidor Mensual', emoji: '⭐',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly', priceKey: 'precio_oficina' },
+    { name: 'Novato por Referidos', emoji: '<i class="fa-solid fa-seedling"></i>', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total', priceKey: 'precio_subvende' },
+    { name: 'Subvendedor',         emoji: '<i class="fa-solid fa-medal" style="color:#b08d57"></i>', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total', priceKey: 'precio_subvende' },
+    { name: 'Iniciante',           emoji: '<i class="fa-solid fa-medal" style="color:#c0c0c0"></i>', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total', priceKey: 'precio_iniciante' },
+    { name: 'Junior',              emoji: '<i class="fa-solid fa-medal" style="color:#ffd700"></i>', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total', priceKey: 'precio_junior' },
+    { name: 'Representante de Ventas',            emoji: '<i class="fa-solid fa-bolt"></i>',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total', priceKey: 'precio_vendedor' },
+    { name: 'Distribuidor (Analista)', emoji: '<i class="fa-solid fa-crown"></i>', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total', priceKey: 'precio_analista' },
+    { name: 'Distribuidor Mensual', emoji: '<i class="fa-solid fa-star"></i>',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly', priceKey: 'precio_oficina' },
   ]
 };
 
@@ -334,7 +334,7 @@ export async function renderDashboard() {
       <div class="dash-header-top">
         <div class="dash-greeting">
           <div class="greeting-time">${getGreeting()}</div>
-          <h1 class="text-xl font-black tracking-tight">Hola, ${user.nombre.split(' ')[0]} 👋</h1>
+          <h1 class="text-xl font-black tracking-tight">Hola, ${user.nombre.split(' ')[0]} <i class="fa-solid fa-handshake"></i></h1>
         </div>
 
         <div class="flex items-center gap-4">

@@ -23,7 +23,7 @@ const db = JSON.parse(fs.readFileSync('./db.json', 'utf8'));
 
 async function migrateTable(tableName, data, mapFn) {
   if (!data || data.length === 0) {
-    console.log(`⚠️ No hay datos para la tabla ${tableName}`);
+    console.log(`<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> No hay datos para la tabla ${tableName}`);
     return;
   }
 
@@ -37,19 +37,19 @@ async function migrateTable(tableName, data, mapFn) {
         .upsert(record, { onConflict: 'id' });
 
       if (response.error) {
-        console.error(`❌ Error en fila de ${tableName} (ID: ${record.id}):`, response.error.message);
+        console.error(`<i class="fa-solid fa-xmark text-red-500"></i> Error en fila de ${tableName} (ID: ${record.id}):`, response.error.message);
       } else {
         successCount++;
       }
     }
-    console.log(`✅ ${successCount}/${mappedData.length} registros migrados a ${tableName}`);
+    console.log(`<i class="fa-solid fa-check text-green-500"></i> ${successCount}/${mappedData.length} registros migrados a ${tableName}`);
   } catch (err) {
-    console.error(`❌ Excepción inesperada migrando ${tableName}:`, err);
+    console.error(`<i class="fa-solid fa-xmark text-red-500"></i> Excepción inesperada migrando ${tableName}:`, err);
   }
 }
 
 async function runMigration() {
-  console.log('🚀 Iniciando migración a Supabase...\n');
+  console.log('<i class="fa-solid fa-rocket"></i> Iniciando migración a Supabase...\n');
 
   await migrateTable('admin_pipelines', db.Admin_Pipelines, (item) => ({
     id: item.id,
@@ -120,7 +120,7 @@ async function runMigration() {
     valor: item.valor || null
   }));
 
-  console.log('\n🎉 ¡Migración completada!');
+  console.log('\n<i class="fa-solid fa-champagne-glasses"></i> ¡Migración completada!');
 }
 
 runMigration();

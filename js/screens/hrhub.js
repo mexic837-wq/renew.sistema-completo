@@ -110,7 +110,7 @@ export async function renderHRHub() {
                     <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest w-14">Dpto:</span>
                     <button data-dept="all"   class="rrhh-dept-btn active px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-400 bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-300 transition-all">Todos</button>
                     <button data-dept="water" class="rrhh-dept-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-sky-500 hover:border-sky-300 transition-all">
-                        🌊 Water
+                        <i class="fa-solid fa-water"></i> Water
                     </button>
                     <button data-dept="solar" class="rrhh-dept-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-amber-500 hover:border-amber-300 transition-all">
                         ☀️ Solar
@@ -508,10 +508,10 @@ export async function renderHRHub() {
 
         // Dept config map
         const DEPT_CFG = {
-            water: { label: 'Water', color: '#0ea5e9', icon: '🌊' },
+            water: { label: 'Water', color: '#0ea5e9', icon: '<i class="fa-solid fa-water"></i>' },
             solar: { label: 'Solar', color: '#f59e0b', icon: '☀️' },
             home:  { label: 'Home',  color: '#a855f7', icon: '🏠' },
-            otro:  { label: 'Otro',  color: '#94a3b8', icon: '📋' }
+            otro:  { label: 'Otro',  color: '#94a3b8', icon: '<i class="fa-solid fa-clipboard"></i>' }
         };
 
         // Apply role + dept filters

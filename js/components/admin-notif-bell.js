@@ -358,7 +358,7 @@ export function openAdminBellPanel() {
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; gap: 16px; color: #475569;">
                     <i class="fa-regular fa-bell-slash" style="font-size: 2.5rem; opacity: 0.4;"></i>
                     <p style="font-size: 0.85rem; font-weight: 700; margin: 0;">Sin notificaciones pendientes</p>
-                    <p style="font-size: 0.75rem; margin: 0; color: #334155;">Todo está al día 🎉</p>
+                    <p style="font-size: 0.75rem; margin: 0; color: #334155;">Todo está al día <i class="fa-solid fa-champagne-glasses"></i></p>
                 </div>
             ` : notifs.map(n => `
                 <div class="bell-notif-item ${n.isRead ? '' : 'unread'}">

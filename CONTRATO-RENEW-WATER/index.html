@@ -34,17 +34,17 @@
     <div class="tab-nav-inner">
       <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('credit', this)"
         id="tab-credit">
-        <span class="tab-icon">📋</span>
+        <span class="tab-icon"><i class="fa-solid fa-clipboard"></i></span>
         Aplicación de Crédito
       </button>
       <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('workorder', this)"
         id="tab-workorder">
-        <span class="tab-icon">🔧</span>
+        <span class="tab-icon"><i class="fa-solid fa-wrench"></i></span>
         Orden de Trabajo
       </button>
       <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('contract', this)"
         id="tab-contract">
-        <span class="tab-icon">✍️</span>
+        <span class="tab-icon"><i class="fa-solid fa-pen-nib"></i>️</span>
         Contrato (Contract)
       </button>
     </div>
@@ -84,7 +84,7 @@
         <!-- ── SECCIÓN A: Datos del Aplicante ── -->
         <div class="form-section">
           <div class="section-header blue-grad">
-            <div class="section-icon">👤</div>
+            <div class="section-icon"><i class="fa-solid fa-user"></i></div>
             <div>
               <h2>Sección A — Datos del Aplicante</h2>
               <p>Información personal del solicitante principal</p>
@@ -114,7 +114,7 @@
                 <div class="input-with-icon">
                   <input type="password" id="ca_ssn" name="ssn" placeholder="XXX-XX-XXXX" maxlength="11"
                     autocomplete="off" required />
-                  <button type="button" class="eye-toggle" onclick="togglePassword('ca_ssn')">👁️</button>
+                  <button type="button" class="eye-toggle" onclick="togglePassword('ca_ssn')"><i class="fa-solid fa-eye"></i>️</button>
                 </div>
               </div>
 
@@ -145,7 +145,7 @@
               </div>
 
               <!-- Contacto -->
-              <div class="sub-section-title">📞 Contacto</div>
+              <div class="sub-section-title"><i class="fa-solid fa-phone"></i> Contacto</div>
 
               <div class="field-group">
                 <label for="ca_phone">Número de Teléfono (Phone Number) <span class="required">*</span></label>
@@ -197,7 +197,7 @@
                 <div class="pill-group">
                   <input type="radio" name="ca_housingStatus" id="ca_hs_rent" value="Rentado" required> <label
                     for="ca_hs_rent">🔑 Rentado</label>
-                  <input type="radio" name="ca_housingStatus" id="ca_hs_paid" value="Pagado"> <label for="ca_hs_paid">✅
+                  <input type="radio" name="ca_housingStatus" id="ca_hs_paid" value="Pagado"> <label for="ca_hs_paid"><i class="fa-solid fa-check text-green-500"></i>
                     Pagado</label>
                   <input type="radio" name="ca_housingStatus" id="ca_hs_mortgage" value="Hipotecado"> <label
                     for="ca_hs_mortgage">🏦 Hipotecado</label>
@@ -254,7 +254,7 @@
                 <div class="input-with-icon">
                   <input type="password" id="cb_ssn" name="co_ssn" placeholder="XXX-XX-XXXX" maxlength="11"
                     autocomplete="off" />
-                  <button type="button" class="eye-toggle" onclick="togglePassword('cb_ssn')">👁️</button>
+                  <button type="button" class="eye-toggle" onclick="togglePassword('cb_ssn')"><i class="fa-solid fa-eye"></i>️</button>
                 </div>
               </div>
 
@@ -281,7 +281,7 @@
                 <input type="text" id="cb_dl_exp" name="co_dlExpDate" class="date-mask" placeholder="MM/DD/YYYY" />
               </div>
 
-              <div class="sub-section-title">📞 Contacto</div>
+              <div class="sub-section-title"><i class="fa-solid fa-phone"></i> Contacto</div>
 
               <div class="field-group">
                 <label for="cb_phone">Número de Teléfono</label>
@@ -330,7 +330,7 @@
                 <div class="pill-group">
                   <input type="radio" name="cb_housingStatus" id="cb_hs_rent" value="Rentado"> <label
                     for="cb_hs_rent">🔑 Rentado</label>
-                  <input type="radio" name="cb_housingStatus" id="cb_hs_paid" value="Pagado"> <label for="cb_hs_paid">✅
+                  <input type="radio" name="cb_housingStatus" id="cb_hs_paid" value="Pagado"> <label for="cb_hs_paid"><i class="fa-solid fa-check text-green-500"></i>
                     Pagado</label>
                   <input type="radio" name="cb_housingStatus" id="cb_hs_mortgage" value="Hipotecado"> <label
                     for="cb_hs_mortgage">🏦 Hipotecado</label>
@@ -355,7 +355,7 @@
             <div class="field-grid">
 
               <!-- Aplicante -->
-              <div class="sub-section-title">👤 Aplicante Principal</div>
+              <div class="sub-section-title"><i class="fa-solid fa-user"></i> Aplicante Principal</div>
 
               <div class="field-group span-full">
                 <label>Tipo de Ingreso <span class="required">*</span></label>
@@ -480,7 +480,7 @@
         <!-- ── SECCIÓN D: Representante de Ventas ── -->
         <div class="form-section">
           <div class="section-header navy-grad">
-            <div class="section-icon">🤝</div>
+            <div class="section-icon"><i class="fa-solid fa-handshake"></i></div>
             <div>
               <h2>Representante de Ventas</h2>
               <p>Información del vendedor o agencia</p>
@@ -510,7 +510,7 @@
         <!-- ── SECCIÓN D: Firma ── -->
         <div class="form-section">
           <div class="section-header">
-            <div class="section-icon">✍️</div>
+            <div class="section-icon"><i class="fa-solid fa-pen-nib"></i>️</div>
             <div>
               <h2>Firma de los Aplicantes</h2>
               <p>Por favor firme dentro de los recuadros correspondientes</p>
@@ -597,7 +597,7 @@
         <!-- ── SECCIÓN A: Datos del Comprador ── -->
         <div class="form-section">
           <div class="section-header blue-grad">
-            <div class="section-icon">🧾</div>
+            <div class="section-icon"><i class="fa-solid fa-receipt"></i></div>
             <div>
               <h2>Sección A — Datos del Comprador</h2>
               <p>Propuesta / Contrato de Servicio — Work Order</p>
@@ -704,7 +704,7 @@
               <div class="equipment-item">
                 <input type="checkbox" id="eq_other" name="equipment_other" value="Other"
                   onchange="toggleOtherEquipment(this)">
-                <label for="eq_other">📝 Otro (Other)</label>
+                <label for="eq_other"><i class="fa-solid fa-file-pen"></i> Otro (Other)</label>
               </div>
             </div>
 
@@ -760,9 +760,9 @@
               <div class="field-group span-full">
                 <label>Conexión para Refrigerador (Ice Maker hook-up) <span class="required">*</span></label>
                 <div class="pill-group">
-                  <input type="radio" name="wo_icemaker" id="wo_ice_yes" value="Yes" required> <label for="wo_ice_yes">✅
+                  <input type="radio" name="wo_icemaker" id="wo_ice_yes" value="Yes" required> <label for="wo_ice_yes"><i class="fa-solid fa-check text-green-500"></i>
                     Sí</label>
-                  <input type="radio" name="wo_icemaker" id="wo_ice_no" value="No"> <label for="wo_ice_no">❌ No</label>
+                  <input type="radio" name="wo_icemaker" id="wo_ice_no" value="No"> <label for="wo_ice_no"><i class="fa-solid fa-xmark text-red-500"></i> No</label>
                 </div>
               </div>
 
@@ -888,7 +888,7 @@
                 <div class="input-with-icon">
                   <input type="password" id="wo_cc_number" name="creditCardNumber" placeholder="•••• •••• •••• ••••"
                     maxlength="19" autocomplete="off" required />
-                  <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_number')">👁️</button>
+                  <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_number')"><i class="fa-solid fa-eye"></i>️</button>
                 </div>
               </div>
 
@@ -902,7 +902,7 @@
                 <div class="input-with-icon">
                   <input type="password" id="wo_cc_cvv" name="creditCardCVV" placeholder="•••" maxlength="4"
                     autocomplete="off" required />
-                  <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_cvv')">👁️</button>
+                  <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_cvv')"><i class="fa-solid fa-eye"></i>️</button>
                 </div>
               </div>
 
@@ -913,7 +913,7 @@
         <!-- ── SECCIÓN E: Representante de Ventas ── -->
         <div class="form-section">
           <div class="section-header navy-grad">
-            <div class="section-icon">🤝</div>
+            <div class="section-icon"><i class="fa-solid fa-handshake"></i></div>
             <div>
               <h2>Representante de Ventas</h2>
               <p>Información del vendedor o agencia</p>
@@ -943,7 +943,7 @@
         <!-- ── SECCIÓN F: Firmas ── -->
         <div class="form-section">
           <div class="section-header">
-            <div class="section-icon">✍️</div>
+            <div class="section-icon"><i class="fa-solid fa-pen-nib"></i>️</div>
             <div>
               <h2>Firmas del Contrato</h2>
               <p>Por favor firme dentro de los recuadros correspondientes</p>
@@ -1034,7 +1034,7 @@
     <form id="form-contract" novalidate>
       <div class="form-section">
         <div class="section-header navy-grad">
-          <div class="section-icon">📄</div>
+          <div class="section-icon"><i class="fa-solid fa-file-lines"></i></div>
           <div>
             <h2>Contrato de Instalación</h2>
             <p>Verifique los datos del cliente y términos del servicio</p>
@@ -1060,7 +1060,7 @@
 
       <div class="form-section">
         <div class="section-header green-grad">
-          <div class="section-icon">✍️</div>
+          <div class="section-icon"><i class="fa-solid fa-pen-nib"></i>️</div>
           <div>
             <h2>Aceptación y Firmas</h2>
             <p>Firme para validar el contrato legalmente</p>
@@ -1113,7 +1113,7 @@
 
   <!-- ── Toast ── -->
   <div id="toast" role="alert" aria-live="polite">
-    <span class="toast-icon" id="toast-icon">✅</span>
+    <span class="toast-icon" id="toast-icon"><i class="fa-solid fa-check text-green-500"></i></span>
     <span id="toast-message">Procesando documento…</span>
   </div>
 

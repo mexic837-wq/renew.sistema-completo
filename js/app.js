@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('theme', newTheme);
       applyTheme(newTheme);
       window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
-      showToast(newTheme === 'dark' ? '🌙 Modo Oscuro' : '☀️ Modo Claro', 'success');
+      showToast(newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : '☀️ Modo Claro', 'success');
     }
   });
 

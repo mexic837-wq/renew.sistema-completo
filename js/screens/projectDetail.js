@@ -1049,13 +1049,13 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                <div style="background:${recColor}20;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${recColor}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                </div>
-               <span style="color:${recColor};font-size:0.85rem;font-weight:700;">Recibo Completado ✓</span>
-                               <button onclick="${val && (val.startsWith('http') || val.startsWith('/api/')) ? `window.open('${val}','_blank')` : `window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')`}" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">${val && (val.startsWith('http') || val.startsWith('/api/')) ? '👁️ Ver PDF' : 'Ver'}</button>
+               <span style="color:${recColor};font-size:0.85rem;font-weight:700;">Recibo Completado <i class="fa-solid fa-check text-green-500"></i></span>
+                               <button onclick="${val && (val.startsWith('http') || val.startsWith('/api/')) ? `window.open('${val}','_blank')` : `window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')`}" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:bold;cursor:pointer;">${val && (val.startsWith('http') || val.startsWith('/api/')) ? '<i class="fa-solid fa-eye"></i>️ Ver PDF' : 'Ver'}</button>
              </div>
            ` : `
              <button type="button" onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${deal.id}')"
                style="width:100%;background:${recColor};color:white;border:none;padding:14px;border-radius:12px;font-size:0.9rem;font-weight:800;cursor:pointer;box-shadow:0 4px 16px ${recColor}30;" ${disabledAttr}>
-               ${isRepresentante ? '💵 Llenar Recibo de Pago – Representante de Ventas' : '🔧 Llenar Recibo de Instalación – Técnico'}
+               ${isRepresentante ? '<i class="fa-solid fa-money-bill"></i> Llenar Recibo de Pago – Representante de Ventas' : '<i class="fa-solid fa-wrench"></i> Llenar Recibo de Instalación – Técnico'}
              </button>
            `}
            <input type="hidden" id="df_${c.id}" value="${val || ''}"/>
@@ -1223,7 +1223,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         if (!deal.direccion || deal.direccion.trim() === '') missingFields.push('Dirección');
 
         if (missingFields.length > 0) {
-          showToast(`⚠️ Faltan datos del cliente: ${missingFields.join(', ')}. Completa el perfil antes de avanzar.`, 'error');
+          showToast(`<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Faltan datos del cliente: ${missingFields.join(', ')}. Completa el perfil antes de avanzar.`, 'error');
           return;
         }
 
@@ -1339,7 +1339,7 @@ window._abrirReciboModal = async function(campoId, tipo, dealId) {
           <h3 style="font-size:1.1rem;font-weight:900;color:var(--text-primary);margin:0;">${isVendedor ? 'Recibo de Pago' : 'Recibo de Instalación'}</h3>
           <p style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 0;">${clienteNom}</p>
         </div>
-        <button id="btn-close-recibo" style="background:var(--surface-alt);border:none;border-radius:12px;width:40px;height:40px;color:var(--text-primary);cursor:pointer;">✕</button>
+        <button id="btn-close-recibo" style="background:var(--surface-alt);border:none;border-radius:12px;width:40px;height:40px;color:var(--text-primary);cursor:pointer;"><i class="fa-solid fa-xmark text-red-500"></i></button>
       </div>
       <div id="recibo-form-fields" style="flex:1;overflow-y:auto;padding:24px;background:var(--bg-main);">
         ${isVendedor ? _buildFormVendedor(vendedorNom, tecnicoNom, clienteNom) : _buildFormTecnico(tecnicoNom, clienteNom)}
@@ -1367,7 +1367,7 @@ window._abrirReciboModal = async function(campoId, tipo, dealId) {
         <input type="number" placeholder="1" value="1" style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
         <input type="text" placeholder="Modelo" style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
         <input type="number" placeholder="0.00" style="background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text-primary);font-size:0.82rem;width:100%;"/>
-        <button type="button" onclick="this.closest('.item-row').remove()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;font-weight:900;">✕</button>`;
+        <button type="button" onclick="this.closest('.item-row').remove()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;font-weight:900;"><i class="fa-solid fa-xmark text-red-500"></i></button>`;
       container.appendChild(row);
     };
   }
@@ -1446,11 +1446,11 @@ window._abrirReciboModal = async function(campoId, tipo, dealId) {
       const wrap = document.getElementById('recibo-wrap-' + campoId);
       if (wrap) {
         const b = wrap.querySelector('button');
-        if (b) { b.disabled = true; b.textContent = '✓ Recibo Completado'; b.style.opacity = '0.7'; }
+        if (b) { b.disabled = true; b.textContent = '<i class="fa-solid fa-check text-green-500"></i> Recibo Completado'; b.style.opacity = '0.7'; }
       }
 
       const { showToast } = await import('../components/toast.js');
-      showToast('Recibo guardado ✓', 'success');
+      showToast('Recibo guardado <i class="fa-solid fa-check text-green-500"></i>', 'success');
       modal.remove();
       
     } catch(err) {
@@ -1593,7 +1593,7 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
         }
         // Completado badge
         if (['Completado', 'Completado en Formulario Externo'].includes(val)) {
-            return `<span style="background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}30;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:800;">✓ Completado</span>`;
+            return `<span style="background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}30;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:800;"><i class="fa-solid fa-check text-green-500"></i> Completado</span>`;
         }
         return `<span style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">${val}</span>`;
     };
@@ -1656,7 +1656,7 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
             <button onclick="document.getElementById('fase-preview-drawer').remove()"
                     style="width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-alt,#f1f5f9);
                            color:var(--text-secondary,#64748b);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;">
-                ✕
+                <i class="fa-solid fa-xmark text-red-500"></i>
             </button>
         </div>
 

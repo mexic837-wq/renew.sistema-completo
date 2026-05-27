@@ -58,7 +58,7 @@ export async function renderMiMapa() {
         </div>
         <div id="np-details" style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:12px; display:flex; flex-direction:column; gap:3px;"></div>
         <div style="margin-bottom:10px;">
-          <label style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); display:block; margin-bottom:5px;">📝 Nota de campo</label>
+          <label style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); display:block; margin-bottom:5px;"><i class="fa-solid fa-file-pen"></i> Nota de campo</label>
           <textarea id="np-nota" rows="2" placeholder="Escribe una nota sobre esta visita o cliente..." style="
             width:100%; padding:9px 11px;
             border:1.5px solid var(--border); border-radius:10px;
@@ -379,8 +379,8 @@ export async function renderMiMapa() {
       <span style="font-size:10px; background:${statusCfg.color}20; color:${statusCfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${statusCfg.color}40;">${statusCfg.label}</span>
     `;
     document.getElementById('np-details').innerHTML = `
-      <span>📞 ${c.telefono || 'Sin teléfono'}</span>
-      <span>📍 ${c.direccion || 'Sin dirección'}</span>
+      <span><i class="fa-solid fa-phone"></i> ${c.telefono || 'Sin teléfono'}</span>
+      <span><i class="fa-solid fa-location-dot"></i> ${c.direccion || 'Sin dirección'}</span>
     `;
 
     const textarea = document.getElementById('np-nota');
@@ -415,13 +415,13 @@ export async function renderMiMapa() {
         // Persist to DB
         await saveGranular('clientes_maestro', [{ ...c, nota_mapa: nota }]);
         statusEl.style.color = '#22c55e';
-        statusEl.textContent = '✓ Nota guardada correctamente';
+        statusEl.textContent = '<i class="fa-solid fa-check text-green-500"></i> Nota guardada correctamente';
         freshSave.innerHTML = '<i class="fas fa-save"></i> Guardar Nota';
         freshSave.disabled = false;
         setTimeout(() => { statusEl.textContent = ''; }, 3000);
       } catch(err) {
         statusEl.style.color = '#ef4444';
-        statusEl.textContent = '✗ Error al guardar. Intenta de nuevo.';
+        statusEl.textContent = '<i class="fa-solid fa-xmark text-red-500"></i> Error al guardar. Intenta de nuevo.';
         freshSave.innerHTML = '<i class="fas fa-save"></i> Guardar Nota';
         freshSave.disabled = false;
       }

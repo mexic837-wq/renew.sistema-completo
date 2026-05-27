@@ -210,7 +210,7 @@ async function handleWorkOrderSubmit(e) {
   // Estado de carga
   btn.classList.add('loading');
   span.textContent = 'Enviando…';
-  showToast('Procesando Orden de Trabajo… 📡', 'success', 10000);
+  showToast('Procesando Orden de Trabajo… <i class="fa-solid fa-satellite-dish"></i>', 'success', 10000);
 
   const payload = collectWorkOrderData(form);
 
@@ -240,7 +240,7 @@ async function handleWorkOrderSubmit(e) {
       window.URL.revokeObjectURL(url);
       a.remove();
 
-      showToast('¡Orden de Trabajo enviada y generada exitosamente! ✅', 'success');
+      showToast('¡Orden de Trabajo enviada y generada exitosamente! <i class="fa-solid fa-check text-green-500"></i>', 'success');
       resetWorkOrderForm(form);
       
       const pdfUrl = response.headers.get('X-Document-Url');

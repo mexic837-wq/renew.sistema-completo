@@ -180,7 +180,7 @@ function _renderRecibosList(recibos, isAdmin) {
         <div style="flex:1;min-width:0;">
           <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1px;margin:0;">${label}</p>
           <p style="font-size:0.95rem;font-weight:800;color:var(--text-primary);margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.cliente_nombre || '—'}</p>
-          ${isAdmin && r.trabajador_nombre ? `<p style="font-size:0.7rem;color:var(--text-muted);margin:0;">👤 ${r.trabajador_nombre}</p>` : ''}
+          ${isAdmin && r.trabajador_nombre ? `<p style="font-size:0.7rem;color:var(--text-muted);margin:0;"><i class="fa-solid fa-user"></i> ${r.trabajador_nombre}</p>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <p style="font-size:1.05rem;font-weight:900;color:${color};margin:0;">${monto}</p>
@@ -278,7 +278,7 @@ function _showReciboModal(r) {
       <div style="margin-top:16px;">
         <a href="${r.pdf_url}" target="_blank"
           style="display:block;width:100%;text-align:center;background:${color};color:#fff;border:none;padding:14px;border-radius:14px;font-size:0.9rem;font-weight:800;text-decoration:none;box-shadow:0 4px 16px ${color}40;">
-          📄 Ver PDF Original
+          <i class="fa-solid fa-file-lines"></i> Ver PDF Original
         </a>
       </div>
     `;

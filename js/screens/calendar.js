@@ -351,7 +351,7 @@ export async function renderMiCalendario() {
             for (let y = yearStart; y <= yearEnd; y++) {
                 mappedBirthdays.push({
                     id: 'bday_' + w.id + '_' + y,
-                    title: '🎂 Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
+                    title: '<i class="fa-solid fa-cake-candles"></i> Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
                     start: `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
                     allDay: true,
                     backgroundColor: '#ec4899',

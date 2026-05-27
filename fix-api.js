@@ -18,4 +18,4 @@ if (firstIdx === -1) {
 const clean = content.slice(0, firstIdx + marker.length) + '\n';
 
 fs.writeFileSync('./js/api.js', clean);
-console.log('✅ api.js cleaned. Lines:', clean.split('\n').length);
+console.log('<i class="fa-solid fa-check text-green-500"></i> api.js cleaned. Lines:', clean.split('\n').length);

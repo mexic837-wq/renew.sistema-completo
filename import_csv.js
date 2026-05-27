@@ -55,7 +55,7 @@ function parseCSV(text) {
 console.log('Buscando archivo en:', CSV_PATH);
 
 if (!fs.existsSync(CSV_PATH)) {
-    console.error('❌ No se encontró el archivo contacts - contacts.csv');
+    console.error('<i class="fa-solid fa-xmark text-red-500"></i> No se encontró el archivo contacts - contacts.csv');
     process.exit(1);
 }
 
@@ -63,7 +63,7 @@ const csvData = fs.readFileSync(CSV_PATH, 'utf8');
 const rows = parseCSV(csvData);
 
 if (rows.length < 2) {
-    console.error('❌ El archivo está vacío o no tiene datos.');
+    console.error('<i class="fa-solid fa-xmark text-red-500"></i> El archivo está vacío o no tiene datos.');
     process.exit(1);
 }
 
@@ -99,7 +99,7 @@ for (let i = 1; i < rows.length; i++) {
     });
 }
 
-console.log(`✅ Se parsearon ${leads.length} leads. Ejemplo:`, leads[0]);
+console.log(`<i class="fa-solid fa-check text-green-500"></i> Se parsearon ${leads.length} leads. Ejemplo:`, leads[0]);
 
 const sendLeads = async () => {
     const payload = JSON.stringify({ leads });
@@ -119,14 +119,14 @@ const sendLeads = async () => {
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
             if (res.statusCode >= 200 && res.statusCode < 300) {
-                console.log('🚀 Inyección exitosa.');
+                console.log('<i class="fa-solid fa-rocket"></i> Inyección exitosa.');
             } else {
-                console.error('❌ Error:', data);
+                console.error('<i class="fa-solid fa-xmark text-red-500"></i> Error:', data);
             }
         });
     });
 
-    req.on('error', e => console.error('❌ Error de conexión:', e.message));
+    req.on('error', e => console.error('<i class="fa-solid fa-xmark text-red-500"></i> Error de conexión:', e.message));
     req.write(payload);
     req.end();
 };

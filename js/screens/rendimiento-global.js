@@ -42,7 +42,7 @@ export async function renderRendimientoGlobal() {
                             <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hasta</label>
                             <input id="date-to" type="date" onchange="window.applyCustomRange()" class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-tealAccent/40">
                         </div>
-                        <button onclick="window.clearCustomRange()" class="ml-2 text-[10px] font-black text-gray-400 hover:text-red-400 transition-all uppercase tracking-widest">✕ Limpiar</button>
+                        <button onclick="window.clearCustomRange()" class="ml-2 text-[10px] font-black text-gray-400 hover:text-red-400 transition-all uppercase tracking-widest"><i class="fa-solid fa-xmark text-red-500"></i> Limpiar</button>
                     </div>
                 </div>
             </div>
@@ -474,9 +474,9 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const label = document.getElementById('kpi-tasa-label');
     if (bar) bar.style.width = `${Math.min(closeRate, 100)}%`;
     if (icon) {
-        if      (closeRate >= 60) { icon.textContent = '🚀'; }
-        else if (closeRate >= 30) { icon.textContent = '📈'; }
-        else if (closeRate >  0)  { icon.textContent = '📉'; }
+        if      (closeRate >= 60) { icon.textContent = '<i class="fa-solid fa-rocket"></i>'; }
+        else if (closeRate >= 30) { icon.textContent = '<i class="fa-solid fa-chart-line"></i>'; }
+        else if (closeRate >  0)  { icon.textContent = '<i class="fa-solid fa-chart-line-down"></i>'; }
         else                      { icon.textContent = '—';  }
     }
     if (label) {

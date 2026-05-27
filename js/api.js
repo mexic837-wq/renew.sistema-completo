@@ -278,7 +278,7 @@ export async function initDB() {
         
         const banner = document.createElement('div');
         banner.style.cssText = `position:fixed; top:0; left:0; right:0; z-index:9999999; background: #f59e0b; color:#000; padding:10px; text-align:center;`;
-        banner.innerHTML = `⚠️ Sin conexión a la nube. Los datos podrían estar desactualizados.`;
+        banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Sin conexión a la nube. Los datos podrían estar desactualizados.`;
         document.body.appendChild(banner);
       }
     }
@@ -418,8 +418,8 @@ export async function saveGranular(table, records) {
                    tipo = 'tecnico';
                }
 
-               console.log(`[API-SYNC] 📎 Recibo detectado en campo "${campo.etiqueta}" (fase: ${fase ? fase.nombre : 'N/A'}, tipo: ${tipo}). Sincronizando...`);
-               _syncReceiptToClient(r.proyecto_id, r.valor, label, tipo).catch(e => console.error('[API-SYNC] ❌ Error sincronizando recibo:', e));
+               console.log(`[API-SYNC] <i class="fa-solid fa-paperclip"></i> Recibo detectado en campo "${campo.etiqueta}" (fase: ${fase ? fase.nombre : 'N/A'}, tipo: ${tipo}). Sincronizando...`);
+               _syncReceiptToClient(r.proyecto_id, r.valor, label, tipo).catch(e => console.error('[API-SYNC] <i class="fa-solid fa-xmark text-red-500"></i> Error sincronizando recibo:', e));
              }
            }
         }
@@ -444,11 +444,11 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
   try {
     const db = getDB();
     const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(projectId));
-    if (!proy) { console.warn('[API-SYNC] ⚠️ Proyecto no encontrado:', projectId); return; }
-    if (!proy.cliente_id) { console.warn('[API-SYNC] ⚠️ Proyecto sin cliente_id:', projectId); return; }
+    if (!proy) { console.warn('[API-SYNC] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Proyecto no encontrado:', projectId); return; }
+    if (!proy.cliente_id) { console.warn('[API-SYNC] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Proyecto sin cliente_id:', projectId); return; }
     
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id));
-    if (!cli) { console.warn('[API-SYNC] ⚠️ Cliente no encontrado:', proy.cliente_id); return; }
+    if (!cli) { console.warn('[API-SYNC] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Cliente no encontrado:', proy.cliente_id); return; }
     
     const isVendedor = forceTipo ? (forceTipo === 'vendedor') : label.includes('vendedor');
 
@@ -468,7 +468,7 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     }
     updatedCli.adjuntos_oficina = adjuntos;
     await saveGranular('clientes_maestro', [updatedCli]);
-    console.log('[API-SYNC] ✅ adjuntos_oficina actualizado en cliente', cli.id);
+    console.log('[API-SYNC] <i class="fa-solid fa-check text-green-500"></i> adjuntos_oficina actualizado en cliente', cli.id);
 
     // ── 2. Crear registro en Recibos_Pagos para "Mis Recibos" ──
     // El vendedor es el responsable_id (primero de la lista) del proyecto; el técnico es tecnico_id
@@ -499,9 +499,9 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     }
 
     await saveGranular('recibos_pagos', [newRecibo]);
-    console.log(`[API-SYNC] ✅ Recibo guardado (ID: ${reciboId}) para proyecto ${projectId}, trabajador: ${trabajadorNom}`);
+    console.log(`[API-SYNC] <i class="fa-solid fa-check text-green-500"></i> Recibo guardado (ID: ${reciboId}) para proyecto ${projectId}, trabajador: ${trabajadorNom}`);
   } catch(syncErr) {
-    console.error('[API-SYNC] ❌ Error en _syncReceiptToClient:', syncErr);
+    console.error('[API-SYNC] <i class="fa-solid fa-xmark text-red-500"></i> Error en _syncReceiptToClient:', syncErr);
   }
 }
 
@@ -872,7 +872,7 @@ export async function uploadAcademia(fileVideo, fileMiniatura, onProgress) {
             const completeData = await completeRes.json();
             if (!completeData.success) throw new Error(completeData.error || 'Fallo al completar el ensamblado');
             videoUrl = completeData.url;
-            report(90, 'Video subido correctamente ✓');
+            report(90, 'Video subido correctamente <i class="fa-solid fa-check text-green-500"></i>');
         }
 
         // ─── 2. MINIATURA via proxy estándar ─────────────────────────
@@ -884,10 +884,10 @@ export async function uploadAcademia(fileVideo, fileMiniatura, onProgress) {
             const res  = await fetch(`${API_BASE}/upload-academia`, { method: 'POST', body: formData });
             const data = await res.json();
             if (data.success) miniaturaUrl = data.miniaturaUrl;
-            report(97, 'Miniatura subida ✓');
+            report(97, 'Miniatura subida <i class="fa-solid fa-check text-green-500"></i>');
         }
 
-        report(100, 'Subida completa ✓');
+        report(100, 'Subida completa <i class="fa-solid fa-check text-green-500"></i>');
         return { videoUrl, miniaturaUrl };
 
     } catch (e) {
@@ -1723,7 +1723,7 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   
   if (orphanedRespuestas.length > 0) {
     console.warn(
-      `[⚠️ RESPUESTAS HUÉRFANAS] Estas respuestas tienen campo_id que NO existe en Admin_Campos_Formulario y serán ignoradas:`,
+      `[<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> RESPUESTAS HUÉRFANAS] Estas respuestas tienen campo_id que NO existe en Admin_Campos_Formulario y serán ignoradas:`,
       orphanedRespuestas.map(r => ({
         id: r.id,
         campo_id: r.campo_id,
@@ -1828,9 +1828,9 @@ export function syncKanbanActivity({ proyecto_id, evento, campo_etiqueta, archiv
   if (!p.actividad) p.actividad = [];
   
   // Custom label for inventory
-  let displayLabel = `✅ ${fase_nombre}`;
-  if (evento === 'ARCHIVO_SUBIDO') displayLabel = `📎 ${campo_etiqueta}`;
-  if (evento === 'RETIRO_MATERIAL') displayLabel = `📦 Material: ${archivo_nombre}`;
+  let displayLabel = `<i class="fa-solid fa-check text-green-500"></i> ${fase_nombre}`;
+  if (evento === 'ARCHIVO_SUBIDO') displayLabel = `<i class="fa-solid fa-paperclip"></i> ${campo_etiqueta}`;
+  if (evento === 'RETIRO_MATERIAL') displayLabel = `<i class="fa-solid fa-box"></i> Material: ${archivo_nombre}`;
 
   p.actividad.unshift({
     tipo: evento,
@@ -2180,7 +2180,7 @@ export async function updateProyectoFase(proyectoId, nuevaFaseId, extraContext =
       }
 
     } catch (webhookErr) {
-      console.warn('[Webhooks n8n] ⚠️ Error en proceso asíncrono:', webhookErr.message);
+      console.warn('[Webhooks n8n] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Error en proceso asíncrono:', webhookErr.message);
     }
   })();
 

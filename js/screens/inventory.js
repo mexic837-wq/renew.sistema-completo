@@ -26,7 +26,7 @@ export function renderInventoryTech(dealId = null) {
           <i class="fa-solid fa-arrow-left text-xl"></i>
         </button>
         <div class="dash-greeting" style="text-align: center;">
-          <h1 style="margin: 0; font-size: 1.2rem;">Inventario 📦</h1>
+          <h1 style="margin: 0; font-size: 1.2rem;">Inventario <i class="fa-solid fa-box"></i></h1>
           <p style="color:var(--text-muted); font-size:0.75rem; margin-top:2px;">Registro de Uso Técnico</p>
         </div>
       </div>

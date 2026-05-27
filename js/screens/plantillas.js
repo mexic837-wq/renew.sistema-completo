@@ -139,7 +139,7 @@ export function renderPlantillas() {
 
     <!-- Hero -->
     <div class="plant-hero">
-        <div class="plant-hero-icon">📋</div>
+        <div class="plant-hero-icon"><i class="fa-solid fa-clipboard"></i></div>
         <h1>Plantillas</h1>
         <p>Selecciona el documento</p>
     </div>
@@ -147,7 +147,7 @@ export function renderPlantillas() {
     <!-- Category Filters -->
     <div class="plant-cats">
         <button class="plant-cat-btn active" data-cat="all">Todos</button>
-        <button class="plant-cat-btn" data-cat="water">🌊 Water</button>
+        <button class="plant-cat-btn" data-cat="water"><i class="fa-solid fa-water"></i> Water</button>
         <button class="plant-cat-btn" data-cat="solar">☀️ Solar</button>
         <button class="plant-cat-btn" data-cat="home">🏠 Home</button>
     </div>
@@ -174,7 +174,7 @@ export function renderPlantillas() {
             title:  'Orden de Trabajo',
             sub:    'Renew Water',
             desc:   'Registro de instalación y detalles técnicos del proyecto.',
-            icon:   '🔧',
+            icon:   '<i class="fa-solid fa-wrench"></i>',
             iconBg: 'rgba(20,184,166,.12)',
             iconColor: '#14b8a6',
             cat:    'water',
@@ -185,7 +185,7 @@ export function renderPlantillas() {
             title:  'Contrato',
             sub:    'Renew Water',
             desc:   'Contrato oficial de servicio con firma digital del cliente.',
-            icon:   '✍️',
+            icon:   '<i class="fa-solid fa-pen-nib"></i>️',
             iconBg: 'rgba(245,158,11,.12)',
             iconColor: '#f59e0b',
             cat:    'water',
@@ -197,7 +197,7 @@ export function renderPlantillas() {
             title:  'Confirmación de Instalación',
             sub:    'Renew Water',
             desc:   'Documento de cierre que confirma equipos instalados, observaciones y firma del cliente.',
-            icon:   '✅',
+            icon:   '<i class="fa-solid fa-check text-green-500"></i>',
             iconBg: 'rgba(14,165,233,.12)',
             iconColor: '#0ea5e9',
             cat:    'water',

@@ -178,7 +178,7 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log('');
   console.log('  ╔══════════════════════════════════════════╗');
-  console.log(`  ║   🌊 RENEW WATER — API Contratos         ║`);
+  console.log(`  ║   <i class="fa-solid fa-water"></i> RENEW WATER — API Contratos         ║`);
   console.log(`  ║   Servidor activo en el puerto ${PORT}       ║`);
   console.log('  ╚══════════════════════════════════════════╝');
   console.log('');

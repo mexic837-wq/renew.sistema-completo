@@ -569,11 +569,11 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
                     .update({ adjuntos_oficina: adjuntos })
                     .eq('id', proy.cliente_id);
                 
-                console.log(`[PDF-SYNC] ✅ Perfil del cliente ${proy.cliente_id} actualizado con recibo_url y detalles.`);
+                console.log(`[PDF-SYNC] <i class="fa-solid fa-check text-green-500"></i> Perfil del cliente ${proy.cliente_id} actualizado con recibo_url y detalles.`);
             }
         }
 
-        console.log(`[PDF] ✅ Generación exitosa: ${cleanUrl}`);
+        console.log(`[PDF] <i class="fa-solid fa-check text-green-500"></i> Generación exitosa: ${cleanUrl}`);
         res.json({ success: true, url: cleanUrl });
 
     } catch (error) {
@@ -696,7 +696,7 @@ app.post('/api/db', async (req, res) => {
                     fecha_inicio:       item.fecha_inicio       || null,
                     google_place_id:    item.google_place_id    || null,
                 };
-                // ⚠️ CRITICAL: Only include adjuntos_oficina and contrato_water_url if they
+                // <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> CRITICAL: Only include adjuntos_oficina and contrato_water_url if they
                 // have a real value in the LOCAL cache. If they are null/empty locally, we
                 // skip them (undefined) so Supabase does NOT overwrite values previously
                 // written directly by the server (race condition prevention).
@@ -1245,7 +1245,7 @@ async function uploadBase64ToSupabase(base64Data, pathPrefix) {
 // ── APLICACIÓN DE CRÉDITO PDF ENDPOINT ──
 app.post('/api/generar-pdf', async (req, res) => {
   const rawData = req.body.datos || req.body;
-  console.log(`[/api/generar-pdf] 🚀 Petición Recibida | Proyecto: ${rawData.proyectoId} | Cliente: ${rawData.aplicante?.nombreCompleto || 'Sin nombre'}`);
+  console.log(`[/api/generar-pdf] <i class="fa-solid fa-rocket"></i> Petición Recibida | Proyecto: ${rawData.proyectoId} | Cliente: ${rawData.aplicante?.nombreCompleto || 'Sin nombre'}`);
   try {
     const moldePath = path.join(__dirname, 'FORMULARIO-RENEW-WATER-main', 'molde_credito_v9.pdf');
 
@@ -1381,7 +1381,7 @@ app.post('/api/generar-pdf', async (req, res) => {
         
         // 2. Actualizar en Supabase (buscando el cliente_id primero)
         if (datos.proyectoId) {
-            console.log(`[PDF-SYNC] 🔍 Buscando vinculación para Proyecto: "${datos.proyectoId}"`);
+            console.log(`[PDF-SYNC] <i class="fa-solid fa-magnifying-glass"></i> Buscando vinculación para Proyecto: "${datos.proyectoId}"`);
             try {
                 // Búsqueda Flexible de Proyecto
                 let { data: proy, error: pErr } = await supabase.from('proyectos_dinamicos').select('id, cliente_id').eq('id', datos.proyectoId).single();
@@ -1414,7 +1414,7 @@ app.post('/api/generar-pdf', async (req, res) => {
 
                 if (proy && proy.cliente_id) {
                     const cliId = proy.cliente_id;
-                    console.log(`[PDF-SYNC] ✅ Proyecto hallado: ${proy.id}. Cliente: ${cliId}. Actualizando...`);
+                    console.log(`[PDF-SYNC] <i class="fa-solid fa-check text-green-500"></i> Proyecto hallado: ${proy.id}. Cliente: ${cliId}. Actualizando...`);
                     
                     const { data: cli, error: cErr } = await supabase.from('clientes_maestro').select('adjuntos_oficina').eq('id', cliId).single();
                     if (cErr) {
@@ -1444,7 +1444,7 @@ app.post('/api/generar-pdf', async (req, res) => {
                         console.log(`[SUCCESS] Base de datos actualizada para cliente ${cliId}.`);
                     }
                 } else {
-                    console.warn(`[PDF-SYNC] ⚠️ No se pudo vincular el documento. El ID "${datos.proyectoId}" no fue encontrado en Supabase.`);
+                    console.warn(`[PDF-SYNC] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> No se pudo vincular el documento. El ID "${datos.proyectoId}" no fue encontrado en Supabase.`);
                 }
             } catch (syncErr) {
                 console.error(`[CRITICAL SYNC ERROR]`, syncErr);
@@ -1586,7 +1586,7 @@ app.post('/api/generar-orden', async (req, res) => {
             // 2. Actualizar la base de datos (resolviendo cliente_id)
             const proyId = rawData.proyectoId;
             if (proyId) {
-                console.log(`[PDF-SYNC-ORDEN] 🔍 Buscando vinculación para Proyecto: "${proyId}"`);
+                console.log(`[PDF-SYNC-ORDEN] <i class="fa-solid fa-magnifying-glass"></i> Buscando vinculación para Proyecto: "${proyId}"`);
                 try {
                     // Búsqueda Flexible
                     let { data: proy, error: pErr } = await supabase.from('proyectos_dinamicos').select('id, cliente_id').eq('id', proyId).single();
@@ -1645,7 +1645,7 @@ app.post('/api/generar-orden', async (req, res) => {
                             console.log(`[SUCCESS] Cliente ${cliId} vinculado correctamente con Orden de Trabajo: ${finalUrl}`);
                         }
                     } else {
-                        console.warn(`[PDF-SYNC-ORDEN] ⚠️ No se pudo vincular el documento. El ID "${proyId}" no fue encontrado en Supabase.`);
+                        console.warn(`[PDF-SYNC-ORDEN] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> No se pudo vincular el documento. El ID "${proyId}" no fue encontrado en Supabase.`);
                     }
                 } catch (syncErr) {
                     console.error(`[CRITICAL SYNC ERROR ORDEN]`, syncErr);
@@ -2126,7 +2126,7 @@ const subirArchivo = async (file, folder) => {
             .from('archivos_renew')
             .getPublicUrl(fileName);
 
-        console.log('[STORAGE] ✅ Upload successful:', publicUrl);
+        console.log('[STORAGE] <i class="fa-solid fa-check text-green-500"></i> Upload successful:', publicUrl);
         return publicUrl;
     } catch (err) {
         console.error(`[STORAGE CRITICAL ERROR]:`, err.message);
@@ -2151,16 +2151,16 @@ async function initStorage() {
         if (!exists) {
             console.log('[STORAGE] El bucket "archivos_renew" no existe. Creándolo...');
             const { error: cErr } = await supabaseStorage.storage.createBucket('archivos_renew', bucketOptions);
-            if (cErr) console.error('[STORAGE] ❌ Error creando bucket:', cErr.message);
-            else console.log('[STORAGE] ✅ Bucket "archivos_renew" creado exitosamente.');
+            if (cErr) console.error('[STORAGE] <i class="fa-solid fa-xmark text-red-500"></i> Error creando bucket:', cErr.message);
+            else console.log('[STORAGE] <i class="fa-solid fa-check text-green-500"></i> Bucket "archivos_renew" creado exitosamente.');
         } else {
             console.log('[STORAGE] El bucket "archivos_renew" ya existe. Asegurando configuración de 500MB...');
             const { error: uErr } = await supabaseStorage.storage.updateBucket('archivos_renew', bucketOptions);
             if (uErr) {
-                console.warn('[STORAGE] ⚠️ No se pudo actualizar el límite del bucket desde el código:', uErr.message);
+                console.warn('[STORAGE] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> No se pudo actualizar el límite del bucket desde el código:', uErr.message);
                 console.warn('[STORAGE] 💡 POR FAVOR: Ve a tu panel de Supabase -> Storage -> Buckets -> archivos_renew -> Settings y cambia "File size limit" a 500MB manualmente.');
             }
-            else console.log('[STORAGE] ✅ Configuración de bucket (500MB) verificada con éxito.');
+            else console.log('[STORAGE] <i class="fa-solid fa-check text-green-500"></i> Configuración de bucket (500MB) verificada con éxito.');
         }
     } catch (err) {
         console.error('[STORAGE] Error inicializando bucket:', err.message);
@@ -2312,7 +2312,7 @@ app.post('/api/complete-upload', async (req, res) => {
             try { if (fs.readdirSync(uploadPath).length === 0) fs.rmdirSync(uploadPath); } catch (_) {}
 
             const publicUrl = `https://renewgroup.site/uploads/${folder}/${finalFileName}`;
-            console.log(`[LOCAL STORAGE] ✅ Upload exitoso a VPS: ${publicUrl}`);
+            console.log(`[LOCAL STORAGE] <i class="fa-solid fa-check text-green-500"></i> Upload exitoso a VPS: ${publicUrl}`);
             return res.json({ success: true, url: publicUrl });
         }
 
@@ -2327,7 +2327,7 @@ app.post('/api/complete-upload', async (req, res) => {
         try { if (fs.readdirSync(uploadPath).length === 0) fs.rmdirSync(uploadPath); } catch (_) {}
 
         const publicUrl = `${PUBLIC_BASE_URL}/uploads/${folder}/${finalFileName}`;
-        console.log(`[STORAGE] ✅ Upload exitoso (local): ${publicUrl}`);
+        console.log(`[STORAGE] <i class="fa-solid fa-check text-green-500"></i> Upload exitoso (local): ${publicUrl}`);
         res.json({ success: true, url: publicUrl });
 
     } catch (e) {
@@ -2385,10 +2385,10 @@ app.use('/api/storage-proxy', async (req, res) => {
 });
 
 app.listen(port, '0.0.0.0', () => {
-    console.log(`\n🚀 RENEW CLOUD SERVER RUNNING`);
-    console.log(`📡 Admin Panel : http://localhost:${port}/admin.html`);
-    console.log(`📱 Mobile App  : http://localhost:${port}/index.html`);
-    console.log(`🔐 Database    : SUPABASE (Live Connection)`);
-    console.log(`🖼️  Public URL  : ${PUBLIC_BASE_URL}\n`);
+    console.log(`\n<i class="fa-solid fa-rocket"></i> RENEW CLOUD SERVER RUNNING`);
+    console.log(`<i class="fa-solid fa-satellite-dish"></i> Admin Panel : http://localhost:${port}/admin.html`);
+    console.log(`<i class="fa-solid fa-mobile"></i> Mobile App  : http://localhost:${port}/index.html`);
+    console.log(`<i class="fa-solid fa-lock"></i> Database    : SUPABASE (Live Connection)`);
+    console.log(`<i class="fa-solid fa-image"></i>️  Public URL  : ${PUBLIC_BASE_URL}\n`);
 });
 

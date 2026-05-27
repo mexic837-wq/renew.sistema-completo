@@ -205,7 +205,7 @@ async function handleCreditFormSubmit(e) {
   btn.classList.add('loading');
   btn.disabled = true;
   span.textContent = 'Procesando...';
-  showToast('Procesando Aplicación de Crédito… 📡', 'success', 10000);
+  showToast('Procesando Aplicación de Crédito… <i class="fa-solid fa-satellite-dish"></i>', 'success', 10000);
 
   const payload = collectCreditFormData(form);
 
@@ -235,7 +235,7 @@ async function handleCreditFormSubmit(e) {
       window.URL.revokeObjectURL(url);
       a.remove();
 
-      showToast('¡Aplicación de Crédito enviada y generada exitosamente! ✅', 'success');
+      showToast('¡Aplicación de Crédito enviada y generada exitosamente! <i class="fa-solid fa-check text-green-500"></i>', 'success');
       resetCreditForm(form);
       
       const pdfUrl = response.headers.get('X-Document-Url');
