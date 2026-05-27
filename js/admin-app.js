@@ -1,4 +1,4 @@
-﻿import {
+import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,
   createAdminPipeline, createAdminFase, createAdminCampo, updateAdminCampo,
@@ -669,7 +669,7 @@ window.setAdminLang = (lang) => {
     localStorage.setItem('app_lang', lang);
     window.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
     updateAdminLangUI();
-    showToast(lang === 'es' ? 'ðŸ‡ªðŸ‡¸ Idioma: Español' : 'ðŸ‡ºðŸ‡¸ Language: English', 'success');
+    showToast(lang === 'es' ? '🇪🇸 Idioma: Español' : '🇺🇸 Language: English', 'success');
 };
 
 window.addEventListener('db_synced', async () => {
@@ -1132,7 +1132,7 @@ function bindGlobalEvents() {
         document.documentElement.classList.remove('dark');
       }
       localStorage.setItem('theme', newTheme);
-      showToast(newTheme === 'dark' ? 'ðŸŒ™ Modo Oscuro' : 'â˜€ï¸ Modo Claro', 'success');
+      showToast(newTheme === 'dark' ? '🌙 Modo Oscuro' : 'â˜€ï¸ Modo Claro', 'success');
       return;
     }
 
@@ -3550,7 +3550,7 @@ window.renderView = async function renderView() {
                             </div>
                             <div style="margin-top:8px; font-size:12px; color:#555; display:flex; flex-direction:column; gap:4px;">
                               <span style="color:#00dfbf; font-weight:700;">ðŸ§‘â€ðŸ’¼ Rep: ${repName}</span>
-                              <span>ðŸ“ž ${c.telefono || 'Sin teléfono'}</span>
+                              <span>📞 ${c.telefono || 'Sin teléfono'}</span>
                               <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">ðŸ“ ${c.direccion}</span>
                               ${c.nota_mapa ? `<div style="margin-top:6px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; border-left:3px solid #00dfbf;">
                                 <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">ðŸ“ Nota del vendedor</div>
@@ -9112,7 +9112,7 @@ async function renderListaPreciosAdmin() {
   const activePdf = pdfMap[activeRank] || '#';
 
   const rowsHtml = allProducts.map(p => {
-    const foto = p.foto_url || 'https://via.placeholder.com/100?text=ðŸ’§';
+    const foto = p.foto_url || 'https://via.placeholder.com/100?text=💧';
     return `
     <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
       <td class="px-6 py-4 whitespace-nowrap">
