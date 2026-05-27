@@ -5353,12 +5353,27 @@ function crearPasoMarketingHTML(index) {
 function renderCalendario() {
   UI.canvas.innerHTML = `
     <div class="mt-6 bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-premium transition-all animate-fadeIn">
+      <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
+          <input type="checkbox" id="chk-admin-eventos" checked style="width: 16px; height: 16px; accent-color: var(--primary);">
+          <span>Eventos</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
+          <input type="checkbox" id="chk-admin-cumple" checked style="width: 16px; height: 16px; accent-color: #ec4899;">
+          <span>Cumpleaños</span>
+        </label>
+      </div>
       <div id="calendar-master" class="min-h-[750px]"></div>
     </div>
   `;
 
   const calendarEl = document.getElementById('calendar-master');
   if (!calendarEl) return;
+
+  const chkEventos = document.getElementById('chk-admin-eventos');
+  const chkCumple = document.getElementById('chk-admin-cumple');
+  if (chkEventos) chkEventos.addEventListener('change', () => { if (window.currentCalendar) window.currentCalendar.refetchEvents(); });
+  if (chkCumple) chkCumple.addEventListener('change', () => { if (window.currentCalendar) window.currentCalendar.refetchEvents(); });
 
   const API_KEY = 'AIzaSyAmuV4zmbor3JagjOJn2WKUcRA0SUGsh3U';
   const CALENDAR_ID = 'c_0300a26935f9ffbe1772a440f9070fa95f02f551157e69bd0d71092777559943@group.calendar.google.com';
@@ -5371,6 +5386,8 @@ function renderCalendario() {
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,listDay'
     },
+    eventDisplay: 'block',
+    displayEventTime: false,
     eventSources: [
       // Single source of truth: Supabase (n8n also syncs to Google Calendar in background)
       function(fetchInfo, successCallback, failureCallback) {
@@ -5415,6 +5432,7 @@ function renderCalendario() {
              });
 
              // Add birthdays
+             const mappedBirthdays = [];
              const workers = db.Usuarios || [];
              const yearStart = parseInt(fetchInfo.startStr.substring(0, 4)) || new Date().getFullYear();
              const yearEnd = parseInt(fetchInfo.endStr.substring(0, 4)) || new Date().getFullYear();
@@ -5433,7 +5451,7 @@ function renderCalendario() {
                  if (!month || !day) return;
 
                  for (let y = yearStart; y <= yearEnd; y++) {
-                     mapped.push({
+                     mappedBirthdays.push({
                          id: 'bday_' + w.id + '_' + y,
                          title: '🎂 Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
                          start: `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
@@ -5445,7 +5463,19 @@ function renderCalendario() {
                  }
              });
 
-             successCallback(mapped);
+             // Filter based on checkboxes
+             const showEventos = document.getElementById('chk-admin-eventos') ? document.getElementById('chk-admin-eventos').checked : true;
+             const showCumple = document.getElementById('chk-admin-cumple') ? document.getElementById('chk-admin-cumple').checked : true;
+             
+             let finalEvents = [];
+             if (showEventos) {
+                 finalEvents = finalEvents.concat(mapped);
+             }
+             if (showCumple) {
+                 finalEvents = finalEvents.concat(mappedBirthdays);
+             }
+
+             successCallback(finalEvents);
         } catch (error) {
              console.error("Error fetching events", error);
              failureCallback(error);
@@ -5574,7 +5604,8 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
   // Set in View Mode if event exists
   if (event && event.title) {
-    titleEl.innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de InstalaciÃ³n'}`;
+    const props = event.extendedProps || {};
+    titleEl.innerHTML = props.isBirthday ? `<i class="fa-solid fa-cake-candles"></i> ${event.title}` : `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de Instalación'}`;
     btnGuardar.classList.add('hidden');
 
     // Show delete button and store event ID
@@ -5615,37 +5646,64 @@ window.mostrarDetalleEventoCalendario = async function(event) {
       document.getElementById('ev-direccion').readOnly = true;
     }
 
-    document.getElementById('ev-descripcion').value = props.description || 'Sin detalles adicionales.';
-    document.getElementById('ev-descripcion').readOnly = true;
-
-    if (props.adjunto_url) {
-      document.getElementById('ev-adjunto').classList.add('hidden');
-      const linkAdj = document.getElementById('ev-adjunto-link');
-      linkAdj.classList.remove('hidden');
-      linkAdj.href = props.adjunto_url;
+    if (props.isBirthday) {
+        document.getElementById('ev-descripcion').value = 'Cumpleaños generado desde el perfil del usuario.';
+        document.getElementById('ev-descripcion').readOnly = true;
+        
+        document.getElementById('ev-adjunto').parentElement.classList.add('hidden');
+        document.getElementById('ev-colaboradores').parentElement.classList.add('hidden');
+        document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
+        const colorContainer = document.querySelector('input[name="ev-color"]')?.closest('.flex');
+        if (colorContainer) colorContainer.parentElement.classList.add('hidden');
+        const deptoContainer = document.querySelector('input[name="ev-depto"]')?.closest('.grid');
+        if (deptoContainer) deptoContainer.parentElement.classList.add('hidden');
+        
+        const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
+        if (btnEliminar) {
+            if (window.currentUser && (window.currentUser.rol === 'Administrador' || window.currentUser.rol === 'Gerente' || window.currentUser.rol === 'Master Admin')) {
+                btnEliminar.classList.remove('hidden');
+            } else {
+                btnEliminar.classList.add('hidden');
+            }
+        }
     } else {
-      document.getElementById('ev-adjunto').parentElement.classList.add('hidden');
-    }
+        // Restore hidden containers
+        const colorContainer = document.querySelector('input[name="ev-color"]')?.closest('.flex');
+        if (colorContainer) colorContainer.parentElement.classList.remove('hidden');
+        const deptoContainer = document.querySelector('input[name="ev-depto"]')?.closest('.grid');
+        if (deptoContainer) deptoContainer.parentElement.classList.remove('hidden');
 
+        document.getElementById('ev-descripcion').value = props.description || 'Sin detalles adicionales.';
+        document.getElementById('ev-descripcion').readOnly = true;
 
-    document.getElementById('ev-colaboradores').parentElement.classList.add('hidden');
+        if (props.adjunto_url) {
+          document.getElementById('ev-adjunto').classList.add('hidden');
+          const linkAdj = document.getElementById('ev-adjunto-link');
+          linkAdj.classList.remove('hidden');
+          linkAdj.href = props.adjunto_url;
+        } else {
+          document.getElementById('ev-adjunto').parentElement.classList.add('hidden');
+        }
 
-    if (props.color) {
-      const colorRadio = document.querySelector(`input[name="ev-color"][value="${props.color}"]`);
-      if (colorRadio) colorRadio.checked = true;
-    }
+        document.getElementById('ev-colaboradores').parentElement.classList.add('hidden');
 
-    document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
+        if (props.color) {
+          const colorRadio = document.querySelector(`input[name="ev-color"][value="${props.color}"]`);
+          if (colorRadio) colorRadio.checked = true;
+        }
 
-    document.querySelectorAll('input[name="ev-depto"]').forEach(r => {
-        r.checked = false;
-        r.disabled = true;
-    });
-    if (props.departamentos && Array.isArray(props.departamentos)) {
-        props.departamentos.forEach(d => {
-            const dChk = document.querySelector(`input[name="ev-depto"][value="${d}"]`);
-            if (dChk) dChk.checked = true;
+        document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
+
+        document.querySelectorAll('input[name="ev-depto"]').forEach(r => {
+            r.checked = false;
+            r.disabled = true;
         });
+        if (props.departamentos && Array.isArray(props.departamentos)) {
+            props.departamentos.forEach(d => {
+                const dChk = document.querySelector(`input[name="ev-depto"][value="${d}"]`);
+                if (dChk) dChk.checked = true;
+            });
+        }
     }
 
   } else {
@@ -5832,22 +5890,35 @@ window.eliminarEventoCalendarioAdmin = async function() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-    // Remove from local DB
-    const db = getDB();
-    if (db.calendario_eventos) {
-      const idx = db.calendario_eventos.findIndex(e => String(e.id) === String(eventId));
-      if (idx !== -1) db.calendario_eventos.splice(idx, 1);
-    }
+    if (eventId.startsWith('bday_')) {
+        const workerId = eventId.split('_')[1];
+        const db = getDB();
+        const worker = (db.Usuarios || []).find(w => String(w.id) === String(workerId));
+        if (worker) {
+            worker.dob = '';
+            // Make sure saveGranular is available, or use saveDB
+            const { saveGranular } = await import('./api.js');
+            await saveGranular('Usuarios', [worker]);
+        }
+        showToast('Cumpleaños eliminado (fecha de nacimiento borrada)', 'success');
+    } else {
+        // Remove from local DB
+        const db = getDB();
+        if (db.calendario_eventos) {
+          const idx = db.calendario_eventos.findIndex(e => String(e.id) === String(eventId));
+          if (idx !== -1) db.calendario_eventos.splice(idx, 1);
+        }
 
-    // Sync deletion to Supabase
-    try {
-      const { deleteRecord } = await import('./api.js');
-      await deleteRecord('calendario_eventos', eventId);
-    } catch(syncErr) {
-      console.warn('[CAL] Could not sync deletion to Supabase:', syncErr.message);
-    }
+        // Sync deletion to Supabase
+        try {
+          const { deleteRecord } = await import('./api.js');
+          await deleteRecord('calendario_eventos', eventId);
+        } catch(syncErr) {
+          console.warn('[CAL] Could not sync deletion to Supabase:', syncErr.message);
+        }
 
-    showToast('Evento eliminado correctamente.', 'success');
+        showToast('Evento eliminado correctamente.', 'success');
+    }
 
     // Close modal and re-render calendar
     closeModals();

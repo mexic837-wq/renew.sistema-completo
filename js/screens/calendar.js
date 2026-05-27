@@ -187,6 +187,16 @@ export async function renderMiCalendario() {
           font-weight: 900 !important;
         }
       </style>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
+          <input type="checkbox" id="chk-filter-eventos" checked style="width: 16px; height: 16px; accent-color: var(--primary);">
+          <span>Eventos</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
+          <input type="checkbox" id="chk-filter-cumple" checked style="width: 16px; height: 16px; accent-color: #ec4899;">
+          <span>Cumpleaños</span>
+        </label>
+      </div>
       <div id="mi-calendario-container" style="background: var(--surface); border-radius: 32px; padding: 12px; box-shadow: var(--shadow-xl); min-height: 550px; border: 1px solid var(--border);"></div>
     </div>
     <button id="fab-add-event" style="position: fixed; bottom: 85px; right: 20px; width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: #000; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; box-shadow: 0 8px 30px rgba(0,223,191,0.5); z-index: 100; transition: transform 0.2s;">
@@ -220,6 +230,11 @@ export async function renderMiCalendario() {
 
   const calendarEl = document.getElementById('mi-calendario-container');
   if (!calendarEl) return;
+
+  const chkEventos = document.getElementById('chk-filter-eventos');
+  const chkCumple = document.getElementById('chk-filter-cumple');
+  if (chkEventos) chkEventos.addEventListener('change', () => { if (window.currentCalendarApp) window.currentCalendarApp.refetchEvents(); });
+  if (chkCumple) chkCumple.addEventListener('change', () => { if (window.currentCalendarApp) window.currentCalendarApp.refetchEvents(); });
 
   // Forzar estilos para sobrescribir los pills de FullCalendar
   if (!document.getElementById('calendar-custom-styles')) {
@@ -311,6 +326,7 @@ export async function renderMiCalendario() {
         });
 
         // Add birthdays
+        const mappedBirthdays = [];
         const workers = db.Usuarios || [];
         const yearStart = parseInt(fetchInfo.startStr.substring(0, 4)) || new Date().getFullYear();
         const yearEnd = parseInt(fetchInfo.endStr.substring(0, 4)) || new Date().getFullYear();
@@ -329,7 +345,7 @@ export async function renderMiCalendario() {
             if (!month || !day) return;
 
             for (let y = yearStart; y <= yearEnd; y++) {
-                mapped.push({
+                mappedBirthdays.push({
                     id: 'bday_' + w.id + '_' + y,
                     title: '🎂 Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
                     start: `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
@@ -341,7 +357,19 @@ export async function renderMiCalendario() {
             }
         });
 
-        successCallback(mapped);
+        // Filter based on checkboxes
+        const showEventos = document.getElementById('chk-filter-eventos') ? document.getElementById('chk-filter-eventos').checked : true;
+        const showCumple = document.getElementById('chk-filter-cumple') ? document.getElementById('chk-filter-cumple').checked : true;
+        
+        let finalEvents = [];
+        if (showEventos) {
+            finalEvents = finalEvents.concat(mapped);
+        }
+        if (showCumple) {
+            finalEvents = finalEvents.concat(mappedBirthdays);
+        }
+
+        successCallback(finalEvents);
       } catch (error) { failureCallback(error); }
     },
     eventContent: function(arg) {
@@ -398,7 +426,6 @@ export async function renderMiCalendario() {
     },
     eventClick: function(info) {
       info.jsEvent.preventDefault();
-      if (info.event.extendedProps.isBirthday) return;
       mostrarDetalleEventoCalendario(info.event);
     },
     height: 'auto',
@@ -407,6 +434,7 @@ export async function renderMiCalendario() {
   });
 
   calendar.render();
+  window.currentCalendarApp = calendar;
 
   function mostrarDetalleEventoCalendario(event) {
     const modal = document.getElementById('modal-calendar-event');
@@ -476,10 +504,10 @@ export async function renderMiCalendario() {
 
     if (event && event.title) {
         // VIEW MODE
-        titleEl.innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${event.title}`;
+        const props = event.extendedProps || {};
+        titleEl.innerHTML = props.isBirthday ? `<i class="fa-solid fa-cake-candles"></i> ${event.title}` : `<i class="fa-solid fa-calendar-check"></i> ${event.title}`;
         btnGuardar.classList.add('nuclear-hidden');
 
-        const props = event.extendedProps || {};
         currentEventId = props.originalId || event.id;
         
         btnEditar.classList.remove('hidden');
@@ -512,17 +540,38 @@ export async function renderMiCalendario() {
             document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
         }
 
-        document.getElementById('ev-descripcion').value = props.description || '';
-        document.getElementById('ev-descripcion').readOnly = true;
+        if (props.isBirthday) {
+            document.getElementById('ev-descripcion').value = 'Cumpleaños generado desde el perfil del usuario.';
+            document.getElementById('ev-descripcion').readOnly = true;
+            document.querySelectorAll('.ev-color-picker').forEach(el => el.classList.add('hidden'));
+            const colorContainer = document.querySelector('.ev-color-picker')?.parentElement;
+            if(colorContainer) colorContainer.classList.add('hidden');
+            const deptoContainer = document.querySelector('input[name="ev-depto"]')?.closest('.mb-6');
+            if(deptoContainer) deptoContainer.classList.add('hidden');
+            if(colabWrapper) colabWrapper.classList.add('nuclear-hidden');
+            
+            btnEditar.classList.add('hidden');
+            if (user && (user.rol === 'Administrador' || user.rol === 'Gerente' || user.rol === 'Master Admin')) {
+                btnEliminar.classList.remove('hidden');
+            } else {
+                btnEliminar.classList.add('hidden');
+            }
+        } else {
+            // Restore hidden containers
+            const colorContainer = document.querySelector('.ev-color-picker')?.parentElement;
+            if(colorContainer) colorContainer.classList.remove('hidden');
+            const deptoContainer = document.querySelector('input[name="ev-depto"]')?.closest('.mb-6');
+            if(deptoContainer) deptoContainer.classList.remove('hidden');
 
-        
-        
+            document.getElementById('ev-descripcion').value = props.description || '';
+            document.getElementById('ev-descripcion').readOnly = true;
 
-        if (props.color) {
-            const legacyToNew = { 'Verde': 'Cita', 'Amarillo': 'Hold', 'Naranja': 'Hold', 'Azul': 'Reagendar', 'Rojo': 'Cancelado' };
-            const mappedVal = legacyToNew[props.color] || props.color;
-            const colorRadio = document.querySelector(`input[name="ev-color"][value="${mappedVal}"]`);
-            if (colorRadio) colorRadio.checked = true;
+            if (props.color) {
+                const legacyToNew = { 'Verde': 'Cita', 'Amarillo': 'Hold', 'Naranja': 'Hold', 'Azul': 'Reagendar', 'Rojo': 'Cancelado' };
+                const mappedVal = legacyToNew[props.color] || props.color;
+                const colorRadio = document.querySelector(`input[name="ev-color"][value="${mappedVal}"]`);
+                if (colorRadio) colorRadio.checked = true;
+            }
         }
         document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = true);
 
@@ -784,12 +833,25 @@ export async function renderMiCalendario() {
           btnEliminar.disabled = true;
           btnEliminar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
           
-          await deleteRecord('calendario_eventos', currentEventId);
-          
-          const db = getDB();
-          db.calendario_eventos = (db.calendario_eventos || []).filter(ev => ev.id !== currentEventId);
-          
-          import('../components/toast.js').then(m => m.showToast('Evento eliminado', 'success'));
+          if (currentEventId.startsWith('bday_')) {
+              // Delete birthday
+              const workerId = currentEventId.split('_')[1];
+              const db = getDB();
+              const worker = (db.Usuarios || []).find(w => String(w.id) === String(workerId));
+              if (worker) {
+                  worker.dob = ''; // Clear DOB
+                  await saveGranular('Usuarios', [worker]);
+              }
+              import('../components/toast.js').then(m => m.showToast('Cumpleaños eliminado', 'success'));
+          } else {
+              // Delete normal event
+              await deleteRecord('calendario_eventos', currentEventId);
+              
+              const db = getDB();
+              db.calendario_eventos = (db.calendario_eventos || []).filter(ev => ev.id !== currentEventId);
+              
+              import('../components/toast.js').then(m => m.showToast('Evento eliminado', 'success'));
+          }
           
           // Close modal
           const modal = document.getElementById('modal-calendar-event');
