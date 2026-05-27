@@ -434,49 +434,17 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         return d >= rangeStart && d <= rangeEnd;
     };
 
-    // ── 4. KPIs based on CLIENT macro_estado (Kanban Ciclo de Vida) ──────────
-    // Prospecto   → macro_estado = 'Prospecto' or undefined
-    // Presentación→ macro_estado = 'En Proceso'
-    // Venta       → macro_estado = 'Cliente'
-    // Cancelado   → macro_estado = 'Cancelado'
+    // ── 4. KPIs based on Projects ──────────
 
-    // For time-filtered KPIs we check client registration date vs range
-    const inRangeClient = (c) => {
-        if (!rangeStart || !rangeEnd) return true;
-        const raw = c.fecha_registro || c.fecha || c.created_at;
-        if (!raw) return true; // no date = include always
-        let str = String(raw).trim();
-        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
-        if (!str.includes('T')) str += 'T12:00:00';
-        const d = new Date(str);
-        if (isNaN(d.getTime())) return true;
-        return d >= rangeStart && d <= rangeEnd;
-    };
-
-    // Clients "converted to Cliente" may have fecha_conversion, fecha_cierre, or just created date
-    const inRangeVenta = (c) => {
-        if (!rangeStart || !rangeEnd) return true;
-        const raw = c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at;
-        if (!raw) return true;
-        let str = String(raw).trim();
-        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
-        if (!str.includes('T')) str += 'T12:00:00';
-        const d = new Date(str);
-        if (isNaN(d.getTime())) return true;
-        return d >= rangeStart && d <= rangeEnd;
-    };
+    const openProjects   = ecoProjects.filter(p => !isProjectFinished(p, db));
+    const closedProjects = ecoProjects.filter(p => isProjectFinished(p, db));
 
     const totalProspectos     = ecoClients.length; // all clients in the ecosystem
-    const totalPresentaciones = ecoClients.filter(c => c.macro_estado === 'En Proceso').length;
-    const totalVentas         = ecoClients.filter(c => c.macro_estado === 'Cliente').length;
+    const totalPresentaciones = openProjects.length;
+    const totalVentas         = closedProjects.length;
 
-    // Time-filtered versions for chart (use all, not just range, for KPI totals)
-    const closedSales   = ecoClients.filter(c => c.macro_estado === 'Cliente' && inRangeVenta(c));
-    const openProjects  = ecoClients.filter(c => c.macro_estado === 'En Proceso' && inRangeClient(c));
-    const filteredProspectos = ecoClients.filter(c => inRangeClient(c));
-
-    // Tasa de Rendimiento = clientes / total (prospecto + en proceso + cliente)
-    const totalActivos  = ecoClients.filter(c => c.macro_estado !== 'Cancelado').length;
+    // Tasa de Rendimiento
+    const totalActivos  = totalProspectos;
     const closeRate     = totalActivos > 0 ? Math.round((totalVentas / totalActivos) * 100) : 0;
 
     // ── Percentages ───────────────────────────────────────────────────────────
@@ -520,15 +488,13 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     // ── 5. Leaderboard ────────────────────────────────────────────────────────
     const leaderboardData = relevantVendors.map(v => {
-        // Clients assigned to this vendor in the current ecosystem (directly or via a project)
-        const vClients = ecoClients.filter(c => {
-            if (String(c.vendedor_asignado_id) === String(v.id)) return true;
-            const p = ecoProjects.find(proj => String(proj.cliente_id) === String(c.id));
-            if (p && String(p.responsable_id) === String(v.id)) return true;
-            return false;
+        const vProjects = ecoProjects.filter(p => {
+            if (String(p.responsable_id) === String(v.id)) return true;
+            const cli = ecoClients.find(c => String(c.id) === String(p.cliente_id));
+            return cli && String(cli.vendedor_asignado_id) === String(v.id);
         });
-        const vTotal   = vClients.length;
-        const vClosed  = vClients.filter(c => c.macro_estado === 'Cliente').length;
+        const vTotal   = vProjects.length;
+        const vClosed  = vProjects.filter(p => isProjectFinished(p, db)).length;
         const vCloseRate = vTotal > 0 ? Math.round((vClosed / vTotal) * 100) : 0;
         return {
             ...v,
@@ -587,7 +553,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         return isNaN(d.getTime()) ? null : d;
     };
 
-    // Plot helpers now operate on clients (not projects)
+    // Plot helpers 
     const plotByDay = (start, end, clientsArr, openArr, closedArr) => {
         const msDay = 86400000;
         const days  = Math.round((end - start) / msDay) + 1;
@@ -605,14 +571,14 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dp[idx]++;
         });
-        openArr.forEach(c => {
-            const d = safeDate(c.fecha_registro || c.fecha || c.created_at);
+        openArr.forEach(p => {
+            const d = safeDate(getProjectDate(p, db));
             if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dpr[idx]++;
         });
-        closedArr.forEach(c => {
-            const d = safeDate(c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at);
+        closedArr.forEach(p => {
+            const d = safeDate(getProjectDate(p, db));
             if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dv[idx]++;
@@ -626,15 +592,15 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const dpr = Array(12).fill(0);
         const dv  = Array(12).fill(0);
         clientsArr.forEach(c => { const d = safeDate(c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dp[d.getMonth()]++; });
-        openArr.forEach(c => { const d = safeDate(c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dpr[d.getMonth()]++; });
-        closedArr.forEach(c => { const d = safeDate(c.fecha_conversion||c.fecha_cierre||c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dv[d.getMonth()]++; });
+        openArr.forEach(p => { const d = safeDate(getProjectDate(p, db)); if(d && d.getFullYear()===year) dpr[d.getMonth()]++; });
+        closedArr.forEach(p => { const d = safeDate(getProjectDate(p, db)); if(d && d.getFullYear()===year) dv[d.getMonth()]++; });
         return { lbs: mn, dp, dpr, dv };
     };
 
-    // Clients grouped by macro_estado for chart
+    // Data grouped for chart
     const chartClientes     = ecoClients;
-    const chartEnProceso    = ecoClients.filter(c => c.macro_estado === 'En Proceso');
-    const chartVentas       = ecoClients.filter(c => c.macro_estado === 'Cliente');
+    const chartEnProceso    = openProjects;
+    const chartVentas       = closedProjects;
 
     if (range === 'weekly') {
         const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);

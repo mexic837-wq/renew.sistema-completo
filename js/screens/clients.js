@@ -221,21 +221,31 @@ async function _renderList(user, container) {
 
     // Ownership check for non-CC, non-admin users
     if (!isHighRole) {
+      // Find all projects for this client
+      const clientProjects = allProys.filter(p => p.cliente_id === c.id);
+      
       // For technicians, only show if they are assigned AND the phase corresponds to them
-      const isTecnicoOfProject = allProys.some(p => {
-        if (p.cliente_id !== c.id || p.tecnico_id !== user.id) return false;
+      const isTecnicoOfProject = clientProjects.some(p => {
+        if (p.tecnico_id !== user.id) return false;
         const fase = allFases.find(f => f.id === p.fase_id);
         if (!fase) return false;
         const rolFase = (fase.rol_encargado || '').toLowerCase();
         return rolFase.includes('tecnico') || rolFase.includes('técnico');
       });
 
-      if (c.creador_id !== user.id &&
-        c.responsable_id !== user.id &&
-        c.vendedor_asignado_id !== user.id &&
-        c.origen_id !== user.id &&
-        c.tecnico_id !== user.id &&
-        !isTecnicoOfProject) return false;
+      // Check if user is responsable or creator of any project
+      const isProjectOwner = clientProjects.some(p => 
+        String(p.responsable_id) === String(user.id) || 
+        String(p.creador_id) === String(user.id)
+      );
+
+      if (String(c.creador_id) !== String(user.id) &&
+        String(c.responsable_id) !== String(user.id) &&
+        String(c.vendedor_asignado_id) !== String(user.id) &&
+        String(c.origen_id) !== String(user.id) &&
+        String(c.tecnico_id) !== String(user.id) &&
+        !isTecnicoOfProject && 
+        !isProjectOwner) return false;
     }
 
     // Pipeline filter (applies to everyone including admins) — multi-dept aware
