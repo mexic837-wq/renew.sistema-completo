@@ -2151,7 +2151,7 @@ async function _checkAndPromoteVendor(db, userId) {
     { min: 73, role: 'analista' },
     { min: 53, role: 'vendedor' },
     { min: 33, role: 'junior' },
-    { min: 18, role: 'iniciante' },
+    { min: 25, role: 'iniciante' },
     { min: 3,  role: 'subvendedor' },
     { min: 0,  role: 'novato' }
   ];

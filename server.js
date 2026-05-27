@@ -254,6 +254,7 @@ app.get('/api/db', async (req, res) => {
                 medida:          p.medida         || null,
                 boton:           p.boton          || null,
                 color:           p.color          || null,
+                precio_iniciante: p.precio_iniciante ?? null,
                 precio_junior:   p.precio_junior   ?? null,
                 precio_subvende: p.precio_subvende  ?? null,
                 precio_vendedor: p.precio_vendedor  ?? null,

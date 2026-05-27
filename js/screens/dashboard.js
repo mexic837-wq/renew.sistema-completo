@@ -9,23 +9,24 @@ import { t } from '../i18n.js';
 
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-//  RANK SYSTEM â€” Renew Water (add more pipelines later)
+// ════════════════════════════════════════════════════════════
+//  RANK SYSTEM — Renew Water (add more pipelines later)
 //  type: 'total' = all-time accumulated sales
 //        'monthly' = current month only (resets 1st of each month)
 //
-//  âš ï¸  UPDATE: Change 'minSales' for Iniciante and Junior once
+//  ⚠️   UPDATE: Change 'minSales' for Iniciante and Junior once
 //               the user provides those numbers.
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ════════════════════════════════════════════════════════════
 // ========================================================================================================================
 const RANK_CONFIG = {
   'Renew Water': [
-    { name: 'Novato por Referidos', emoji: '\uD83C\uDF31', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total' },
-    { name: 'Subvendedor',         emoji: '\uD83E\uDD49', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total' },
-    { name: 'Iniciante',           emoji: '\uD83E\uDD48', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 18, type: 'total' },
-    { name: 'Junior',              emoji: '\uD83E\uDD47', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total' },
-    { name: 'Representante de Ventas',            emoji: '\u26A1',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total' },
-    { name: 'Distribuidor (Analista)', emoji: '\uD83D\uDC51', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total' },
-    { name: 'Distribuidor Mensual', emoji: '\u2B50',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly' },
+    { name: 'Novato por Referidos', emoji: '🌱', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total' },
+    { name: 'Subvendedor',         emoji: '🥉', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total' },
+    { name: 'Iniciante',           emoji: '🥈', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total' },
+    { name: 'Junior',              emoji: '🥇', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total' },
+    { name: 'Representante de Ventas',            emoji: '⚡',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total' },
+    { name: 'Distribuidor (Analista)', emoji: '👑', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total' },
+    { name: 'Distribuidor Mensual', emoji: '⭐',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly' },
   ]
 };
 

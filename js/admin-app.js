@@ -8963,6 +8963,7 @@ async function renderListaPreciosAdmin() {
   // Rank Tab Logic (Instead of Sede)
   const activeRank = state.activePreciosRank || 'vendedor';
   const rankLabels = {
+    'iniciante': 'Iniciante',
     'junior': 'Junior',
     'subvende': 'Novato',
     'vendedor': 'Vendedor',
@@ -9122,6 +9123,7 @@ window.editListaPrecio = function(id) {
     setVal('inp-prec-codigo', p.codigo);
     setVal('inp-prec-cat', p.categoria);
     setVal('sel-prec-sede', p.sede || 'todas');
+    setVal('inp-prec-iniciante', p.precio_iniciante);
     setVal('inp-prec-junior', p.precio_junior);
     setVal('inp-prec-subvende', p.precio_subvende);
     setVal('inp-prec-vendedor', p.precio_vendedor);
@@ -9278,6 +9280,7 @@ window.savePrecio = async function() {
         medida: document.getElementById('inp-prec-medida').value,
         boton: document.getElementById('inp-prec-boton').value,
         color: document.getElementById('inp-prec-color').value,
+        precio_iniciante: parseFloat(document.getElementById('inp-prec-iniciante').value) || 0,
         precio_junior: parseFloat(document.getElementById('inp-prec-junior').value) || 0,
         precio_subvende: parseFloat(document.getElementById('inp-prec-subvende').value) || 0,
         precio_vendedor: parseFloat(document.getElementById('inp-prec-vendedor').value) || 0,

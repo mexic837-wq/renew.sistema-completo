@@ -277,8 +277,9 @@ export async function renderListaPrecios() {
         { label: 'Oficina',   key: 'precio_oficina' },
         { label: 'Analista',  key: 'precio_analista' },
         { label: 'Representante',  key: 'precio_vendedor' },
-        { label: 'Novato',  key: 'precio_subvende' },
-        { label: 'Junior',    key: 'precio_junior' }
+        { label: 'Junior',    key: 'precio_junior' },
+        { label: 'Iniciante', key: 'precio_iniciante' },
+        { label: 'Novato',  key: 'precio_subvende' }
       ];
 
       function renderRankTabs() {
@@ -324,6 +325,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   // Build rank prices table if admin
   const allRanks = [
     { label: 'Junior',       key: 'precio_junior' },
+    { label: 'Iniciante',    key: 'precio_iniciante' },
     { label: 'Novato', key: 'precio_subvende' },
     { label: 'Representante',     key: 'precio_vendedor' },
     { label: 'Analista',     key: 'precio_analista' },
