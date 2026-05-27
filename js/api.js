@@ -149,6 +149,22 @@ export async function initDB() {
         }
       }
 
+      if (freshDB.Admin_Campos_Formulario) {
+          freshDB.Admin_Campos_Formulario.forEach(c => {
+              if (c.opciones && c.opciones.includes('|META|')) {
+                  const parts = c.opciones.split('|META|');
+                  c.opciones = parts[0];
+                  try {
+                      const meta = JSON.parse(parts[1]);
+                      c.es_opcional = meta.es_opcional || false;
+                      if (meta.orden !== undefined) c.orden = meta.orden;
+                  } catch(e){}
+              } else {
+                  if (c.es_opcional === undefined) c.es_opcional = false;
+              }
+          });
+      }
+
       cachedDB = freshDB;
       updateChatBadges();
       
@@ -271,7 +287,13 @@ export async function saveGranular(table, records) {
   // These fields only exist in memory and are NOT columns in Supabase.
   // Strip them at the source so they never reach the server regardless of code path.
   let sanitized = records;
-  if (table === 'proyectos_dinamicos') {
+  if (table === 'admin_campos_formulario') {
+    sanitized = records.map(({ es_opcional, orden, opciones, ...rest }) => {
+        let baseOpciones = (opciones || '').split('|META|')[0];
+        const metaStr = JSON.stringify({ es_opcional: !!es_opcional, orden });
+        return { ...rest, opciones: `${baseOpciones}|META|${metaStr}` };
+    });
+  } else if (table === 'proyectos_dinamicos') {
     sanitized = records.map(({ 
       asignado_a, estado, ultima_actividad,
       ultima_actividad_label, rol_fase, is_locked,
