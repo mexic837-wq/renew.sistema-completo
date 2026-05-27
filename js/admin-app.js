@@ -5754,6 +5754,37 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
         document.getElementById('ev-colaboradores').parentElement.classList.add('hidden');
 
+        // Show participants read-only
+        let participantsEl = document.getElementById('ev-participantes-readonly');
+        if (!participantsEl) {
+            participantsEl = document.createElement('div');
+            participantsEl.id = 'ev-participantes-readonly';
+            document.getElementById('ev-colaboradores').parentElement.insertAdjacentElement('afterend', participantsEl);
+        }
+        const colabsToShow = props.colaboradores || [];
+        const attendeesToShow = props.attendees || [];
+        const allParticipants = [...colabsToShow, ...attendeesToShow].reduce((acc, p) => {
+            if (!acc.find(x => String(x.id) === String(p.id))) acc.push(p);
+            return acc;
+        }, []);
+        
+        if (allParticipants.length > 0) {
+            participantsEl.innerHTML = `
+                <div class="mb-4">
+                    <label class="block text-[9px] font-black text-tealAccent uppercase tracking-[0.15em] mb-2"><i class="fa-solid fa-users mr-1"></i>Participantes</label>
+                    <div class="flex flex-wrap gap-2">${allParticipants.map(p => {
+                        const nm = p.nombre || p.name || p.email || '?';
+                        const init = nm.charAt(0).toUpperCase();
+                        return `<div class="flex items-center gap-2 bg-tealAccent/10 border border-tealAccent/20 rounded-xl px-3 py-1.5">
+                            <div class="w-6 h-6 rounded-full bg-tealAccent/30 flex items-center justify-center flex-shrink-0"><span class="text-[9px] font-black text-tealAccent">${init}</span></div>
+                            <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">${nm}</span>
+                        </div>`;
+                    }).join('')}</div>
+                </div>`;
+        } else {
+            participantsEl.innerHTML = '';
+        }
+
         if (props.color) {
           const colorRadio = document.querySelector(`input[name="ev-color"][value="${props.color}"]`);
           if (colorRadio) colorRadio.checked = true;
@@ -5778,6 +5809,9 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
     btnGuardar.classList.remove('hidden');
     form.reset();
+    // Clear read-only participants panel
+    const oldParts = document.getElementById('ev-participantes-readonly');
+    if (oldParts) oldParts.innerHTML = '';
 
     // Hide delete button in create mode
     const btnEliminar = document.getElementById('btn-eliminar-evento-admin');

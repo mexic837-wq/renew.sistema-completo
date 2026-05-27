@@ -278,7 +278,11 @@ export async function renderMiCalendario() {
       try {
         const db = getDB();
         const data = db.calendario_eventos || [];
-        const userEvents = data.filter(ev => {
+        // Admin / CEO roles see ALL events regardless of participation
+        const isAdminRole = ['admin', 'administrador', 'ceo', 'gerente', 'súper admin', 'super admin'].includes((user.rol || '').toLowerCase()) ||
+                            ['admin', 'administrador', 'ceo', 'gerente', 'súper admin', 'super admin'].includes((user.rango || '').toLowerCase());
+
+        const userEvents = isAdminRole ? data : data.filter(ev => {
           let hasColab = false;
           if (ev.colaboradores && Array.isArray(ev.colaboradores)) {
             hasColab = ev.colaboradores.some(c => {
