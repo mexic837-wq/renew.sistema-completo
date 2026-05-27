@@ -6662,6 +6662,11 @@ async function showWorkerDetail(id) {
               <i class="fa-solid fa-receipt text-xl text-purple-400 group-hover:text-purple-600 transition-colors mb-2"></i>
               <p class="text-[9px] font-black text-purple-400 group-hover:text-purple-600 uppercase tracking-widest">Recibos</p>
             </div>
+            <div class="doc-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-teal-200 cursor-pointer transition-all hover:border-teal-400 hover:bg-teal-50/50 min-h-[90px]"
+              onclick="window._verAdelantosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}')">
+              <i class="fa-solid fa-hand-holding-dollar text-xl text-teal-400 group-hover:text-teal-600 transition-colors mb-2"></i>
+              <p class="text-[9px] font-black text-teal-400 group-hover:text-teal-600 uppercase tracking-widest">Adelantos</p>
+            </div>
         `;
     }
     // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -9194,6 +9199,66 @@ window._verRecibosWorker = async function(workerId, workerName, workerRol) {
             });
         });
     });
+};
+
+// -- ADELANTOS: Popup en perfil del trabajador ----------
+window._verAdelantosWorker = async function(workerId, workerName) {
+    const existingModal = document.getElementById('modal-admin-adelantos-worker');
+    if (existingModal) existingModal.remove();
+
+    const db = window.getDB ? window.getDB() : (await import('./api.js')).getDB();
+    const adelantos = (db.rrhh_adelantos || []).filter(a => String(a.trabajador_id) === String(workerId));
+
+    const renderList = () => {
+        if (!adelantos.length) return '<p style="text-align:center;color:#94a3b8;padding:40px 20px;font-size:0.85rem;">No se han registrado préstamos ni adelantos.</p>';
+        return adelantos.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(r => {
+            const color = '#14b8a6';
+            const monto = '$' + Number(r.monto || 0).toLocaleString('en-US',{minimumFractionDigits:2});
+            let estadoHtml = '';
+            if(r.estado) {
+                if(r.estado === 'Aprobado' || r.estado === 'aprobado') estadoHtml = `<span style="font-size:0.6rem;font-weight:900;color:#10b981;background:#10b98115;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;">${r.estado}</span>`;
+                else if(r.estado === 'Rechazado' || r.estado === 'rechazado') estadoHtml = `<span style="font-size:0.6rem;font-weight:900;color:#ef4444;background:#ef444415;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;">${r.estado}</span>`;
+                else estadoHtml = `<span style="font-size:0.6rem;font-weight:900;color:#f59e0b;background:#f59e0b15;padding:2px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;">${r.estado}</span>`;
+            }
+
+            return '<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">' +
+                '<div style="width:40px;height:40px;background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;display:flex;align-items:center;justify-content:center;color:' + color + ';flex-shrink:0;">' +
+                '<i class="fa-solid fa-hand-holding-dollar"></i></div>' +
+                '<div style="flex:1;min-width:0;">' +
+                '<p style="font-size:0.65rem;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:0;">Adelanto/Préstamo ' + estadoHtml + '</p>' +
+                '<p style="font-size:0.9rem;font-weight:700;color:#1e293b;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (r.motivo || '-') + '</p>' +
+                '<p style="font-size:0.7rem;color:#94a3b8;margin:0;">' + (r.fecha || (r.created_at ? r.created_at.split('T')[0] : '-')) + '</p>' +
+                '</div>' +
+                '<div style="text-align:right;flex-shrink:0;">' +
+                '<p style="font-size:1rem;font-weight:900;color:' + color + ';margin:0;">' + monto + '</p>' +
+                (r.doc_url ? '<a href="' + r.doc_url + '" target="_blank" style="font-size:0.65rem;font-weight:800;color:' + color + ';background:' + color + '15;padding:3px 8px;border-radius:6px;text-decoration:none;">Ver Doc</a>' : '') +
+                '</div></div>';
+        }).join('');
+    };
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-admin-adelantos-worker';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.25); border:1px solid #e2e8f0;">
+            <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <h3 style="font-size:1.1rem;font-weight:900;color:#0f172a;margin:0;">Préstamos y Adelantos</h3>
+                    <p style="font-size:0.8rem;color:#64748b;margin:2px 0 0;">${workerName} &bull; ${adelantos.length} registros</p>
+                </div>
+                <button id="btn-close-admin-adelantos" style="background:#f1f5f9;border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;font-size:1.2rem;color:#64748b;display:flex;align-items:center;justify-content:center;">&times;</button>
+            </div>
+            <div id="aw-list-container" style="padding:16px 24px 32px;">
+                ${renderList()}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.removeChild(modal);
+    document.body.appendChild(modal);
+    modal.querySelector('#btn-close-admin-adelantos').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
 
 // â”€â”€â”€ LISTA DE PRECIOS RENEW WATER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
