@@ -19,19 +19,19 @@ import { initAdminBell, updateAdminBellBadge } from '../components/admin-notif-b
 //               the user provides those numbers.
 // ════════════════════════════════════════════════════════════
 // ========================================================================================================================
-const RANK_CONFIG = {
+export const RANK_CONFIG = {
   'Renew Water': [
-    { name: 'Novato por Referidos', emoji: '🌱', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total' },
-    { name: 'Subvendedor',         emoji: '🥉', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total' },
-    { name: 'Iniciante',           emoji: '🥈', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total' },
-    { name: 'Junior',              emoji: '🥇', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total' },
-    { name: 'Representante de Ventas',            emoji: '⚡',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total' },
-    { name: 'Distribuidor (Analista)', emoji: '👑', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total' },
-    { name: 'Distribuidor Mensual', emoji: '⭐',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly' },
+    { name: 'Novato por Referidos', emoji: '🌱', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total', priceKey: 'precio_subvende' },
+    { name: 'Subvendedor',         emoji: '🥉', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total', priceKey: 'precio_subvende' },
+    { name: 'Iniciante',           emoji: '🥈', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total', priceKey: 'precio_iniciante' },
+    { name: 'Junior',              emoji: '🥇', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total', priceKey: 'precio_junior' },
+    { name: 'Representante de Ventas',            emoji: '⚡',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total', priceKey: 'precio_vendedor' },
+    { name: 'Distribuidor (Analista)', emoji: '👑', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total', priceKey: 'precio_analista' },
+    { name: 'Distribuidor Mensual', emoji: '⭐',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly', priceKey: 'precio_oficina' },
   ]
 };
 
-function computeUserRank(userId, activeUnit, db) {
+export function computeUserRank(userId, activeUnit, db) {
   const ranks = RANK_CONFIG[activeUnit];
   if (!ranks) return null;
 

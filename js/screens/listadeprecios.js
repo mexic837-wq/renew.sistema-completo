@@ -2,28 +2,9 @@
    RENEW OS – screens/listadeprecios.js
    Pantalla "Mi Lista de Precios" (Mobile App View)
    ============================================================ */
-import { getListaPrecios, getCatalogos } from '../api.js';
+import { getListaPrecios, getCatalogos, getDB } from '../api.js';
 import { getCurrentUser, navigate } from '../app.js';
-
-// Maps user rol → price column key
-const RANK_PRICE_MAP = {
-  'junior':       'precio_junior',
-  'sub-vendedor': 'precio_subvende',
-  'subvende':     'precio_subvende',
-  'subvendedor':  'precio_subvende',
-  'vendedor':     'precio_vendedor',
-  'analista':     'precio_analista',
-  'admin':        'precio_oficina',
-  'administrador':'precio_oficina',
-  'ceo':          'precio_oficina',
-  'oficina':      'precio_oficina',
-  'desarrollador':'precio_oficina',
-};
-
-function getPriceKey(rol) {
-  const norm = (rol || '').toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-');
-  return RANK_PRICE_MAP[norm] || null; // null = admin sees all columns
-}
+import { computeUserRank, RANK_CONFIG } from './dashboard.js';
 
 function formatPrice(val) {
   if (val == null || val === '') return '—';
@@ -37,15 +18,32 @@ export async function renderListaPrecios() {
   if (!screen) return;
 
   const user = getCurrentUser();
-  const basePriceKey = getPriceKey(user?.rol);
-  const isAdmin = !basePriceKey || ['admin','administrador','ceo','desarrollador'].includes((user?.rol||'').toLowerCase()); 
+  const db = getDB();
+  const activeUnit = localStorage.getItem('active_unit') || 'Renew Water';
+  
+  let basePriceKey = null;
+  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((user?.rol||'').toLowerCase()); 
+  
+  if (!isAdmin) {
+    const rankInfo = computeUserRank(user.id, activeUnit, db);
+    if (rankInfo && rankInfo.cur && rankInfo.cur.priceKey) {
+      basePriceKey = rankInfo.cur.priceKey;
+    } else {
+      basePriceKey = 'precio_subvende'; // fallback
+    }
+  }
   
   let activePriceKey = basePriceKey || 'precio_vendedor';
   if (isAdmin && !basePriceKey) activePriceKey = 'precio_oficina';
 
   // Fetch cloud catalogs
   const catalogs = await getCatalogos();
-  const catalogRec = catalogs.find(c => c.id === (basePriceKey ? basePriceKey.replace('precio_','') : 'vendedor'));
+  
+  // Try to find the matching catalog key based on the priceKey
+  let catalogKeyToMatch = basePriceKey ? basePriceKey.replace('precio_', '') : 'vendedor';
+  if (catalogKeyToMatch === 'subvende') catalogKeyToMatch = 'novato'; // Map back for the PDF match if needed
+  
+  const catalogRec = catalogs.find(c => String(c.id).toLowerCase() === catalogKeyToMatch.toLowerCase() || String(c.nombre).toLowerCase().includes(catalogKeyToMatch.toLowerCase()));
   const pdfUrl = catalogRec?.pdf_url;
 
   screen.innerHTML = `
