@@ -6302,7 +6302,7 @@ function renderConstructor() {
       ${tabsHtml}
     </div>
     
-    <div class="scroll-container-fases flex flex-nowrap gap-6 pb-24 items-start scroll-smooth overflow-x-auto hide-scrollbar" id="phases-wrapper" style="width: 100%; max-width: 100%;">
+    <div class="scroll-container-fases flex flex-nowrap gap-6 pb-24 items-start scroll-smooth overflow-x-auto custom-h-scrollbar" id="phases-wrapper" style="width: 100%; max-width: 100%;">
       ${fasesHtml}
       <div class="shrink-0 pt-0 px-2 flex items-center justify-center">
         <button id="btn-add-fase" class="border flex-col border-dashed border-gray-200 dark:border-white/10 hover:border-tealAccent/40 text-gray-400 dark:text-gray-600 hover:text-tealAccent rounded-3xl min-w-[240px] h-[160px] flex items-center justify-center gap-3 transition-all shrink-0 font-black text-sm uppercase tracking-widest group bg-white dark:bg-white/[0.01]">
