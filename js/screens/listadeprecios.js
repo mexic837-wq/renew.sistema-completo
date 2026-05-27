@@ -41,9 +41,8 @@ export async function renderListaPrecios() {
   
   // Try to find the matching catalog key based on the priceKey
   let catalogKeyToMatch = basePriceKey ? basePriceKey.replace('precio_', '') : 'vendedor';
-  if (catalogKeyToMatch === 'subvende') catalogKeyToMatch = 'novato'; // Map back for the PDF match if needed
   
-  const catalogRec = catalogs.find(c => String(c.id).toLowerCase() === catalogKeyToMatch.toLowerCase() || String(c.nombre).toLowerCase().includes(catalogKeyToMatch.toLowerCase()));
+  const catalogRec = catalogs.find(c => String(c.id).toLowerCase() === catalogKeyToMatch.toLowerCase() || String(c.nombre || '').toLowerCase().includes(catalogKeyToMatch.toLowerCase()));
   const pdfUrl = catalogRec?.pdf_url;
 
   screen.innerHTML = `
