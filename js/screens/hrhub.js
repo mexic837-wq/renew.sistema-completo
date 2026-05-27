@@ -608,37 +608,15 @@ export async function renderHRHub() {
         if (!tbody) return;
 
         try {
-            // Fetch fresh data directly from server to avoid stale cache issues
-            let adelantos = [];
-            let usuarios = [];
-            try {
-                const res = await fetch(`/api/db?t=${Date.now()}`, { cache: 'no-store' });
-                if (res.ok) {
-                    const freshData = await res.json();
-                    adelantos = freshData.rrhh_adelantos || [];
-                    usuarios = freshData.Usuarios || [];
-                    // Also update local cache so it stays in sync
-                    const db = getDB();
-                    db.rrhh_adelantos = adelantos;
-                    try { localStorage.setItem('rs_admin_db', JSON.stringify(db)); } catch(e) {}
-                } else {
-                    // Fallback to local cache
-                    const db = getDB();
-                    adelantos = db.rrhh_adelantos || [];
-                    usuarios = db.Usuarios || [];
-                }
-            } catch (fetchErr) {
-                // Fallback to local cache
-                const db = getDB();
-                adelantos = db.rrhh_adelantos || [];
-                usuarios = db.Usuarios || [];
-            }
+            const db = getDB();
+            const adelantos = db.rrhh_adelantos || [];
+            const usuarios = db.Usuarios || [];
             
             if (adelantos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-gray-400 text-xs italic">No se han registrado préstamos ni adelantos.</td></tr>`;
             } else {
                 tbody.innerHTML = adelantos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(adel => {
-                    const worker = (usuarios).find(u => String(u.id) === String(adel.trabajador_id));
+                    const worker = usuarios.find(u => String(u.id) === String(adel.trabajador_id));
                     const name = worker ? `${worker.nombre} ${worker.apellido || ''}` : (adel.trabajador_nombre || 'N/A');
                     const initial = name[0]?.toUpperCase() || '?';
                     const avatar = worker?.foto ? `<img src="${worker.foto}" class="w-8 h-8 rounded-full object-cover">` : `<div class="w-8 h-8 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-[10px]">${initial}</div>`;
