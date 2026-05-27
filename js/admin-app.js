@@ -3735,11 +3735,14 @@ window.renderView = async function renderView() {
                 </div>
 
                 <!-- Admin Action Menu -->
-                <div class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2 items-end">
                     <label class="relative inline-flex items-center cursor-pointer" title="${u.is_suspended ? 'Cuenta Inhabilitada' : 'Cuenta Activa'}">
                       <input type="checkbox" class="sr-only peer toggle-worker-status" data-id="${u.id}" ${u.is_suspended ? '' : 'checked'}>
                       <div class="w-7 h-3.5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
                     </label>
+                    <button class="btn-delete-worker flex items-center justify-center w-7 h-7 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-full transition-colors" data-id="${u.id}" title="Eliminar Trabajador">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
                 </div>
             </div>
         `;
