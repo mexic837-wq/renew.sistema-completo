@@ -715,20 +715,7 @@
     <!-- NOTIFICATIONS PANEL (Relocated) -->
     <div id="notifications-overlay" onclick="window.closeNotifications()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[999998] hidden transition-opacity duration-300 opacity-0"></div>
     <div id="notifications-panel" class="fixed top-0 right-0 h-full w-80 bg-[#0f172a] border-l border-gray-800 transform translate-x-full transition-transform duration-300 z-[999999] shadow-2xl flex flex-col">
-        <div class="p-6 border-b border-gray-800 flex items-center justify-between">
-            <h3 class="text-white font-black uppercase tracking-[0.2em] text-xs">Notificaciones</h3>
-            <button id="btn-close-notifications" onclick="window.closeNotifications()" class="text-gray-400 hover:text-white transition-colors">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-        <div id="notifications-list" class="flex-1 overflow-y-auto p-4 space-y-3 hide-scrollbar">
-            <!-- Dynamic Notifications -->
-        </div>
-        <div class="p-4 border-t border-gray-800">
-            <button class="w-full py-2 text-[10px] uppercase font-bold text-gray-500 hover:text-tealAccent transition-all tracking-widest" onclick="document.getElementById('notifications-list').innerHTML = ''; document.getElementById('notifications-badge').classList.add('hidden');">
-                Clear All
-            </button>
-        </div>
+        <!-- Replaced by admin-notif-bell.js component -->
     </div>
 
     <!-- Sidebar -->
@@ -915,9 +902,9 @@
 
             <div class="flex items-center gap-6">
                 <div class="flex items-center gap-2">
-                  <button id="btn-notifications" onclick="window.showNotifications()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all relative">
+                  <button id="btn-notifications" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all relative">
                     <i class="fa-solid fa-bell text-lg"></i>
-                    <span id="notifications-badge" class="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white dark:border-darkBg hidden animate-pulse"></span>
+                    <span id="admin-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-darkBg animate-pulse"></span>
                   </button>
                   <button id="btn-header-chat" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all relative">
                     <i class="fa-solid fa-comment-dots text-lg"></i>
@@ -2889,6 +2876,6 @@
     </div>
 
     <!-- Module script -->
-    <script type="module" src="./js/admin-app.js?v=14"></script>
+    <script type="module" src="./js/admin-app.js?v=15"></script>
 </body>
 </html>

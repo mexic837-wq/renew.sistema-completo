@@ -1,0 +1,405 @@
+/**
+ * admin-notif-bell.js
+ * ─────────────────────────────────────────────────────────────────
+ * Campana de notificaciones administrativas.
+ * Recopila: eventos de calendario, asignaciones de observador,
+ * asignaciones de técnico, y proyectos donde eres responsable.
+ *
+ * Las notificaciones NUNCA se borran — solo se marcan como leídas.
+ * El badge muestra el conteo de no leídas.
+ * ─────────────────────────────────────────────────────────────────
+ */
+
+import { getDB, getCurrentUser } from '../api.js';
+
+const STORAGE_KEY = 'rs_admin_notifs_read';
+
+/** Devuelve el set de IDs ya leídos */
+function getReadIds() {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+    } catch {
+        return new Set();
+    }
+}
+
+/** Marca una lista de IDs como leídos */
+function markAsRead(ids) {
+    const current = getReadIds();
+    ids.forEach(id => current.add(id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...current]));
+}
+
+/** Recopila todas las notificaciones admin para el usuario actual */
+export function gatherAdminNotifications(db, user) {
+    if (!db || !user) return [];
+    const notifs = [];
+    const readIds = getReadIds();
+
+    // ── 1. Eventos de Calendario ──────────────────────────────────
+    const eventos = db.calendario_eventos || [];
+    eventos.forEach(ev => {
+        const attendees = Array.isArray(ev.attendees) ? ev.attendees : [];
+        const colaboradores = Array.isArray(ev.colaboradores) ? ev.colaboradores : [];
+        const allParticipants = [...attendees, ...colaboradores];
+        const isInvited = allParticipants.some(a => String(a.id) === String(user.id));
+        if (!isInvited) return;
+
+        const notifId = `ev_${ev.id}`;
+        const fecha = ev.fecha_inicio ? new Date(ev.fecha_inicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
+        notifs.push({
+            id: notifId,
+            type: 'evento',
+            icon: 'fa-calendar-check',
+            color: '#10b981',
+            bg: 'rgba(16,185,129,0.12)',
+            title: `Invitado a: ${ev.nombre || 'Evento'}`,
+            message: `Tienes un evento programado el ${fecha}.`,
+            date: new Date(ev.created_at || ev.fecha_inicio || Date.now()),
+            isRead: readIds.has(notifId),
+            link: {
+                label: 'Ver Calendario',
+                action: 'calendario',
+                data: { eventId: ev.id }
+            }
+        });
+    });
+
+    // ── 2. Observador en Proyectos ────────────────────────────────
+    const proyectos = db.Proyectos_Dinamicos || [];
+    const clientes = db.Clientes_Maestro || [];
+
+    proyectos.forEach(p => {
+        const observadores = Array.isArray(p.observadores) ? p.observadores : [];
+        const obsEntry = observadores.find(o => String(o.id) === String(user.id));
+        if (!obsEntry) return;
+
+        const notifId = `obs_${p.id}`;
+        const cli = clientes.find(c => c.id === p.cliente_id);
+        const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
+        notifs.push({
+            id: notifId,
+            type: 'observador',
+            icon: 'fa-eye',
+            color: '#8b5cf6',
+            bg: 'rgba(139,92,246,0.12)',
+            title: `Observador en proyecto`,
+            message: `Te añadieron como observador en el proyecto de ${clienteName}.`,
+            date: new Date(obsEntry.added_at || p.created_at || Date.now()),
+            isRead: readIds.has(notifId),
+            link: {
+                label: 'Ver Proyecto',
+                action: 'proyecto',
+                data: { projectId: p.id, clienteId: p.cliente_id }
+            }
+        });
+    });
+
+    // ── 3. Asignaciones de Técnico ────────────────────────────────
+    proyectos.forEach(p => {
+        if (String(p.tecnico_id) !== String(user.id)) return;
+        const notifId = `tec_${p.id}`;
+        const cli = clientes.find(c => c.id === p.cliente_id);
+        const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
+        notifs.push({
+            id: notifId,
+            type: 'asignacion',
+            icon: 'fa-clipboard-user',
+            color: '#f59e0b',
+            bg: 'rgba(245,158,11,0.12)',
+            title: `Asignado como Técnico`,
+            message: `Tienes una nueva asignación técnica para ${clienteName}.`,
+            date: new Date(p.fecha || p.created_at || Date.now()),
+            isRead: readIds.has(notifId),
+            link: {
+                label: 'Ver Proyecto',
+                action: 'proyecto',
+                data: { projectId: p.id, clienteId: p.cliente_id }
+            }
+        });
+    });
+
+    // ── 4. Responsable en Proyectos ───────────────────────────────
+    proyectos.forEach(p => {
+        const responsables = (p.responsable_id || '').split(',').map(id => id.trim());
+        if (!responsables.includes(String(user.id))) return;
+        if (String(p.tecnico_id) === String(user.id)) return; // ya incluido arriba
+
+        const notifId = `resp_${p.id}`;
+        const cli = clientes.find(c => c.id === p.cliente_id);
+        const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
+        notifs.push({
+            id: notifId,
+            type: 'proyecto',
+            icon: 'fa-user-tie',
+            color: '#00f5d4',
+            bg: 'rgba(0,245,212,0.12)',
+            title: `Responsable de Proyecto`,
+            message: `Eres responsable del proyecto de ${clienteName}.`,
+            date: new Date(p.fecha || p.created_at || Date.now()),
+            isRead: readIds.has(notifId),
+            link: {
+                label: 'Ver Proyecto',
+                action: 'proyecto',
+                data: { projectId: p.id, clienteId: p.cliente_id }
+            }
+        });
+    });
+
+    // Ordenar por fecha desc (más reciente primero)
+    notifs.sort((a, b) => b.date - a.date);
+    return notifs;
+}
+
+/** Actualiza el badge de la campana en ambas versiones (admin + app) */
+export function updateAdminBellBadge() {
+    const db = getDB();
+    const user = getCurrentUser();
+    if (!db || !user) return;
+
+    const notifs = gatherAdminNotifications(db, user);
+    const unread = notifs.filter(n => !n.isRead).length;
+
+    // Admin (admin.html)
+    const adminBadge = document.getElementById('admin-bell-badge');
+    if (adminBadge) {
+        if (unread > 0) {
+            adminBadge.textContent = unread > 9 ? '9+' : String(unread);
+            adminBadge.classList.remove('hidden');
+        } else {
+            adminBadge.classList.add('hidden');
+        }
+    }
+
+    // App (index.html)
+    const appBadge = document.getElementById('app-bell-badge');
+    if (appBadge) {
+        if (unread > 0) {
+            appBadge.textContent = unread > 9 ? '9+' : String(unread);
+            appBadge.classList.remove('hidden');
+        } else {
+            appBadge.classList.add('hidden');
+        }
+    }
+}
+
+/** Renderiza y abre el panel de campana */
+export function openAdminBellPanel() {
+    const db = getDB();
+    const user = getCurrentUser();
+    if (!db || !user) return;
+
+    const notifs = gatherAdminNotifications(db, user);
+
+    // Marcar todas como leídas al abrir
+    markAsRead(notifs.map(n => n.id));
+
+    // Quitar badge
+    ['admin-bell-badge', 'app-bell-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+
+    // Crear/actualizar panel
+    let panel = document.getElementById('admin-bell-panel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'admin-bell-panel';
+        document.body.appendChild(panel);
+    }
+
+    const isAdmin = typeof window._isAdminPage !== 'undefined' ? window._isAdminPage : window.location.pathname.includes('admin');
+
+    panel.innerHTML = `
+    <style>
+        #admin-bell-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px); z-index: 99998;
+            animation: fadeIn 0.2s ease;
+        }
+        #admin-bell-drawer {
+            position: fixed; top: 0; right: 0; height: 100vh;
+            width: 380px; max-width: 95vw;
+            background: ${isAdmin ? '#0f172a' : 'var(--surface, #111)'};
+            border-left: 1px solid rgba(255,255,255,0.07);
+            z-index: 99999; display: flex; flex-direction: column;
+            box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+            animation: slideInRight 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        .bell-notif-item {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: default; transition: background 0.2s;
+            position: relative;
+        }
+        .bell-notif-item.unread {
+            background: rgba(255,255,255,0.02);
+        }
+        .bell-notif-item.unread::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 3px; border-radius: 0 4px 4px 0;
+            background: var(--primary, #00f5d4);
+        }
+        .bell-notif-icon {
+            width: 42px; height: 42px; border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; flex-shrink: 0;
+        }
+        .bell-notif-body { flex: 1; min-width: 0; }
+        .bell-notif-title {
+            font-size: 0.82rem; font-weight: 800; color: #e2e8f0;
+            margin-bottom: 3px; line-height: 1.3;
+        }
+        .bell-notif-msg {
+            font-size: 0.75rem; color: #94a3b8; line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        .bell-notif-date {
+            font-size: 0.65rem; color: #475569; font-weight: 600;
+        }
+        .bell-link-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.7rem; font-weight: 800;
+            padding: 5px 10px; border-radius: 8px; border: none;
+            cursor: pointer; transition: all 0.2s; margin-top: 4px;
+        }
+    </style>
+
+    <div id="admin-bell-overlay"></div>
+    <div id="admin-bell-drawer">
+        <!-- Header -->
+        <div style="padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(0,245,212,0.1); display: flex; align-items: center; justify-content: center; color: #00f5d4;">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: 900; color: white; letter-spacing: -0.3px;">Notificaciones</h3>
+                    <p style="margin: 0; font-size: 0.65rem; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Administrativas</p>
+                </div>
+            </div>
+            <button id="admin-bell-close-btn" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.05); border: none; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s;"
+                onmouseover="this.style.color='white'; this.style.background='rgba(255,255,255,0.1)'"
+                onmouseout="this.style.color='#64748b'; this.style.background='rgba(255,255,255,0.05)'">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- List -->
+        <div style="flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;">
+            ${notifs.length === 0 ? `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; gap: 16px; color: #475569;">
+                    <i class="fa-regular fa-bell-slash" style="font-size: 2.5rem; opacity: 0.4;"></i>
+                    <p style="font-size: 0.85rem; font-weight: 700; margin: 0;">Sin notificaciones pendientes</p>
+                    <p style="font-size: 0.75rem; margin: 0; color: #334155;">Todo está al día 🎉</p>
+                </div>
+            ` : notifs.map(n => `
+                <div class="bell-notif-item ${n.isRead ? '' : 'unread'}">
+                    <div class="bell-notif-icon" style="background: ${n.bg}; color: ${n.color};">
+                        <i class="fa-solid ${n.icon}"></i>
+                    </div>
+                    <div class="bell-notif-body">
+                        <div class="bell-notif-title">${n.title}</div>
+                        <div class="bell-notif-msg">${n.message}</div>
+                        <div class="bell-notif-date">
+                            <i class="fa-regular fa-clock" style="margin-right: 4px;"></i>
+                            ${n.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                        ${n.link ? `
+                            <button class="bell-link-btn"
+                                data-action="${n.link.action}"
+                                data-project-id="${n.link.data?.projectId || ''}"
+                                data-cliente-id="${n.link.data?.clienteId || ''}"
+                                style="background: ${n.bg}; color: ${n.color}; margin-top: 8px;">
+                                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.6rem;"></i>
+                                ${n.link.label}
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;">
+            <p style="margin: 0; font-size: 0.65rem; color: #334155; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+                <i class="fa-solid fa-circle-info" style="margin-right: 4px;"></i>
+                Las notificaciones no se eliminan automáticamente
+            </p>
+        </div>
+    </div>
+    `;
+
+    // Cerrar
+    const overlay = panel.querySelector('#admin-bell-overlay');
+    const closeBtn = panel.querySelector('#admin-bell-close-btn');
+    const close = () => {
+        panel.innerHTML = '';
+        updateAdminBellBadge(); // re-check after reading
+    };
+    overlay.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+
+    // Botones de enlace directo
+    panel.querySelectorAll('.bell-link-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.action;
+            const projectId = btn.dataset.projectId;
+            const clienteId = btn.dataset.clienteId;
+
+            if (action === 'calendario') {
+                close();
+                // Admin: navegar a calendario
+                if (window.navigateTo) window.navigateTo('calendario');
+                else if (window.appNavigate) window.appNavigate('mi-calendario');
+                else {
+                    const calBtn = document.querySelector('[data-view="calendario"]');
+                    if (calBtn) calBtn.click();
+                }
+            } else if (action === 'proyecto') {
+                close();
+                // Admin: abrir el drawer del proyecto
+                if (window.openKanbanDrawer && projectId) {
+                    window.openKanbanDrawer(projectId);
+                } else if (window.appNavigate && clienteId) {
+                    window.appNavigate('clients');
+                }
+            }
+        });
+    });
+}
+
+/** Inicializa la campana: agrega listeners y actualiza badge */
+export function initAdminBell() {
+    // Marcar que estamos en admin
+    window._isAdminPage = window.location.pathname.includes('admin');
+
+    // Botón en admin.html
+    const adminBellBtn = document.getElementById('btn-notifications');
+    if (adminBellBtn) {
+        adminBellBtn.onclick = (e) => {
+            e.preventDefault();
+            openAdminBellPanel();
+        };
+    }
+
+    // Botón en index.html (app)
+    const appBellBtn = document.getElementById('btn-app-bell');
+    if (appBellBtn) {
+        appBellBtn.onclick = (e) => {
+            e.preventDefault();
+            openAdminBellPanel();
+        };
+    }
+
+    // Actualizar badge inmediatamente
+    updateAdminBellBadge();
+
+    // Actualizar badge cuando la DB se sincroniza
+    window.addEventListener('db_synced', updateAdminBellBadge);
+}

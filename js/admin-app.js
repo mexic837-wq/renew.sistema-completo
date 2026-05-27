@@ -18,6 +18,7 @@ import { renderRendimientoGlobal } from './screens/rendimiento-global.js';
 import { renderHRHub } from './screens/hrhub.js';
 import { renderCallCenterAdmin } from './screens/callCenterAdmin.js';
 import { openChat } from './components/internal-chat.js';
+import { initAdminBell, updateAdminBellBadge } from './components/admin-notif-bell.js';
 
 window.openInternalChat = openChat;
 
@@ -28,6 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial check and periodic refresh
     updateAdminBadges();
     setInterval(updateAdminBadges, 30000); // Every 30s
+
+    // Init admin notification bell
+    initAdminBell();
+    setInterval(updateAdminBellBadge, 60000); // Refresh badge every 60s
 });
 
 async function updateAdminBadges() {
@@ -2871,43 +2876,16 @@ window.closeModals = () => {
 }
 
 window.showNotifications = () => {
-  const panel = document.getElementById('notifications-panel');
-  const overlay = document.getElementById('notifications-overlay');
-  const badge = document.getElementById('notifications-badge');
-  
-  if (panel) {
-      panel.classList.remove('translate-x-full');
-      // Aseguramos visibilidad y quitamos estilos de depuraciÃ³n
-      panel.style.display = 'flex';
-  }
-  
-  if (overlay) {
-    overlay.classList.remove('hidden');
-    setTimeout(() => overlay.classList.add('opacity-100'), 10);
-  }
-  
-  if (badge) badge.classList.add('hidden');
-  console.log("[RENEW] Panel de notificaciones abierto");
+  import('./components/admin-notif-bell.js').then(({ openAdminBellPanel }) => openAdminBellPanel());
 };
 
 window.closeNotifications = () => {
-  const panel = document.getElementById('notifications-panel');
-  const overlay = document.getElementById('notifications-overlay');
-  
-  if (panel) {
-      panel.classList.add('translate-x-full');
-      panel.style.removeProperty('display');
-      panel.style.removeProperty('transform');
+  const panel = document.getElementById('admin-bell-panel');
+  if (panel) panel.innerHTML = '';
+  const oldPanel = document.getElementById('notifications-panel');
+  if (oldPanel) {
+      oldPanel.classList.add('translate-x-full');
   }
-  
-  if (overlay) {
-    overlay.classList.remove('opacity-100');
-    setTimeout(() => {
-        overlay.classList.add('hidden');
-        overlay.style.removeProperty('display');
-    }, 300);
-  }
-  console.log("[RENEW-DEBUG] Notifications panel closed");
 };
 
 async function loadData() {

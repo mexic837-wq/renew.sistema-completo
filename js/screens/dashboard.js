@@ -6,6 +6,7 @@ import { showToast } from '../components/toast.js';
 // Removed import from ../app.js to break circular dependency
 
 import { t } from '../i18n.js';
+import { initAdminBell, updateAdminBellBadge } from '../components/admin-notif-bell.js';
 
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -297,6 +298,12 @@ export async function renderDashboard() {
         </div>
 
         <div class="flex items-center gap-4">
+          <button id="btn-app-bell" title="Notificaciones Admin"
+            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
+            <i class="fa-solid fa-bell text-xl"></i>
+            <span id="app-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-[#0b1120] animate-pulse"></span>
+          </button>
+
           <button id="btn-chat-mobile" onclick="window.openInternalChat && window.openInternalChat()" 
             class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
             <i class="fa-solid fa-comment-dots text-xl"></i>
@@ -365,6 +372,9 @@ export async function renderDashboard() {
   `;
 
   document.getElementById('avatar-btn').addEventListener('click', showProfileModal);
+
+  // Init admin bell (re-init each time dashboard renders so bell button is fresh)
+  initAdminBell();
 
   _buildPipelineChips(user, activeUnit);
   _renderToolsForPipeline(user, activeUnit);
