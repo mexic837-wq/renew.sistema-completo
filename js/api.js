@@ -668,7 +668,7 @@ export function getDB() {
         'Clientes_Maestro', 'Proyectos_Dinamicos', 'Respuestas_Dinamicas',
         'Usuarios', 'academiaContent', 'inventarioGlobal', 'historialInventario',
         'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'calendario_eventos_reads', 'Deleted_Workers', 'calendario_eventos',
-        'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos', 'mensajes_internos'
+        'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos', 'mensajes_internos', 'rrhh_adelantos'
     ];
     
     requiredTables.forEach(table => {

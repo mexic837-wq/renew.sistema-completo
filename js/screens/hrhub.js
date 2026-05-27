@@ -731,6 +731,8 @@ export async function renderHRHub() {
                 const db = getDB();
                 if (!db.rrhh_adelantos) db.rrhh_adelantos = [];
                 db.rrhh_adelantos.push(newAdelanto);
+                // Persist locally so data survives page reload
+                try { localStorage.setItem('rs_admin_db', JSON.stringify(db)); } catch(e) {}
 
                 const { saveGranular } = await import('../api.js');
                 await saveGranular('rrhh_adelantos', [newAdelanto]);
