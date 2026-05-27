@@ -512,8 +512,13 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     // ── 5. Leaderboard ────────────────────────────────────────────────────────
     const leaderboardData = relevantVendors.map(v => {
-        // Clients assigned to this vendor in the current ecosystem
-        const vClients = ecoClients.filter(c => String(c.vendedor_asignado_id) === String(v.id));
+        // Clients assigned to this vendor in the current ecosystem (directly or via a project)
+        const vClients = ecoClients.filter(c => {
+            if (String(c.vendedor_asignado_id) === String(v.id)) return true;
+            const p = ecoProjects.find(proj => String(proj.cliente_id) === String(c.id));
+            if (p && String(p.responsable_id) === String(v.id)) return true;
+            return false;
+        });
         const vTotal   = vClients.length;
         const vClosed  = vClients.filter(c => c.macro_estado === 'Cliente').length;
         const vCloseRate = vTotal > 0 ? Math.round((vClosed / vTotal) * 100) : 0;
@@ -656,31 +661,57 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     if (globalChartInstance) { globalChartInstance.destroy(); globalChartInstance = null; }
 
     globalChartInstance = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'line',
         data: {
-            labels: ['Prospectos', 'Presentaciones', 'Ventas'],
-            datasets: [{
-                data: [totalProspectos, totalPresentaciones, totalVentas],
-                backgroundColor: [
-                    '#60a5fa', // Blue
-                    '#fbbf24', // Amber
-                    '#34d399'  // Emerald
-                ],
-                hoverBackgroundColor: [
-                    '#93c5fd',
-                    '#fcd34d',
-                    '#6ee7b7'
-                ],
-                borderWidth: 0,
-                hoverOffset: 8
-            }]
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Prospectos',
+                    data: dataProspectos,
+                    borderColor: '#60a5fa',
+                    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#60a5fa',
+                    pointBorderWidth: 0,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Presentaciones',
+                    data: dataPresentaciones,
+                    borderColor: '#fbbf24',
+                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#fbbf24',
+                    pointBorderWidth: 0,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Ventas',
+                    data: dataVentas,
+                    borderColor: '#34d399',
+                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#34d399',
+                    pointBorderWidth: 0,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '75%', // Thin doughnut
-            layout: {
-                padding: 20
+            interaction: {
+                mode: 'index',
+                intersect: false,
             },
             plugins: {
                 legend: { display: false },
@@ -688,23 +719,23 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                     backgroundColor: '#111827',
                     titleColor: '#f1f5f9',
                     bodyColor: '#94a3b8',
-                    bodyFont: { size: 14, weight: 'bold' },
-                    padding: 14,
+                    bodyFont: { size: 12, weight: 'bold' },
+                    padding: 12,
                     borderColor: 'rgba(255,255,255,0.05)',
                     borderWidth: 1,
                     displayColors: true,
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed !== null) {
-                                label += context.parsed;
-                            }
-                            return label;
-                        }
-                    }
+                    usePointStyle: true
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.03)', drawBorder: false },
+                    ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' }, stepSize: 1 }
                 }
             }
         }
