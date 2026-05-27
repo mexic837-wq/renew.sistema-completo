@@ -1,4 +1,4 @@
-import {
+﻿import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,
   createAdminPipeline, createAdminFase, createAdminCampo, updateAdminCampo,
@@ -92,7 +92,7 @@ window.addStock = (id) => {
     console.log("Global addStock called for ID:", id);
     const invData = getInventario();
     const item = invData.find(i => i.id === id);
-    if (!item) return showToast("ArtÃ­culo no encontrado", "error");
+    if (!item) return showToast("Artículo no encontrado", "error");
     
     // Fix IDs to match admin.html
     const labelName = document.getElementById('lbl-add-stock-name');
@@ -103,7 +103,7 @@ window.addStock = (id) => {
     if (inputQty) inputQty.value = 1;
     
     const modalTitle = document.querySelector('#modal-quick-stock h3');
-    if (modalTitle) modalTitle.textContent = 'AÃ±adir Stock RÃ¡pido';
+    if (modalTitle) modalTitle.textContent = 'Añadir Stock Rápido';
 
     if (btnConfirm) {
         btnConfirm.innerHTML = '<i class="fa-solid fa-plus"></i> Confirmar Ingreso';
@@ -130,7 +130,7 @@ window.addStock = (id) => {
 
                 window.closeModals();
                 await renderView();
-                window.addNotification('Inventario', `Se aÃ±adieron ${val} unidades a ${item.nombreItem}`, 'success');
+                window.addNotification('Inventario', `Se añadieron ${val} unidades a ${item.nombreItem}`, 'success');
             }
         };
     }
@@ -142,7 +142,7 @@ window.subtractStock = (id) => {
     console.log("Global subtractStock called for ID:", id);
     const invData = getInventario();
     const item = invData.find(i => i.id === id);
-    if (!item) return showToast("ArtÃ­culo no encontrado", "error");
+    if (!item) return showToast("Artículo no encontrado", "error");
     
     const labelName = document.getElementById('lbl-add-stock-name');
     const inputQty = document.getElementById('inp-quick-stock-qty');
@@ -159,7 +159,7 @@ window.subtractStock = (id) => {
             const val = parseInt(inputQty.value) || 0;
             if (val > 0) {
                 if (item.stockActual < val) {
-                    if (!confirm('El stock actual es menor a la cantidad a retirar. Â¿Continuar con stock negativo?')) return;
+                    if (!confirm('El stock actual es menor a la cantidad a retirar. ¿Continuar con stock negativo?')) return;
                 }
                 item.stockActual = (parseInt(item.stockActual) || 0) - val;
                 saveInventario(invData);
@@ -193,15 +193,15 @@ window.editStock = (id) => {
     console.log("Global editStock called for ID:", id);
     const invData = getInventario();
     const item = invData.find(i => i.id === id);
-    if (!item) return showToast("ArtÃ­culo no encontrado", "error");
+    if (!item) return showToast("Artículo no encontrado", "error");
 
     const modInv = document.getElementById('modal-nuclear-inv');
     const btnSave = document.getElementById('btn-save-inv');
     
     if (modInv) {
-        modInv.querySelector('h3').textContent = 'Editar ArtÃ­culo';
+        modInv.querySelector('h3').textContent = 'Editar Artículo';
         if (btnSave) {
-            btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Actualizar ArtÃ­culo';
+            btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Actualizar Artículo';
             btnSave.dataset.editId = id;
         }
         
@@ -222,15 +222,15 @@ window.editStock = (id) => {
 };
 
 window.deleteItem = async (id) => {
-    if (!confirm('Â¿Seguro que deseas eliminar este artÃ­culo del inventario?')) return;
+    if (!confirm('¿Seguro que deseas eliminar este artículo del inventario?')) return;
     await deleteInventarioItem(id);
     renderView();
-    window.addNotification("Inventario", "ArtÃ­culo eliminado", "warning");
+    window.addNotification("Inventario", "Artículo eliminado", "warning");
 };
 
 window.adminDeletePartner = async (id, e) => {
     e.stopPropagation();
-    if (!confirm('Â¿Seguro que deseas eliminar este partner/proveedor?')) return;
+    if (!confirm('¿Seguro que deseas eliminar este partner/proveedor?')) return;
     const db = getDB();
     if (!db.Admin_Proveedores) return;
     db.Admin_Proveedores = db.Admin_Proveedores.filter(p => String(p.id) !== String(id));
@@ -248,7 +248,7 @@ window.adminBulkDeletePartners = async () => {
         showToast('Debes seleccionar al menos un partner', 'error');
         return;
     }
-    if (!confirm(`Â¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
+    if (!confirm(`¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
     
     const ids = Array.from(checked).map(c => c.dataset.id);
     const db = getDB();
@@ -279,8 +279,8 @@ window.handleGlobalAdd = async () => {
         
         if(modInv) {
             const h3 = modInv.querySelector('h3');
-            if(h3) h3.textContent = 'AÃ±adir ArtÃ­culo al Inventario';
-            if(btnSave) btnSave.innerHTML = 'Guardar ArtÃ­culo';
+            if(h3) h3.textContent = 'Añadir Artículo al Inventario';
+            if(btnSave) btnSave.innerHTML = 'Guardar Artículo';
             
             if(document.getElementById('inp-inv-codigo')) document.getElementById('inp-inv-codigo').value = '';
             if(document.getElementById('inp-inv-linea')) document.getElementById('inp-inv-linea').value = '';
@@ -400,7 +400,7 @@ window.handleGlobalAdd = async () => {
         const dbLocal = getDB();
         const pipelines = dbLocal.Admin_Pipelines || [];
         if (pipelines.length === 0) {
-          usrPipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aÃºn.</p>';
+          usrPipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aún.</p>';
         } else {
           const getPipIcon = (n) => {
             const nl = n.toLowerCase();
@@ -494,7 +494,7 @@ async function init() {
 
       // Deep Linking Logic
       if (hash && hash.startsWith('#crmDetail?id=')) {
-          const allowedRoles = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'SupervisiÃ³n'];
+          const allowedRoles = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
           if (allowedRoles.includes(user.rol)) {
               const qs = hash.split('?')[1];
               const params = new URLSearchParams(qs);
@@ -513,7 +513,7 @@ async function init() {
       }
 
       // â”€â”€ ?reasignar=PROJECT_ID deep link (from rejection email) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // When admin clicks "Reasignar TÃ©cnico Ahora" in the email, this opens
+      // When admin clicks "Reasignar Técnico Ahora" in the email, this opens
       // the Kanban drawer directly on that project so they can assign a new tech.
       const urlSearchParams = new URLSearchParams(window.location.search);
       const reasignarId = urlSearchParams.get('reasignar');
@@ -549,11 +549,11 @@ async function init() {
                           animation: slideDown 0.4s ease;
                       `;
                       banner.innerHTML = `
-                          <span>âš ï¸ El tÃ©cnico rechazÃ³ esta cita. Asigna un nuevo tÃ©cnico al proyecto <strong>RENEW-${reasignarId.toUpperCase()}</strong></span>
+                          <span>âš ï¸ El técnico rechazó esta cita. Asigna un nuevo técnico al proyecto <strong>RENEW-${reasignarId.toUpperCase()}</strong></span>
                           <button onclick="document.getElementById('reasignar-banner').remove()"
                               style="background:rgba(255,255,255,0.2); border:none; color:white; width:28px; height:28px;
                                      border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">
-                              Ã—
+                              Á—
                           </button>
                       `;
                       document.body.appendChild(banner);
@@ -574,7 +574,7 @@ async function init() {
                           }
                       }, 800);
                   } else {
-                      showToast(`âš ï¸ Proyecto RENEW-${reasignarId} no encontrado. BÃºscalo manualmente.`, 'warning');
+                      showToast(`âš ï¸ Proyecto RENEW-${reasignarId} no encontrado. Búscalo manualmente.`, 'warning');
                       console.warn('[DeepLink] Project not found for reasignar:', reasignarId);
                   }
               } catch (deepLinkErr) {
@@ -603,7 +603,7 @@ async function init() {
       console.log('--- MOTOR LISTO ---');
       updateProgress(100, 'Motor Listo');
       initSuccess = true;
-      window.addNotification('Sistema Iniciado', 'ConexiÃ³n a la nube establecida.', 'success');
+      window.addNotification('Sistema Iniciado', 'Conexión a la nube establecida.', 'success');
 
   } catch (err) {
       console.error('[INIT FATAL] Initialization failed:', err);
@@ -669,7 +669,7 @@ window.setAdminLang = (lang) => {
     localStorage.setItem('app_lang', lang);
     window.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
     updateAdminLangUI();
-    showToast(lang === 'es' ? 'ðŸ‡ªðŸ‡¸ Idioma: EspaÃ±ol' : 'ðŸ‡ºðŸ‡¸ Language: English', 'success');
+    showToast(lang === 'es' ? 'ðŸ‡ªðŸ‡¸ Idioma: Español' : 'ðŸ‡ºðŸ‡¸ Language: English', 'success');
 };
 
 window.addEventListener('db_synced', async () => {
@@ -728,7 +728,7 @@ const updateAdminNavLabels = () => {
 // Administrative Actions Attached to Window for Inline Buttons
 window.adminDeletePipeline = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Â¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
+    if (confirm('¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -767,7 +767,7 @@ window.adminEditFaseName = async (id, e) => {
 
 window.adminDeleteFase = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Â¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
+    if (confirm('¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -782,7 +782,7 @@ window.adminDeleteFase = async (id, e) => {
 
 window.adminDeleteCampo = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Â¿ELIMINAR ESTA PREGUNTA?')) {
+    if (confirm('¿ELIMINAR ESTA PREGUNTA?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -827,7 +827,7 @@ window.adminEditCampo = (id, e) => {
 };
 
 window.adminDeleteAcademia = async (id) => {
-    if (confirm('Â¿Eliminar este contenido?')) {
+    if (confirm('¿Eliminar este contenido?')) {
         try {
             const db = getDB();
             db.academiaContent = (db.academiaContent || []).filter(i => i.id !== id);
@@ -835,7 +835,7 @@ window.adminDeleteAcademia = async (id) => {
             await deleteRecord('academia_content', id);
             await saveDB(db);
             await renderView();
-            window.addNotification('Gestor Academia', `Se eliminÃ³ el material`, 'warning');
+            window.addNotification('Gestor Academia', `Se eliminó el material`, 'warning');
         } catch (err) {
             console.error('Error al eliminar material:', err);
         }
@@ -844,7 +844,7 @@ window.adminDeleteAcademia = async (id) => {
 
 window.adminDeleteWorker = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('Â¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
+    if (confirm('¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
       await deleteAdminWorker(id);
       await renderView();
     }
@@ -864,7 +864,7 @@ window.adminToggleWorkerStatus = async (id, isEnabled, e) => {
 
 window.adminDeleteClient = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('Â¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
+    if (confirm('¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
       const btn = e.target.closest('.btn-delete-client');
       const originalHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -893,7 +893,7 @@ window.adminDeleteClient = async (id, e) => {
 window.adminBulkDeleteWorkers = async () => {
     const checked = Array.from(document.querySelectorAll('.worker-chk:checked')).map(chk => chk.dataset.id);
     if(checked.length === 0) return alert('Selecciona al menos un trabajador');
-    if (confirm(`Â¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
+    if (confirm(`¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
       await deleteAdminWorker(checked);
       await renderView();
     }
@@ -905,7 +905,7 @@ window.adminBulkDeleteClients = async () => {
     
     if(checked.length === 0) return alert('Selecciona al menos un cliente');
     
-    if (confirm(`Â¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
+    if (confirm(`¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
       const btn = document.getElementById('btn-bulk-delete-cli');
       const originalHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -932,7 +932,7 @@ window.adminBulkDeleteClients = async () => {
 
 window.adminDeleteProject = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('Â¿ESTÃS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
+    if (confirm('¿ESTÁS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
         await deleteAdminProject(id);
         const drawer = document.getElementById('kanban-drawer-overlay');
         if(drawer) drawer.remove();
@@ -945,7 +945,7 @@ window.adminDeleteProject = async (id, e) => {
 const UI = {};
 function cacheElements() {
   UI.canvas = document.getElementById('main-canvas') || document.getElementById('view-canvas') || document.getElementById('canvas');
-  if (!UI.canvas) console.warn('[RENEW-WARN] No se encontrÃ³ el contenedor principal (main-canvas/view-canvas)');
+  if (!UI.canvas) console.warn('[RENEW-WARN] No se encontró el contenedor principal (main-canvas/view-canvas)');
 
   UI.sidebar = document.getElementById('admin-sidebar');
   UI.hambBtn = document.getElementById('admin-hamburger-btn');
@@ -1165,7 +1165,7 @@ function bindGlobalEvents() {
         }
     } catch (err) {
         console.error("Delegation Error (Inventory):", err);
-        showToast("Error en acciÃ³n de inventario: " + err.message, "error");
+        showToast("Error en acción de inventario: " + err.message, "error");
     }
 
     // 1. Edit User Button
@@ -1229,7 +1229,7 @@ function bindGlobalEvents() {
         const locacion = document.getElementById('inp-inv-sede-select').value;
         const stock = parseInt(document.getElementById('inp-inv-stock').value) || 0;
 
-        if (!nombre || !codigo) return alert('CÃ³digo y Producto son obligatorios');
+        if (!nombre || !codigo) return alert('Código y Producto son obligatorios');
 
         const invData = getInventario();
 
@@ -1269,7 +1269,7 @@ function bindGlobalEvents() {
         
         window.closeModals();
         await renderView();
-        window.addNotification('Inventario', editId ? 'ArtÃ­culo actualizado' : 'Nuevo artÃ­culo registrado', 'success');
+        window.addNotification('Inventario', editId ? 'Artículo actualizado' : 'Nuevo artículo registrado', 'success');
         return;
     }
 
@@ -1493,7 +1493,7 @@ function bindGlobalEvents() {
         apellido: 'Vercetti',
         email: 'julian@renewsolar.com',
         rol: 'Admin',
-        department: 'DirecciÃ³n General',
+        department: 'Dirección General',
         telefono: '+1 (305) 555-9988'
       });
     });
@@ -1558,7 +1558,7 @@ function bindGlobalEvents() {
 
       if (!newUsr.nombre || !newUsr.apellido || !newUsr.email) return showToast('Datos obligatorios incompletos', 'error');
 
-      // Bloquear botÃ³n y mostrar animaciÃ³n
+      // Bloquear botón y mostrar animación
       const originalText = UI.btnSaveUsr.innerHTML;
       UI.btnSaveUsr.disabled = true;
       UI.btnSaveUsr.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creando...`;
@@ -1573,7 +1573,7 @@ function bindGlobalEvents() {
           console.error('[ERROR] Guardando trabajador:', error);
           showToast('Hubo un problema al crear el perfil.', 'error');
       } finally {
-          // Restaurar botÃ³n (por si el modal se vuelve a abrir luego)
+          // Restaurar botón (por si el modal se vuelve a abrir luego)
           UI.btnSaveUsr.disabled = false;
           UI.btnSaveUsr.innerHTML = originalText;
           UI.btnSaveUsr.classList.remove('opacity-70', 'cursor-not-allowed');
@@ -1660,7 +1660,7 @@ function bindGlobalEvents() {
           success.classList.remove('hidden');
           success.classList.add('flex');
         }
-        showToast('Documento subido con Ã©xito', 'success');
+        showToast('Documento subido con éxito', 'success');
       } catch(e) {
         console.error('Error subiendo W-9:', e);
         showToast('Error al subir el documento', 'error');
@@ -2013,8 +2013,8 @@ function bindGlobalEvents() {
       // â”€â”€ VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (!firstNom || !apellido) { alert('El Nombre y Apellido son obligatorios'); return; }
       if (!email) { alert('El Email es obligatorio'); return; }
-      if (!direccion) { alert('La DirecciÃ³n es obligatoria'); return; }
-      if (!telVal) { alert('El TelÃ©fono es obligatorio'); return; }
+      if (!direccion) { alert('La Dirección es obligatoria'); return; }
+      if (!telVal) { alert('El Teléfono es obligatorio'); return; }
       // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
       // â”€â”€ DISABLE BUTTON WHILE SAVING â”€â”€
@@ -2144,7 +2144,7 @@ function bindGlobalEvents() {
             UI.inpPipCol.value,
             rolesConAcceso
           );
-          await createAdminFase(newPip.id, 'Fase 1: RecolecciÃ³n', 1);
+          await createAdminFase(newPip.id, 'Fase 1: Recolección', 1);
           window.closeModals();
           await loadData();
           state.activePipId = newPip.id;
@@ -2161,12 +2161,12 @@ function bindGlobalEvents() {
 
   // â”€â”€ Edit Pipeline Roles (pencil icon) â”€â”€
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
-  const ROLES_LIST = ['Call Center', 'Vendedor', 'Project Manager', 'TÃ©cnico', 'DiseÃ±ador', 'Contabilidad', 'SupervisiÃ³n', 'CEO', 'Admin'];
+  const ROLES_LIST = ['Call Center', 'Vendedor', 'Project Manager', 'Técnico', 'Diseñador', 'Contabilidad', 'Supervisión', 'CEO', 'Admin'];
   const ROLE_ICONS_MAP = {
     'Call Center': 'fa-headset',
-    'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'TÃ©cnico': 'fa-screwdriver-wrench',
-    'DiseÃ±ador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator',
-    'SupervisiÃ³n': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
+    'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'Técnico': 'fa-screwdriver-wrench',
+    'Diseñador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator',
+    'Supervisión': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
   };
 
   // Event delegation on canvas for pencil icon
@@ -2486,7 +2486,7 @@ function bindGlobalEvents() {
         btnSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
         btnSend.classList.remove('bg-tealAccent');
         btnSend.classList.add('bg-green-500');
-        showSuccessModal('Â¡Ya estÃ¡ activado! Los protocolos de Email Engine se han sincronizado con Ã©xito.');
+        showSuccessModal('¡Ya está activado! Los protocolos de Email Engine se han sincronizado con éxito.');
       })
       .catch(err => {
         console.error('Email Engine Error:', err);
@@ -2584,7 +2584,7 @@ function bindGlobalEvents() {
         btnWaSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
         btnWaSend.classList.remove('bg-tealAccent');
         btnWaSend.classList.add('bg-green-500');
-        showSuccessModal('Â¡Protocolo WhatsApp Activado! Las seÃ±ales se estÃ¡n transmitiendo a la red.');
+        showSuccessModal('¡Protocolo WhatsApp Activado! Las señales se están transmitiendo a la red.');
       })
       .catch(err => {
         console.error('WhatsApp Engine Error:', err);
@@ -2666,7 +2666,7 @@ function bindGlobalEvents() {
                 <input type="checkbox" value="${item.email}" data-telefono="${item.telefono || ''}" class="${chkClass} w-4 h-4 rounded ${accentColor} ${ringColor}">
                 <div class="flex flex-col">
                   <span class="text-xs font-bold text-gray-800 dark:text-white">${item.nombre} ${item.apellido || ''}</span>
-                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin telÃ©fono') : (item.email || 'Sin email')}</span>
+                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin teléfono') : (item.email || 'Sin email')}</span>
                 </div>
               </label>
             `).join('')}
@@ -2686,7 +2686,7 @@ function bindGlobalEvents() {
       await updateAdminFaseRole(faseId, nuevoRol);
       const stFaseObj = state.fases.find(f => f.id === faseId);
       if (stFaseObj) stFaseObj.rol_encargado = nuevoRol;
-      renderConstructor(); // Sincronizar UI para mostrar/ocultar botÃ³n de asignaciÃ³n
+      renderConstructor(); // Sincronizar UI para mostrar/ocultar botón de asignación
     }
   });
 }
@@ -2746,7 +2746,7 @@ window.showInvHistoryDetails = (clientName) => {
                 <table class="w-full text-[11px]">
                     <thead class="bg-gray-100 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
                         <tr>
-                            <th class="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-widest">ArtÃ­culo</th>
+                            <th class="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-widest">Artículo</th>
                             <th class="px-4 py-3 text-right font-black text-gray-400 uppercase tracking-widest">Cant. Total</th>
                         </tr>
                     </thead>
@@ -2817,8 +2817,8 @@ window.showModal = (m) => {
   if (m.id === 'modal-nuclear-inv') {
       const btnSave = document.getElementById('btn-save-inv');
       if (btnSave && !btnSave.dataset.editId) {
-          m.querySelector('h3').textContent = 'AÃ±adir ArtÃ­culo al Inventario';
-          btnSave.innerHTML = 'Guardar ArtÃ­culo';
+          m.querySelector('h3').textContent = 'Añadir Artículo al Inventario';
+          btnSave.innerHTML = 'Guardar Artículo';
           // Clear inputs
           if(document.getElementById('inp-inv-codigo')) document.getElementById('inp-inv-codigo').value = '';
           if(document.getElementById('inp-inv-linea')) document.getElementById('inp-inv-linea').value = '';
@@ -2939,7 +2939,7 @@ window.showProblemModal = (proyId) => {
         <div class="bg-white dark:bg-[#1a1c23] w-full max-w-lg rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-scaleIn">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-red-50 dark:bg-red-500/10">
                 <h3 class="font-black text-red-600 dark:text-red-400 uppercase tracking-widest text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-triangle-exclamation"></i> DiscusiÃ³n Interna
+                    <i class="fa-solid fa-triangle-exclamation"></i> Discusión Interna
                 </h3>
                 <button onclick="this.closest('.fixed').remove()" class="text-red-400 hover:text-red-600 transition-colors">
                     <i class="fa-solid fa-xmark text-lg"></i>
@@ -3163,7 +3163,7 @@ window.renderView = async function renderView() {
               flex:1;overflow-y:auto;padding:20px 14px;min-height:400px;
               transition:all 0.3s;border-radius:0 0 20px 20px;
             ">
-              ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Arrastra clientes aquÃ­</div>`}
+              ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Arrastra clientes aquí</div>`}
             </div>
           </div>
         `;
@@ -3309,7 +3309,7 @@ window.renderView = async function renderView() {
     await renderHRHub();
   } else if (state.activeView === 'mapa-admin') {
     if (UI.viewTitle) UI.viewTitle.innerHTML = '<i class="fa-solid fa-map-location-dot text-tealAccent"></i> Mapa Clientes';
-    if (UI.viewDesc) UI.viewDesc.textContent = 'UbicaciÃ³n global de todos los clientes en Renew OS.';
+    if (UI.viewDesc) UI.viewDesc.textContent = 'Ubicaci\u00f3n global de todos los clientes en Renew OS.';
     setGlobalButton(false, '');
     
     UI.canvas.innerHTML = `
@@ -3550,7 +3550,7 @@ window.renderView = async function renderView() {
                             </div>
                             <div style="margin-top:8px; font-size:12px; color:#555; display:flex; flex-direction:column; gap:4px;">
                               <span style="color:#00dfbf; font-weight:700;">ðŸ§‘â€ðŸ’¼ Rep: ${repName}</span>
-                              <span>ðŸ“ž ${c.telefono || 'Sin telÃ©fono'}</span>
+                              <span>ðŸ“ž ${c.telefono || 'Sin teléfono'}</span>
                               <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">ðŸ“ ${c.direccion}</span>
                               ${c.nota_mapa ? `<div style="margin-top:6px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; border-left:3px solid #00dfbf;">
                                 <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">ðŸ“ Nota del vendedor</div>
@@ -3746,7 +3746,7 @@ window.renderView = async function renderView() {
         });
     }
 
-    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "TelÃ©fono", "Ãrea de Cobertura", "Documentos", ""];
+    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
     const rowsHtml = items.map(u => {
         const safeEmpresa = u.empresa || 'Empresa Desconocida';
         const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
@@ -3892,7 +3892,7 @@ window.renderView = async function renderView() {
 
             ${d.ultima_actividad_label ? `
             <div class="bg-gray-50 dark:bg-white/[0.03] rounded-lg px-2.5 py-1.5 mb-3 border border-gray-100 dark:border-white/5">
-              <p class="text-[8px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-0.5">Ãšltima Actividad</p>
+              <p class="text-[8px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest mb-0.5">Ášltima Actividad</p>
               <p class="text-[10px] font-bold text-gray-700 dark:text-gray-300 truncate">${d.ultima_actividad_label}</p>
               <p class="text-[8px] text-gray-400 dark:text-gray-600">${d.ultima_actividad ? new Date(d.ultima_actividad).toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : ''}</p>
             </div>` : ''}
@@ -4157,7 +4157,7 @@ window.renderView = async function renderView() {
   }
   else if (state.activeView === 'academia') {
     UI.viewTitle.textContent = "Gestor Academia";
-    UI.viewDesc.textContent = "Sube y administra el contenido de formaciÃ³n y biblioteca virtual.";
+    UI.viewDesc.textContent = "Sube y administra el contenido de formación y biblioteca virtual.";
     setGlobalButton(false);
     
     const dbLocal = getDB();
@@ -4220,7 +4220,7 @@ window.renderView = async function renderView() {
             </div>
 
             <label class="aqua-label">${t('aca_field_vis')}</label>
-            <p class="text-[10px] text-gray-400 mb-3 ml-1">Selecciona quÃ© unidades pueden ver este recurso en la app mÃ³vil.</p>
+            <p class="text-[10px] text-gray-400 mb-3 ml-1">Selecciona qué unidades pueden ver este recurso en la app móvil.</p>
             <div class="grid grid-cols-2 gap-3 mb-8">
                ${pipsOptionsHtml}
             </div>
@@ -4252,7 +4252,7 @@ window.renderView = async function renderView() {
                <span class="bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full text-xs font-bold text-gray-500">${academiaContent.length} items</span>
             </div>
             <div class="overflow-y-auto max-h-[600px] hide-scrollbar custom-scrollbar pr-2">
-              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Base de datos vacÃ­a</p></div>'}
+              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Base de datos vacía</p></div>'}
             </div>
          </div>
       </div>
@@ -4274,7 +4274,7 @@ window.renderView = async function renderView() {
        const permisos = Array.from(document.querySelectorAll('.aca-pip-chk:checked')).map(cb => cb.value);
 
        if(!titulo || (!file && !editId)) {
-          window.addNotification('Gestor Academia', editId ? 'El tÃ­tulo es obligatorio' : 'El tÃ­tulo y el archivo adjunto son obligatorios', 'error');
+          window.addNotification('Gestor Academia', editId ? 'El título es obligatorio' : 'El título y el archivo adjunto son obligatorios', 'error');
           return;
        }
        if(permisos.length === 0) {
@@ -4308,7 +4308,7 @@ window.renderView = async function renderView() {
                    if(data.miniaturaUrl) miniaturaUrl = data.miniaturaUrl;
                } catch (err) {
                    console.error('Upload Error:', err);
-                   throw new Error('Error al subir el archivo: ' + (err.message || 'Verifica tu conexiÃ³n y vuelve a intentarlo.'));
+                   throw new Error('Error al subir el archivo: ' + (err.message || 'Verifica tu conexión y vuelve a intentarlo.'));
 
                }
            }
@@ -4381,7 +4381,7 @@ window.renderView = async function renderView() {
     const acaTipoSelect = document.getElementById('aca-tipo');
     const thumbWrapCont = document.getElementById('aca-thumb-wrap');
     if(acaTipoSelect && thumbWrapCont) {
-       // Mostrar/ocultar al cargar segÃºn valor inicial
+       // Mostrar/ocultar al cargar según valor inicial
        thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
         acaTipoSelect.addEventListener('change', () => {
           thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
@@ -4444,7 +4444,7 @@ window.renderView = async function renderView() {
                 <td class="px-6 py-4 whitespace-nowrap text-xs font-black text-tealAccent">${ite.stockActual}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                    <div class="flex items-center gap-3">
-                       <button onclick="window.addStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center" title="Suma RÃ¡pida de Stock">
+                       <button onclick="window.addStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center" title="Suma Rápida de Stock">
                            <i class="fa-solid fa-plus text-[10px]" style="pointer-events: none;"></i>
                        </button>
                        <button onclick="window.subtractStock('${ite.id}')" class="w-8 h-8 rounded-lg bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center" title="Restar Stock">
@@ -4660,7 +4660,7 @@ window.renderView = async function renderView() {
   }
   else if (state.activeView === 'anuncios') {
     UI.viewTitle.textContent = "GESTOR DE ANUNCIOS GLOBALES";
-    UI.viewDesc.textContent = "Publica comunicados para la aplicaciÃ³n mÃ³vil y rastrea su lectura.";
+    UI.viewDesc.textContent = "Publica comunicados para la aplicación móvil y rastrea su lectura.";
     setGlobalButton(false);
     
     const annTabsHtml = `
@@ -4685,7 +4685,7 @@ window.renderView = async function renderView() {
         const anunciosHtml = sortedAnuncios.map(an => {
           const getTagBadge = (tag) => {
               if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
-              const roles = ['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'];
+              const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'];
               if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
               return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
           };
@@ -4724,16 +4724,16 @@ window.renderView = async function renderView() {
                 <div class="w-10 h-10 rounded-full bg-tealAccent/10 flex items-center justify-center text-tealAccent"><i class="fa-solid fa-bullhorn text-lg"></i></div>
                 <div>
                   <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Nuevo Comunicado</h3>
-                  <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">EnvÃ­o Inmediato</p>
+                  <p class="text-[9px] text-gray-400 font-bold tracking-widest uppercase">Envío Inmediato</p>
                 </div>
               </div>
               <div class="space-y-4 flex-1">
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">TÃ­tulo del Anuncio</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título del Anuncio</label>
                     <input type="text" id="ann-input-title" placeholder="..." class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-tealAccent outline-none text-gray-900 dark:text-white">
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (SelecciÃ³n MÃºltiple)</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
                     <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <input type="checkbox" id="aud-all" class="aud-check w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="todos">
@@ -4753,7 +4753,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'].map(r => `
+                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
@@ -4805,7 +4805,7 @@ window.renderView = async function renderView() {
                   <div id="ann-report-placeholder" class="py-20 text-center">
                     <i class="fa-solid fa-chart-pie text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
                     <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Lectura</h4>
-                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona un anuncio para ver quiÃ©nes lo han leÃ­do.</p>
+                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona un anuncio para ver quiénes lo han leído.</p>
                   </div>
                 </div>
               </div>
@@ -4827,7 +4827,7 @@ window.renderView = async function renderView() {
                </button>
                <div class="flex-1">
                  <div class="flex justify-between items-start mb-3 pr-10">
-                   <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'ReuniÃ³n'}</h4>
+                   <h4 class="text-sm font-black text-gray-900 dark:text-white line-clamp-1">${mt.titulo || 'Reunión'}</h4>
                    <div class="flex flex-wrap gap-1 justify-end">
                      ${(mt.audiencia_tags || [mt.audiencia || 'Todos']).map(tag => {
                         const displayTag = (tag === 'todos' || tag === 'Todos') ? 'Renew Group' : tag;
@@ -4860,11 +4860,11 @@ window.renderView = async function renderView() {
               </div>
               <div class="space-y-4 flex-1">
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">TÃ­tulo de la ReuniÃ³n</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título de la Reunión</label>
                     <input type="text" id="mt-input-title" placeholder="Ej: Weekly Sync" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none text-gray-900 dark:text-white focus:border-blue-400">
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (SelecciÃ³n MÃºltiple)</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Audiencia (Selección Múltiple)</label>
                     <div class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-3 hide-scrollbar">
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <input type="checkbox" id="mt-aud-all" class="mt-aud-check w-4 h-4 rounded border-gray-300 text-blue-400 focus:ring-blue-400" value="todos">
@@ -4884,7 +4884,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'TÃ©cnico', 'Admin', 'Call Center', 'Project Manager', 'SupervisiÃ³n', 'CEO'].map(r => `
+                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
@@ -4938,8 +4938,8 @@ window.renderView = async function renderView() {
                 <div id="mt-reporte-contenedor" class="w-full min-h-[400px] flex flex-col p-6 items-center justify-center text-center">
                   <div id="mt-report-placeholder" class="py-20 text-center">
                     <i class="fa-solid fa-users-viewfinder text-5xl text-gray-100 dark:text-white/5 mb-4 block"></i>
-                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de ConfirmaciÃ³n</h4>
-                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reuniÃ³n para ver quiÃ©nes la han leÃ­do.</p>
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Reporte de Confirmación</h4>
+                    <p class="text-[10px] text-gray-300 dark:text-gray-500 mt-2 font-medium">Selecciona una reunión para ver quiénes la han leído.</p>
                   </div>
                 </div>
               </div>
@@ -4968,7 +4968,7 @@ window.renderView = async function renderView() {
                   const audTags = checked.map(c => c.value);
                   const isAll = audTags.includes('todos');
                   
-                  if (!tit || !msj) return showToast('TÃ­tulo y mensaje obligatorios', 'error');
+                  if (!tit || !msj) return showToast('Título y mensaje obligatorios', 'error');
                   if (audTags.length === 0) return showToast('Selecciona al menos una audiencia', 'warning');
                   
                   btnPub.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
@@ -5004,7 +5004,7 @@ window.renderView = async function renderView() {
                   dbLoc.anuncios_corporativos.push(nuevoAnuncio);
                   await saveDB(dbLoc);
                   state.currentAnnFoto = null;
-                  showToast('Â¡Anuncio publicado globalmente!', 'success');
+                  showToast('¡Anuncio publicado globalmente!', 'success');
                   renderView();
                 };
             }
@@ -5074,11 +5074,11 @@ window.renderView = async function renderView() {
                     try {
                         await saveGranular('admin_meetings', [newMt]);
                         state.currentMtFoto = null;
-                        showToast('ReuniÃ³n publicada correctamente', 'success');
+                        showToast('Reunión publicada correctamente', 'success');
                         await initDB();
                         renderView();
                     } catch (err) {
-                        showToast('Error al publicar reuniÃ³n', 'error');
+                        showToast('Error al publicar reunión', 'error');
                         btnPub.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> Publicar Llamada';
                         btnPub.disabled = false;
                     }
@@ -5114,7 +5114,7 @@ window.renderView = async function renderView() {
 
 // Ventana global para visualizar reporte de lectura
 window.deleteAnuncio = async (id, btn) => {
-    if (!confirm('Â¿Seguro que deseas eliminar este anuncio? No podrÃ¡ recuperarse.')) return;
+    if (!confirm('¿Seguro que deseas eliminar este anuncio? No podrá recuperarse.')) return;
     
     try {
         if (btn) {
@@ -5143,7 +5143,7 @@ window.deleteAnuncio = async (id, btn) => {
 };
 
 window.deleteMeeting = async (id, btn) => {
-    if (!confirm('Â¿Seguro que deseas eliminar esta reuniÃ³n?')) return;
+    if (!confirm('¿Seguro que deseas eliminar esta reunión?')) return;
     
     try {
         if (btn) {
@@ -5158,11 +5158,11 @@ window.deleteMeeting = async (id, btn) => {
         });
 
         await initDB();
-        showToast('ReuniÃ³n eliminada', 'warning');
+        showToast('Reunión eliminada', 'warning');
         renderView();
     } catch (err) {
         console.error(err);
-        showToast('Error al eliminar reuniÃ³n', 'error');
+        showToast('Error al eliminar reunión', 'error');
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-trash-can text-[10px]"></i>';
@@ -5193,7 +5193,7 @@ window.mostrarReporteMeeting = async (id) => {
                         <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${w.nombre} ${w.apellido}</span>
                         <i class="fa-solid fa-check text-emerald-500 text-[8px]"></i>
                     </div>
-                `).join('') || '<p class="text-[10px] text-gray-400 italic">Nadie ha confirmado aÃºn</p>'}
+                `).join('') || '<p class="text-[10px] text-gray-400 italic">Nadie ha confirmado aún</p>'}
             </div>
 
             <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-100 dark:border-white/5 pb-2 text-left">Pendientes (${pendingWorkers.length})</h4>
@@ -5242,7 +5242,7 @@ window.mostrarReporteAnuncio = function(id) {
          <p class="text-lg font-black text-gray-900 dark:text-white leading-none">${ann.titulo}</p>
          <div class="mt-4 bg-white dark:bg-black/30 border border-gray-100 dark:border-white/5 p-3 rounded-xl flex items-center justify-between">
            <div>
-             <p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">AceptaciÃ³n (Lectura)</p>
+             <p class="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Aceptación (Lectura)</p>
              <p class="text-2xl font-black text-tealAccent leading-none mt-1">${pct}%</p>
            </div>
            <div class="text-right">
@@ -5580,7 +5580,7 @@ function renderCalendario() {
       mostrarDetalleEventoCalendario(info.event);
     },
     dateClick: function(info) {
-      // Al hacer click en un dia libre, abre modal en modo creaciÃ³n
+      // Al hacer click en un dia libre, abre modal en modo creación
       mostrarDetalleEventoCalendario({ date: info.date });
     },
     height: 'auto',
@@ -5625,7 +5625,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
   const titleEl = document.getElementById('modo-texto');
   const form = document.getElementById('form-calendario-evento');
   
-  // FunciÃ³n para convertir fecha JS a YYYY-MM-DDThh:mm
+  // Función para convertir fecha JS a YYYY-MM-DDThh:mm
   const toLocalISOString = (d) => {
       const pad = n => n < 10 ? '0'+n : n;
       return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
@@ -5914,7 +5914,7 @@ window.eliminarEventoCalendarioAdmin = async function() {
     return;
   }
 
-  if (!confirm('Â¿EstÃ¡s seguro de que deseas eliminar este evento? Esta acciÃ³n no se puede deshacer.')) return;
+  if (!confirm('¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) return;
 
   try {
     btn.disabled = true;
@@ -6075,7 +6075,7 @@ window.guardarEventoCalendario = async function(e) {
         console.error('[RENEW-GCAL] Error communicating with sync server:', syncErr);
     }
 
-    showToast('Evento guardado con Ã©xito', 'success');
+    showToast('Evento guardado con éxito', 'success');
     window.closeModals();
     
     // Refresh calendar to show the new event
@@ -6085,7 +6085,7 @@ window.guardarEventoCalendario = async function(e) {
 
   } catch (err) {
     console.error("Error guardando evento:", err);
-    showToast('OcurriÃ³ un error al guardar', 'error');
+    showToast('Ocurrió un error al guardar', 'error');
   } finally {
     const btnGuardar = document.getElementById('btn-guardar-evento');
     if (btnGuardar) {
@@ -6105,7 +6105,7 @@ function renderTable(headers, rows) {
   `).join('');
 
   if (!UI.canvas) {
-    console.error('[RENEW-ERROR] UI.canvas no estÃ¡ definido. Re-intentando cacheElements...');
+    console.error('[RENEW-ERROR] UI.canvas no está definido. Re-intentando cacheElements...');
     cacheElements();
   }
 
@@ -6213,14 +6213,14 @@ function renderConstructor() {
                   <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
                   <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Vendedor</option>
                   <option value="Project Manager" ${f.rol_encargado === 'Project Manager' ? 'selected' : ''}>Project Manager</option>
-                  <option value="TÃ©cnico" ${f.rol_encargado === 'TÃ©cnico' ? 'selected' : ''}>TÃ©cnico</option>
-                  <option value="DiseÃ±ador" ${f.rol_encargado === 'DiseÃ±ador' ? 'selected' : ''}>DiseÃ±ador</option>
+                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
+                  <option value="Diseñador" ${f.rol_encargado === 'Diseñador' ? 'selected' : ''}>Diseñador</option>
                   <option value="Contabilidad" ${f.rol_encargado === 'Contabilidad' ? 'selected' : ''}>Contabilidad</option>
                   
-                  <option value="SupervisiÃ³n" ${f.rol_encargado === 'SupervisiÃ³n' ? 'selected' : ''}>SupervisiÃ³n</option>
+                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
                   <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Admin</option>
                   <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
-                  <option value="AsignaciÃ³n EspecÃ­fica" ${f.rol_encargado === 'AsignaciÃ³n EspecÃ­fica' ? 'selected' : ''}>AsignaciÃ³n EspecÃ­fica</option>
+                  <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
                 </select>
               </div>
               <p class="bg-tealAccent/5 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/10 font-bold text-[8px] uppercase mb-0">N: ${cCampos.length}</p>
@@ -6234,7 +6234,7 @@ function renderConstructor() {
                   return `<div class="inline-block h-5 w-5 rounded-full ring-2 ring-white dark:ring-[#1a1a1a] bg-tealAccent flex items-center justify-center text-[7px] font-black text-white uppercase" title="${u.nombre}">${u.initials || u.nombre.substring(0,2)}</div>`;
                 }).join('')}
               </div>
-              ${f.rol_encargado === 'AsignaciÃ³n EspecÃ­fica' ? `
+              ${f.rol_encargado === 'Asignación Específica' ? `
               <button class="btn-assign-users text-[8px] font-black text-tealAccent hover:underline uppercase tracking-widest" data-faseid="${f.id}">
                 ${(f.usuarios_especificos || []).length > 0 ? 'Editar Usuarios' : '+ Asignar Usuarios'}
               </button>
@@ -6372,7 +6372,7 @@ async function openFaseUserPicker(faseId) {
         modal.classList.add('nuclear-hidden');
       }
       
-      showToast('AsignaciÃ³n de usuarios actualizada', 'success');
+      showToast('Asignación de usuarios actualizada', 'success');
       
       // 3. Recargar datos y refrescar UI
       await loadData();
@@ -6383,7 +6383,7 @@ async function openFaseUserPicker(faseId) {
       showToast('Error al guardar: ' + err.message, 'error');
     } finally {
       btnConfirm.disabled = false;
-      btnConfirm.innerHTML = 'Confirmar AsignaciÃ³n';
+      btnConfirm.innerHTML = 'Confirmar Asignación';
     }
   };
   
@@ -6550,7 +6550,7 @@ async function showWorkerDetail(id) {
     if (document.getElementById('det-usr-banco-cuenta')) document.getElementById('det-usr-banco-cuenta').textContent = usr.banco_cuenta || '-';
     if (document.getElementById('det-usr-banco-ruta'))   document.getElementById('det-usr-banco-ruta').textContent   = usr.banco_ruta   || '-';
 
-    // Format DOB for view mode (mes dia aÃ±o)
+    // Format DOB for view mode (mes dia año)
     const dobViewEl = document.getElementById('det-usr-dob-view');
     if (dobViewEl) {
         if (usr.dob && usr.dob.includes('-')) {
@@ -6886,7 +6886,7 @@ async function toggleDetailEditMode(id) {
             };
 
             if (pipelines.length === 0) {
-                pipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aÃºn.</p>';
+                pipBox.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pipelines creados aún.</p>';
             } else {
                 pipBox.innerHTML = pipelines.map(pip => {
                     const checked = userUnidades.includes(pip.nombre) ? 'checked' : '';
@@ -6920,7 +6920,7 @@ async function toggleDetailEditMode(id) {
     if (saveBar) saveBar.classList.remove('hidden');
     if (gearBtn) {
         gearBtn.classList.add('text-tealAccent', 'bg-tealAccent/10');
-        gearBtn.title = 'Cancelar ediciÃ³n';
+        gearBtn.title = 'Cancelar edición';
     }
 
     // Back Arrow handler
@@ -7057,7 +7057,7 @@ async function toggleDetailEditMode(id) {
                 await renderView();
             } catch (error) {
                 console.error("Error updating worker:", error);
-                showToast("OcurriÃ³ un error al guardar: " + (error.message || "Revisa la consola"), "error");
+                showToast("Ocurrió un error al guardar: " + (error.message || "Revisa la consola"), "error");
             } finally {
                 newSaveBtn.innerHTML = originalText;
                 newSaveBtn.disabled = false;
@@ -7083,7 +7083,7 @@ window.handleInstantDocUpload = async function(event, usrId, docType) {
     zone.classList.add('pointer-events-none', 'bg-tealAccent/5');
 
     try {
-        // USAR UPLOAD REAL EN LUGAR DE BASE64 (MÃ¡s estable para Supabase)
+        // USAR UPLOAD REAL EN LUGAR DE BASE64 (Más estable para Supabase)
         const fileUrl = await uploadFile(file, 'rrhh_docs');
         
         const workers = await getAdminWorkers();
@@ -7889,7 +7889,7 @@ function openFilePreview(campoId, label, directData) {
   const cached = directData || window._kanbanFileCache?.[campoId];
   if (!cached || !cached.valor) {
     console.warn('[openFilePreview] No data found for', campoId);
-    showToast('No se encontrÃ³ el archivo para previsualizar', 'error');
+    showToast('No se encontró el archivo para previsualizar', 'error');
     return;
   }
 
@@ -7911,7 +7911,7 @@ function openFilePreview(campoId, label, directData) {
         </div>
         <div>
             <p style="color:white;font-weight:800;font-size:12px;margin:0;letter-spacing:1px;text-transform:uppercase;">${label}</p>
-            <p style="color:rgba(255,255,255,0.5);font-size:10px;margin:0;">PrevisualizaciÃ³n de Documento</p>
+            <p style="color:rgba(255,255,255,0.5);font-size:10px;margin:0;">Previsualización de Documento</p>
         </div>
       </div>
       <div style="display:flex;gap:12px;">
@@ -7945,14 +7945,14 @@ function openFilePreview(campoId, label, directData) {
         <div style="color:white;text-align:center;">
             <i class="fas fa-exclamation-triangle" style="font-size:3rem;color:#facc15;margin-bottom:20px;"></i>
             <p style="font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Error al cargar imagen</p>
-            <p style="opacity:0.6;font-size:12px;">El archivo podrÃ­a no existir o la URL es invÃ¡lida</p>
+            <p style="opacity:0.6;font-size:12px;">El archivo podría no existir o la URL es inválida</p>
         </div>
     `;
   };
 
   document.body.appendChild(lightbox);
 
-  // Forzar que otros modales se pongan detrÃ¡s (importante para evitar el conflicto con el z-index 2147483647 de showModal)
+  // Forzar que otros modales se pongan detrás (importante para evitar el conflicto con el z-index 2147483647 de showModal)
   ['modal-client-detail', 'modal-project-detail', 'kanban-drawer-overlay'].forEach(id => {
       const m = document.getElementById(id);
       if (m) m.style.setProperty('z-index', '50', 'important');
@@ -7977,7 +7977,7 @@ function _showContractSelectorModal(contracts) {
     const existing = document.getElementById('contract-selector-modal');
     if (existing) existing.remove();
 
-    // Forzar que otros modales se pongan detrÃ¡s
+    // Forzar que otros modales se pongan detrás
     ['modal-client-detail', 'modal-project-detail', 'kanban-drawer-overlay'].forEach(id => {
         const m = document.getElementById(id);
         if (m) m.style.setProperty('z-index', '50', 'important');
@@ -7996,7 +7996,7 @@ function _showContractSelectorModal(contracts) {
                 </button>
             </div>
             <div style="padding:24px; display:flex; flex-direction:column; gap:12px;">
-                <p style="color:#475569; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; margin-left:4px;">Selecciona la versiÃ³n:</p>
+                <p style="color:#475569; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; margin-left:4px;">Selecciona la versión:</p>
                 ${contracts.map(c => {
                     const isSolar = c.label.toLowerCase().includes('solar');
                     const isWater = c.label.toLowerCase().includes('water');
@@ -8053,7 +8053,7 @@ window.handleContractView = (clientId) => {
     }
 
     if (contracts.length === 0) {
-        showToast('No se encontrÃ³ ningÃºn contrato para este cliente', 'info');
+        showToast('No se encontró ningún contrato para este cliente', 'info');
         return;
     }
 
@@ -8367,7 +8367,7 @@ async function showClientDetail(id) {
                 assignedAvatar.classList.replace('text-white', 'text-tealAccent');
             }
             selectorWrap.classList.add('hidden');
-            reassignBtn.textContent = 'Cambiar AsignaciÃ³n';
+            reassignBtn.textContent = 'Cambiar Asignación';
             await renderView(); // Refresh table background
         };
     }
@@ -8817,9 +8817,9 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', async (e) => {
     const handlers = {
         'inp-det-adj-id': { stateKey: 'currentDetAdjID', label: 'Foto ID', dropId: 'drop-det-adj-id', lblId: 'lbl-det-adj-id' },
-        'inp-det-adj-bill': { stateKey: 'currentDetAdjBill', label: 'Bill ElÃ©ctrico', dropId: 'drop-det-adj-bill', lblId: 'lbl-det-adj-bill' },
-        'inp-det-adj-seguro': { stateKey: 'currentDetAdjSeguro', label: 'PÃ³liza Seguro', dropId: 'drop-det-adj-seguro', lblId: 'lbl-det-adj-seguro' },
-        'inp-det-ofi-app': { stateKey: 'currentDetOfiApp', label: 'Hoja AplicaciÃ³n', dropId: 'drop-det-ofi-app', lblId: 'lbl-det-ofi-app' },
+        'inp-det-adj-bill': { stateKey: 'currentDetAdjBill', label: 'Bill Eléctrico', dropId: 'drop-det-adj-bill', lblId: 'lbl-det-adj-bill' },
+        'inp-det-adj-seguro': { stateKey: 'currentDetAdjSeguro', label: 'Póliza Seguro', dropId: 'drop-det-adj-seguro', lblId: 'lbl-det-adj-seguro' },
+        'inp-det-ofi-app': { stateKey: 'currentDetOfiApp', label: 'Hoja Aplicación', dropId: 'drop-det-ofi-app', lblId: 'lbl-det-ofi-app' },
         'inp-det-ofi-recibo': { stateKey: 'currentDetOfiRecibo', label: 'Recibo de Pago', dropId: 'drop-det-ofi-recibo', lblId: 'lbl-det-ofi-recibo' },
         'inp-det-ofi-contrato': { stateKey: 'currentDetOfiContrato', label: 'Contrato Firmado', dropId: 'drop-det-ofi-contrato', lblId: 'lbl-det-ofi-contrato' }
     };
@@ -8852,7 +8852,7 @@ document.addEventListener('change', async (e) => {
                 if (cli) {
                     if (handler.stateKey === 'currentDetAdjID') {
                         cli.adjunto_id_url = url;
-                        cli.id_photo = url; // SincronizaciÃ³n crucial
+                        cli.id_photo = url; // Sincronización crucial
                     }
                     else if (handler.stateKey === 'currentDetAdjBill') cli.adjunto_bill_url = url;
                     else if (handler.stateKey === 'currentDetAdjSeguro') cli.adjunto_seguro_url = url;
@@ -9001,7 +9001,7 @@ window._verRecibosWorker = async function(workerId, workerName, workerRol) {
     // Determine which tabs to show based on the WORKER'S role
     const rol = (workerRol || '').toLowerCase();
     const isVendedorRol = rol.includes('vendedor') || rol.includes('sales') || rol.includes('representante');
-    const isTecnicoRol  = rol.includes('tecnico') || rol.includes('tÃ©cnico') || rol.includes('instalador') || rol.includes('installer');
+    const isTecnicoRol  = rol.includes('tecnico') || rol.includes('técnico') || rol.includes('instalador') || rol.includes('installer');
     const isAdminRol    = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(rol);
 
     // showBoth: admin roles or if worker has both types of receipts
@@ -9045,7 +9045,7 @@ window._verRecibosWorker = async function(workerId, workerName, workerRol) {
         <div style="padding:16px 24px 0;display:flex;gap:8px;">
             <button data-rf="all"      class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #8b5cf6;background:#8b5cf615;color:#8b5cf6;font-size:0.75rem;font-weight:800;cursor:pointer;">Todos</button>
             <button data-rf="vendedor" class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Vendedor</button>
-            <button data-rf="tecnico"  class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">TÃ©cnico</button>
+            <button data-rf="tecnico"  class="rw-filter-btn" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;color:#94a3b8;font-size:0.75rem;font-weight:800;cursor:pointer;">Técnico</button>
         </div>` : '';
 
     const modal = document.createElement('div');
@@ -9393,12 +9393,12 @@ window.adminUploadCatalogo = async function(rank) {
 
             if (data.url) {
                 await saveCatalogo(rank, data.url);
-                showToast('CatÃ¡logo actualizado en la nube', 'success');
+                showToast('Catálogo actualizado en la nube', 'success');
                 renderListaPreciosAdmin();
             }
         } catch (err) {
             console.error(err);
-            showToast('Error al subir catÃ¡logo: ' + err.message, 'error');
+            showToast('Error al subir catálogo: ' + err.message, 'error');
         }
     };
     input.click();
@@ -9455,7 +9455,7 @@ window.savePrecio = async function() {
 };
 
 window.deleteListaPrecioItem = async function(id) {
-    if (!confirm('Â¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
+    if (!confirm('¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
     try {
         const { deleteListaPrecio } = await import('./api.js');
         const success = await deleteListaPrecio(id);
