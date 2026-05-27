@@ -434,28 +434,50 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         return d >= rangeStart && d <= rangeEnd;
     };
 
-    const filteredProjects = ecoProjects.filter(p => inRange(getProjectDate(p, db)));
-    const closedSales      = filteredProjects.filter(p => isProjectFinished(p, db));
-    const openProjects     = filteredProjects.filter(p => !isProjectFinished(p, db));
+    // ── 4. KPIs based on CLIENT macro_estado (Kanban Ciclo de Vida) ──────────
+    // Prospecto   → macro_estado = 'Prospecto' or undefined
+    // Presentación→ macro_estado = 'En Proceso'
+    // Venta       → macro_estado = 'Cliente'
+    // Cancelado   → macro_estado = 'Cancelado'
 
-    // ── 4. KPIs ───────────────────────────────────────────────────────────────
-    const totalProspectos   = ecoClients.length;
-    const totalPresentaciones = openProjects.length;
-    const totalVentas       = closedSales.length;
-    // Tasa de Rendimiento = ventas / total proyectos filtrados
-    const totalCitas        = filteredProjects.length;
-    const closeRate         = totalCitas > 0 ? Math.round((totalVentas / totalCitas) * 100) : 0;
+    // For time-filtered KPIs we check client registration date vs range
+    const inRangeClient = (c) => {
+        if (!rangeStart || !rangeEnd) return true;
+        const raw = c.fecha_registro || c.fecha || c.created_at;
+        if (!raw) return true; // no date = include always
+        const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+        return d >= rangeStart && d <= rangeEnd;
+    };
+
+    // Clients "converted to Cliente" may have fecha_conversion, fecha_cierre, or just created date
+    const inRangeVenta = (c) => {
+        if (!rangeStart || !rangeEnd) return true;
+        const raw = c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at;
+        if (!raw) return true;
+        const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+        return d >= rangeStart && d <= rangeEnd;
+    };
+
+    const totalProspectos     = ecoClients.length; // all clients in the ecosystem
+    const totalPresentaciones = ecoClients.filter(c => c.macro_estado === 'En Proceso').length;
+    const totalVentas         = ecoClients.filter(c => c.macro_estado === 'Cliente').length;
+
+    // Time-filtered versions for chart (use all, not just range, for KPI totals)
+    const closedSales   = ecoClients.filter(c => c.macro_estado === 'Cliente' && inRangeVenta(c));
+    const openProjects  = ecoClients.filter(c => c.macro_estado === 'En Proceso' && inRangeClient(c));
+    const filteredProspectos = ecoClients.filter(c => inRangeClient(c));
+
+    // Tasa de Rendimiento = clientes / total (prospecto + en proceso + cliente)
+    const totalActivos  = ecoClients.filter(c => c.macro_estado !== 'Cancelado').length;
+    const closeRate     = totalActivos > 0 ? Math.round((totalVentas / totalActivos) * 100) : 0;
 
     // ── Percentages ───────────────────────────────────────────────────────────
-    // Prospectos %: clients that have at least one project vs total clients
     const prospectosPct = ecoClients.length > 0
-        ? Math.round((filteredProjects.length / ecoClients.length) * 100)
+        ? Math.round((totalPresentaciones / ecoClients.length) * 100)
         : 0;
-    // Presentaciones %: open projects vs total filtered projects
-    const presentacionesPct = totalCitas > 0
-        ? Math.round((totalPresentaciones / totalCitas) * 100)
+    const presentacionesPct = totalActivos > 0
+        ? Math.round((totalPresentaciones / totalActivos) * 100)
         : 0;
-    // Ventas %: same as closeRate
     const ventasPct = closeRate;
 
     document.getElementById('kpi-total-contactos').textContent    = totalProspectos;
@@ -490,18 +512,16 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     // ── 5. Leaderboard ────────────────────────────────────────────────────────
     const leaderboardData = relevantVendors.map(v => {
-        const vProjects = filteredProjects.filter(p => {
-            if (String(p.responsable_id) === String(v.id)) return true;
-            const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
-            return cli && String(cli.vendedor_asignado_id) === String(v.id);
-        });
-        const vClosed    = vProjects.filter(p => isProjectFinished(p, db));
-        const vCloseRate = vProjects.length > 0 ? Math.round((vClosed.length / vProjects.length) * 100) : 0;
+        // Clients assigned to this vendor in the current ecosystem
+        const vClients = ecoClients.filter(c => String(c.vendedor_asignado_id) === String(v.id));
+        const vTotal   = vClients.length;
+        const vClosed  = vClients.filter(c => c.macro_estado === 'Cliente').length;
+        const vCloseRate = vTotal > 0 ? Math.round((vClosed / vTotal) * 100) : 0;
         return {
             ...v,
-            sales:       vClosed.length,
+            sales:       vClosed,
             closeRate:   vCloseRate,
-            commissions: vClosed.length * 1000
+            commissions: vClosed * 1000
         };
     }).filter(v => v.sales > 0 || (v.rol || '').toLowerCase().includes('vendedor') || (v.rol || '').toLowerCase().includes('representante'))
       .sort((a, b) => b.sales - a.sales);
@@ -546,6 +566,8 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     let dataVentas        = [];
     let subtitleText      = '';
 
+    // Plot helpers now operate on clients (not projects)
+    // clientsArr = all eco clients, openArr = En Proceso clients, closedArr = Cliente clients
     const plotByDay = (start, end, clientsArr, openArr, closedArr) => {
         const msDay = 86400000;
         const days  = Math.round((end - start) / msDay) + 1;
@@ -564,14 +586,16 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dp[idx]++;
         });
-        openArr.forEach(p => {
-            const raw = p.fecha; if (!raw) return;
-            const d = new Date(raw + 'T12:00:00');
+        openArr.forEach(c => {
+            const raw = c.fecha_registro || c.fecha || c.created_at;
+            if (!raw) return;
+            const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dpr[idx]++;
         });
-        closedArr.forEach(p => {
-            const raw = getProjectDate(p, db); if (!raw) return;
+        closedArr.forEach(c => {
+            const raw = c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at;
+            if (!raw) return;
             const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dv[idx]++;
@@ -584,32 +608,36 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const dp  = Array(12).fill(0);
         const dpr = Array(12).fill(0);
         const dv  = Array(12).fill(0);
-        clientsArr.forEach(c => { const raw = c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dp[d.getMonth()]++; });
-        openArr.forEach(p => { const raw=p.fecha; if(!raw)return; const d=new Date(raw+'T12:00:00'); if(d.getFullYear()===year) dpr[d.getMonth()]++; });
-        closedArr.forEach(p => { const raw=getProjectDate(p,db); if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dv[d.getMonth()]++; });
+        clientsArr.forEach(c => { const raw=c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dp[d.getMonth()]++; });
+        openArr.forEach(c => { const raw=c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dpr[d.getMonth()]++; });
+        closedArr.forEach(c => { const raw=c.fecha_conversion||c.fecha_cierre||c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dv[d.getMonth()]++; });
         return { lbs: mn, dp, dpr, dv };
     };
 
+    // Clients grouped by macro_estado for chart
+    const chartClientes     = ecoClients;
+    const chartEnProceso    = ecoClients.filter(c => c.macro_estado === 'En Proceso');
+    const chartVentas       = ecoClients.filter(c => c.macro_estado === 'Cliente');
+
     if (range === 'weekly') {
-        const r = plotByDay(rangeStart, rangeEnd, ecoClients, openProjects, closedSales);
+        const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
         labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
         subtitleText = 'Actividad de la semana en curso.';
     } else if (range === 'monthly') {
-        const r = plotByDay(rangeStart, rangeEnd, ecoClients, openProjects, closedSales);
+        const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
         labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
         subtitleText = 'Evolución de prospectos, presentaciones y ventas del mes.';
     } else if (range === 'annual') {
-        const r = plotByMonth(currentYear, ecoClients, openProjects, closedSales);
+        const r = plotByMonth(currentYear, chartClientes, chartEnProceso, chartVentas);
         labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
         subtitleText = `Resumen anual ${currentYear}.`;
     } else if (range === 'custom' && rangeStart && rangeEnd) {
         const diffDays = Math.round((rangeEnd - rangeStart) / 86400000);
         if (diffDays <= 62) {
-            const r = plotByDay(rangeStart, rangeEnd, ecoClients, openProjects, closedSales);
+            const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
             labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
         } else {
-            // Show by month when range > 2 months
-            const r = plotByMonth(rangeStart.getFullYear(), ecoClients, openProjects, closedSales);
+            const r = plotByMonth(rangeStart.getFullYear(), chartClientes, chartEnProceso, chartVentas);
             labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
         }
         const fmt = d => d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
