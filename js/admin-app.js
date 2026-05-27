@@ -694,7 +694,7 @@ window.setAdminLang = (lang) => {
     localStorage.setItem('app_lang', lang);
     window.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
     updateAdminLangUI();
-    showToast(lang === 'es' ? 'ðŸ‡ªðŸ‡¸ Idioma: EspaÃ±ol' : 'ðŸ‡ºðŸ‡¸ Language: English', 'success');
+    showToast(lang === 'es' ? '<i class="fa-solid fa-language"></i> Idioma: Español' : '<i class="fa-solid fa-language"></i> Language: English', 'success');
 };
 
 window.addEventListener('db_synced', async () => {
@@ -1157,7 +1157,7 @@ function bindGlobalEvents() {
         document.documentElement.classList.remove('dark');
       }
       localStorage.setItem('theme', newTheme);
-      showToast(newTheme === 'dark' ? 'ðŸŒ™ Modo Oscuro' : 'Ã¢Ëœâ‚¬Ã¯Â¸Â Modo Claro', 'success');
+      showToast(newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : 'Ã¢Ëœâ‚¬Ã¯Â¸Â Modo Claro', 'success');
       return;
     }
 
@@ -2691,7 +2691,7 @@ function bindGlobalEvents() {
                 <input type="checkbox" value="${item.email}" data-telefono="${item.telefono || ''}" class="${chkClass} w-4 h-4 rounded ${accentColor} ${ringColor}">
                 <div class="flex flex-col">
                   <span class="text-xs font-bold text-gray-800 dark:text-white">${item.nombre} ${item.apellido || ''}</span>
-                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin telÃ©fono') : (item.email || 'Sin email')}</span>
+                  <span class="text-[10px] text-gray-400 font-medium">${isWA ? (item.telefono || 'Sin teléfono') : (item.email || 'Sin email')}</span>
                 </div>
               </label>
             `).join('')}
@@ -3133,10 +3133,10 @@ window.renderView = async function renderView() {
     if (state.crmKanbanActive) {
       // Ã¢â€â‚¬Ã¢â€â‚¬ KANBAN LIFECYCLE VIEW Ã¢â€â‚¬Ã¢â€â‚¬
       const MACRO_COLS = [
-        { key: 'Prospecto',     emoji: 'ðŸ”µ', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
-        { key: 'En Proceso',    emoji: 'ðŸŸ¡', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
-        { key: 'Cliente',        emoji: 'ðŸŸ¢', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
-        { key: 'Cancelado',     emoji: 'ðŸ”´', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+        { key: 'Prospecto',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
+        { key: 'En Proceso',    emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
+        { key: 'Cliente',        emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
+        { key: 'Cancelado',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
       ];
 
       const allClientes = clientesFiltrados;
@@ -3611,11 +3611,11 @@ window.renderView = async function renderView() {
                               <span style="font-size: 10px; background:${statusCfg.color}20; color:${statusCfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${statusCfg.color}40;">${statusCfg.label}</span>
                             </div>
                             <div style="margin-top:8px; font-size:12px; color:#555; display:flex; flex-direction:column; gap:4px;">
-                              <span style="color:#00dfbf; font-weight:700;">ðŸ§‘â€ðŸ’¼ Rep: ${repName}</span>
-                              <span>ðŸ“ž ${c.telefono || 'Sin telÃ©fono'}</span>
-                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">ðŸ“ ${c.direccion}</span>
+                              <span style="color:#00dfbf; font-weight:700;"><i class="fa-solid fa-user-tie"></i> Rep: ${repName}</span>
+                              <span><i class="fa-solid fa-phone"></i> ${c.telefono || 'Sin teléfono'}</span>
+                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;"><i class="fa-solid fa-location-dot"></i> ${c.direccion}</span>
                               ${c.nota_mapa ? `<div style="margin-top:6px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; border-left:3px solid #00dfbf;">
-                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">ðŸ“ Nota del vendedor</div>
+                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;"><i class="fa-solid fa-file-pen"></i> Nota del vendedor</div>
                                 <div style="font-size:12px; color:#374151;">${c.nota_mapa}</div>
                               </div>` : ''}
                             </div>
@@ -3818,23 +3818,23 @@ window.renderView = async function renderView() {
         const s = (u.servicio || 'General').toLowerCase();
         
         if (s === 'fence') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20">ðŸš§ ${t('partner_cat_fence')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20"><i class="fa-solid fa-trowel-bricks"></i> ${t('partner_cat_fence')}</span>`;
         } else if (s === 'roofing' || s === 'roof') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20">ðŸ  ${t('partner_cat_roofing')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20"><i class="fa-solid fa-house"></i> ${t('partner_cat_roofing')}</span>`;
         } else if (s === 'solar') {
             servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">â˜€ï¸ ${t('partner_cat_solar')}</span>`;
         } else if (s === 'hvac' || s === 'aire') {
             servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">â„ï¸ ${t('partner_cat_hvac')}</span>`;
         } else if (s === 'painting' || s === 'pintura') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20">ðŸŽ¨ ${t('partner_cat_painting')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20"><i class="fa-solid fa-paint-roller"></i> ${t('partner_cat_painting')}</span>`;
         } else if (s === 'remodelacion') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20">ðŸ› ï¸ ${t('partner_cat_remodelacion')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20"><i class="fa-solid fa-toolbox"></i> ${t('partner_cat_remodelacion')}</span>`;
         } else if (s === 'dumpsters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20">ðŸ—‘ï¸ ${t('partner_cat_dumpsters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20"><i class="fa-solid fa-trash"></i> ${t('partner_cat_dumpsters')}</span>`;
         } else if (s === 'gutters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20">ðŸŒ§ï¸ ${t('partner_cat_gutters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20"><i class="fa-solid fa-cloud-showers-water"></i> ${t('partner_cat_gutters')}</span>`;
         } else if (s === 'screens') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20">ðŸªŸ ${t('partner_cat_screens')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20"><i class="fa-solid fa-border-all"></i> ${t('partner_cat_screens')}</span>`;
         } else {
             servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">âš™ï¸ ${t('partner_cat_general')}</span>`;
         }
@@ -5550,7 +5550,7 @@ function renderCalendario() {
                  for (let y = yearStart; y <= yearEnd; y++) {
                      mappedBirthdays.push({
                          id: 'bday_' + w.id + '_' + y,
-                         title: 'ðŸŽ‚ CumpleaÃ±os de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
+                         title: '<i class="fa-solid fa-cake-candles"></i> Cumpleaños de ' + (w.nombre || '') + ' ' + (w.apellido || ''),
                          start: `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
                          allDay: true,
                          backgroundColor: '#ec4899',
@@ -7612,12 +7612,12 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <i id="btn-chat-emoji" class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600 transition-colors"></i>
                     <!-- Emoji Picker Popup -->
                     <div id="chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex gap-2 z-[60]">
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ‘</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ”¥</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ˜Š</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-thumbs-up"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-fire"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-face-smile"></i></button>
                         <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">âœ…</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸ‘€</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">ðŸš€</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-eye"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-rocket"></i></button>
                     </div>
                 </div>
             </div>
@@ -9359,7 +9359,7 @@ async function renderListaPreciosAdmin() {
   const activePdf = pdfMap[activeRank] || '#';
 
   const rowsHtml = allProducts.map(p => {
-    const foto = p.foto_url || 'https://via.placeholder.com/100?text=ðŸ’§';
+    const foto = p.foto_url || 'https://via.placeholder.com/100?text=<i class="fa-solid fa-droplet"></i>';
     return `
     <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
       <td class="px-6 py-4 whitespace-nowrap">
@@ -9828,13 +9828,13 @@ window.openInviteModal = function() {
         const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'TÃ©cnico';
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
-        const msg = `Â¡Hola ${user.nombre}! ðŸ‘‹
+        const msg = `Â¡Hola ${user.nombre}! 
 
 Te damos la bienvenida al equipo Renew. A continuaciÃ³n, te compartimos tus credenciales de acceso a nuestra plataforma.
 
-ðŸ”— Enlace de acceso: ${mainLink}
+<i class="fa-solid fa-link"></i> Enlace de acceso: ${mainLink}
 âœ‰ï¸ Usuario: ${user.email}
-ðŸ”‘ ContraseÃ±a: ${user.password || user.pass || 'renew123'}
+<i class="fa-solid fa-key"></i> Contraseña: ${user.password || user.pass || 'renew123'}
 
 Si tienes alguna duda, no dudes en contactar al administrador.
 Â¡Ã‰xitos!`;
