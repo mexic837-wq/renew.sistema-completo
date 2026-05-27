@@ -445,7 +445,11 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         if (!rangeStart || !rangeEnd) return true;
         const raw = c.fecha_registro || c.fecha || c.created_at;
         if (!raw) return true; // no date = include always
-        const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+        let str = String(raw).trim();
+        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
+        if (!str.includes('T')) str += 'T12:00:00';
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return true;
         return d >= rangeStart && d <= rangeEnd;
     };
 
@@ -454,7 +458,11 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         if (!rangeStart || !rangeEnd) return true;
         const raw = c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at;
         if (!raw) return true;
-        const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+        let str = String(raw).trim();
+        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
+        if (!str.includes('T')) str += 'T12:00:00';
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return true;
         return d >= rangeStart && d <= rangeEnd;
     };
 
@@ -572,8 +580,11 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     const safeDate = (raw) => {
         if (!raw) return null;
-        const str = String(raw);
-        return new Date(str.includes('T') ? str : str + 'T12:00:00');
+        let str = String(raw).trim();
+        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
+        if (!str.includes('T')) str += 'T12:00:00';
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
     };
 
     // Plot helpers now operate on clients (not projects)
