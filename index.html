@@ -47,8 +47,17 @@
   </script>
   <style>
     .flatpickr-calendar { z-index: 99999999 !important; }
-    .fc-event, .fc-event-dot { background-color: transparent !important; border: none !important; }
-    .fc-event-main { padding: 0 !important; width: 100%; height: 100%; }
+    #mi-calendario-container .fc-event, 
+    #mi-calendario-container .fc-event-dot,
+    #mi-calendario-container .fc-h-event,
+    #mi-calendario-container .fc-daygrid-event,
+    #mi-calendario-container .fc-daygrid-block-event { 
+        background-color: transparent !important; 
+        background: transparent !important; 
+        border: none !important; 
+        box-shadow: none !important; 
+    }
+    #mi-calendario-container .fc-event-main { padding: 0 !important; width: 100%; height: 100%; }
   </style>
 
   <!-- Styles -->

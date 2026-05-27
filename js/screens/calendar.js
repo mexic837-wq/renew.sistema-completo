@@ -253,6 +253,7 @@ export async function renderMiCalendario() {
       month: 'Mes',
       listWeek: 'Semana'
     },
+    eventDisplay: 'block',
     
     
     
