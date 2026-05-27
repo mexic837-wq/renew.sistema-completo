@@ -172,6 +172,33 @@ export function gatherAdminNotifications(db, user) {
         });
     });
 
+    // ── 5. Nuevos Adelantos (Para Admins/CEO) ───────────────────────────────
+    const isAdminUser = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+    if (isAdminUser) {
+        const adelantos = db.rrhh_adelantos || [];
+        adelantos.forEach(ad => {
+            const notifId = `adel_${ad.id}`;
+            if (archivedIds.has(notifId)) return;
+            
+            notifs.push({
+                id: notifId,
+                type: 'adelanto',
+                icon: 'fa-hand-holding-dollar',
+                color: '#14b8a6',
+                bg: 'rgba(20, 184, 166, 0.12)',
+                title: `Adelanto: ${ad.trabajador_nombre || 'Colaborador'}`,
+                message: `Monto $${ad.monto} (${ad.estado || 'Pendiente'}).`,
+                date: new Date(ad.created_at || Date.now()),
+                isRead: readIds.has(notifId),
+                link: {
+                    label: 'Ver Adelantos',
+                    action: 'hrhub_adelantos',
+                    data: {}
+                }
+            });
+        });
+    }
+
     // Ordenar por fecha desc (más reciente primero)
     notifs.sort((a, b) => b.date - a.date);
     return notifs;
@@ -438,6 +465,14 @@ export function openAdminBellPanel() {
                 } else if (window.appNavigate && clienteId) {
                     window.appNavigate('clients');
                 }
+            } else if (action === 'hrhub_adelantos') {
+                close();
+                const hrBtn = document.querySelector('[data-view="hrhub"]');
+                if (hrBtn) hrBtn.click();
+                setTimeout(() => {
+                    const adBtn = document.querySelector('.hr-view-btn[data-target="adelantos"]');
+                    if (adBtn) adBtn.click();
+                }, 300);
             }
         });
     });

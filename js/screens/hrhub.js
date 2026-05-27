@@ -736,8 +736,21 @@ export async function renderHRHub() {
                 await saveGranular('rrhh_adelantos', [newAdelanto]);
 
                 import('../components/toast.js').then(m => m.showToast('Adelanto registrado correctamente.', 'success'));
-                modal.classList.add('nuclear-hidden');
-                modal.classList.remove('flex');
+                
+                // Hide modal correctly
+                if (window.hideModal) {
+                    window.hideModal(modal);
+                } else {
+                    modal.classList.add('nuclear-hidden');
+                    modal.style.display = 'none';
+                    modal.style.setProperty('display', 'none', 'important');
+                }
+                
+                // Update bell badge
+                import('./../components/admin-notif-bell.js').then(m => {
+                    if (m.updateAdminBellBadge) m.updateAdminBellBadge();
+                });
+                
                 renderAdelantos();
 
             } catch (err) {

@@ -121,7 +121,8 @@ app.get('/api/db', async (req, res) => {
             'admin_pipelines', 'admin_fases', 'admin_campos_formulario', 'clientes_maestro', 
             'proyectos_dinamicos', 'respuestas_dinamicas', 'usuarios', 'academia_content', 
             'inventario_global', 'historial_inventario', 'anuncios_corporativos', 'partners_directorio', 'calendario_eventos',
-            'recibos_pagos', 'water_productos', 'admin_catalogos', 'admin_meetings', 'admin_meetings_reads', 'mensajes_internos'
+            'recibos_pagos', 'water_productos', 'admin_catalogos', 'admin_meetings', 'admin_meetings_reads', 'mensajes_internos',
+            'rrhh_adelantos'
         ];
         
         const results = await Promise.all(tables.map(t => fetchWithTimeout(t)));
@@ -280,6 +281,7 @@ app.get('/api/db', async (req, res) => {
                 ...m,
                 image_url: fixUrl(m.image_url)
             })),
+            rrhh_adelantos:          results[19].data || [],
             // Compute counters dynamically from real data — avoids collision bugs
             Counters: {
                 cli:   maxId(results[3].data,  'cli_'),
