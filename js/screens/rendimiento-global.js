@@ -489,7 +489,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const elPresPct = document.getElementById('kpi-presentaciones-pct');
     const elVPct = document.getElementById('kpi-ventas-pct');
     if (elPPct)    elPPct.textContent    = prospectosPct > 0    ? `${prospectosPct}% con proyecto`    : '';
-    if (elPresPct) elPresPct.textContent = totalCitas > 0       ? `${presentacionesPct}% en curso`    : '';
+    if (elPresPct) elPresPct.textContent = totalPresentaciones > 0       ? `${presentacionesPct}% en curso`    : '';
     if (elVPct)    elVPct.textContent    = ventasPct > 0        ? `${ventasPct}% tasa de cierre`      : '';
 
     // Progress bar + icon

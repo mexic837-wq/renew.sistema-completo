@@ -3549,11 +3549,11 @@ window.renderView = async function renderView() {
                               <span style="font-size: 10px; background:${statusCfg.color}20; color:${statusCfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${statusCfg.color}40;">${statusCfg.label}</span>
                             </div>
                             <div style="margin-top:8px; font-size:12px; color:#555; display:flex; flex-direction:column; gap:4px;">
-                              <span style="color:#00dfbf; font-weight:700;">ðŸ§‘â€ðŸ’¼ Rep: ${repName}</span>
+                              <span style="color:#00dfbf; font-weight:700;">🧑‍💼 Rep: ${repName}</span>
                               <span>📞 ${c.telefono || 'Sin teléfono'}</span>
-                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">ðŸ“ ${c.direccion}</span>
+                              <span style="font-size:11px; color:#0f8b78; background:#00f5d420; border:1px solid #00f5d450; border-radius:4px; padding:3px 6px; display:inline-block;">📍 ${c.direccion}</span>
                               ${c.nota_mapa ? `<div style="margin-top:6px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; border-left:3px solid #00dfbf;">
-                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">ðŸ“ Nota del vendedor</div>
+                                <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; margin-bottom:3px;">📝 Nota del vendedor</div>
                                 <div style="font-size:12px; color:#374151;">${c.nota_mapa}</div>
                               </div>` : ''}
                             </div>
