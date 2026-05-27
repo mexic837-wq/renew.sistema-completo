@@ -254,6 +254,7 @@ export async function renderMiCalendario() {
       listWeek: 'Semana'
     },
     eventDisplay: 'block',
+    displayEventTime: false,
     
     
     
