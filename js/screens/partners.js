@@ -271,6 +271,12 @@ export async function renderPartners() {
                         <span>${p.telefono}</span>
                     </div>
                 ` : ''}
+                ${p.email ? `
+                    <div class="detail-item">
+                        <i class="fas fa-envelope"></i>
+                        <span style="font-size:0.78rem; word-break:break-all;">${p.email}</span>
+                    </div>
+                ` : ''}
               </div>
               
               <div class="team-contact">
@@ -281,7 +287,7 @@ export async function renderPartners() {
                   </a>
                 ` : ''}
                 ${p.email ? `
-                  <a href="mailto:${p.email}" class="contact-icon">
+                  <a href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(p.email)}" target="_blank" rel="noopener" class="contact-icon">
                     <i class="fas fa-envelope"></i>
                     Email
                   </a>
