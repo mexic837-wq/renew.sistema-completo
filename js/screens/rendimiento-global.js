@@ -528,8 +528,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             closeRate:   vCloseRate,
             commissions: vClosed * 1000
         };
-    }).filter(v => v.sales > 0 || (v.rol || '').toLowerCase().includes('vendedor') || (v.rol || '').toLowerCase().includes('representante'))
-      .sort((a, b) => b.sales - a.sales);
+    }).sort((a, b) => b.sales - a.sales);
 
     const tbody = document.getElementById('global-leaderboard-body');
     if (tbody) {
@@ -538,11 +537,11 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                 <td class="px-8 py-6">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full border-2 border-tealAccent/20 flex items-center justify-center text-xs font-black bg-tealAccent/10 text-tealAccent overflow-hidden">
-                            ${v.foto ? `<img src="${v.foto}" class="w-full h-full object-cover">` : (v.initials || v.nombre[0])}
+                            ${v.foto ? `<img src="${v.foto}" class="w-full h-full object-cover">` : (v.initials || (v.nombre ? v.nombre[0] : '?'))}
                         </div>
                         <div>
-                            <p class="text-sm font-black text-gray-900 dark:text-white leading-none">${v.nombre} ${v.apellido || ''}</p>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">Activo</p>
+                            <p class="text-sm font-black text-gray-900 dark:text-white leading-none">${v.nombre || 'Sin Nombre'} ${v.apellido || ''}</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">${v.rol || 'Representante'}</p>
                         </div>
                     </div>
                 </td>
@@ -571,8 +570,13 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     let dataVentas        = [];
     let subtitleText      = '';
 
+    const safeDate = (raw) => {
+        if (!raw) return null;
+        const str = String(raw);
+        return new Date(str.includes('T') ? str : str + 'T12:00:00');
+    };
+
     // Plot helpers now operate on clients (not projects)
-    // clientsArr = all eco clients, openArr = En Proceso clients, closedArr = Cliente clients
     const plotByDay = (start, end, clientsArr, openArr, closedArr) => {
         const msDay = 86400000;
         const days  = Math.round((end - start) / msDay) + 1;
@@ -585,23 +589,20 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             lbs.push(`${d.getDate()}/${d.getMonth()+1}`);
         }
         clientsArr.forEach(c => {
-            const raw = c.fecha_registro || c.fecha || c.created_at;
-            if (!raw) return;
-            const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+            const d = safeDate(c.fecha_registro || c.fecha || c.created_at);
+            if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dp[idx]++;
         });
         openArr.forEach(c => {
-            const raw = c.fecha_registro || c.fecha || c.created_at;
-            if (!raw) return;
-            const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+            const d = safeDate(c.fecha_registro || c.fecha || c.created_at);
+            if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dpr[idx]++;
         });
         closedArr.forEach(c => {
-            const raw = c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at;
-            if (!raw) return;
-            const d = new Date(raw.includes('T') ? raw : raw + 'T12:00:00');
+            const d = safeDate(c.fecha_conversion || c.fecha_cierre || c.fecha_registro || c.fecha || c.created_at);
+            if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dv[idx]++;
         });
@@ -613,9 +614,9 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const dp  = Array(12).fill(0);
         const dpr = Array(12).fill(0);
         const dv  = Array(12).fill(0);
-        clientsArr.forEach(c => { const raw=c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dp[d.getMonth()]++; });
-        openArr.forEach(c => { const raw=c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dpr[d.getMonth()]++; });
-        closedArr.forEach(c => { const raw=c.fecha_conversion||c.fecha_cierre||c.fecha_registro||c.fecha||c.created_at; if(!raw)return; const d=new Date(raw.includes('T')?raw:raw+'T12:00:00'); if(d.getFullYear()===year) dv[d.getMonth()]++; });
+        clientsArr.forEach(c => { const d = safeDate(c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dp[d.getMonth()]++; });
+        openArr.forEach(c => { const d = safeDate(c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dpr[d.getMonth()]++; });
+        closedArr.forEach(c => { const d = safeDate(c.fecha_conversion||c.fecha_cierre||c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dv[d.getMonth()]++; });
         return { lbs: mn, dp, dpr, dv };
     };
 
