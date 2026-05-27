@@ -5598,7 +5598,6 @@ function renderCalendario() {
     },
     eventClick: function(info) {
       info.jsEvent.preventDefault();
-      if (info.event.extendedProps && info.event.extendedProps.isBirthday) return;
       // Si el evento tiene URL (ej: Google Calendar), evitamos que navegue
       mostrarDetalleEventoCalendario(info.event);
     },
@@ -5712,11 +5711,14 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         
         const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
         if (btnEliminar) {
-            if (window.currentUser && (window.currentUser.rol === 'Administrador' || window.currentUser.rol === 'Gerente' || window.currentUser.rol === 'Master Admin')) {
-                btnEliminar.classList.remove('hidden');
-            } else {
-                btnEliminar.classList.add('hidden');
-            }
+            import('./api.js').then(({ getCurrentUser }) => {
+                const u = getCurrentUser();
+                if (u && ['Admin', 'Súper Admin', 'Gerente'].includes(u.rango)) {
+                    btnEliminar.classList.remove('hidden');
+                } else {
+                    btnEliminar.classList.add('hidden');
+                }
+            }).catch(() => { btnEliminar.classList.add('hidden'); });
         }
     } else {
         // Restore hidden containers

@@ -551,7 +551,7 @@ export async function renderMiCalendario() {
             if(colabWrapper) colabWrapper.classList.add('nuclear-hidden');
             
             btnEditar.classList.add('hidden');
-            if (user && (user.rol === 'Administrador' || user.rol === 'Gerente' || user.rol === 'Master Admin')) {
+            if (user && ['Admin', 'Súper Admin', 'Gerente', 'Administrador'].includes(user.rango || user.rol)) {
                 btnEliminar.classList.remove('hidden');
             } else {
                 btnEliminar.classList.add('hidden');
