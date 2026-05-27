@@ -221,7 +221,7 @@ async function renderMessages() {
                     
                     ${imageUrl ? `<img src="${imageUrl}" class="w-full max-h-60 object-cover rounded-xl mb-2 cursor-pointer" onclick="window.open('${imageUrl}')" onerror="this.style.display='none'">` : ''}
                     
-                    <p class="text-sm font-medium leading-relaxed">${formatContent(msg.content || '')}</p>
+                    <p class="text-sm font-medium leading-relaxed">${formatContent(msg.content || '', isMe)}</p>
                     
                     <div class="flex items-center justify-end gap-2 mt-1">
                         ${msg.updated_at ? `<span class="text-[8px] opacity-40 font-bold italic mr-auto">editado</span>` : ''}
@@ -241,9 +241,12 @@ async function renderMessages() {
     updateChatBadges();
 }
 
-function formatContent(content) {
+function formatContent(content, isMe) {
     // Highlight mentions
     return content.replace(/@(\w+ \w+|\w+)/g, (match) => {
+        if (isMe) {
+            return `<span class="text-white bg-black/20 px-1 rounded-md font-black">${match}</span>`;
+        }
         return `<span class="text-blue-600 dark:text-tealAccent font-black">${match}</span>`;
     });
 }
