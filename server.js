@@ -631,6 +631,7 @@ app.post('/api/db', async (req, res) => {
                     email:      u.email      || null,
                     password:   u.password   || null,
                     rol:        u.rol        || null,
+                    rango:      u.rango      || null,
                     department: u.department || null,
                     dob:        u.dob        || null,
                     foto:       u.foto       || null,
