@@ -2963,7 +2963,7 @@ window.renderView = async function renderView() {
   // Toggle Search Bar Visibility
   const searchInput = document.getElementById('global-search-input');
   if (searchInput) {
-      if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
+      if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores', 'hrhub'].includes(state.activeView)) {
           searchInput.parentElement.style.display = 'block';
       } else {
           searchInput.parentElement.style.display = 'none';
@@ -9026,6 +9026,17 @@ function initGlobalSearch() {
             window.globalSearchQuery = window.normalizeSearchString(e.target.value);
             if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
                  renderView();
+            } else if (state.activeView === 'hrhub') {
+                // Filter the HR Hub directorio table in-place without full re-render
+                const q = window.globalSearchQuery;
+                document.querySelectorAll('#hr-table-body tr').forEach(row => {
+                    const text = window.normalizeSearchString(row.textContent);
+                    row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                });
+                document.querySelectorAll('#col-inscrito > *, #col-docs > *, #col-cap > *, #col-activo > *, #col-inactivo > *').forEach(card => {
+                    const text = window.normalizeSearchString(card.textContent);
+                    card.style.display = (!q || text.includes(q)) ? '' : 'none';
+                });
             }
         });
         console.log('[SEARCH] Listener initialized');
