@@ -3080,7 +3080,6 @@ window.renderView = async function renderView() {
       return [
         `<input type="checkbox" class="cli-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${c.id}">`,
         c.foto ? `<img src="${c.foto}" class="w-7 h-7 rounded-lg object-cover border border-gray-200 dark:border-white/5" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center&quot;><i class=&quot;fa-solid fa-user text-gray-400 dark:text-gray-700 text-[9px]&quot;></i></div>';">` : `<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center"><i class="fa-solid fa-user text-gray-400 dark:text-gray-700 text-[9px]"></i></div>`,
-        `<span class="font-black text-tealAccent text-[9px] uppercase tracking-wide">${c.state_id || 'Global'}</span>`,
         `<a href="#" class="client-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight whitespace-nowrap min-w-[120px] inline-block" data-id="${c.id}">${c.nombre || 'Desconocido'}</a>`,
         `<span class="text-gray-500 dark:text-gray-400 font-medium tracking-tighter text-xs whitespace-nowrap">${c.telefono || '-'}</span>`,
         `<span class="text-gray-400 dark:text-gray-500 text-[10px] break-all min-w-[150px] inline-block">${c.email || 'Sin Email'}</span>`,
@@ -3286,7 +3285,7 @@ window.renderView = async function renderView() {
     } else {
       // â”€â”€ TABLE VIEW (original) â”€â”€
       renderTable(
-        [`<button id="btn-bulk-delete-cli" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('crm_col_id'), t('crm_col_source'), t('crm_col_name'), t('crm_col_contact'), t('crm_col_email'), t('crm_col_address'), t('crm_col_dept'), 'ORIGEN', t('crm_col_rep'), t('crm_col_status'), ""],
+        [`<button id="btn-bulk-delete-cli" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('crm_col_id'), t('crm_col_name'), t('crm_col_contact'), t('crm_col_email'), t('crm_col_address'), t('crm_col_dept'), 'ORIGEN', t('crm_col_rep'), t('crm_col_status'), ""],
         rows
       );
 
@@ -8662,7 +8661,6 @@ async function saveClientChanges() {
         macro_estado: newMacroEstado,
         fecha_inicio: inputFechaInicio,
         fecha_conversion: newFechaConversion,
-        fecha_cierre: newFechaConversion,
         direccion: document.getElementById('det-cli-edit-direccion').value.trim(),
         state_id: document.getElementById('det-cli-edit-state-id').value.trim(),
         dob: document.getElementById('det-cli-edit-dob').value,

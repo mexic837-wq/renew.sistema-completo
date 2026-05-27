@@ -5,14 +5,15 @@
  * Recopila: eventos de calendario, asignaciones de observador,
  * asignaciones de técnico, y proyectos donde eres responsable.
  *
- * Las notificaciones NUNCA se borran — solo se marcan como leídas.
- * El badge muestra el conteo de no leídas.
+ * Las notificaciones se marcan como leídas automáticamente.
+ * Ahora se permite "archivar" para ocultarlas permanentemente del panel.
  * ─────────────────────────────────────────────────────────────────
  */
 
 import { getDB, getCurrentUser } from '../api.js';
 
 const STORAGE_KEY = 'rs_admin_notifs_read';
+const ARCHIVED_KEY = 'rs_admin_notifs_archived';
 
 /** Devuelve el set de IDs ya leídos */
 function getReadIds() {
@@ -30,11 +31,28 @@ function markAsRead(ids) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...current]));
 }
 
+/** Devuelve el set de IDs archivados (borrados visualmente) */
+function getArchivedIds() {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(ARCHIVED_KEY) || '[]'));
+    } catch {
+        return new Set();
+    }
+}
+
+/** Archiva un ID para que no vuelva a aparecer */
+function markAsArchived(id) {
+    const current = getArchivedIds();
+    current.add(id);
+    localStorage.setItem(ARCHIVED_KEY, JSON.stringify([...current]));
+}
+
 /** Recopila todas las notificaciones admin para el usuario actual */
 export function gatherAdminNotifications(db, user) {
     if (!db || !user) return [];
     const notifs = [];
     const readIds = getReadIds();
+    const archivedIds = getArchivedIds();
 
     // ── 1. Eventos de Calendario ──────────────────────────────────
     const eventos = db.calendario_eventos || [];
@@ -46,6 +64,8 @@ export function gatherAdminNotifications(db, user) {
         if (!isInvited) return;
 
         const notifId = `ev_${ev.id}`;
+        if (archivedIds.has(notifId)) return;
+
         const fecha = ev.fecha_inicio ? new Date(ev.fecha_inicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
         notifs.push({
             id: notifId,
@@ -75,6 +95,8 @@ export function gatherAdminNotifications(db, user) {
         if (!obsEntry) return;
 
         const notifId = `obs_${p.id}`;
+        if (archivedIds.has(notifId)) return;
+
         const cli = clientes.find(c => c.id === p.cliente_id);
         const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
         notifs.push({
@@ -99,6 +121,8 @@ export function gatherAdminNotifications(db, user) {
     proyectos.forEach(p => {
         if (String(p.tecnico_id) !== String(user.id)) return;
         const notifId = `tec_${p.id}`;
+        if (archivedIds.has(notifId)) return;
+
         const cli = clientes.find(c => c.id === p.cliente_id);
         const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
         notifs.push({
@@ -126,6 +150,8 @@ export function gatherAdminNotifications(db, user) {
         if (String(p.tecnico_id) === String(user.id)) return; // ya incluido arriba
 
         const notifId = `resp_${p.id}`;
+        if (archivedIds.has(notifId)) return;
+
         const cli = clientes.find(c => c.id === p.cliente_id);
         const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
         notifs.push({
@@ -253,7 +279,7 @@ export function openAdminBellPanel() {
         .bell-notif-body { flex: 1; min-width: 0; }
         .bell-notif-title {
             font-size: 0.82rem; font-weight: 800; color: #e2e8f0;
-            margin-bottom: 3px; line-height: 1.3;
+            margin-bottom: 3px; line-height: 1.3; padding-right: 18px;
         }
         .bell-notif-msg {
             font-size: 0.75rem; color: #94a3b8; line-height: 1.4;
@@ -267,6 +293,15 @@ export function openAdminBellPanel() {
             font-size: 0.7rem; font-weight: 800;
             padding: 5px 10px; border-radius: 8px; border: none;
             cursor: pointer; transition: all 0.2s; margin-top: 4px;
+        }
+        .bell-notif-archive-btn {
+            position: absolute; top: 12px; right: 12px;
+            background: transparent; border: none;
+            color: #64748b; cursor: pointer; transition: color 0.2s;
+            font-size: 0.8rem; padding: 4px; border-radius: 4px;
+        }
+        .bell-notif-archive-btn:hover {
+            color: #ef4444; background: rgba(239, 68, 68, 0.1);
         }
     </style>
 
@@ -300,6 +335,9 @@ export function openAdminBellPanel() {
                 </div>
             ` : notifs.map(n => `
                 <div class="bell-notif-item ${n.isRead ? '' : 'unread'}">
+                    <button class="bell-notif-archive-btn" data-notif-id="${n.id}" title="Archivar notificación">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
                     <div class="bell-notif-icon" style="background: ${n.bg}; color: ${n.color};">
                         <i class="fa-solid ${n.icon}"></i>
                     </div>
@@ -329,7 +367,7 @@ export function openAdminBellPanel() {
         <div style="padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;">
             <p style="margin: 0; font-size: 0.65rem; color: #334155; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
                 <i class="fa-solid fa-circle-info" style="margin-right: 4px;"></i>
-                Las notificaciones no se eliminan automáticamente
+                Las notificaciones archivadas no volverán a aparecer
             </p>
         </div>
     </div>
@@ -344,6 +382,37 @@ export function openAdminBellPanel() {
     };
     overlay.addEventListener('click', close);
     closeBtn.addEventListener('click', close);
+
+    // Botones de archivar
+    panel.querySelectorAll('.bell-notif-archive-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const notifId = btn.dataset.notifId;
+            markAsArchived(notifId);
+            const item = btn.closest('.bell-notif-item');
+            if (item) {
+                item.style.transition = 'opacity 0.2s, height 0.2s';
+                item.style.opacity = '0';
+                item.style.height = item.offsetHeight + 'px';
+                setTimeout(() => {
+                    item.style.height = '0px';
+                    item.style.padding = '0px';
+                    item.style.border = 'none';
+                    item.style.overflow = 'hidden';
+                }, 200);
+                setTimeout(() => {
+                    item.remove();
+                    updateAdminBellBadge();
+                    
+                    // Si ya no hay items, volver a renderizar para mostrar empty state
+                    const remainingItems = panel.querySelectorAll('.bell-notif-item');
+                    if (remainingItems.length === 0) {
+                        openAdminBellPanel();
+                    }
+                }, 400);
+            }
+        });
+    });
 
     // Botones de enlace directo
     panel.querySelectorAll('.bell-link-btn').forEach(btn => {
@@ -403,3 +472,4 @@ export function initAdminBell() {
     // Actualizar badge cuando la DB se sincroniza
     window.addEventListener('db_synced', updateAdminBellBadge);
 }
+
