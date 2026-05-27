@@ -3033,7 +3033,8 @@ window.renderView = async function renderView() {
             const repData = repByClientId[c.id];
             const dateStr = repData ? (repData.fecha || '') : '';
             const repName = getRepName(c) || '';
-            const searchStr = window.normalizeSearchString(`${c.nombre || ''} ${c.telefono || ''} ${c.empresa || ''} ${c.estado || ''} ${c.state_id || ''} ${dateStr} ${repName}`);
+            const deptsStr = Array.isArray(c.departamentos_activos) ? c.departamentos_activos.join(' ') : (c.departamento || '');
+            const searchStr = window.normalizeSearchString(`${c.nombre || ''} ${c.telefono || ''} ${c.empresa || ''} ${deptsStr} ${c.estado || ''} ${c.state_id || ''} ${dateStr} ${repName}`);
             return searchStr.includes(window.globalSearchQuery);
         });
     }

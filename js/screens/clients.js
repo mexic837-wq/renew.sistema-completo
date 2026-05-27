@@ -233,6 +233,7 @@ async function _renderList(user, container) {
       if (c.creador_id !== user.id &&
         c.responsable_id !== user.id &&
         c.vendedor_asignado_id !== user.id &&
+        c.origen_id !== user.id &&
         c.tecnico_id !== user.id &&
         !isTecnicoOfProject) return false;
     }

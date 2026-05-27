@@ -785,6 +785,8 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
               origen_tipo:   currentUser ? 'vendedor' : null,
               origen_nombre: currentUser ? `${currentUser.nombre || ''} ${currentUser.apellido || ''}`.trim() : null,
               origen_id:     currentUser?.id || null,
+              creador_id:    currentUser?.id || null,
+              vendedor_asignado_id: currentUser?.id || null,
               // ── MULTI-DEPT & LIFECYCLE ──
               departamento: departamento || null,
               departamentos_activos: departamentos_activos,
