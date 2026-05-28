@@ -253,6 +253,27 @@ window.clearInventarioHistorial = async () => {
     else window.addNotification("Inventario", "Historial borrado", "warning");
 };
 
+window.deleteInventarioHistorialItem = async (fecha) => {
+    if (!confirm('¿Seguro que deseas borrar este registro del historial?')) return;
+    const db = getDB();
+    if (!db.historialInventario) return;
+
+    // Remove locally
+    db.historialInventario = db.historialInventario.filter(h => h.fecha !== fecha);
+
+    try {
+        await fetch('/api/delete-bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'historial_inventario', ids: [fecha], column: 'fecha' })
+        });
+    } catch(err) { console.error('Error deleting history item from cloud', err); }
+
+    await saveDB(db);
+    renderView();
+    if(window.showToast) window.showToast('Registro eliminado', 'warning');
+};
+
 window.adminDeletePartner = async (id, e) => {
     e.stopPropagation();
     if (!confirm('Â¿Seguro que deseas eliminar este partner/proveedor?')) return;
@@ -4601,7 +4622,7 @@ window.renderView = async function renderView() {
               window._inv_grouped_data[g.cliente] = g.items;
 
               return `
-                <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
                   <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
                   <td class="px-6 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
@@ -4620,12 +4641,17 @@ window.renderView = async function renderView() {
                   <td class="px-6 py-3 whitespace-nowrap">
                     <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
                   </td>
+                  <td class="px-6 py-3 whitespace-nowrap text-right">
+                    <button onclick="window.deleteInventarioHistorialItem('${g.ultima_fecha || g.fecha}')" class="w-7 h-7 rounded-lg bg-red-500/0 text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100" title="Borrar registro">
+                      <i class="fa-solid fa-trash text-[10px]"></i>
+                    </button>
+                  </td>
                 </tr>
               `;
           } else {
               // Ungrouped row (Individual)
               return `
-                <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
                   <td class="px-6 py-3 whitespace-nowrap text-[10px] text-gray-400 font-medium">${dateStr}</td>
                   <td class="px-6 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
@@ -4644,6 +4670,11 @@ window.renderView = async function renderView() {
                   </td>
                   <td class="px-6 py-3 whitespace-nowrap">
                     <span class="uppercase text-[8px] font-black tracking-widest text-gray-400 dark:text-gray-600">${sedeLabel}</span>
+                  </td>
+                  <td class="px-6 py-3 whitespace-nowrap text-right">
+                    <button onclick="window.deleteInventarioHistorialItem('${g.fecha}')" class="w-7 h-7 rounded-lg bg-red-500/0 text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100" title="Borrar registro">
+                      <i class="fa-solid fa-trash text-[10px]"></i>
+                    </button>
                   </td>
                 </tr>
               `;
@@ -4714,6 +4745,7 @@ window.renderView = async function renderView() {
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_item')}</th>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_qty')}</th>
                   <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_sede')}</th>
+                  <th class="px-6 py-4 text-right text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Acción</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-white/5">
