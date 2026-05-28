@@ -8790,7 +8790,23 @@ function toggleClientEditMode(id) {
         // ââ€â‚¬ââ€â‚¬ Populate macro_estado ââ€â‚¬ââ€â‚¬
         if(document.getElementById('det-cli-edit-macro-estado')) document.getElementById('det-cli-edit-macro-estado').value = cli.macro_estado || 'Prospecto';
         if(document.getElementById('det-cli-edit-fecha-inicio')) document.getElementById('det-cli-edit-fecha-inicio').value = cli.fecha_inicio || '';
-        if(document.getElementById('det-cli-edit-direccion')) document.getElementById('det-cli-edit-direccion').value = cli.direccion || '';
+        if(document.getElementById('det-cli-edit-direccion')) {
+            const dirInput = document.getElementById('det-cli-edit-direccion');
+            dirInput.value = cli.direccion || '';
+            if (window.google && window.google.maps && window.google.maps.places && !dirInput._placesInit) {
+                dirInput._placesInit = true;
+                const autocomplete = new google.maps.places.Autocomplete(dirInput, {
+                    types: ['address'],
+                    fields: ['formatted_address', 'name']
+                });
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (place && (place.formatted_address || place.name)) {
+                        dirInput.value = place.formatted_address || place.name;
+                    }
+                });
+            }
+        }
         if(document.getElementById('det-cli-edit-state-id')) document.getElementById('det-cli-edit-state-id').value = cli.state_id || '';
         if(document.getElementById('det-cli-edit-dob')) document.getElementById('det-cli-edit-dob').value = cli.dob || '';
         if(document.getElementById('det-cli-edit-notas')) document.getElementById('det-cli-edit-notas').value = cli.notas || '';
