@@ -474,10 +474,10 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const label = document.getElementById('kpi-tasa-label');
     if (bar) bar.style.width = `${Math.min(closeRate, 100)}%`;
     if (icon) {
-        if      (closeRate >= 60) { icon.textContent = '<i class="fa-solid fa-rocket"></i>'; }
-        else if (closeRate >= 30) { icon.textContent = '<i class="fa-solid fa-chart-line"></i>'; }
-        else if (closeRate >  0)  { icon.textContent = '<i class="fa-solid fa-chart-line-down"></i>'; }
-        else                      { icon.textContent = '—';  }
+        if      (closeRate >= 60) { icon.innerHTML = '<i class="fa-solid fa-rocket"></i>'; }
+        else if (closeRate >= 30) { icon.innerHTML = '<i class="fa-solid fa-chart-line"></i>'; }
+        else if (closeRate >  0)  { icon.innerHTML = '<i class="fa-solid fa-arrow-trend-down"></i>'; }
+        else                      { icon.innerHTML = '—';  }
     }
     if (label) {
         if      (closeRate >= 60) label.textContent = 'Excelente';
