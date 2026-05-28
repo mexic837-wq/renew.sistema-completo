@@ -1820,7 +1820,9 @@ function bindGlobalEvents() {
       document.getElementById('inp-partner-id').value = p.id;
       document.getElementById('inp-partner-empresa').value = p.empresa || '';
       document.getElementById('inp-partner-contacto').value = p.contacto || '';
-      document.getElementById('inp-partner-servicio').value = p.servicio || 'General';
+      let servVal = p.servicio || 'General';
+      if (servVal.toLowerCase() === 'egenral') servVal = 'General';
+      document.getElementById('inp-partner-servicio').value = servVal;
       document.getElementById('inp-partner-tel').value = p.telefono || '';
       document.getElementById('inp-partner-email').value = p.email || '';
       document.getElementById('inp-partner-area').value = p.area || '';
@@ -3838,8 +3840,10 @@ window.renderView = async function renderView() {
         const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
         const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-7 h-7 rounded-lg object-cover border border-white/5">` : `<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]">${initial}</div>`;
         
-        let servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">${u.servicio || 'General'}</span>`;
-        const s = (u.servicio || 'General').toLowerCase();
+        let rawServ = u.servicio || 'General';
+        if (rawServ.toLowerCase() === 'egenral') rawServ = 'General';
+        let servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">${rawServ}</span>`;
+        const s = rawServ.toLowerCase();
         
         if (s === 'fence') {
             servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20"><i class="fa-solid fa-trowel-bricks"></i> ${t('partner_cat_fence')}</span>`;

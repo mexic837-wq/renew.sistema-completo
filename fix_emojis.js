@@ -1,34 +1,14 @@
 const fs = require('fs');
+let code = fs.readFileSync('js/admin-app.js', 'utf8');
 
-let content = fs.readFileSync('./js/admin-app.js', 'utf8');
+// The mojibake is:
+// solar: â˜€ï¸ 
+// hvac: â „ï¸ 
+// general: âš™ï¸ 
 
-const fixes = {
-    'ðŸ§\'â€ðŸ\'¼': '🧑‍💼',
-    'ðŸ"ž': '<i class="fa-solid fa-phone"></i>',
-    'ðŸ" ': '<i class="fa-solid fa-location-dot"></i>',
-    'ðŸ‡ªðŸ‡¸': '🇪🇸',
-    'ðŸ‡ºðŸ‡¸': '🇺🇸',
-    'ðŸŒ™': '<i class="fa-solid fa-moon"></i>',
-    'â˜€ï¸ ': '☀️',
-    'ðŸ\'§': '💧'
-};
+code = code.replace(/â˜€ï¸ /g, '<i class="fa-solid fa-sun"></i>');
+code = code.replace(/â „ï¸ /g, '<i class="fa-solid fa-snowflake"></i>');
+code = code.replace(/âš™ï¸ /g, '<i class="fa-solid fa-gear"></i>');
 
-// Also replace the specific ones from the map card HTML (lines 3552-3556 roughly):
-// "ðŸ§‘â€ ðŸ’¼", "ðŸ“ž", "ðŸ“ "
-const mapFixes = {
-    'ðŸ§‘â€ ðŸ’¼': '🧑‍💼',
-    'ðŸ“ž': '<i class="fa-solid fa-phone"></i>',
-    'ðŸ“ ': '<i class="fa-solid fa-location-dot"></i>',
-    'ðŸ’§': '💧'
-};
-
-for (const [bad, good] of Object.entries(fixes)) {
-    content = content.split(bad).join(good);
-}
-
-for (const [bad, good] of Object.entries(mapFixes)) {
-    content = content.split(bad).join(good);
-}
-
-fs.writeFileSync('./js/admin-app.js', content, 'utf8');
-console.log('Done!');
+fs.writeFileSync('js/admin-app.js', code);
+console.log('Done');
