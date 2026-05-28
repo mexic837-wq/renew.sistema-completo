@@ -400,23 +400,28 @@ export async function renderMiCalendario() {
            showColabs.forEach(c => {
                const nameStr = (c && c.nombre) ? c.nombre : (typeof c === 'string' ? c : 'U');
                const initial = nameStr.charAt(0).toUpperCase();
-               avatarsHtml += `<div title="${nameStr}" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.3); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 1.5px solid rgba(255,255,255,0.5); margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2; cursor: help;">${initial}</div>`;
+               avatarsHtml += `<div title="${nameStr}" style="width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #444; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2; cursor: help;">${initial}</div>`;
            });
            if (extraCount > 0) {
-               avatarsHtml += `<div title="+${extraCount} colaboradores más" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.2); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid rgba(255,255,255,0.4); margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
+               avatarsHtml += `<div title="+${extraCount} colaboradores más" style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; border: 1.5px solid #fff; margin-left: -6px; z-index: 1;">+${extraCount}</div>`;
            }
            avatarsHtml += '</div>';
        }
 
+       const isLightMode = !document.body.classList.contains('dark-theme') && !document.documentElement.classList.contains('dark');
+       const bgStyle = `background-color: ${baseColor}20;`;
+       const titleColor = isLightMode ? '#1e293b' : '#f8fafc';
+       const timeColor = isLightMode ? '#64748b' : '#94a3b8';
+
        const isMonth = arg.view.type === 'dayGridMonth' || arg.view.type === 'listWeek';
-       const p = isMonth ? '3px 6px' : '6px 8px';
+       const p = isMonth ? '2px 4px' : '6px 8px';
        const titleSize = isMonth ? '0.7rem' : '0.8rem';
        
-       const timeText = arg.timeText ? `<div style="font-size: 0.65rem; color: rgba(255,255,255,0.8); font-weight: 700; margin-bottom: 2px;">${arg.timeText}</div>` : '';
+       const timeText = arg.timeText ? `<div style="font-size: 0.7rem; color: ${timeColor}; font-weight: 600; margin-bottom: 2px;">${arg.timeText}</div>` : '';
        
        let html = `
-         <div style="background-color: ${baseColor}; border-radius: 8px; padding: ${p}; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
-            <div style="font-size: ${titleSize}; font-weight: 800; color: #fff; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; margin-bottom: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${arg.event.title} ${deptHtml}</div>
+         <div style="${bgStyle} border-left: 4px solid ${baseColor}; border-radius: 8px; padding: ${p}; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
+            <div style="font-size: ${titleSize}; font-weight: 800; color: ${titleColor}; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; margin-bottom: 2px;">${arg.event.title} ${deptHtml}</div>
             ${timeText}
             ${avatarsHtml}
          </div>
