@@ -3846,9 +3846,9 @@ window.renderView = async function renderView() {
         } else if (s === 'roofing' || s === 'roof') {
             servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20"><i class="fa-solid fa-house"></i> ${t('partner_cat_roofing')}</span>`;
         } else if (s === 'solar') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20">â˜€ï¸ ${t('partner_cat_solar')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20"><i class="fa-solid fa-sun"></i> ${t('partner_cat_solar')}</span>`;
         } else if (s === 'hvac' || s === 'aire') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20">â„ï¸ ${t('partner_cat_hvac')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20"><i class="fa-solid fa-snowflake"></i> ${t('partner_cat_hvac')}</span>`;
         } else if (s === 'painting' || s === 'pintura') {
             servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20"><i class="fa-solid fa-paint-roller"></i> ${t('partner_cat_painting')}</span>`;
         } else if (s === 'remodelacion') {
@@ -3860,7 +3860,7 @@ window.renderView = async function renderView() {
         } else if (s === 'screens') {
             servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20"><i class="fa-solid fa-border-all"></i> ${t('partner_cat_screens')}</span>`;
         } else {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">âš™ï¸ ${t('partner_cat_general')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5"><i class="fa-solid fa-gear"></i> ${t('partner_cat_general')}</span>`;
         }
 
         return `
