@@ -3832,7 +3832,7 @@ window.renderView = async function renderView() {
         });
     }
 
-    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "ÑÂrea de Cobertura", "Documentos", ""];
+    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
     const rowsHtml = items.map(u => {
         const safeEmpresa = u.empresa || 'Empresa Desconocida';
         const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
