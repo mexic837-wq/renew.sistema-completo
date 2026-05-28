@@ -5621,8 +5621,7 @@ function renderCalendario() {
     
     
     eventContent: function(arg) {
-       // El color principal viene del "estado / clasificación"
-       const baseColor = arg.event.backgroundcolor || '-';
+       const baseColor = arg.event.backgroundColor || '#00f5d4';
        const colabs = arg.event.extendedProps?.colaboradores || [];
        const deptos = arg.event.extendedProps?.departamentos || [];
        
@@ -5659,7 +5658,7 @@ function renderCalendario() {
        const titleColor = isLightMode ? '#1e293b' : '#f8fafc';
        const timeColor = isLightMode ? '#64748b' : '#94a3b8';
 
-       const isMonth = arg.view.type === 'dayGridMonth';
+       const isMonth = arg.view.type === 'dayGridMonth' || arg.view.type === 'listWeek';
        const p = isMonth ? '2px 4px' : '6px 8px';
        const titleSize = isMonth ? '0.7rem' : '0.8rem';
        
