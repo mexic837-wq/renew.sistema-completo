@@ -3560,10 +3560,13 @@ window.renderView = async function renderView() {
         clientes.forEach(c => {
           if (!c.direccion || proyectos.some(p => p.cliente_id === c.id)) return;
           let deptKey = 'otro';
-          const dpto = (c.empresa || '').toLowerCase();
-          if (dpto.includes('solar')) deptKey = 'solar';
-          else if (dpto.includes('water')) deptKey = 'water';
-          else if (dpto.includes('home')) deptKey = 'home';
+          let dptoStr = (c.departamento || c.empresa || '').toLowerCase();
+          if (c.unidades && Array.isArray(c.unidades)) {
+            dptoStr += ' ' + c.unidades.join(' ').toLowerCase();
+          }
+          if (dptoStr.includes('solar')) deptKey = 'solar';
+          else if (dptoStr.includes('water')) deptKey = 'water';
+          else if (dptoStr.includes('home')) deptKey = 'home';
           const combo = `${c.id}::${deptKey}`;
           if (!seenAdminCombo.has(combo)) {
             seenAdminCombo.add(combo);
