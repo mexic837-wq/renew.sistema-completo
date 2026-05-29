@@ -2209,12 +2209,11 @@ function bindGlobalEvents() {
 
   // ââ€â‚¬ââ€â‚¬ Edit Pipeline Roles (pencil icon) ââ€â‚¬ââ€â‚¬
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
-  const ROLES_LIST = ['Call Center', 'Vendedor', 'Project Manager', 'Técnico', 'Diseñador', 'Contabilidad', 'Supervisión', 'CEO', 'Admin'];
+  const ROLES_LIST = ['Admin', 'Procesador', 'Técnico', 'Vendedor'];
   const ROLE_ICONS_MAP = {
-    'Call Center': 'fa-headset',
-    'Vendedor': 'fa-handshake', 'Project Manager': 'fa-gears', 'Técnico': 'fa-screwdriver-wrench',
-    'Diseñador': 'fa-pen-ruler', 'Contabilidad': 'fa-calculator',
-    'Supervisión': 'fa-eye', 'CEO': 'fa-crown', 'Admin': 'fa-shield-halved'
+    'Procesador': 'fa-headset',
+    'Vendedor': 'fa-handshake', 'Técnico': 'fa-screwdriver-wrench',
+    'Admin': 'fa-shield-halved'
   };
 
   // Event delegation on canvas for pencil icon
@@ -2240,11 +2239,12 @@ function bindGlobalEvents() {
     if (hexInput) hexInput.value = currentPipColor;
 
     const permsBox = document.getElementById('edit-pip-roles-perms');
+    const ROLE_NAMES_MAP = { 'Admin': 'Administración', 'Procesador': 'Oficina', 'Técnico': 'Técnicos', 'Vendedor': 'Representante de Ventas' };
     permsBox.innerHTML = ROLES_LIST.map(rol => `
       <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-100 dark:border-white/5 cursor-pointer hover:border-sky-400/40 transition-all" style="background:rgba(14,165,233,0.03)">
         <input type="checkbox" class="edit-pip-role-chk w-4 h-4 rounded accent-sky-500" data-rol="${rol}" ${currentRoles.includes(rol) ? 'checked' : ''}>
         <i class="fa-solid ${ROLE_ICONS_MAP[rol] || 'fa-user'} text-sky-400 text-[11px]"></i>
-        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">${rol}</span>
+        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">${ROLE_NAMES_MAP[rol] || rol}</span>
       </label>
     `).join('');
 
@@ -6349,16 +6349,10 @@ function renderConstructor() {
                   <i class="fa-solid fa-user-astronaut text-[9px] text-tealAccent"></i>
                 </div>
                 <select class="sel-fase-rol bg-transparent border-none text-[9px] font-black text-gray-400 dark:text-gray-500 p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors uppercase tracking-[0.05em]" data-faseid="${f.id}">
-                  <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
-                  <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Vendedor</option>
-                  <option value="Project Manager" ${f.rol_encargado === 'Project Manager' ? 'selected' : ''}>Project Manager</option>
-                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
-                  <option value="Diseñador" ${f.rol_encargado === 'Diseñador' ? 'selected' : ''}>Diseñador</option>
-                  <option value="Contabilidad" ${f.rol_encargado === 'Contabilidad' ? 'selected' : ''}>Contabilidad</option>
-                  
-                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
-                  <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Admin</option>
-                  <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
+                  <option value="Procesador" ${f.rol_encargado === 'Procesador' ? 'selected' : ''}>Oficina</option>
+                  <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
+                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnicos</option>
+                  <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
                   <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
                 </select>
               </div>

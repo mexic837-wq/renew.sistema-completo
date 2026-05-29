@@ -536,9 +536,9 @@ function _renderToolsForPipeline(user, activeUnit) {
   const userRole    = (user.rol || '').toLowerCase();
   const isTecnico   = /t[eé]cn[io]co/i.test(user.rol || '');
   const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
-  const canInventory= [isTecnico, 'contabilidad','finanzas','supervisi\u00F3n','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
+  const canInventory= [isTecnico, 'contabilidad','finanzas','procesador','supervisión','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
 
-  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisi\u00F3n','finanzas','contabilidad'];
+  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
   if (!canWater && (userRole.includes('vendedor') || userRole.includes('representante') || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
