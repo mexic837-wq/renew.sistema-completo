@@ -1615,7 +1615,8 @@ function bindGlobalEvents() {
         is_suspended: existing ? (existing.is_suspended || false) : false,
         banco_nombre: document.getElementById('inp-usr-banco-nombre')?.value.trim() || '',
         banco_cuenta: document.getElementById('inp-usr-banco-cuenta')?.value.trim() || '',
-        banco_ruta:   document.getElementById('inp-usr-banco-ruta')?.value.trim()   || ''
+        banco_ruta:   document.getElementById('inp-usr-banco-ruta')?.value.trim()   || '',
+        zadarma_sip_id: document.getElementById('inp-usr-sip-id')?.value.trim() || ''
       };
 
       if (!newUsr.nombre || !newUsr.apellido || !newUsr.email) return showToast('Datos obligatorios incompletos', 'error');
@@ -6972,6 +6973,9 @@ async function toggleDetailEditMode(id) {
         }
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
         
+        const sipIdEl = document.getElementById('det-edit-sip-id');
+        if (sipIdEl) sipIdEl.value = usr.zadarma_sip_id || '';
+        
         const rolEl = document.getElementById('det-edit-rol');
         if (rolEl) {
             rolEl.value = usr.rol || 'Vendedor';
@@ -7307,7 +7311,8 @@ async function toggleDetailEditMode(id) {
                     contrato_url: state.detEditContratoUrl !== undefined ? state.detEditContratoUrl : (usr.contrato_url || null),
                     estatus_rrhh: current_estatus,
                     tel_emergencia, contacto_emergencia_nombre, direccion, zelle_nombre, zelle_cuenta, zelle_tel,
-                    banco_nombre, banco_cuenta, banco_ruta
+                    banco_nombre, banco_cuenta, banco_ruta,
+                    zadarma_sip_id: document.getElementById('det-edit-sip-id') ? document.getElementById('det-edit-sip-id').value.trim() : ''
                 };
 
                 await saveAdminWorker(updatedUsr);

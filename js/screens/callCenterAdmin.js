@@ -217,7 +217,10 @@ async function loadCCLeads() {
         tbody.innerHTML = data.map(l => `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 <td class="py-4 font-bold text-gray-900 dark:text-white">${l.nombre || 'Sin nombre'}</td>
-                <td class="py-4 text-gray-600 dark:text-gray-300">${l.telefono || '-'}</td>
+                <td class="py-4 text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                    ${l.telefono || '-'}
+                    ${l.telefono ? `<button onclick="adminZadarmaCall('${l.telefono}')" class="w-6 h-6 rounded bg-teal-100 text-teal-600 hover:bg-teal-500 hover:text-white flex items-center justify-center transition-colors" title="Click to Call (Zadarma)"><i class="fa-solid fa-phone text-[10px]"></i></button>` : ''}
+                </td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.direccion || '-'} ${l.ciudad ? ', ' + l.ciudad : ''}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.email || '-'}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.operador_nombre || '<span class="text-yellow-500">En Cola</span>'}</td>
@@ -231,6 +234,10 @@ async function loadCCLeads() {
                     </span>
                 </td>
                 <td class="py-4 text-right flex justify-end gap-2">
+                <td class="py-4 text-right flex justify-end gap-2">
+                    <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="alert('Abriendo grabaciones/historial pronto...')" title="Ver Historial de Llamadas">
+                        <i class="fa-solid fa-headphones text-xs"></i>
+                    </button>
                     <button class="w-8 h-8 rounded-lg hover:bg-tealAccent/20 hover:text-tealAccent dark:hover:bg-tealAccent/10 text-gray-400 transition-colors" onclick="adminEditCCLead('${l.id}', '${l.operador_id || ''}')">
                         <i class="fa-solid fa-pen-to-square text-xs"></i>
                     </button>
@@ -372,5 +379,32 @@ window.adminDeleteCCLead = async (id) => {
         await loadCCLeads();
     } catch (err) {
         showToast(err.message, 'error');
+    }
+};
+
+
+window.adminZadarmaCall = async (phone) => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !currentUser.zadarma_sip_id) {
+        showToast('Debes tener un SIP ID de Zadarma configurado en tu perfil.', 'error');
+        return;
+    }
+    if (!confirm('¿Deseas llamar al ' + phone + ' desde tu extensión ' + currentUser.zadarma_sip_id + '?')) return;
+
+    try {
+        const res = await fetch('/api/zadarma/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: currentUser.zadarma_sip_id, to: phone })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showToast('Llamada en curso. Contesta tu teléfono Zadarma.', 'success');
+        } else {
+            throw new Error(data.message || 'Error de Zadarma');
+        }
+    } catch (e) {
+        console.error('[ZADARMA]', e);
+        showToast('Error al llamar: ' + e.message, 'error');
     }
 };

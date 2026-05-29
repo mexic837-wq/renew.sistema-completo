@@ -2399,6 +2399,71 @@ app.use('/api/storage-proxy', async (req, res) => {
     }
 });
 
+// ── ZADARMA API INTEGRATION ─────────────────────────────────────────
+const ZADARMA_KEY = 'cd41f69ba094fd7f962e';
+const ZADARMA_SECRET = '43e065ae9b6e36670558';
+
+function generateZadarmaSignature(method, params) {
+    const sortedKeys = Object.keys(params).sort();
+    let queryString = '';
+    sortedKeys.forEach((k, i) => {
+        queryString += `${k}=${encodeURIComponent(params[k])}`;
+        if (i < sortedKeys.length - 1) queryString += '&';
+    });
+
+    const crypto = require('crypto');
+    const md5 = crypto.createHash('md5').update(queryString).digest('hex');
+    const data = method + queryString + md5;
+    const signature = crypto.createHmac('sha1', ZADARMA_SECRET).update(data).digest('base64');
+    
+    return { queryString, signature };
+}
+
+app.post('/api/zadarma/call', async (req, res) => {
+    try {
+        const { from, to } = req.body;
+        if (!from || !to) return res.status(400).json({ error: 'Faltan parámetros (from, to)' });
+
+        const params = { from, to };
+        const method = '/v1/request/callback/';
+        const { queryString, signature } = generateZadarmaSignature(method, params);
+
+        const response = await fetch(`https://api.zadarma.com${method}?${queryString}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `${ZADARMA_KEY}:${signature}`
+            }
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error('[ZADARMA CALL]', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (req, res) => {
+    try {
+        console.log('[ZADARMA WEBHOOK] Evento recibido', req.body);
+        
+        if (req.query.zd_echo) {
+            return res.send(req.query.zd_echo);
+        }
+
+        const event = req.body.event;
+        if ((event === 'NOTIFY_END' || event === 'NOTIFY_OUT_END') && req.body.call_record_link) {
+            const { destination, call_record_link, duration } = req.body;
+            console.log(`[ZADARMA] Guardando grabación a ${destination}: ${call_record_link} (${duration}s)`);
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error('[ZADARMA WEBHOOK ERROR]', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(port, '0.0.0.0', () => {
     console.log(`\n<i class="fa-solid fa-rocket"></i> RENEW CLOUD SERVER RUNNING`);
     console.log(`<i class="fa-solid fa-satellite-dish"></i> Admin Panel : http://localhost:${port}/admin.html`);
