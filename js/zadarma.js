@@ -1,6 +1,7 @@
 // ── ZADARMA GLOBALS ─────────────────────────────────────────
 window.zadarmaCall = async (phone) => {
-    const currentUser = window.getCurrentUser();
+    const userStr = localStorage.getItem('rs_user');
+    const currentUser = userStr ? JSON.parse(userStr) : null;
     if (!currentUser || !currentUser.zadarma_sip_id) {
         if (window.showToast) window.showToast('Debes tener un SIP ID de Zadarma configurado en tu perfil.', 'error');
         else alert('Debes tener un SIP ID configurado.');
