@@ -135,9 +135,7 @@ export async function renderMiMapa() {
       const DEPTS = [
         { key: 'todos', label: 'Todos',  color: '#00dfbf', iconUrl: null },
         { key: 'solar', label: 'Solar',  color: '#f59e0b', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
-        { key: 'water', label: 'Water',  color: '#0ea5e9', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
-        { key: 'home',  label: 'Home',   color: '#a855f7', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png' },
-        { key: 'otro',  label: 'Otro',   color: '#ef4444', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' },
+        { key: 'water', label: 'Water',  color: '#0ea5e9', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }
       ];
 
       // ── Status config ──────────────────────────────────────
@@ -243,22 +241,7 @@ export async function renderMiMapa() {
         deptGroup.appendChild(pill);
       });
 
-      // ── Divider ────────────────────────────────────────────
-      const divider = document.createElement('div');
-      divider.style.cssText = 'height:1px; background:#e2e8f0; margin: 6px 0;';
-
-      // ── Status group ───────────────────────────────────────
-      const statusGroup = document.createElement('div');
-      statusGroup.style.cssText = 'display:flex; flex-direction:column; gap:3px;';
-      statusGroup.appendChild(sectionLabel('Tipo'));
-      STATUSES.forEach(s => {
-        const pill = buildPill(s, s.key === activeStatus, (key) => { activeStatus = key; });
-        statusGroup.appendChild(pill);
-      });
-
       legendEl.appendChild(deptGroup);
-      legendEl.appendChild(divider);
-      legendEl.appendChild(statusGroup);
       map.controls[google.maps.ControlPosition.RIGHT_TOP].push(legendEl);
 
       // -- Geocode & place markers (one per client x dept combo) --
