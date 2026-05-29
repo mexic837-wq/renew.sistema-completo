@@ -2453,8 +2453,33 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
 
         const event = req.body.event;
         if ((event === 'NOTIFY_END' || event === 'NOTIFY_OUT_END') && req.body.call_record_link) {
-            const { destination, call_record_link, duration } = req.body;
-            console.log(`[ZADARMA] Guardando grabación a ${destination}: ${call_record_link} (${duration}s)`);
+            const { destination, call_record_link, duration, caller_id } = req.body;
+            const prospectPhone = destination || caller_id;
+            console.log(`[ZADARMA] Guardando grabación para ${prospectPhone}: ${call_record_link} (${duration}s)`);
+            
+            // Buscar lead por teléfono
+            if (prospectPhone) {
+                const cleanPhone = prospectPhone.replace(/\D/g, '').slice(-10); // ultimos 10 digitos
+                const { data: leads } = await supabase.from('call_center_prospectos').select('id, telefono, historial_llamadas');
+                
+                if (leads) {
+                    const lead = leads.find(l => (l.telefono || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+                    if (lead) {
+                        const history = lead.historial_llamadas || [];
+                        history.push({
+                            fecha: new Date().toISOString(),
+                            duracion: duration,
+                            grabacion_url: call_record_link,
+                            tipo: event === 'NOTIFY_END' ? 'Entrante' : 'Saliente'
+                        });
+                        
+                        await supabase.from('call_center_prospectos')
+                            .update({ historial_llamadas: history })
+                            .eq('id', lead.id);
+                        console.log(`[ZADARMA] Grabación adjuntada al lead ${lead.id}`);
+                    }
+                }
+            }
         }
 
         res.json({ success: true });

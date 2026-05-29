@@ -1,4 +1,4 @@
-import { showToast } from '../components/toast.js';
+ï»¿import { showToast } from '../components/toast.js';
 
 export async function renderCallCenterAdmin() {
     const main = document.getElementById('main-canvas');
@@ -235,7 +235,7 @@ async function loadCCLeads() {
                 </td>
                 <td class="py-4 text-right flex justify-end gap-2">
                 <td class="py-4 text-right flex justify-end gap-2">
-                    <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="alert('Abriendo grabaciones/historial pronto...')" title="Ver Historial de Llamadas">
+                    <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="if(window.showZadarmaHistory) window.showZadarmaHistory(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(l.historial_llamadas || []))}'))); else alert('Sin historial')" title="Ver Historial de Llamadas">
                         <i class="fa-solid fa-headphones text-xs"></i>
                     </button>
                     <button class="w-8 h-8 rounded-lg hover:bg-tealAccent/20 hover:text-tealAccent dark:hover:bg-tealAccent/10 text-gray-400 transition-colors" onclick="adminEditCCLead('${l.id}', '${l.operador_id || ''}')">
@@ -389,7 +389,7 @@ window.adminZadarmaCall = async (phone) => {
         showToast('Debes tener un SIP ID de Zadarma configurado en tu perfil.', 'error');
         return;
     }
-    if (!confirm('¿Deseas llamar al ' + phone + ' desde tu extensión ' + currentUser.zadarma_sip_id + '?')) return;
+    if (!confirm('ï¿½Deseas llamar al ' + phone + ' desde tu extensiï¿½n ' + currentUser.zadarma_sip_id + '?')) return;
 
     try {
         const res = await fetch('/api/zadarma/call', {
@@ -399,7 +399,7 @@ window.adminZadarmaCall = async (phone) => {
         });
         const data = await res.json();
         if (data.status === 'success') {
-            showToast('Llamada en curso. Contesta tu teléfono Zadarma.', 'success');
+            showToast('Llamada en curso. Contesta tu telï¿½fono Zadarma.', 'success');
         } else {
             throw new Error(data.message || 'Error de Zadarma');
         }

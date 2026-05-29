@@ -232,7 +232,10 @@ function buildFase1Card(p, index) {
             <p style="font-size:9px;color:var(--text-secondary);font-weight:700;text-transform:uppercase;margin:0;">Teléfono</p>
             <p style="font-size:14px;font-weight:800;color:var(--text);margin:0;">${tel}</p>
           </div>
-          <a href="sip:${tel}" style="background:rgba(0,245,212,0.1);color:var(--primary);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:800;text-decoration:none;"><i class="fa-solid fa-mobile-screen"></i> Llamar</a>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+              <button class="btn-cc-call" data-tel="${tel}" style="background:rgba(0,245,212,0.1);color:var(--primary);border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-mobile-screen"></i> Llamar</button>
+              <button class="btn-cc-historial" data-id="${p.id}" style="background:rgba(245,158,11,0.1);color:#f59e0b;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-headphones"></i> Historial</button>
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
           <span style="font-size:15px;"><i class="fa-solid fa-location-dot"></i></span>
@@ -320,6 +323,34 @@ async function handleFase1Click(screen, user, e) {
     // Confirma la aceptación: estado pasa a 'pendiente' (activo)
     await patchProspecto(id, { accion: 'aceptar' });
     renderFase2(screen, user, { ...pros, estado: 'pendiente' });
+    return;
+  }
+
+  // ── ZADARMA CALL ─────────────────────────────────────────
+  const btnCall = e.target.closest('.btn-cc-call');
+  if (btnCall) {
+    const tel = btnCall.dataset.tel;
+    if (window.adminZadarmaCall) {
+        window.adminZadarmaCall(tel);
+    } else if (window.zadarmaCall) {
+        window.zadarmaCall(tel);
+    } else {
+        showToast('Zadarma API no cargada', 'error');
+    }
+    screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
+    return;
+  }
+
+  // ── HISTORIAL DE LLAMADAS ────────────────────────────────
+  const btnHist = e.target.closest('.btn-cc-historial');
+  if (btnHist) {
+    const id = btnHist.dataset.id;
+    const pros = _ccState.prospectos.find(p => p.id === id);
+    if (pros) {
+        if (window.showZadarmaHistory) window.showZadarmaHistory(pros.historial_llamadas || []);
+        else alert('No hay historial disponible');
+    }
+    screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     return;
   }
 
