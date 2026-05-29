@@ -555,7 +555,7 @@ function _renderToolsForPipeline(user, activeUnit) {
 
   const TOOLS = {
     'Renew Water': [
-      ['admin', 'administrador', 'ceo'].includes(userRole) ? {
+      (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call')) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -599,7 +599,7 @@ function _renderToolsForPipeline(user, activeUnit) {
       } : null,
     ],
     'Renew Solar': [
-      ['admin', 'administrador', 'ceo'].includes(userRole) ? {
+      (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call')) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -636,7 +636,7 @@ function _renderToolsForPipeline(user, activeUnit) {
       },
     ],
     'Renew Home': [
-      ['admin', 'administrador', 'ceo'].includes(userRole) ? {
+      (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call')) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
