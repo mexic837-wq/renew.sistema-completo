@@ -6749,6 +6749,7 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
     document.getElementById('det-usr-sede').textContent = usr.sede || '-';
     document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+    if (document.getElementById('det-usr-sip-id')) document.getElementById('det-usr-sip-id').textContent = usr.zadarma_sip_id || '-';
     document.getElementById('det-usr-tel-emergencia').textContent = usr.tel_emergencia || '-';
     if (document.getElementById('det-usr-contacto-emergencia-nombre')) document.getElementById('det-usr-contacto-emergencia-nombre').textContent = usr.contacto_emergencia_nombre || '-';
     document.getElementById('det-usr-direccion').textContent = usr.direccion || '-';
@@ -6916,6 +6917,7 @@ async function toggleDetailEditMode(id) {
         }
         document.getElementById('det-usr-rank').textContent = displayRank;
         document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+        if (document.getElementById('det-usr-sip-id')) document.getElementById('det-usr-sip-id').textContent = usr.zadarma_sip_id || '-';
         return;
     }
 
@@ -7220,6 +7222,7 @@ async function toggleDetailEditMode(id) {
             document.getElementById('det-usr-rol').textContent = usr.rol || '-';
             document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
             document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
+            if (document.getElementById('det-usr-sip-id')) document.getElementById('det-usr-sip-id').textContent = usr.zadarma_sip_id || '-';
         });
     }
 
@@ -7329,6 +7332,7 @@ async function toggleDetailEditMode(id) {
                 document.getElementById('det-usr-dept').textContent = department || 'Grupo Renew';
                 document.getElementById('det-usr-sede').textContent = sede;
                 document.getElementById('det-usr-tel').textContent = telefono || '-';
+                if (document.getElementById('det-usr-sip-id')) document.getElementById('det-usr-sip-id').textContent = document.getElementById('det-edit-sip-id') ? document.getElementById('det-edit-sip-id').value.trim() : '-';
                 if (document.getElementById('det-usr-tel-emergencia')) document.getElementById('det-usr-tel-emergencia').textContent = tel_emergencia || '-';
                 if (document.getElementById('det-usr-contacto-emergencia-nombre')) document.getElementById('det-usr-contacto-emergencia-nombre').textContent = contacto_emergencia_nombre || '-';
                 if (document.getElementById('det-usr-direccion')) document.getElementById('det-usr-direccion').textContent = direccion || '-';
