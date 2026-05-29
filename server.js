@@ -179,16 +179,7 @@ app.get('/api/db', async (req, res) => {
                     foto:       fixUrl(u.foto),
                     w9_url:     fixUrl(u.w9_url || u.w9Url),
                     carnet_url: fixUrl(u.carnet_url || u.carnetUrl),
-                    contrato_url: fixUrl(u.contrato_url || u.contratoUrl),
-                    tel_emergencia: u["tel emergencia"] || u.tel_emergencia || null,
-                    contacto_emergencia_nombre: u["contacto emergencia nombre"] || u.contacto_emergencia_nombre || null,
-                    zelle_nombre: u["zelle nombre"] || u.zelle_nombre || null,
-                    zelle_cuenta: u["zelle cuenta"] || u.zelle_cuenta || null,
-                    zelle_tel: u["zelle tel"] || u.zelle_tel || null,
-                    banco_nombre: u["banco nombre"] || u.banco_nombre || null,
-                    banco_cuenta: u["banco cuenta"] || u.banco_cuenta || null,
-                    banco_ruta: u["banco ruta"] || u.banco_ruta || null,
-                    zadarma_sip_id: u["zadarma sip id"] || u.zadarma_sip_id || null
+                    contrato_url: fixUrl(u.contrato_url || u.contratoUrl)
             })),
             academiaContent:         (results[7].data || []).map(item => ({
                 id:             item.id,
@@ -655,21 +646,30 @@ app.post('/api/db', async (req, res) => {
                     sede:         u.sede         || null,
                     unidades:   Array.isArray(u.unidades) ? u.unidades : [],
                     // --- NEW FIELDS ---
-                    "tel emergencia": u.tel_emergencia || null,
-                    "contacto emergencia nombre": u.contacto_emergencia_nombre || null,
+                    tel_emergencia: u.tel_emergencia || null,
+                    contacto_emergencia_nombre: u.contacto_emergencia_nombre || null,
                     direccion:      u.direccion      || null,
-                    "zelle nombre":   u.zelle_nombre   || null,
-                    "zelle cuenta":   u.zelle_cuenta   || null,
-                    "zelle tel":      u.zelle_tel      || null,
-                    "banco nombre":   u.banco_nombre   || null,
-                    "banco cuenta":   u.banco_cuenta   || null,
-                    "banco ruta":     u.banco_ruta     || null,
-                    "zadarma sip id": u.zadarma_sip_id || null
+                    zelle_nombre:   u.zelle_nombre   || null,
+                    zelle_cuenta:   u.zelle_cuenta   || null,
+                    zelle_tel:      u.zelle_tel      || null,
+                    banco_nombre:   u.banco_nombre   || null,
+                    banco_cuenta:   u.banco_cuenta   || null,
+                    banco_ruta:     u.banco_ruta     || null,
+                    zadarma_sip_id: u.zadarma_sip_id || null
                 };
                 if (mapped.id === 'u1') console.log('[DEBUG-U1] Mapped Carlos:', JSON.stringify(mapped));
                 return mapped;
             });
-            syncTasks.push(supabase.from('usuarios').upsert(usrs, { onConflict: 'id' }));
+            syncTasks.push(
+                supabase.from('usuarios').upsert(usrs, { onConflict: 'id' }).then(({ error }) => {
+                    if (error) {
+                        console.error('[DIAGNOSTIC SUPABASE] Error guardando usuarios:', error);
+                        throw error;
+                    } else {
+                        console.log('[DIAGNOSTIC SUPABASE] Usuarios guardados correctamente.');
+                    }
+                })
+            );
         }
         if (db.Clientes_Maestro?.length) {
             // Mapeo para asegurar nombres de columnas correctos
