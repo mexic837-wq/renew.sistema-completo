@@ -55,6 +55,16 @@ function renderDiscussion(discusion, pipelineColor) {
             ${c.foto ? `<img src="${c.foto}" style="width:100%;height:100%;object-fit:cover;" />` : initials}
         </div>`;
         
+        let attachmentHtml = '';
+        if (c.fileUrl) {
+            const isImage = c.fileUrl.startsWith('data:image') || c.fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+            if (isImage) {
+                attachmentHtml = `<div style="margin-top:6px;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,0.1);max-width:200px;"><a href="${c.fileUrl}" target="_blank"><img src="${c.fileUrl}" style="width:100%;display:block;cursor:pointer;"></a></div>`;
+            } else {
+                attachmentHtml = `<div style="margin-top:6px;"><a href="${c.fileUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.05);padding:6px 12px;border-radius:8px;font-size:0.7rem;color:var(--text-primary);text-decoration:none;font-weight:700;"><i class="fas fa-file-alt"></i> ${c.fileName || 'Archivo adjunto'}</a></div>`;
+            }
+        }
+
         const msgBubble = `
         <div style="display:flex;align-items:flex-start;gap:8px;max-width:85%;${isMe ? 'flex-direction:row-reverse;margin-left:auto;' : ''}">
             ${avatar}
@@ -63,7 +73,7 @@ function renderDiscussion(discusion, pipelineColor) {
                     <span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);">${isMe ? 'Tú' : c.user}</span>
                     <span style="font-size:0.6rem;color:var(--text-muted);">${time}</span>
                 </div>
-                <div style="background:${isMe ? pipelineColor : 'var(--surface)'};color:${isMe ? 'white' : 'var(--text-primary)'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 2px rgba(0,0,0,0.05);${!isMe ? 'border:1px solid var(--border);' : ''}">${c.text}</div>
+                <div style="background:${isMe ? pipelineColor : 'var(--surface)'};color:${isMe ? 'white' : 'var(--text-primary)'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 2px rgba(0,0,0,0.05);${!isMe ? 'border:1px solid var(--border);' : ''}">${c.text}${attachmentHtml}</div>
             </div>
         </div>`;
         
@@ -137,8 +147,13 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
   const isCompleted = curFidx === -1;
   const currentFaseObj = isCompleted ? fases[fases.length - 1] : fases[curFidx];
   const currentUser = getCurrentUser();
-  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((currentUser?.rol || '').toLowerCase());
+  const roleStr = (currentUser?.rol || '').toLowerCase();
+  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes(roleStr);
   const isResponsable = currentUser?.id === deal.responsable_id;
+  const isAssigned = deal.asignado_a === currentUser?.id || deal.responsable_id === currentUser?.id || (Array.isArray(deal.tecnicos) && deal.tecnicos.some(t => t.id === currentUser?.id));
+  const isPM = ['project manager', 'manager de ventas', 'account manager', 'supervisión', 'supervisor', 'manager', 'oficina'].some(r => roleStr.includes(r));
+  const isTecnico = roleStr.includes('técnico') || roleStr.includes('tecnico');
+  const canSeeChat = isAdmin || (isPM && isAssigned) || (isTecnico && isAssigned) || (isPM);
   const canManageObservers = isAdmin || isResponsable;
   const dbFull = getDB();
   const allWorkers = dbFull.Usuarios || [];
@@ -276,6 +291,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
         </div>
       </div>
 
+      ${canSeeChat ? `
       <div class="info-card slide-in-bottom" style="margin-bottom:120px; padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
         <!-- Header -->
         <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
@@ -301,6 +317,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           </button>
         </div>
       </div>
+      ` : ''}
       </div>
     </div>
   `;
