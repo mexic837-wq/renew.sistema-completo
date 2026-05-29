@@ -331,7 +331,7 @@ export async function saveGranular(table, records) {
       ultima_actividad_label, rol_fase, is_locked,
       direccion, nombre_cliente, telefono_cliente, email_cliente,
       email, telefono, etapa, fase_orden, total_fases,
-      zip, licencia, id_photo, creador_id,
+      zip, licencia, id_photo, creador_id, created_at,
       contrato_url, contrato_solar_url, contrato_water_url, contrato_home_url,
       ...rest 
     }) => ({
