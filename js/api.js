@@ -1580,7 +1580,7 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
       fase_id: firstFaseId,
       responsable_id: responsable_id,
       fecha: new Date().toISOString().split('T')[0],
-      observadores: [],
+      colaboradores: [],
       discusion: []
     };
     db.Proyectos_Dinamicos.push(newProyecto);
@@ -1858,13 +1858,13 @@ export async function addObserver(projectId, observerUser) {
   const currentUser = getCurrentUser();
   const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
   const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id));
-  if (!isAdmin && !isResponsable) throw new Error('Sin permisos para agregar observadores');
+  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id)) || (p.asignado_a === currentUser?.id) || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
+  if (!isAdmin && !isResponsable) throw new Error('Sin permisos para agregar colaboradores');
 
-  if (!p.observadores) p.observadores = [];
-  if (p.observadores.some(o => o.id === observerUser.id)) return p; // already watching
+  if (!p.colaboradores) p.colaboradores = [];
+  if (p.colaboradores.some(o => o.id === observerUser.id)) return p; // already watching
 
-  p.observadores.push({
+  p.colaboradores.push({
     id: observerUser.id,
     nombre: `${observerUser.nombre || ''} ${observerUser.apellido || ''}`.trim(),
     foto: observerUser.foto || null,
@@ -1876,7 +1876,7 @@ export async function addObserver(projectId, observerUser) {
   if (!p.discusion) p.discusion = [];
   p.discusion.push({
     type: 'system',
-    text: `${currentUser?.nombre || 'Alguien'} agregó a ${observerUser.nombre || ''} como observador.`,
+    text: `${currentUser?.nombre || 'Alguien'} agregó a ${observerUser.nombre || ''} como colaborador.`,
     date: new Date().toISOString()
   });
 
@@ -1895,10 +1895,10 @@ export async function removeObserver(projectId, observerId) {
   const currentUser = getCurrentUser();
   const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
   const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id));
+  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id)) || (p.asignado_a === currentUser?.id) || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
   if (!isAdmin && !isResponsable) throw new Error('Sin permisos');
 
-  p.observadores = (p.observadores || []).filter(o => o.id !== observerId);
+  p.colaboradores = (p.colaboradores || []).filter(o => o.id !== observerId);
   await saveGranular('proyectos_dinamicos', [p]);
   return p;
 }

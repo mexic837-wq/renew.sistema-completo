@@ -2,7 +2,7 @@
  * admin-notif-bell.js
  * ─────────────────────────────────────────────────────────────────
  * Campana de notificaciones administrativas.
- * Recopila: eventos de calendario, asignaciones de observador,
+ * Recopila: eventos de calendario, asignaciones de colaborador,
  * asignaciones de técnico, y proyectos donde eres responsable.
  *
  * Las notificaciones se marcan como leídas automáticamente.
@@ -86,22 +86,22 @@ export function gatherAdminNotifications(db, user) {
         });
     });
 
-    // ── 2. Observador en Proyectos ────────────────────────────────
+    // ── 2. colaborador en Proyectos ────────────────────────────────
     const proyectos = db.Proyectos_Dinamicos || [];
     const clientes = db.Clientes_Maestro || [];
 
     proyectos.forEach(p => {
-        const observadores = Array.isArray(p.observadores) ? p.observadores : [];
-        const obsEntry = observadores.find(o => String(o.id) === String(user.id));
+        const colaboradores = Array.isArray(p.colaboradores) ? p.colaboradores : [];
+        const obsEntry = colaboradores.find(o => String(o.id) === String(user.id));
         if (!obsEntry && !isAdminUser) return;
 
-        // Si es admin y no hay observadores, evitamos spammear si no es relevante?
+        // Si es admin y no hay colaboradores, evitamos spammear si no es relevante?
         // El usuario pidió: "absolutamnete todas estas notifiaciones porfavor, de cualqueir cosa que se haga para llevar un control".
-        // Entonces si alguien es añadido como observador, le notificamos al admin.
-        // Pero para no crear una notificacion duplicada de "Observador" y "Responsable" y "Tecnico" para el mismo proyecto al mismo tiempo,
-        // Quizás solo mostremos "Observador" si hay observadores nuevos.
-        // Asumamos que si observadores.length > 0, es un evento de observador.
-        if (isAdminUser && !obsEntry && observadores.length === 0) return;
+        // Entonces si alguien es añadido como colaborador, le notificamos al admin.
+        // Pero para no crear una notificacion duplicada de "colaborador" y "Responsable" y "Tecnico" para el mismo proyecto al mismo tiempo,
+        // Quizás solo mostremos "colaborador" si hay colaboradores nuevos.
+        // Asumamos que si colaboradores.length > 0, es un evento de colaborador.
+        if (isAdminUser && !obsEntry && colaboradores.length === 0) return;
 
         const notifId = isAdminUser && !obsEntry ? `obs_adm_${p.id}` : `obs_${p.id}`;
         if (archivedIds.has(notifId)) return;
@@ -110,12 +110,12 @@ export function gatherAdminNotifications(db, user) {
         const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
         notifs.push({
             id: notifId,
-            type: 'observador',
+            type: 'colaborador',
             icon: 'fa-eye',
             color: '#8b5cf6',
             bg: 'rgba(139,92,246,0.12)',
-            title: isAdminUser && !obsEntry ? `Observadores asignados` : `Observador en proyecto`,
-            message: isAdminUser && !obsEntry ? `Se asignaron observadores al proyecto de ${clienteName}.` : `Te añadieron como observador en el proyecto de ${clienteName}.`,
+            title: isAdminUser && !obsEntry ? `colaboradores asignados` : `colaborador en proyecto`,
+            message: isAdminUser && !obsEntry ? `Se asignaron colaboradores al proyecto de ${clienteName}.` : `Te añadieron como colaborador en el proyecto de ${clienteName}.`,
             date: new Date(obsEntry ? (obsEntry.added_at || p.created_at) : (p.created_at || Date.now())),
             isRead: readIds.has(notifId),
             link: {
@@ -158,7 +158,7 @@ export function gatherAdminNotifications(db, user) {
     // ── 4. Responsable en Proyectos ───────────────────────────────
     proyectos.forEach(p => {
         const responsables = (p.responsable_id || '').split(',').map(id => id.trim());
-        const isResponsable = responsables.includes(String(user.id));
+        const isResponsable = responsables.includes(String(user.id)) || p.asignado_a === user.id || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === user.id));
         if (!isResponsable && !isAdminUser) return;
         if (isAdminUser && !isResponsable && responsables.length === 0) return;
 

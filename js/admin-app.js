@@ -7529,13 +7529,13 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   const currentUser = getCurrentUser();
   const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((currentUser?.rol || '').toLowerCase());
-  const isResponsable = currentUser?.id === p.responsable_id;
+  const isResponsable = currentUser?.id === p.responsable_id || currentUser?.id === p.asignado_a || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
   const canManageObservers = isAdmin || isResponsable;
   
   const allWorkers = db.Usuarios || [];
-  const observadores = Array.isArray(p.observadores) ? p.observadores : [];
+  const colaboradores = Array.isArray(p.colaboradores) ? p.colaboradores : [];
 
-  const obsHtml = observadores.map(o => {
+  const obsHtml = colaboradores.map(o => {
       const oi = ((o.nombre || '?')[0]).toUpperCase();
       return `<div class="flex items-center gap-2 mb-2">
         <div title="${o.nombre}" style="width:24px;height:24px;border-radius:50%;background:${pipeline.color}20;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:900;color:${pipeline.color};overflow:hidden;">
@@ -7652,11 +7652,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <div class="text-gray-400 font-medium">Etapa Actual:</div>
                     <div class="text-gray-800 font-medium">${faseActual.nombre}</div>
                     
-                    <div class="text-gray-400 font-medium mt-2">Observadores:</div>
+                    <div class="text-gray-400 font-medium mt-2">colaboradores:</div>
                     <div class="mt-2">
-                        ${obsHtml || '<span class="text-[10px] text-gray-400 italic">No hay observadores</span>'}
+                        ${obsHtml || '<span class="text-[10px] text-gray-400 italic">No hay colaboradores</span>'}
                         ${canManageObservers ? `
-                        <button id="btn-manage-obs" class="text-[10px] text-blue-500 hover:underline mt-1"><i class="fas fa-plus"></i> Añadir observador</button>
+                        <button id="btn-manage-obs" class="text-[10px] text-blue-500 hover:underline mt-1"><i class="fas fa-plus"></i> Añadir colaborador</button>
                         ` : ''}
                     </div>
                 </div>
@@ -7708,7 +7708,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         <div style="height:60px;background:white;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;">
             <div>
                 <h2 class="text-[15px] font-bold text-gray-800 flex items-center gap-2"><i class="far fa-comments text-blue-500"></i> Chat del Proyecto</h2>
-                <p class="text-[11px] text-gray-500">${observadores.length + 2} participantes</p>
+                <p class="text-[11px] text-gray-500">${colaboradores.length + 2} participantes</p>
             </div>
             <div class="flex items-center gap-3">
                 <div class="relative bg-gray-50 rounded-full flex items-center px-3 h-8 shadow-inner transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:bg-white border border-transparent focus-within:border-blue-300">
@@ -7976,13 +7976,13 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           const div = document.createElement('div');
           div.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
           
-          const curIds = new Set(observadores.map(o=>o.id));
+          const curIds = new Set(colaboradores.map(o=>o.id));
           const eligible = allWorkers.filter(w => w.id !== p.responsable_id && !curIds.has(w.id) && !w.is_suspended);
           
           div.innerHTML = `
           <div style="background:white;width:400px;border-radius:12px;padding:24px;max-height:80vh;display:flex;flex-direction:column;animation:zoomIn 0.2s ease-out;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                  <h3 class="text-sm font-bold text-gray-800">Añadir Observador</h3>
+                  <h3 class="text-sm font-bold text-gray-800">Añadir colaborador</h3>
                   <button id="close-obs" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
               </div>
               <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
@@ -8014,7 +8014,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                       import('./api.js').then(async ({addObserver}) => {
                           try {
                               await addObserver(p.id, worker);
-                              showToast('Observador añadido', 'success');
+                              showToast('colaborador añadido', 'success');
                               div.remove();
                               openKanbanDrawer(p.id, displayPhaseId);
                           } catch(e) {

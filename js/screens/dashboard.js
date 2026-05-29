@@ -80,7 +80,7 @@ export function computeUserRank(userId, activeUnit, db) {
     if (!isProjectFinished(p, db)) return false;
     
     // A project belongs to the user if they are the responsable OR the assigned vendor in the client record
-    const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(userId));
+    const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(userId)) || (p.asignado_a === userId) || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === userId));
     if (isResponsable) return true;
     
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));

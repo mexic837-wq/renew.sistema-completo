@@ -149,8 +149,8 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
   const currentUser = getCurrentUser();
   const roleStr = (currentUser?.rol || '').toLowerCase();
   const isAdmin = ['admin','administrador','ceo','desarrollador'].includes(roleStr);
-  const isResponsable = currentUser?.id === deal.responsable_id;
-  const isAssigned = deal.asignado_a === currentUser?.id || deal.responsable_id === currentUser?.id || (Array.isArray(deal.tecnicos) && deal.tecnicos.some(t => t.id === currentUser?.id));
+  const isResponsable = currentUser?.id === deal.responsable_id || currentUser?.id === deal.asignado_a || (Array.isArray(deal.colaboradores) && deal.colaboradores.some(c => c.id === currentUser?.id));
+  const isAssigned = deal.asignado_a === currentUser?.id || deal.responsable_id === currentUser?.id || (Array.isArray(deal.tecnicos) && deal.tecnicos.some(t => t.id === currentUser?.id)) || (Array.isArray(deal.colaboradores) && deal.colaboradores.some(c => c.id === currentUser?.id));
   const isPM = ['project manager', 'manager de ventas', 'account manager', 'supervisión', 'supervisor', 'manager', 'oficina'].some(r => roleStr.includes(r));
   const isTecnico = roleStr.includes('técnico') || roleStr.includes('tecnico');
   const canSeeChat = isAdmin || (isPM && isAssigned) || (isTecnico && isAssigned) || (isPM);
@@ -162,8 +162,8 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
   const assigneeUser = allWorkers.find(w => w.id === assigneeId);
   const assigneeName = assigneeUser ? `${assigneeUser.nombre} ${assigneeUser.apellido || ''}`.trim() : 'Sin asignar';
 
-  const observadores = Array.isArray(deal.observadores) ? deal.observadores : [];
-  const obsHtml = observadores.map(o => {
+  const colaboradores = Array.isArray(deal.colaboradores) ? deal.colaboradores : [];
+  const obsHtml = colaboradores.map(o => {
       const oi = ((o.nombre || '?')[0]).toUpperCase();
       return `<div class="obs-avatar" title="${o.nombre}" style="width:28px;height:28px;border-radius:50%;background:${pipeline.color}20;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;color:${pipeline.color};border:2px solid var(--bg);margin-left:-8px;overflow:hidden;">
         ${o.foto ? `<img src="${o.foto}" style="width:100%;height:100%;object-fit:cover;" />` : oi}
@@ -253,14 +253,14 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           </div>
           <div style="display:flex; flex-direction:column; gap:8px; grid-column: 1 / -1; margin-top:8px; border-top:1px dashed var(--border); padding-top:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Observadores</span>
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">colaboradores</span>
                 ${canManageObservers ? `
                 <button id="btn-manage-obs" style="background:transparent; border:none; color:${pipeline.color}; font-size:0.75rem; font-weight:700; cursor:pointer;">
                     <i class="fa-solid fa-plus mr-1"></i> Añadir
                 </button>` : ''}
             </div>
             <div style="display:flex; align-items:center; gap:4px; padding-left:8px;">
-                ${obsHtml || `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">No hay observadores</span>`}
+                ${obsHtml || `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">No hay colaboradores</span>`}
             </div>
           </div>
         </div>
@@ -362,14 +362,14 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           const div = document.createElement('div');
           div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);';
           
-          const curObs = Array.isArray(deal.observadores) ? deal.observadores : [];
+          const curObs = Array.isArray(deal.colaboradores) ? deal.colaboradores : [];
           const curIds = new Set(curObs.map(o=>o.id));
           const eligible = allWorkers.filter(w => w.id !== deal.responsable_id && !curIds.has(w.id) && !w.is_suspended);
           
           div.innerHTML = `
           <div style="background:var(--bg);width:100%;border-radius:24px 24px 0 0;padding:20px;max-height:80vh;display:flex;flex-direction:column;animation:slideInBottom 0.3s ease-out;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                  <h3 style="margin:0;font-size:1rem;font-weight:800;color:var(--text-primary);">Añadir Observador</h3>
+                  <h3 style="margin:0;font-size:1rem;font-weight:800;color:var(--text-primary);">Añadir colaborador</h3>
                   <button id="close-obs" style="background:none;border:none;font-size:1.5rem;color:var(--text-muted);">&times;</button>
               </div>
               <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;padding-bottom:20px;">
@@ -401,7 +401,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
                       import('../api.js').then(async ({addObserver}) => {
                           try {
                               await addObserver(deal.id, worker);
-                              showToast('Observador añadido', 'success');
+                              showToast('colaborador añadido', 'success');
                               div.remove();
                               renderDetail(deal.id);
                           } catch(e) {
