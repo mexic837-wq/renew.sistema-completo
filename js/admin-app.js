@@ -6753,6 +6753,7 @@ async function showWorkerDetail(id) {
             ${renderDocBtn('w9', 'W-9', (usr.w9Url || usr.w9_url), 'fa-file-invoice')}
             ${renderDocBtn('carnet', 'Carnet', (usr.carnet_url || usr.carnetUrl), 'fa-id-card')}
             ${renderDocBtn('contrato', 'Contrato', (usr.contrato_url || usr.contratoUrl), 'fa-file-signature')}
+            ${state.activeView === 'hrhub' ? `
             <div class="doc-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-purple-200 cursor-pointer transition-all hover:border-purple-400 hover:bg-purple-50/50 min-h-[90px]"
               onclick="window._verRecibosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}','${(usr.rol||'')}')">
               <i class="fa-solid fa-receipt text-xl text-purple-400 group-hover:text-purple-600 transition-colors mb-2"></i>
@@ -6763,6 +6764,7 @@ async function showWorkerDetail(id) {
               <i class="fa-solid fa-hand-holding-dollar text-xl text-teal-400 group-hover:text-teal-600 transition-colors mb-2"></i>
               <p class="text-[9px] font-black text-teal-400 group-hover:text-teal-600 uppercase tracking-widest">Adelantos</p>
             </div>
+            ` : ''}
         `;
     }
     // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
