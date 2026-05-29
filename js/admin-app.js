@@ -769,6 +769,22 @@ const updateAdminNavLabels = () => {
     if (lg) lg.textContent = t('admin_language');
     const lo = document.getElementById('lbl-logout-text');
     if (lo) lo.textContent = t('admin_logout');
+
+    // Role-based visibility for HRHub and Call Center
+    const usr = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    const rol = (usr.rol || '').toLowerCase();
+    
+    if (['project manager', 'manager de ventas', 'account manager'].includes(rol)) {
+        document.querySelectorAll('#admin-nav a[data-view="hrhub"]').forEach(el => {
+            el.style.display = 'none';
+        });
+    }
+
+    if (!['admin', 'administrador', 'ceo'].includes(rol)) {
+        document.querySelectorAll('#admin-nav a[data-view="callcenter"], #admin-nav a[data-view="call_center"], #admin-nav a[data-view="call-center"]').forEach(el => {
+            el.style.display = 'none';
+        });
+    }
 };
 
 // Administrative Actions Attached to Window for Inline Buttons
@@ -2209,7 +2225,7 @@ function bindGlobalEvents() {
 
   // ââ€â‚¬ââ€â‚¬ Edit Pipeline Roles (pencil icon) ââ€â‚¬ââ€â‚¬
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
-  const ROLES_LIST = ['Admin', 'Procesador', 'Técnico', 'Vendedor'];
+  const ROLES_LIST = ['Administración', 'Oficina', 'Técnicos', 'Representante de Ventas', 'Project Manager'];
   const ROLE_ICONS_MAP = {
     'Procesador': 'fa-headset',
     'Vendedor': 'fa-handshake', 'Técnico': 'fa-screwdriver-wrench',
@@ -3076,6 +3092,40 @@ window.renderView = async function renderView() {
     // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
     
     let clientesFiltrados = db.Clientes_Maestro || [];
+    
+    // --- ROLE-BASED FILTERING ---
+    const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    const role = currentUser.rol || '';
+    if (['Project Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
+        clientesFiltrados = clientesFiltrados.filter(c => {
+            const hasAccessToUnit = currentUser.unidades && currentUser.unidades.length > 0
+                ? currentUser.unidades.some(u => c.departamento && c.departamento.toLowerCase().includes(u.replace('Renew ', '').toLowerCase()))
+                : true;
+
+            if (role === 'Manager de Ventas') {
+                return hasAccessToUnit;
+            } else if (role === 'Account Manager') {
+                const acctId = c.account_manager_id || '';
+                return hasAccessToUnit && acctId === currentUser.id;
+            } else if (role === 'Supervisión') {
+                const vendorId = c.vendedor_asignado_id || c.creador_id || '';
+                const vendorUser = allWorkers.find(w => w.id === vendorId);
+                return vendorUser && vendorUser.supervisor_id === currentUser.id;
+            } else if (role === 'Project Manager') {
+                const subRol = currentUser.sub_rol || '';
+                if (subRol === 'Manager de Ventas') return hasAccessToUnit;
+                if (subRol === 'Account Manager') return hasAccessToUnit && c.account_manager_id === currentUser.id;
+                if (subRol === 'Supervisor') {
+                    const vendorId = c.vendedor_asignado_id || c.creador_id || '';
+                    const vendorUser = allWorkers.find(w => w.id === vendorId);
+                    return vendorUser && vendorUser.supervisor_id === currentUser.id;
+                }
+                return true; // Default PM fallback
+            }
+            return true;
+        });
+    }
+    // ----------------------------
     if (window.globalSearchQuery) {
         clientesFiltrados = clientesFiltrados.filter(c => {
             const repData = repByClientId[c.id];
@@ -6921,7 +6971,40 @@ async function toggleDetailEditMode(id) {
             }
         }
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
-        if (document.getElementById('det-edit-rol')) document.getElementById('det-edit-rol').value = usr.rol || 'Vendedor';
+        
+        const rolEl = document.getElementById('det-edit-rol');
+        if (rolEl) {
+            rolEl.value = usr.rol || 'Vendedor';
+            
+            const pmCont = document.getElementById('det-edit-pm-container');
+            const supCont = document.getElementById('det-edit-supervisor-container');
+            const subRolEl = document.getElementById('det-edit-sub-rol');
+            const supEl = document.getElementById('det-edit-supervisor');
+            
+            if (pmCont) pmCont.classList.toggle('hidden', rolEl.value !== 'Project Manager');
+            if (supCont) supCont.classList.toggle('hidden', rolEl.value !== 'Vendedor');
+            
+            if (subRolEl) subRolEl.value = usr.sub_rol || 'Supervisor';
+            
+            if (supEl) {
+                supEl.innerHTML = '<option value="">Ninguno</option>';
+                const pms = workers.filter(w => w.rol === 'Project Manager' && (w.sub_rol === 'Supervisor' || w.sub_rol === 'Manager de Ventas'));
+                pms.forEach(pm => {
+                    const opt = document.createElement('option');
+                    opt.value = pm.id;
+                    opt.textContent = `${pm.nombre || ''} ${pm.apellido || ''}`.trim();
+                    if (usr.supervisor_id === pm.id) opt.selected = true;
+                    supEl.appendChild(opt);
+                });
+            }
+        }
+        
+        if (document.getElementById('chk-unit-solar')) {
+            document.getElementById('chk-unit-solar').checked = usr.unidades ? usr.unidades.includes('Renew Solar') : false;
+        }
+        if (document.getElementById('chk-unit-water')) {
+            document.getElementById('chk-unit-water').checked = usr.unidades ? usr.unidades.includes('Renew Water') : false;
+        }
         if (document.getElementById('det-edit-rank')) {
             let rv = usr.rango || 'auto';
             if (rv === 'novato') rv = 'auto'; // legacy migration
@@ -7176,6 +7259,15 @@ async function toggleDetailEditMode(id) {
             const banco_cuenta = document.getElementById('det-edit-banco-cuenta')?.value.trim() || '';
             const banco_ruta   = document.getElementById('det-edit-banco-ruta')?.value.trim()   || '';
 
+            const subRolEl = document.getElementById('det-edit-sub-rol');
+            const supEl = document.getElementById('det-edit-supervisor');
+            const sub_rol = (rol === 'Project Manager' && subRolEl) ? subRolEl.value : null;
+            const supervisor_id = (rol === 'Vendedor' && supEl) ? supEl.value : null;
+
+            const unidades = [];
+            if (document.getElementById('chk-unit-solar') && document.getElementById('chk-unit-solar').checked) unidades.push('Renew Solar');
+            if (document.getElementById('chk-unit-water') && document.getElementById('chk-unit-water').checked) unidades.push('Renew Water');
+
             // Read pipeline permissions
             const checkedPips = Array.from(
                 document.querySelectorAll('.pip-perm-chk:checked')
@@ -7206,7 +7298,8 @@ async function toggleDetailEditMode(id) {
                 const updatedUsr = {
                     ...usr,
                     nombre, apellido, email, telefono, rol, rango, department, password, initials, dob, sede,
-                    unidades: checkedPips,
+                    unidades: unidades.length > 0 ? unidades : checkedPips,
+                    sub_rol, supervisor_id,
                     foto: state.currentUsrFoto, 
                     w9Url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9Url || null),
                     w9_url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9_url || null),
@@ -8503,6 +8596,83 @@ async function showClientDetail(id) {
             assignedAvatar.classList.replace('bg-tealAccent', 'bg-tealAccent/20');
             assignedAvatar.classList.replace('text-white', 'text-tealAccent');
         }
+    }
+
+    // --- ACCOUNT MANAGER ASSIGNMENT LOGIC ---
+    const selAmAssigned = document.getElementById('sel-am-asignar');
+    const amNameText = document.getElementById('det-cli-am-nombre');
+    const amAvatar = document.getElementById('det-cli-am-avatar');
+    const reassignAmBtn = document.getElementById('btn-reassign-am');
+    const amSelectorWrap = document.getElementById('am-selector-wrap');
+
+    if (selAmAssigned) {
+        selAmAssigned.innerHTML = '<option value="">Sin Asignar</option>';
+        
+        const amWorkers = workers.filter(w => {
+            const r = (w.rol || '').toLowerCase();
+            const sub = (w.sub_rol || '').toLowerCase();
+            return r === 'account manager' || sub === 'account manager';
+        });
+
+        amWorkers.forEach(w => {
+            const name = `${w.nombre || ''} ${w.apellido || ''}`.trim();
+            const opt = `<option value="${w.id}">${name} (Account Manager)</option>`;
+            selAmAssigned.innerHTML += opt;
+        });
+
+        if (amWorkers.length === 0) {
+            selAmAssigned.innerHTML += '<option value="" disabled>No hay Account Managers disponibles</option>';
+        }
+
+        selAmAssigned.value = cli.account_manager_id || '';
+
+        const currentAm = workers.find(w => w.id === cli.account_manager_id);
+        if (currentAm) {
+            amNameText.textContent = `${currentAm.nombre} ${currentAm.apellido || ''}`;
+            amNameText.classList.add('text-tealAccent');
+            amAvatar.textContent = (currentAm.nombre[0] || '?').toUpperCase();
+            amAvatar.classList.replace('bg-tealAccent/20', 'bg-tealAccent');
+            amAvatar.classList.replace('text-tealAccent', 'text-white');
+        } else {
+            amNameText.textContent = 'Sin asignar';
+            amNameText.classList.remove('text-tealAccent');
+            amAvatar.textContent = '?';
+            amAvatar.classList.replace('bg-tealAccent', 'bg-tealAccent/20');
+            amAvatar.classList.replace('text-white', 'text-tealAccent');
+        }
+    }
+
+    if (reassignAmBtn && amSelectorWrap) {
+        reassignAmBtn.onclick = () => {
+            amSelectorWrap.classList.toggle('hidden');
+            reassignAmBtn.textContent = amSelectorWrap.classList.contains('hidden') ? 'Cambiar' : 'Cancelar';
+        };
+    }
+
+    if (selAmAssigned) {
+        selAmAssigned.onchange = async () => {
+            const newId = selAmAssigned.value;
+            cli.account_manager_id = newId || null;
+            await saveDB(db);
+            showToast('Account Manager asignado', 'success');
+            
+            const worker = workers.find(w => w.id === newId);
+            if (worker) {
+                amNameText.textContent = `${worker.nombre} ${worker.apellido || ''}`;
+                amNameText.classList.add('text-tealAccent');
+                amAvatar.textContent = worker.nombre[0].toUpperCase();
+                amAvatar.classList.replace('bg-tealAccent/20', 'bg-tealAccent');
+                amAvatar.classList.replace('text-tealAccent', 'text-white');
+            } else {
+                amNameText.textContent = 'Sin asignar';
+                amNameText.classList.remove('text-tealAccent');
+                amAvatar.textContent = '?';
+                amAvatar.classList.replace('bg-tealAccent', 'bg-tealAccent/20');
+                amAvatar.classList.replace('text-white', 'text-tealAccent');
+            }
+            setTimeout(() => amSelectorWrap.classList.add('hidden'), 500);
+            reassignAmBtn.textContent = 'Cambiar';
+        };
     }
 
     if (reassignBtn && selectorWrap) {
@@ -9811,6 +9981,12 @@ document.addEventListener('change', (e) => {
 window.updateEditWorkerRankVisibility = function() {
     const rol = document.getElementById('det-edit-rol');
     const rankContainer = document.getElementById('det-edit-rank-container');
+    const pmCont = document.getElementById('det-edit-pm-container');
+    const supCont = document.getElementById('det-edit-supervisor-container');
+    
+    if (rol && pmCont) pmCont.classList.toggle('hidden', rol.value !== 'Project Manager');
+    if (rol && supCont) supCont.classList.toggle('hidden', rol.value !== 'Vendedor');
+
     if (!rankContainer || !rol) return;
     
     const waterChecked = Array.from(document.querySelectorAll('.pip-perm-chk:checked')).some(chk => {

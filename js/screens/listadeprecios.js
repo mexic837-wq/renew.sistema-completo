@@ -26,6 +26,28 @@ export async function renderListaPrecios() {
   
   if (!isAdmin) {
     const rankInfo = computeUserRank(user.id, activeUnit, db);
+    if (rankInfo && rankInfo.isNoAplica) {
+      screen.innerHTML = `
+        <div class="dash-header" style="padding-bottom:12px;">
+          <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
+            <button id="btn-precios-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+              <i class="fa-solid fa-arrow-left text-xl"></i>
+            </button>
+            <div class="dash-greeting" style="text-align:center;">
+              <h1 style="margin:0; font-size:1.3rem;">Lista de Precios</h1>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+          <i class="fas fa-lock" style="font-size: 3.5rem; opacity: 0.2; margin-bottom: 16px;"></i>
+          <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Acceso Restringido</p>
+          <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes una lista de precios asignada en este momento. Por favor, contacta a administración si crees que esto es un error.</p>
+        </div>
+      `;
+      document.getElementById('btn-precios-back')?.addEventListener('click', () => navigate('menu'));
+      return;
+    }
+
     if (rankInfo && rankInfo.cur && rankInfo.cur.priceKey) {
       basePriceKey = rankInfo.cur.priceKey;
     } else {

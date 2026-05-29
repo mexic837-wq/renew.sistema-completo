@@ -35,18 +35,31 @@ export function computeUserRank(userId, activeUnit, db) {
   const ranks = RANK_CONFIG[activeUnit];
   if (!ranks) return null;
 
-  // Check for manual rank override
-  const usr = (db.Usuarios || []).find(u => String(u.id) === String(userId));
-  if (usr && usr.rango && usr.rango !== 'auto' && usr.rango !== 'novato') {
-    // Map the stored manual rank value to the corresponding RANK_CONFIG entry
+  const user = getCurrentUser();
+  const dbUser = (db.Usuarios || []).find(u => String(u.id) === String(userId)) || user;
+  
+  if (dbUser && dbUser.rango && dbUser.rango !== 'auto' && dbUser.rango !== 'novato') {
     let targetRankName = '';
-    if (usr.rango === 'referidos') targetRankName = 'Novato por Referidos';
-    else if (usr.rango === 'subvendedor') targetRankName = 'Subvendedor';
-    else if (usr.rango === 'iniciante') targetRankName = 'Iniciante';
-    else if (usr.rango === 'junior') targetRankName = 'Junior';
-    else if (usr.rango === 'representante') targetRankName = 'Representante de Ventas';
-    else if (usr.rango === 'analista') targetRankName = 'Distribuidor (Analista)';
-    
+    if (dbUser.rango === 'referidos') targetRankName = 'Novato por Referidos';
+    else if (dbUser.rango === 'subvendedor') targetRankName = 'Subvendedor';
+    else if (dbUser.rango === 'iniciante') targetRankName = 'Iniciante';
+    else if (dbUser.rango === 'junior') targetRankName = 'Junior';
+    else if (dbUser.rango === 'representante') targetRankName = 'Representante de Ventas';
+    else if (dbUser.rango === 'analista') targetRankName = 'Distribuidor (Analista)';
+    else if (dbUser.rango === 'no_aplica') targetRankName = 'No Aplica';
+
+    if (targetRankName === 'No Aplica') {
+      return {
+        cur: { name: 'No Aplica', emoji: '🚫', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)', border: 'rgba(156,163,175,0.25)', minSales: 0, type: 'total', priceKey: null },
+        next: null,
+        progress: { count: 'N/A', total: 0, pct: 100 },
+        isManual: true,
+        isNoAplica: true,
+        totalAT: 0,
+        totalMonth: 0
+      };
+    }
+
     const manualRank = ranks.find(r => r.name === targetRankName);
     if (manualRank) {
       const idx = ranks.indexOf(manualRank);
@@ -54,7 +67,9 @@ export function computeUserRank(userId, activeUnit, db) {
         cur: manualRank,
         next: ranks[idx + 1] || null,
         progress: { count: 'N/A', total: manualRank.minSales, pct: 100 },
-        isManual: true
+        isManual: true,
+        totalAT: 0,
+        totalMonth: 0
       };
     }
   }
@@ -112,48 +127,30 @@ export function computeUserRank(userId, activeUnit, db) {
 }
 
 function buildRankBannerHTML(rd, barId = 'rank-prog-bar') {
-  const { cur, next, progress, remaining, totalAT, totalMonth, isMax, isManual } = rd;
-  const displayCount = isManual ? '-' : (cur.type === 'monthly' ? totalMonth : totalAT);
-  const displayLabel = isManual ? 'Asignación' : (cur.type === 'monthly' ? 'este mes' : 'ventas totales');
+  const { cur, totalAT, totalMonth, isNoAplica } = rd;
+  const displayCount = (cur.type === 'monthly' ? totalMonth : totalAT) || 0;
+  const displayLabel = cur.type === 'monthly' ? 'ventas este mes' : 'ventas totales';
 
-  const progressSection = isManual ? `
+  if (isNoAplica) {
+    return `
+      <div style="background:rgba(156,163,175,0.1); border:1px solid rgba(156,163,175,0.25); border-radius:14px; padding:16px; text-align:center; margin-bottom:16px;">
+        <span style="font-size:1.2rem; display:block; margin-bottom:6px;">🚫</span>
+        <span style="font-size:.75rem; font-weight:900; color:#9ca3af; letter-spacing:-.2px;">SIN LISTA DE PRECIOS ASIGNADA</span>
+        <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
+           No tienes una lista de precios asignada o configurada.
+        </div>
+      </div>
+    `;
+  }
+
+  const progressSection = `
     <div style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,245,212,.08));border:1px solid rgba(168,85,247,.3);border-radius:14px;padding:12px 14px;text-align:center;">
-      <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">\uD83D\uDC51 RANGO ASIGNADO MANUALMENTE</span>
+      <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">🎉 ¡SIGUE ASÍ, EXCELENTE TRABAJO!</span>
       <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
-        Tu rango actual fue configurado por administraci\u00F3n, tu lista de precios coincidir\u00E1 con \u00E9ste.
+        Has logrado ${displayCount} ${displayLabel}. ¡Sigue transformando vidas con Renew!
       </div>
     </div>
-  ` : (isMax ? `
-    <div style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,245,212,.08));border:1px solid rgba(168,85,247,.3);border-radius:14px;padding:12px 14px;text-align:center;">
-      <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">\uD83D\uDC51 \u00A1RANGO M\u00C1XIMO ALCANZADO!</span>
-      <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
-        Cada 20 familias que ayudas a transformar su vida, desbloquean autom\u00E1ticamente tu siguiente escal\u00F3n profesional.
-      </div>
-    </div>
-  ` : `
-    <div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">${cur.name}</span>
-        <span style="font-size:.62rem;color:${next.color};font-weight:900;">${next.emoji} ${next.name}</span>
-      </div>
-      <div style="height:7px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;">
-        <div id="${barId}" style="height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,${cur.color},${next.color});box-shadow:0 0 10px ${cur.color}50;transition:width 1.2s cubic-bezier(.22,1,.36,1);" data-w="${progress}"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:4px;">
-        <span style="font-size:.58rem;color:var(--text-muted);">${next.type === 'monthly' ? totalMonth : totalAT} / ${next.minSales}</span>
-        <span style="font-size:.58rem;color:${cur.color};font-weight:700;">${progress}%</span>
-      </div>
-    </div>
-    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:13px;padding:11px 13px;">
-      <p style="font-size:.72rem;color:var(--text-secondary);font-weight:600;margin:0;line-height:1.5;">
-        \u26A1 Est\u00E1s a <span style="color:${next.color};font-weight:900;">${remaining} venta${remaining !== 1 ? 's' : ''}</span> de ser <span style="color:${next.color};font-weight:900;">${next.emoji} ${next.name}</span>
-        ${next.type === 'monthly' ? `<br><span style="font-size:.6rem;color:var(--text-muted);">\uD83D\uDDD2 El contador del mes se reinicia el 1\u00B0 de cada mes</span>` : ''}
-      </p>
-      <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05); font-size:.58rem; color:var(--text-muted); font-style:italic;">
-        Cada 20 familias que ayudas a transformar su vida, desbloquean autom\u00E1ticamente tu siguiente escal\u00F3n profesional.
-      </div>
-    </div>
-  `);
+  `;
 
   return `
     <style id="rank-anim-css">
@@ -178,7 +175,7 @@ function buildRankBannerHTML(rd, barId = 'rank-prog-bar') {
           flex-shrink:0;animation:rankGlow 2.5s ease-in-out infinite;
         ">${cur.emoji}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:.57rem;font-weight:900;color:${cur.color};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1px;">Tu Rango \u00B7 Renew Water</div>
+          <div style="font-size:.57rem;font-weight:900;color:${cur.color};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1px;">Tu Rango / Lista de Precios</div>
           <div style="font-size:1.15rem;font-weight:900;color:var(--text-primary);letter-spacing:-.3px;">${cur.name}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
@@ -558,7 +555,7 @@ function _renderToolsForPipeline(user, activeUnit) {
 
   const TOOLS = {
     'Renew Water': [
-      userRole.includes('call') ? {
+      ['admin', 'administrador', 'ceo'].includes(userRole) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -602,7 +599,7 @@ function _renderToolsForPipeline(user, activeUnit) {
       } : null,
     ],
     'Renew Solar': [
-      userRole.includes('call') ? {
+      ['admin', 'administrador', 'ceo'].includes(userRole) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -639,7 +636,7 @@ function _renderToolsForPipeline(user, activeUnit) {
       },
     ],
     'Renew Home': [
-      userRole.includes('call') ? {
+      ['admin', 'administrador', 'ceo'].includes(userRole) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -1517,7 +1514,7 @@ async function initLeaderboardChart(user) {
   const top3 = leaderboardData.slice(0, 3);
 
   let podiumCards = '';
-  const isAdminView = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+  const isAdminView = ['admin', 'administrador', 'ceo', 'project manager', 'manager de ventas', 'account manager', 'supervisión'].includes((user.rol || '').toLowerCase());
   
   podiumOrder.forEach(idx => {
     if (!top3[idx]) return;

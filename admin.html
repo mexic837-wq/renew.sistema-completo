@@ -1438,7 +1438,13 @@
                 <div>
                     <label class="aqua-label">Rol / Cargo</label>
                     <select id="inp-usr-rol" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
+                        <option value="CEO">CEO</option>
                         <option value="Admin">Administración</option>
+                        <option value="Manager de Ventas">Manager de Ventas</option>
+                        <option value="Account Manager">Account Manager</option>
+                        <option value="Project Manager">Project Manager</option>
+                        <option value="Supervisión">Supervisión</option>
+                        <option value="Call Center">Call Center</option>
                         <option value="Procesador">Oficina</option>
                         <option value="Técnico">Técnicos</option>
                         <option value="Vendedor">Representante de Ventas</option>
@@ -1765,10 +1771,36 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4 mb-6">
                         <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="Admin">Administración</option><option value="Procesador">Oficina</option><option value="Técnico">Técnicos</option><option value="Vendedor">Representante de Ventas</option></select></div>
-                            <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rango</label><select id="det-edit-rank" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="auto">Automático (Por Ventas)</option><option value="referidos">Novato por Referidos</option><option value="subvendedor">Subvendedor</option><option value="iniciante">Iniciante</option><option value="junior">Junior</option><option value="representante">Representante de Ventas</option><option value="analista">Distribuidor (Analista)</option></select></div>
+                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="CEO">CEO</option><option value="Admin">Administración</option><option value="Manager de Ventas">Manager de Ventas</option><option value="Account Manager">Account Manager</option><option value="Project Manager">Project Manager</option><option value="Supervisión">Supervisión</option><option value="Call Center">Call Center</option><option value="Procesador">Oficina</option><option value="Técnico">Técnicos</option><option value="Vendedor">Representante de Ventas</option></select></div>
+                            <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rango / Lista de Precios</label><select id="det-edit-rank" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="no_aplica">No Aplica</option><option value="auto">Automático (Por Ventas)</option><option value="referidos">Novato por Referidos</option><option value="subvendedor">Subvendedor</option><option value="iniciante">Iniciante</option><option value="junior">Junior</option><option value="representante">Representante de Ventas</option><option value="analista">Distribuidor (Analista)</option></select></div>
+                        </div>
+                        <div id="det-edit-pm-container" class="hidden mb-4 p-4 rounded-lg border border-teal-100 bg-teal-50/50">
+                            <label class="block text-[10px] text-teal-600 font-bold uppercase tracking-widest mb-1">Sub-Rol de Project Manager</label>
+                            <select id="det-edit-sub-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white">
+                                <option value="Manager de Ventas">Manager de Ventas</option>
+                                <option value="Account Manager">Account Manager</option>
+                                <option value="Supervisor">Supervisor</option>
+                            </select>
+                        </div>
+                        <div id="det-edit-supervisor-container" class="hidden mb-4 p-4 rounded-lg border border-blue-100 bg-blue-50/50">
+                            <label class="block text-[10px] text-blue-600 font-bold uppercase tracking-widest mb-1">Asignar Supervisor</label>
+                            <select id="det-edit-supervisor" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white">
+                                <option value="">Ninguno</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Unidades de Negocio</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Renew Solar" id="chk-unit-solar">
+                                    <span class="text-sm font-medium text-gray-700">Renew Solar</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Renew Water" id="chk-unit-water">
+                                    <span class="text-sm font-medium text-gray-700">Renew Water</span>
+                                </label>
+                            </div>
                         </div>
                         <div class="mb-6"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Contraseña</label><input id="det-edit-pass" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]" placeholder="renew123"></div>
                         </div>
@@ -2010,13 +2042,33 @@
                                         <p class="text-[9px] text-gray-400 uppercase font-medium">Asignación Directa</p>
                                     </div>
                                     <button id="btn-reassign-vendedor" class="ml-auto px-4 py-2 bg-white border border-tealAccent/20 text-tealAccent text-[10px] font-black uppercase rounded-lg hover:bg-tealAccent hover:text-white transition-all shadow-sm">
-                                        Cambiar Asignación
+                                        Cambiar
                                     </button>
                                 </div>
                                 <!-- Dropdown oculto por defecto -->
                                 <div id="vendedor-selector-wrap" class="hidden mt-3 animate-fadeIn">
                                     <select id="sel-vendedor-asignar" class="w-full bg-white border border-tealAccent/30 rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:ring-2 focus:ring-tealAccent/20">
                                         <option value="">-- Seleccionar Vendedor --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- ACCOUNT MANAGER -->
+                            <div class="col-span-2 pt-4 border-t border-gray-50">
+                                <label class="block text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-widest text-tealAccent">Account Manager</label>
+                                <div id="det-cli-am-box" class="flex items-center gap-3 bg-tealAccent/5 p-3 rounded-xl border border-tealAccent/10">
+                                    <div class="w-10 h-10 rounded-full bg-tealAccent/20 flex items-center justify-center text-tealAccent font-black text-xs" id="det-cli-am-avatar">?</div>
+                                    <div>
+                                        <p id="det-cli-am-nombre" class="text-sm font-bold text-[#333]">Sin asignar</p>
+                                        <p class="text-[9px] text-gray-400 uppercase font-medium">Gestión de Cuenta</p>
+                                    </div>
+                                    <button id="btn-reassign-am" class="ml-auto px-4 py-2 bg-white border border-tealAccent/20 text-tealAccent text-[10px] font-black uppercase rounded-lg hover:bg-tealAccent hover:text-white transition-all shadow-sm">
+                                        Cambiar
+                                    </button>
+                                </div>
+                                <!-- Dropdown oculto por defecto -->
+                                <div id="am-selector-wrap" class="hidden mt-3 animate-fadeIn">
+                                    <select id="sel-am-asignar" class="w-full bg-white border border-tealAccent/30 rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:ring-2 focus:ring-tealAccent/20">
+                                        <option value="">-- Seleccionar Account Manager --</option>
                                     </select>
                                 </div>
                             </div>

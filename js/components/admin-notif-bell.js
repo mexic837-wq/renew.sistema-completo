@@ -53,6 +53,7 @@ export function gatherAdminNotifications(db, user) {
     const notifs = [];
     const readIds = getReadIds();
     const archivedIds = getArchivedIds();
+    const isAdminUser = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
 
     // ── 1. Eventos de Calendario ──────────────────────────────────
     const eventos = db.calendario_eventos || [];
@@ -61,7 +62,7 @@ export function gatherAdminNotifications(db, user) {
         const colaboradores = Array.isArray(ev.colaboradores) ? ev.colaboradores : [];
         const allParticipants = [...attendees, ...colaboradores];
         const isInvited = allParticipants.some(a => String(a.id) === String(user.id));
-        if (!isInvited) return;
+        if (!isInvited && !isAdminUser) return;
 
         const notifId = `ev_${ev.id}`;
         if (archivedIds.has(notifId)) return;
@@ -73,8 +74,8 @@ export function gatherAdminNotifications(db, user) {
             icon: 'fa-calendar-check',
             color: '#10b981',
             bg: 'rgba(16,185,129,0.12)',
-            title: `Invitado a: ${ev.nombre || 'Evento'}`,
-            message: `Tienes un evento programado el ${fecha}.`,
+            title: isAdminUser && !isInvited ? `Evento: ${ev.nombre || 'Evento'} (Global)` : `Invitado a: ${ev.nombre || 'Evento'}`,
+            message: isAdminUser && !isInvited ? `Evento global programado el ${fecha}.` : `Tienes un evento programado el ${fecha}.`,
             date: new Date(ev.created_at || ev.fecha_inicio || Date.now()),
             isRead: readIds.has(notifId),
             link: {
@@ -92,9 +93,17 @@ export function gatherAdminNotifications(db, user) {
     proyectos.forEach(p => {
         const observadores = Array.isArray(p.observadores) ? p.observadores : [];
         const obsEntry = observadores.find(o => String(o.id) === String(user.id));
-        if (!obsEntry) return;
+        if (!obsEntry && !isAdminUser) return;
 
-        const notifId = `obs_${p.id}`;
+        // Si es admin y no hay observadores, evitamos spammear si no es relevante?
+        // El usuario pidió: "absolutamnete todas estas notifiaciones porfavor, de cualqueir cosa que se haga para llevar un control".
+        // Entonces si alguien es añadido como observador, le notificamos al admin.
+        // Pero para no crear una notificacion duplicada de "Observador" y "Responsable" y "Tecnico" para el mismo proyecto al mismo tiempo,
+        // Quizás solo mostremos "Observador" si hay observadores nuevos.
+        // Asumamos que si observadores.length > 0, es un evento de observador.
+        if (isAdminUser && !obsEntry && observadores.length === 0) return;
+
+        const notifId = isAdminUser && !obsEntry ? `obs_adm_${p.id}` : `obs_${p.id}`;
         if (archivedIds.has(notifId)) return;
 
         const cli = clientes.find(c => c.id === p.cliente_id);
@@ -105,9 +114,9 @@ export function gatherAdminNotifications(db, user) {
             icon: 'fa-eye',
             color: '#8b5cf6',
             bg: 'rgba(139,92,246,0.12)',
-            title: `Observador en proyecto`,
-            message: `Te añadieron como observador en el proyecto de ${clienteName}.`,
-            date: new Date(obsEntry.added_at || p.created_at || Date.now()),
+            title: isAdminUser && !obsEntry ? `Observadores asignados` : `Observador en proyecto`,
+            message: isAdminUser && !obsEntry ? `Se asignaron observadores al proyecto de ${clienteName}.` : `Te añadieron como observador en el proyecto de ${clienteName}.`,
+            date: new Date(obsEntry ? (obsEntry.added_at || p.created_at) : (p.created_at || Date.now())),
             isRead: readIds.has(notifId),
             link: {
                 label: 'Ver Proyecto',
@@ -119,8 +128,11 @@ export function gatherAdminNotifications(db, user) {
 
     // ── 3. Asignaciones de Técnico ────────────────────────────────
     proyectos.forEach(p => {
-        if (String(p.tecnico_id) !== String(user.id)) return;
-        const notifId = `tec_${p.id}`;
+        const isTecnico = String(p.tecnico_id) === String(user.id);
+        if (!isTecnico && !isAdminUser) return;
+        if (isAdminUser && !isTecnico && !p.tecnico_id) return; // Solo si hay técnico asignado
+
+        const notifId = isAdminUser && !isTecnico ? `tec_adm_${p.id}` : `tec_${p.id}`;
         if (archivedIds.has(notifId)) return;
 
         const cli = clientes.find(c => c.id === p.cliente_id);
@@ -131,8 +143,8 @@ export function gatherAdminNotifications(db, user) {
             icon: 'fa-clipboard-user',
             color: '#f59e0b',
             bg: 'rgba(245,158,11,0.12)',
-            title: `Asignado como Técnico`,
-            message: `Tienes una nueva asignación técnica para ${clienteName}.`,
+            title: isAdminUser && !isTecnico ? `Técnico Asignado` : `Asignado como Técnico`,
+            message: isAdminUser && !isTecnico ? `Se asignó un técnico para ${clienteName}.` : `Tienes una nueva asignación técnica para ${clienteName}.`,
             date: new Date(p.fecha || p.created_at || Date.now()),
             isRead: readIds.has(notifId),
             link: {
@@ -146,10 +158,14 @@ export function gatherAdminNotifications(db, user) {
     // ── 4. Responsable en Proyectos ───────────────────────────────
     proyectos.forEach(p => {
         const responsables = (p.responsable_id || '').split(',').map(id => id.trim());
-        if (!responsables.includes(String(user.id))) return;
-        if (String(p.tecnico_id) === String(user.id)) return; // ya incluido arriba
+        const isResponsable = responsables.includes(String(user.id));
+        if (!isResponsable && !isAdminUser) return;
+        if (isAdminUser && !isResponsable && responsables.length === 0) return;
 
-        const notifId = `resp_${p.id}`;
+        // Evitar duplicado para el mismo usuario si ya es técnico
+        if (String(p.tecnico_id) === String(user.id)) return; 
+
+        const notifId = isAdminUser && !isResponsable ? `resp_adm_${p.id}` : `resp_${p.id}`;
         if (archivedIds.has(notifId)) return;
 
         const cli = clientes.find(c => c.id === p.cliente_id);
@@ -160,8 +176,8 @@ export function gatherAdminNotifications(db, user) {
             icon: 'fa-user-tie',
             color: '#00f5d4',
             bg: 'rgba(0,245,212,0.12)',
-            title: `Responsable de Proyecto`,
-            message: `Eres responsable del proyecto de ${clienteName}.`,
+            title: isAdminUser && !isResponsable ? `Responsable Asignado` : `Responsable de Proyecto`,
+            message: isAdminUser && !isResponsable ? `Hay responsables en el proyecto de ${clienteName}.` : `Eres responsable del proyecto de ${clienteName}.`,
             date: new Date(p.fecha || p.created_at || Date.now()),
             isRead: readIds.has(notifId),
             link: {
@@ -173,7 +189,6 @@ export function gatherAdminNotifications(db, user) {
     });
 
     // ── 5. Nuevos Adelantos (Para Admins/CEO) ───────────────────────────────
-    const isAdminUser = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
     if (isAdminUser) {
         const adelantos = db.rrhh_adelantos || [];
         adelantos.forEach(ad => {

@@ -826,6 +826,21 @@ app.post('/api/db', async (req, res) => {
             }));
             syncTasks.push(supabase.from('partners_directorio').upsert(mappedPrv, { onConflict: 'id' }));
         }
+
+        if (db.rrhh_adelantos?.length) {
+            const cleanAdelantos = db.rrhh_adelantos.map(a => ({
+                id: a.id,
+                trabajador_id: a.trabajador_id || null,
+                trabajador_nombre: a.trabajador_nombre || null,
+                monto: a.monto || 0,
+                fecha: a.fecha || null,
+                motivo: a.motivo || null,
+                document_url: a.document_url || null,
+                created_at: a.created_at || new Date().toISOString()
+            }));
+            syncTasks.push(supabase.from('rrhh_adelantos').upsert(cleanAdelantos, { onConflict: 'id' }));
+        }
+
         if (db.calendario_eventos?.length) {
             const mappedEv = db.calendario_eventos.map(ev => ({
                 id:            ev.id,
