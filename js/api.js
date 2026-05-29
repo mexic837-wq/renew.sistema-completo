@@ -16,6 +16,90 @@ export function logout() {
   else window.location.hash = '#login';
   import('./components/toast.js').then(m => m.showToast('Sesión cerrada correctamente.', 'info'));
 }
+// ─── POST-PROCESSING HELPER ─────────────────────────────────
+function applyPostProcessing(freshDB) {
+    if (freshDB.Clientes_Maestro && freshDB.Proyectos_Dinamicos) {
+        freshDB.Clientes_Maestro.forEach(cli => {
+            if (cli.macro_estado === 'Cliente') {
+                const hasProy = freshDB.Proyectos_Dinamicos.some(p => String(p.cliente_id) === String(cli.id));
+                if (!hasProy) {
+                    const depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento ? [cli.departamento] : []);
+                    let pipId = null;
+                    if (depts.length > 0) {
+                        const deptStr = depts[0].toLowerCase();
+                        const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes(deptStr.replace('renew ', '').trim()));
+                        if (pip) pipId = pip.id;
+                    }
+                    if (!pipId) {
+                        const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes('water'));
+                        if (pip) pipId = pip.id;
+                    }
+                    freshDB.Proyectos_Dinamicos.push({
+                        id: 'VIRTUAL_' + cli.id,
+                        cliente_id: cli.id,
+                        pipeline_id: pipId,
+                        fase_id: 'Completado',
+                        estado: 'Completado',
+                        creador_id: cli.creador_id || cli.vendedor_asignado_id,
+                        responsable_id: cli.vendedor_asignado_id || cli.creador_id,
+                        created_at: cli.created_at || new Date().toISOString(),
+                        fecha: cli.created_at || new Date().toISOString(),
+                        fecha_cierre: cli.created_at || new Date().toISOString()
+                    });
+                }
+            }
+        });
+    }
+
+    if (freshDB.Respuestas_Dinamicas) {
+        const rrResp = freshDB.Respuestas_Dinamicas.find(r => r.campo_id === '__round_robin_cc__');
+        if (rrResp) {
+            freshDB.Round_Robin = { 'Call Center': parseInt(rrResp.valor) || 0 };
+        }
+        if (freshDB.Proyectos_Dinamicos) {
+            freshDB.Proyectos_Dinamicos.forEach(p => {
+                const asigResp = freshDB.Respuestas_Dinamicas.find(r => r.proyecto_id === p.id && r.campo_id === '__asignado_a__');
+                if (asigResp) p.asignado_a = asigResp.valor;
+            });
+        }
+    }
+
+    if (freshDB.Admin_Campos_Formulario) {
+        freshDB.Admin_Campos_Formulario.forEach(c => {
+            if (c.opciones && c.opciones.includes('|META|')) {
+                const parts = c.opciones.split('|META|');
+                c.opciones = parts[0];
+                try {
+                    const meta = JSON.parse(parts[1]);
+                    c.es_opcional = meta.es_opcional || false;
+                    if (meta.orden !== undefined) c.orden = meta.orden;
+                } catch(e){}
+            } else {
+                if (c.es_opcional === undefined) c.es_opcional = false;
+            }
+        });
+    }
+
+    // ── DATA MIGRATION: Backfill dates and status for consistency ──
+    const today = new Date().toISOString().split('T')[0];
+    (freshDB.Proyectos_Dinamicos || []).forEach(p => {
+        const isFinished = isProjectFinished(p, freshDB);
+
+        if (isFinished) {
+            if (p.estado !== 'Completado') {
+                p.estado = 'Completado';
+            }
+            p.fecha_cierre = today;
+        }
+
+        if (p.cliente_id && p.fecha) {
+            const cli = (freshDB.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+            if (cli && (!cli.fecha_inicio || cli.fecha_inicio === 'No establecida')) {
+                cli.fecha_inicio = p.fecha;
+            }
+        }
+    });
+}
 
 // ─── DB INITIALIZATION ──────────────────────────────────────
 export async function initDB() {
@@ -73,6 +157,8 @@ export async function initDB() {
                         .replace(/https?:\/\/localhost:3010/g, 'https://renewgroup.site');
                       fixedDB = JSON.parse(fixedStr);
                     }
+                    
+                    applyPostProcessing(fixedDB);
                     
                     cachedDB = { ...cachedDB, ...fixedDB };
                     updateChatBadges();
@@ -140,67 +226,7 @@ export async function initDB() {
       }
       
       // POST-PROCESSING
-      if (freshDB.Clientes_Maestro && freshDB.Proyectos_Dinamicos) {
-          freshDB.Clientes_Maestro.forEach(cli => {
-              if (cli.macro_estado === 'Cliente') {
-                  const hasProy = freshDB.Proyectos_Dinamicos.some(p => String(p.cliente_id) === String(cli.id));
-                  if (!hasProy) {
-                      const depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento ? [cli.departamento] : []);
-                      let pipId = null;
-                      if (depts.length > 0) {
-                          const deptStr = depts[0].toLowerCase();
-                          const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes(deptStr.replace('renew ', '').trim()));
-                          if (pip) pipId = pip.id;
-                      }
-                      if (!pipId) {
-                          const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes('water'));
-                          if (pip) pipId = pip.id;
-                      }
-                      freshDB.Proyectos_Dinamicos.push({
-                          id: 'VIRTUAL_' + cli.id,
-                          cliente_id: cli.id,
-                          pipeline_id: pipId,
-                          fase_id: 'Completado',
-                          estado: 'Completado',
-                          creador_id: cli.creador_id || cli.vendedor_asignado_id,
-                          responsable_id: cli.vendedor_asignado_id || cli.creador_id,
-                          created_at: cli.created_at || new Date().toISOString(),
-                          fecha: cli.created_at || new Date().toISOString(),
-                          fecha_cierre: cli.created_at || new Date().toISOString()
-                      });
-                  }
-              }
-          });
-      }
-      
-      if (freshDB.Respuestas_Dinamicas) {
-        const rrResp = freshDB.Respuestas_Dinamicas.find(r => r.campo_id === '__round_robin_cc__');
-        if (rrResp) {
-          freshDB.Round_Robin = { 'Call Center': parseInt(rrResp.valor) || 0 };
-        }
-        if (freshDB.Proyectos_Dinamicos) {
-          freshDB.Proyectos_Dinamicos.forEach(p => {
-            const asigResp = freshDB.Respuestas_Dinamicas.find(r => r.proyecto_id === p.id && r.campo_id === '__asignado_a__');
-            if (asigResp) p.asignado_a = asigResp.valor;
-          });
-        }
-      }
-
-      if (freshDB.Admin_Campos_Formulario) {
-          freshDB.Admin_Campos_Formulario.forEach(c => {
-              if (c.opciones && c.opciones.includes('|META|')) {
-                  const parts = c.opciones.split('|META|');
-                  c.opciones = parts[0];
-                  try {
-                      const meta = JSON.parse(parts[1]);
-                      c.es_opcional = meta.es_opcional || false;
-                      if (meta.orden !== undefined) c.orden = meta.orden;
-                  } catch(e){}
-              } else {
-                  if (c.es_opcional === undefined) c.es_opcional = false;
-              }
-          });
-      }
+      applyPostProcessing(freshDB);
 
       cachedDB = freshDB;
       updateChatBadges();
@@ -218,39 +244,8 @@ export async function initDB() {
         }
         localStorage.setItem('rs_admin_db', JSON.stringify(cacheData));
       } catch (e) {}
-
-      // ── DATA MIGRATION: Backfill dates and status for consistency ──
-      let needsSave = false;
-      const today = new Date().toISOString().split('T')[0];
-
-      (cachedDB.Proyectos_Dinamicos || []).forEach(p => {
-          const isFinished = isProjectFinished(p, cachedDB);
-
-          if (isFinished) {
-              // Ensure estado is 'Completado'
-              if (p.estado !== 'Completado') {
-                  p.estado = 'Completado';
-                  needsSave = true;
-              }
-              // USER REQUEST: Force today's date for ALL finished projects for testing
-              p.fecha_cierre = today;
-              needsSave = true;
-              console.log(`[DB MIGRATION] Forced today's closure date to project ${p.id} for month verification`);
-          }
-          
-          // Sync client's "Fecha de Inicio" if missing
-          if (p.cliente_id && p.fecha) {
-              const cli = (cachedDB.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
-              if (cli && (!cli.fecha_inicio || cli.fecha_inicio === 'No establecida')) {
-                  cli.fecha_inicio = p.fecha;
-                  needsSave = true;
-                  console.log(`[DB MIGRATION] Assigned start date to client ${cli.id} based on project ${p.id}`);
-              }
-          }
-      });
-      if (needsSave) {
-          saveDB(cachedDB);
-      }
+      
+      // Removed needsSave block as migration mutations were moved to applyPostProcessing and shouldn't trigger massive saves on interval.
 
       console.log('[DB] Cloud Database synchronized successfully.');
       window.dispatchEvent(new CustomEvent('db_synced'));
