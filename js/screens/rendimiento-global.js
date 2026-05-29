@@ -427,19 +427,29 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         rangeStart = null; rangeEnd = null; // total / no filter
     }
 
+    const safeDate = (raw) => {
+        if (!raw) return null;
+        let str = String(raw).trim();
+        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
+        if (!str.includes('T')) str += 'T12:00:00';
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
     const inRange = (dateStr) => {
         if (!rangeStart || !rangeEnd) return true;
-        if (!dateStr) return false;
-        const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+        const d = safeDate(dateStr);
+        if (!d) return false;
         return d >= rangeStart && d <= rangeEnd;
     };
 
     // ── 4. KPIs based on Projects ──────────
 
-    const openProjects   = ecoProjects.filter(p => !isProjectFinished(p, db));
-    const closedProjects = ecoProjects.filter(p => isProjectFinished(p, db));
+    const filteredClients = ecoClients.filter(c => inRange(c.fecha_registro || c.fecha || c.created_at));
+    const openProjects   = ecoProjects.filter(p => !isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
+    const closedProjects = ecoProjects.filter(p => isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
 
-    const totalProspectos     = ecoClients.length; // all clients in the ecosystem
+    const totalProspectos     = filteredClients.length; // all clients in the ecosystem
     const totalPresentaciones = openProjects.length;
     const totalVentas         = closedProjects.length;
 
@@ -448,8 +458,8 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const closeRate     = totalActivos > 0 ? Math.round((totalVentas / totalActivos) * 100) : 0;
 
     // ── Percentages ───────────────────────────────────────────────────────────
-    const prospectosPct = ecoClients.length > 0
-        ? Math.round((totalPresentaciones / ecoClients.length) * 100)
+    const prospectosPct = filteredClients.length > 0
+        ? Math.round((totalPresentaciones / filteredClients.length) * 100)
         : 0;
     const presentacionesPct = totalActivos > 0
         ? Math.round((totalPresentaciones / totalActivos) * 100)
@@ -489,6 +499,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     // ── 5. Leaderboard ────────────────────────────────────────────────────────
     const leaderboardData = relevantVendors.map(v => {
         const vProjects = ecoProjects.filter(p => {
+            if (!inRange(getProjectDate(p, db))) return false;
             if (String(p.responsable_id) === String(v.id)) return true;
             const cli = ecoClients.find(c => String(c.id) === String(p.cliente_id));
             return cli && String(cli.vendedor_asignado_id) === String(v.id);
@@ -543,15 +554,6 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     let dataPresentaciones = [];
     let dataVentas        = [];
     let subtitleText      = '';
-
-    const safeDate = (raw) => {
-        if (!raw) return null;
-        let str = String(raw).trim();
-        if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
-        if (!str.includes('T')) str += 'T12:00:00';
-        const d = new Date(str);
-        return isNaN(d.getTime()) ? null : d;
-    };
 
     // Plot helpers 
     const plotByDay = (start, end, clientsArr, openArr, closedArr) => {

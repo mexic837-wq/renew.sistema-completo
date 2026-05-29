@@ -83,11 +83,15 @@ export function computeUserRank(userId, activeUnit, db) {
   const totalMonth = myProjects.filter(p => {
     const dateToUse = p.fecha_cierre || p.fecha;
     if (!dateToUse) return false;
-    const d = new Date(dateToUse + 'T12:00:00');
+    let dStr = String(dateToUse).trim();
+    if (dStr.includes(' ') && !dStr.includes('T')) dStr = dStr.replace(' ', 'T');
+    if (!dStr.includes('T')) dStr += 'T12:00:00';
+    const d = new Date(dStr);
+    if (isNaN(d.getTime())) return false;
     return d.getMonth() === curMonth && d.getFullYear() === curYear;
   }).length;
 
-  // Scan from lowest â†’ highest, keep last qualifying rank
+  // Scan from lowest → highest, keep last qualifying rank
   let rankIdx = 0;
   for (let i = 0; i < ranks.length; i++) {
     const count = ranks[i].type === 'monthly' ? totalMonth : totalAT;
@@ -911,7 +915,14 @@ async function initRendimientoChart(user) {
   userProjects.forEach(p => {
     const isCompleted = isProjectFinished(p, db);
     const dateToUse = getProjectDate(p, db);
-    const pDate = dateToUse ? new Date(dateToUse + 'T12:00:00') : null;
+    let pDate = null;
+    if (dateToUse) {
+      let dStr = String(dateToUse).trim();
+      if (dStr.includes(' ') && !dStr.includes('T')) dStr = dStr.replace(' ', 'T');
+      if (!dStr.includes('T')) dStr += 'T12:00:00';
+      const parsed = new Date(dStr);
+      if (!isNaN(parsed.getTime())) pDate = parsed;
+    }
     
     if (pDate && pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
       totalVentasMonth += 1;
@@ -1417,8 +1428,12 @@ async function initLeaderboardChart(user) {
     const dateToUse = getProjectDate(p, db);
     if (!dateToUse) return;
 
-    const pDate = new Date(dateToUse + 'T12:00:00');
-    if (pDate.getMonth() !== currentMonth || pDate.getFullYear() !== currentYear) return;
+    let dStr = String(dateToUse).trim();
+    if (dStr.includes(' ') && !dStr.includes('T')) dStr = dStr.replace(' ', 'T');
+    if (!dStr.includes('T')) dStr += 'T12:00:00';
+    const pDate = new Date(dStr);
+    
+    if (isNaN(pDate.getTime()) || pDate.getMonth() !== currentMonth || pDate.getFullYear() !== currentYear) return;
     
     // Credit goes to tecnico if tecnico, otherwise to the assigned vendor in client OR the project creator
     let targetUserId = null;
@@ -1454,7 +1469,7 @@ async function initLeaderboardChart(user) {
         shouldInclude = isWVendedor || w.id === user.id;
     }
 
-    if (hasUnitAccess && (count > 0 || shouldInclude)) {
+    if (count > 0 || (hasUnitAccess && shouldInclude)) {
       leaderboardData.push({
         id: w.id,
         name: `${w.nombre || ''} ${w.apellido || ''}`.trim() || 'Usuario',
@@ -1509,6 +1524,8 @@ async function initLeaderboardChart(user) {
     const rank = idx + 1;
     const salesLabel = isTecnico ? 'Citas' : (isCallCenter ? 'Leads' : t('lb_sales'));
     const hiddenLabel = isTecnico ? 'Citas Ocultas' : (isCallCenter ? 'Leads Ocultos' : 'Ventas Ocultas');
+    const isAdminView = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+    const displaySales = p.isMe || isAdminView ? `${p.sales} ${salesLabel}` : hiddenLabel;
     podiumCards += `
       <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:120px;padding:0 4px;">
         <div style="position:relative;margin-bottom:14px;">
@@ -1516,7 +1533,7 @@ async function initLeaderboardChart(user) {
           <div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);font-size:18px;z-index:2;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">${m.emoji}</div>
         </div>
         <p style="color:var(--text-primary);font-weight:800;font-size:${rank === 1 ? '.9rem' : '.8rem'};margin:0;text-align:center;line-height:1.2;width:100%;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.firstName}</p>
-        <p style="color:${m.textColor};font-weight:900;font-size:.75rem;margin:4px 0 8px;">${p.isMe ? `${p.sales} ${salesLabel}` : hiddenLabel}</p>
+        <p style="color:${m.textColor};font-weight:900;font-size:.75rem;margin:4px 0 8px;">${displaySales}</p>
         <div style="width:100%;height:${m.height}px;background:${m.gradient};border-radius:12px 12px 0 0;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 -4px 20px ${m.glow};">
           <span style="font-size:1.8rem;font-weight:900;color:rgba(0,0,0,0.2);">${rank}</span>
         </div>
@@ -1549,7 +1566,7 @@ async function initLeaderboardChart(user) {
             <div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;">
               <div style="height:100%;width:${pct}%;background:${rank <= 3 ? rankColor : 'var(--primary)'};border-radius:99px;transition:width .8s ease;"></div>
             </div>
-            <span style="font-size:.72rem;font-weight:800;color:${rank <= 3 ? rankColor : 'var(--text-muted)'};flex-shrink:0;">${isMe ? op.sales : '***'}</span>
+            <span style="font-size:.72rem;font-weight:800;color:${rank <= 3 ? rankColor : 'var(--text-muted)'};flex-shrink:0;">${isMe || isAdminView ? op.sales : '***'}</span>
           </div>
         </div>
       </div>`;
