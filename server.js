@@ -654,7 +654,8 @@ app.post('/api/db', async (req, res) => {
                     zelle_tel:      u.zelle_tel      || null,
                     banco_nombre:   u.banco_nombre   || null,
                     banco_cuenta:   u.banco_cuenta   || null,
-                    banco_ruta:     u.banco_ruta     || null
+                    banco_ruta:     u.banco_ruta     || null,
+                    zadarma_sip_id: u.zadarma_sip_id || null
                 };
                 if (mapped.id === 'u1') console.log('[DEBUG-U1] Mapped Carlos:', JSON.stringify(mapped));
                 return mapped;
