@@ -173,8 +173,13 @@ export async function renderPartners() {
         font-size: 0.85rem;
         transition: all 0.2s;
         text-decoration: none;
-        gap: 8px;
+        gap: 6px;
         font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        padding: 0 8px;
       }
       .contact-icon:hover {
         background: var(--primary);
@@ -283,13 +288,13 @@ export async function renderPartners() {
                 ${p.telefono ? `
                   <a href="tel:${p.telefono}" class="contact-icon">
                     <i class="fas fa-phone"></i>
-                    Llamar
+                    <span style="overflow:hidden; text-overflow:ellipsis;">Llamar</span>
                   </a>
                 ` : ''}
                 ${p.email ? `
                   <a href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(p.email)}" target="_blank" rel="noopener" class="contact-icon">
                     <i class="fas fa-envelope"></i>
-                    Email
+                    <span style="overflow:hidden; text-overflow:ellipsis;">Email</span>
                   </a>
                 ` : ''}
               </div>
