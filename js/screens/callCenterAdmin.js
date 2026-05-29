@@ -1,4 +1,4 @@
-﻿import { showToast } from '../components/toast.js';
+import { showToast } from '../components/toast.js';
 
 export async function renderCallCenterAdmin() {
     const main = document.getElementById('main-canvas');
@@ -59,7 +59,14 @@ export async function renderCallCenterAdmin() {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Teléfono *</label>
-                            <input type="tel" id="inp-cc-tel" required class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
+                            <div class="flex gap-2">
+                                <select id="sel-cc-tel-code" class="w-24 bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-2 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
+                                    <option value="+1">+1 (USA/CAN)</option>
+                                    <option value="+58">+58 (VEN)</option>
+                                    <option value="+57">+57 (COL)</option>
+                                </select>
+                                <input type="tel" id="inp-cc-tel" required class="flex-1 bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all" placeholder="Número">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Email</label>
@@ -148,7 +155,7 @@ export async function renderCallCenterAdmin() {
 
         const payload = {
             nombre: document.getElementById('inp-cc-nom').value.trim(),
-            telefono: document.getElementById('inp-cc-tel').value.trim(),
+            telefono: document.getElementById('sel-cc-tel-code').value + document.getElementById('inp-cc-tel').value.trim(),
             email: document.getElementById('inp-cc-email').value.trim(),
             direccion: document.getElementById('inp-cc-dir').value.trim(),
             ciudad: document.getElementById('inp-cc-ciudad').value.trim(),
