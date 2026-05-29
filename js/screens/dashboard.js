@@ -1517,6 +1517,8 @@ async function initLeaderboardChart(user) {
   const top3 = leaderboardData.slice(0, 3);
 
   let podiumCards = '';
+  const isAdminView = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+  
   podiumOrder.forEach(idx => {
     if (!top3[idx]) return;
     const p = top3[idx];
@@ -1524,7 +1526,6 @@ async function initLeaderboardChart(user) {
     const rank = idx + 1;
     const salesLabel = isTecnico ? 'Citas' : (isCallCenter ? 'Leads' : t('lb_sales'));
     const hiddenLabel = isTecnico ? 'Citas Ocultas' : (isCallCenter ? 'Leads Ocultos' : 'Ventas Ocultas');
-    const isAdminView = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
     const displaySales = p.isMe || isAdminView ? `${p.sales} ${salesLabel}` : hiddenLabel;
     podiumCards += `
       <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:120px;padding:0 4px;">
