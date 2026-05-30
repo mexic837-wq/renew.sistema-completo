@@ -2535,14 +2535,15 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
         }
 
         const event = req.body.event;
+        
+        // 1. Cuando termina la llamada, guardamos el historial básico
         if (event === 'NOTIFY_END' || event === 'NOTIFY_OUT_END' || event === 'NOTIFY_INTERNAL') {
-            const { destination, call_record_link, duration, caller_id } = req.body;
+            const { destination, duration, caller_id, call_id_with_rec } = req.body;
             const prospectPhone = destination || caller_id;
             console.log(`[ZADARMA] Llamada terminada para ${prospectPhone}: Duración ${duration}s`);
             
-            // Buscar lead por teléfono
             if (prospectPhone) {
-                const cleanPhone = prospectPhone.replace(/\D/g, '').slice(-10); // ultimos 10 digitos
+                const cleanPhone = prospectPhone.replace(/\D/g, '').slice(-10);
                 const { data: leads } = await supabase.from('call_center_prospectos').select('id, telefono, historial_llamadas');
                 
                 if (leads) {
@@ -2550,9 +2551,10 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
                     if (lead) {
                         const history = lead.historial_llamadas || [];
                         history.push({
+                            call_id: call_id_with_rec || null,
                             fecha: new Date().toISOString(),
                             duracion: duration || 0,
-                            grabacion_url: call_record_link || null,
+                            grabacion_url: null,
                             tipo: (event === 'NOTIFY_END' || event === 'NOTIFY_INTERNAL') ? 'Entrante' : 'Saliente'
                         });
                         
@@ -2560,6 +2562,35 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
                             .update({ historial_llamadas: history })
                             .eq('id', lead.id);
                         console.log(`[ZADARMA] Historial guardado para el lead ${lead.id}`);
+                    }
+                }
+            }
+        }
+        
+        // 2. Cuando la grabación está lista, actualizamos el historial con el link
+        if (event === 'NOTIFY_RECORD') {
+            const { call_id_with_rec, call_record_link } = req.body;
+            console.log(`[ZADARMA] Grabación recibida para call_id: ${call_id_with_rec}`);
+            
+            if (call_id_with_rec && call_record_link) {
+                const { data: leads } = await supabase.from('call_center_prospectos').select('id, historial_llamadas');
+                
+                if (leads) {
+                    // Buscar el lead que tenga esta llamada en su historial
+                    for (const lead of leads) {
+                        if (!lead.historial_llamadas) continue;
+                        
+                        const callIndex = lead.historial_llamadas.findIndex(h => h.call_id === call_id_with_rec);
+                        if (callIndex !== -1) {
+                            lead.historial_llamadas[callIndex].grabacion_url = call_record_link;
+                            
+                            await supabase.from('call_center_prospectos')
+                                .update({ historial_llamadas: lead.historial_llamadas })
+                                .eq('id', lead.id);
+                                
+                            console.log(`[ZADARMA] Grabación vinculada exitosamente al lead ${lead.id}`);
+                            break; // Terminamos de buscar
+                        }
                     }
                 }
             }
