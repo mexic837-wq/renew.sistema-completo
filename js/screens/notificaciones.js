@@ -187,7 +187,7 @@ export async function renderNotificaciones() {
               <h4 class="notif-title" style="margin: 0; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); transition: all 0.2s; ${isUnread ? 'font-weight: 800;' : 'font-weight: 500; opacity: 0.7;'}">${item.title}</h4>
               <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 12px; flex-shrink: 0; font-weight: 600;">${dateStr}</span>
             </div>
-            <p class="notif-msg" style="margin: 0; font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s; ${isUnread ? 'font-weight: 500; color: #cbd5e1;' : 'font-weight: 400; opacity: 0.6;'}">${item.message}</p>
+            <p class="notif-msg" style="margin: 0; font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s; ${isUnread ? 'font-weight: 700;' : 'font-weight: 400; opacity: 0.6;'}">${item.message}</p>
           </div>
 
           ${isUnread ? '<div class="unread-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); margin-left: 16px; align-self: center; flex-shrink: 0;"></div>' : ''}
@@ -385,34 +385,34 @@ export async function renderNotificaciones() {
                       await saveDB(db);
                   }
               } else if (item.type === 'meeting') {
-                  meetingReads.push({
+                  const newRead = {
                       id: 'rd_' + Date.now().toString(36),
                       meeting_id: item.id,
                       user_id: user.id,
                       read_at: new Date().toISOString()
-                  });
-                  await saveGranular('admin_meetings_reads', meetingReads);
-                  await initDB(); // Recargar base de datos para que el estado se mantenga
+                  };
+                  meetingReads.push(newRead);
+                  await saveGranular('admin_meetings_reads', [newRead]);
               } else if (item.type === 'evento_calendario') {
                   if (!db.calendario_eventos_reads) db.calendario_eventos_reads = [];
-                  db.calendario_eventos_reads.push({
+                  const newRead = {
                       id: 'rd_' + Date.now().toString(36),
                       event_id: item.id,
                       user_id: user.id,
                       read_at: new Date().toISOString()
-                  });
-                  await saveGranular('calendario_eventos_reads', db.calendario_eventos_reads);
-                  await initDB();
+                  };
+                  db.calendario_eventos_reads.push(newRead);
+                  await saveGranular('calendario_eventos_reads', [newRead]);
               } else if (item.type === 'observador') {
                   if (!db.Observadores_Reads) db.Observadores_Reads = [];
-                  db.Observadores_Reads.push({
+                  const newRead = {
                       id: 'rd_' + Date.now().toString(36),
                       proyecto_id: item.id,
                       user_id: user.id,
                       read_at: new Date().toISOString()
-                  });
-                  await saveGranular('observadores_reads', db.Observadores_Reads);
-                  await initDB();
+                  };
+                  db.Observadores_Reads.push(newRead);
+                  await saveGranular('observadores_reads', [newRead]);
               }
               
               // Actualizar badge del menu principal
