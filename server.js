@@ -2577,12 +2577,10 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
                 
                 // 1. Buscar en call_center_prospectos
                 const { data: leads } = await supabase.from('call_center_prospectos').select('id, telefono, historial_llamadas');
-                let foundTarget = false;
                 
                 if (leads) {
-                    const lead = leads.find(l => (l.telefono || '').replace(/\\D/g, '').slice(-10) === cleanPhone);
-                    if (lead) {
-                        foundTarget = true;
+                    const matchingLeads = leads.filter(l => (l.telefono || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+                    for (const lead of matchingLeads) {
                         const history = lead.historial_llamadas || [];
                         history.push({
                             call_id: call_id_with_rec || null,
@@ -2596,23 +2594,21 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
                     }
                 }
                 
-                // 2. Si no es un lead, buscar en clientes_maestro
-                if (!foundTarget) {
-                    const { data: clientes } = await supabase.from('clientes_maestro').select('id, telefono, historial_llamadas');
-                    if (clientes) {
-                        const cliente = clientes.find(c => (c.telefono || '').replace(/\\D/g, '').slice(-10) === cleanPhone);
-                        if (cliente) {
-                            const history = cliente.historial_llamadas || [];
-                            history.push({
-                                call_id: call_id_with_rec || null,
-                                fecha: new Date().toISOString(),
-                                duracion: duration || 0,
-                                grabacion_url: null,
-                                tipo: (event === 'NOTIFY_END' || event === 'NOTIFY_INTERNAL') ? 'Entrante' : 'Saliente'
-                            });
-                            await supabase.from('clientes_maestro').update({ historial_llamadas: history }).eq('id', cliente.id);
-                            console.log(`[ZADARMA] Historial guardado para el CLIENTE ${cliente.id}`);
-                        }
+                // 2. Buscar en clientes_maestro
+                const { data: clientes } = await supabase.from('clientes_maestro').select('id, telefono, historial_llamadas');
+                if (clientes) {
+                    const matchingClientes = clientes.filter(c => (c.telefono || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+                    for (const cliente of matchingClientes) {
+                        const history = cliente.historial_llamadas || [];
+                        history.push({
+                            call_id: call_id_with_rec || null,
+                            fecha: new Date().toISOString(),
+                            duracion: duration || 0,
+                            grabacion_url: null,
+                            tipo: (event === 'NOTIFY_END' || event === 'NOTIFY_INTERNAL') ? 'Entrante' : 'Saliente'
+                        });
+                        await supabase.from('clientes_maestro').update({ historial_llamadas: history }).eq('id', cliente.id);
+                        console.log(`[ZADARMA] Historial guardado para el CLIENTE ${cliente.id}`);
                     }
                 }
             }
