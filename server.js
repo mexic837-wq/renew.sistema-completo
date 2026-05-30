@@ -1198,6 +1198,8 @@ app.post('/api/upsert', async (req, res) => {
                 is_suspended:               u.is_suspended               || false,
                 sede:                       u.sede                       || null,
                 unidades:                   Array.isArray(u.unidades) ? u.unidades : [],
+                equipo_ids:                 Array.isArray(u.equipo_ids) ? u.equipo_ids : [],
+                pipeline_ids:               Array.isArray(u.pipeline_ids) ? u.pipeline_ids : [],
                 tel_emergencia:             u.tel_emergencia             || null,
                 contacto_emergencia_nombre: u.contacto_emergencia_nombre || null,
                 direccion:                  u.direccion                  || null,
