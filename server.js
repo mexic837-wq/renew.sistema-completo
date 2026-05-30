@@ -1077,6 +1077,31 @@ app.post('/api/db', async (req, res) => {
             });
             syncTasks.push(req);
         }
+
+        if (db.admin_meetings?.length) {
+            const cleanMeetings = db.admin_meetings.map(m => ({
+                id: m.id,
+                titulo: m.titulo || null,
+                texto: m.texto || null,
+                enlace: m.enlace || null,
+                imagen_url: m.imagen_url || null,
+                audiencia: m.audiencia || null,
+                audiencia_tags: Array.isArray(m.audiencia_tags) ? m.audiencia_tags : [],
+                created_at: m.created_at || new Date().toISOString()
+            }));
+            syncTasks.push(supabase.from('admin_meetings').upsert(cleanMeetings, { onConflict: 'id' }));
+        }
+
+        if (db.admin_meetings_reads?.length) {
+            const cleanReads = db.admin_meetings_reads.map(r => ({
+                id: r.id,
+                meeting_id: r.meeting_id || null,
+                user_id: r.user_id || null,
+                read_at: r.read_at || new Date().toISOString()
+            }));
+            syncTasks.push(supabase.from('admin_meetings_reads').upsert(cleanReads, { onConflict: 'id' }));
+        }
+
         if (db.Recibos_Pagos?.length) {
             const mappedRec = db.Recibos_Pagos.map(r => ({
                 id:               r.id,
