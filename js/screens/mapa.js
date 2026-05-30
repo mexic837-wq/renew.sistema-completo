@@ -135,7 +135,8 @@ export async function renderMiMapa() {
       const DEPTS = [
         { key: 'todos', label: 'Todos',  color: '#00dfbf', iconUrl: null },
         { key: 'solar', label: 'Solar',  color: '#f59e0b', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
-        { key: 'water', label: 'Water',  color: '#0ea5e9', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }
+        { key: 'water', label: 'Water',  color: '#0ea5e9', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+        { key: 'home',  label: 'Home',   color: '#8b5cf6', iconUrl: 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png' }
       ];
 
       // ── Status config ──────────────────────────────────────
@@ -168,7 +169,7 @@ export async function renderMiMapa() {
         margin: 10px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 12px;
         min-width: 130px;
       `;
 
@@ -242,6 +243,18 @@ export async function renderMiMapa() {
       });
 
       legendEl.appendChild(deptGroup);
+
+      // ── Status group ───────────────────────────────────────
+      const statusGroup = document.createElement('div');
+      statusGroup.style.cssText = 'display:flex; flex-direction:column; gap:3px;';
+      statusGroup.appendChild(sectionLabel('Tipo de Registro'));
+      STATUSES.forEach(s => {
+        const pill = buildPill(s, s.key === activeStatus, (key) => { activeStatus = key; });
+        statusGroup.appendChild(pill);
+      });
+
+      legendEl.appendChild(statusGroup);
+
       map.controls[google.maps.ControlPosition.RIGHT_TOP].push(legendEl);
 
       // -- Geocode & place markers (one per client x dept combo) --

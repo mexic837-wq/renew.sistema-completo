@@ -3497,18 +3497,16 @@ window.renderView = async function renderView() {
           'all':   { label: 'Todos', color: '#00f5d4' },
           'solar': { label: 'Solar', color: '#22c55e', icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png' },
           'water': { label: 'Water', color: '#3b82f6', icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
-          'home':  { label: 'Home',  color: '#eab308', icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' },
-          'otro':  { label: 'Otro',  color: '#ef4444', icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' }
+          'home':  { label: 'Home',  color: '#eab308', icon: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png' }
         };
 
         const statusConfig = {
-          'all':      { label: 'Todos', color: '#64748b' },
           'prospecto':{ label: 'Prospecto', color: '#f59e0b' },
           'cliente':  { label: 'Cliente',   color: '#10b981' }
         };
 
         let activeDept = 'all';
-        let activeStatus = 'all';
+        let activeStatus = 'prospecto';
         let activeRepId = null;
         const allMarkerMeta = [];
 
@@ -3540,7 +3538,7 @@ window.renderView = async function renderView() {
             <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Tipo de Registro</div>
             <div id="admin-legend-status" style="display: flex; flex-direction: column; gap: 4px;">
               ${Object.entries(statusConfig).map(([key, cfg]) => `
-                <div class="leg-item status-item ${key === 'all' ? 'active' : ''}" data-val="${key}" style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:12px; transition:all 0.2s; border: 1px solid transparent; user-select:none; -webkit-user-select:none; ${key === 'all' ? 'background:#f1f5f9; border-color:#cbd5e1; font-weight:bold;' : ''}">
+                <div class="leg-item status-item ${key === 'prospecto' ? 'active' : ''}" data-val="${key}" style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:12px; transition:all 0.2s; border: 1px solid transparent; user-select:none; -webkit-user-select:none; ${key === 'prospecto' ? 'background:#f1f5f9; border-color:#cbd5e1; font-weight:bold;' : ''}">
                   <div style="width:8px; height:8px; border-radius:50%; background:${cfg.color};"></div>
                   <span>${cfg.label}</span>
                 </div>
