@@ -5802,6 +5802,11 @@ window.mostrarDetalleEventoCalendario = async function(event) {
       btnEliminar.dataset.eventId = event.id || '';
     }
 
+    const btnEditar = document.getElementById('btn-editar-evento-admin');
+    if (btnEditar) {
+      btnEditar.classList.remove('hidden');
+    }
+
     
 
     document.getElementById('ev-nombre').value = event.title ? event.title.replace(/<[^>]*>?/gm, '').trim() : '';
@@ -5854,6 +5859,8 @@ window.mostrarDetalleEventoCalendario = async function(event) {
                 btnEliminar.classList.add('hidden');
             }
         }
+        const btnEditar = document.getElementById('btn-editar-evento-admin');
+        if (btnEditar) btnEditar.classList.add('hidden');
     } else {
         // Restore hidden containers
         const colorContainer = document.querySelector('input[name="ev-color"]')?.closest('.flex');
@@ -5940,6 +5947,8 @@ window.mostrarDetalleEventoCalendario = async function(event) {
       btnEliminar.classList.add('hidden');
       btnEliminar.dataset.eventId = '';
     }
+    const btnEditar = document.getElementById('btn-editar-evento-admin');
+    if (btnEditar) btnEditar.classList.add('hidden');
 
     // Reset ReadOnly and Hidden states
     document.getElementById('ev-nombre').readOnly = false;
@@ -6154,6 +6163,35 @@ window.eliminarEventoCalendarioAdmin = async function() {
 };
 // ââ‚¬ââ‚¬ END Eliminar Evento ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
+window.switchEventToEditModeAdmin = function() {
+    const btnGuardar = document.getElementById('btn-guardar-evento');
+    const btnEditar = document.getElementById('btn-editar-evento-admin');
+    const titleEl = document.getElementById('modo-texto');
+    
+    if(titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Editar Evento`;
+    if(btnGuardar) btnGuardar.classList.remove('hidden');
+    if(btnEditar) btnEditar.classList.add('hidden');
+    
+    document.getElementById('ev-nombre').readOnly = false;
+    document.getElementById('ev-fecha-inicio').readOnly = false;
+    document.getElementById('ev-fecha-fin').readOnly = false;
+    document.getElementById('ev-descripcion').readOnly = false;
+    document.getElementById('ev-direccion').readOnly = false;
+    document.getElementById('ev-direccion').classList.remove('hidden');
+    const dirLink = document.getElementById('ev-direccion-link');
+    if(dirLink) dirLink.classList.add('hidden');
+    document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
+    document.querySelectorAll('input[name="ev-depto"]').forEach(r => r.disabled = false);
+    
+    const adjContainer = document.getElementById('ev-adjunto').parentElement;
+    if(adjContainer) adjContainer.classList.remove('hidden');
+    const colabContainer = document.getElementById('ev-colaboradores').parentElement;
+    if(colabContainer) colabContainer.classList.remove('hidden');
+    
+    const oldParts = document.getElementById('ev-participantes-readonly');
+    if (oldParts) oldParts.innerHTML = '';
+};
+
 window.guardarEventoCalendario = async function(e) {
   if (e) e.preventDefault();
   try {
@@ -6212,8 +6250,11 @@ window.guardarEventoCalendario = async function(e) {
       }
     }
 
+    const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
+    const existingId = btnEliminar ? btnEliminar.dataset.eventId : null;
+
     const nuevoEvento = {
-      id: 'ev_' + Date.now(),
+      id: existingId || ('ev_' + Date.now()),
       created_at: new Date().toISOString(),
       nombre, fecha_inicio, fecha_fin, telefono, direccion, descripcion, color, adjunto_url,
       colaboradores,
@@ -6225,7 +6266,16 @@ window.guardarEventoCalendario = async function(e) {
     // Save via getDB/saveDB (same cloud-sync pattern as every other module)
     const db = getDB();
     if (!db.calendario_eventos) db.calendario_eventos = [];
-    db.calendario_eventos.push(nuevoEvento);
+    
+    const existingIdx = db.calendario_eventos.findIndex(ev => ev.id === nuevoEvento.id);
+    if (existingIdx !== -1) {
+        if (!adjunto_url && db.calendario_eventos[existingIdx].adjunto_url) {
+            nuevoEvento.adjunto_url = db.calendario_eventos[existingIdx].adjunto_url;
+        }
+        db.calendario_eventos[existingIdx] = nuevoEvento;
+    } else {
+        db.calendario_eventos.push(nuevoEvento);
+    }
     await saveDB(db);
     
     // ââ‚¬ââ‚¬ SYNC WITH GOOGLE CALENDAR VIA SERVER (SERVICE ACCOUNT) ââ‚¬ââ‚¬
