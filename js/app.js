@@ -510,11 +510,11 @@ export function navigate(screen, param = null) {
     }
   }
 
-  updateNavHighlight(screen);
   // Populate sidebar tools if not already done (happens when landing on any non-dashboard screen)
   if (!['login', 'hub'].includes(screen)) {
-    setTimeout(_ensureSidebarPopulated, 100);
+    _ensureSidebarPopulated();
   }
+  updateNavHighlight(screen);
 
   // Trigger Anuncios Interceptor for internal screens
   if (!['login', 'hub'].includes(screen)) {
@@ -675,9 +675,9 @@ function handleHashChange() {
       document.body.classList.remove('no-nav');
       if (bNav) bNav.style.display = 'flex';
     }
-    updateNavHighlight(screen);
     // Ensure sidebar is populated even when landing on non-dashboard screens
     _ensureSidebarPopulated();
+    updateNavHighlight(screen);
 
     // Trigger Anuncios Interceptor for internal screens
     if (!['login', 'hub'].includes(screen)) {
