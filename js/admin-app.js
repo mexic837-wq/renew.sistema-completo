@@ -10507,7 +10507,7 @@ window.renderRolesBuilder = function() {
     const db = getDB();
     const roles = db.Admin_Roles || [];
 
-    const modules = [
+    const modulesOS = [
         { id: 'dashboard', label: 'Dashboard / Rendimiento' },
         { id: 'mapa', label: 'Mapa de Clientes' },
         { id: 'crm', label: 'CRM (Clientes)' },
@@ -10521,6 +10521,20 @@ window.renderRolesBuilder = function() {
         { id: 'admin_config', label: 'Constructor / Config. Admin' }
     ];
 
+    const modulesApp = [
+        { id: 'app_clientes', label: 'Mis Clientes' },
+        { id: 'app_callcenter', label: 'Mis Llamadas / Leads' },
+        { id: 'app_inventario', label: 'Inventario Real' },
+        { id: 'app_mapa', label: 'Mi Mapa' },
+        { id: 'app_calendario', label: 'Calendario' },
+        { id: 'app_pagos', label: 'Historial de Pagos' },
+        { id: 'app_ranking', label: 'Ranking / Logros' },
+        { id: 'app_adelantos', label: 'Mis Adelantos' },
+        { id: 'app_precios', label: 'Lista de Precios' },
+        { id: 'app_plantillas', label: 'Plantillas' },
+        { id: 'app_calc', label: 'Calculadora Solar' }
+    ];
+
     const cardsHtml = roles.map(r => {
         const perms = r.permisos || {};
         const activeCount = Object.values(perms).filter(Boolean).length;
@@ -10531,6 +10545,10 @@ window.renderRolesBuilder = function() {
                 <div>
                     <h3 class="font-black text-lg text-gray-900 dark:text-white">${r.nombre}</h3>
                     <p class="text-xs text-gray-500 mt-1">${activeCount} módulos permitidos</p>
+                    <div class="flex gap-1 mt-2">
+                        ${(r.acceso_os !== false) ? `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase rounded-lg">Renew OS</span>` : ''}
+                        ${r.acceso_app ? `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[9px] font-black uppercase rounded-lg">Renew App</span>` : ''}
+                    </div>
                 </div>
                 ${r.is_base ? '<span class="px-2 py-1 bg-tealAccent/10 text-tealAccent text-[9px] font-black uppercase rounded-lg">Base Role</span>' : ''}
             </div>
@@ -10587,15 +10605,57 @@ window.renderRolesBuilder = function() {
                         <input type="hidden" id="inp-role-isbase">
                     </div>
 
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Permisos Modulares</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="role-perms-container">
-                            ${modules.map(m => `
-                                <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl cursor-pointer hover:border-tealAccent/50 transition-colors">
+                    <!-- Plataformas -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="flex items-center justify-between p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-xl cursor-pointer hover:border-blue-300 transition-colors">
+                            <div>
+                                <span class="block text-xs font-black text-blue-700 dark:text-blue-400">Acceso a Renew OS</span>
+                                <span class="block text-[9px] text-gray-500 mt-0.5">Panel de administración de escritorio</span>
+                            </div>
+                            <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="chk-acceso-os" onchange="document.getElementById('sec-os-modules').style.display = this.checked ? 'block' : 'none'" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:border-blue-500 checked:translate-x-5 focus:outline-none"/>
+                                <div class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-200 ease-in-out peer-checked:bg-blue-500"></div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-center justify-between p-4 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30 rounded-xl cursor-pointer hover:border-purple-300 transition-colors">
+                            <div>
+                                <span class="block text-xs font-black text-purple-700 dark:text-purple-400">Acceso a Renew App</span>
+                                <span class="block text-[9px] text-gray-500 mt-0.5">Aplicación móvil (Vendedores/Call Center)</span>
+                            </div>
+                            <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="chk-acceso-app" onchange="document.getElementById('sec-app-modules').style.display = this.checked ? 'block' : 'none'" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:border-purple-500 checked:translate-x-5 focus:outline-none"/>
+                                <div class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-200 ease-in-out peer-checked:bg-purple-500"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Módulos Renew OS -->
+                    <div id="sec-os-modules" style="display:none;">
+                        <label class="block text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 border-b border-blue-100 dark:border-blue-900/30 pb-2">Módulos de Renew OS</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="role-perms-os-container">
+                            ${modulesOS.map(m => `
+                                <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl cursor-pointer hover:border-blue-300/50 transition-colors">
                                     <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${m.label}</span>
                                     <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" data-mod="${m.id}" class="role-perm-chk toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:border-tealAccent checked:translate-x-5 focus:outline-none"/>
-                                        <div class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-200 ease-in-out peer-checked:bg-tealAccent"></div>
+                                        <input type="checkbox" data-mod="${m.id}" class="role-perm-chk toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:border-blue-500 checked:translate-x-5 focus:outline-none"/>
+                                        <div class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-200 ease-in-out peer-checked:bg-blue-500"></div>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Módulos Renew App -->
+                    <div id="sec-app-modules" style="display:none;">
+                        <label class="block text-[10px] font-black text-purple-500 uppercase tracking-widest mb-3 mt-4 border-b border-purple-100 dark:border-purple-900/30 pb-2">Módulos de Renew App</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="role-perms-app-container">
+                            ${modulesApp.map(m => `
+                                <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl cursor-pointer hover:border-purple-300/50 transition-colors">
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${m.label}</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" data-mod="${m.id}" class="role-perm-chk toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:border-purple-500 checked:translate-x-5 focus:outline-none"/>
+                                        <div class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-200 ease-in-out peer-checked:bg-purple-500"></div>
                                     </div>
                                 </label>
                             `).join('')}
@@ -10629,7 +10689,20 @@ window.editAdminRole = function(roleId) {
     document.getElementById('inp-role-name').value = role.nombre;
     document.getElementById('inp-role-isbase').value = role.is_base ? 'true' : 'false';
     
-    // Si es un rol base, proteger el nombre? Mejor no para flexibilidad, pero el check is_base se mantiene
+    const chkOs = document.getElementById('chk-acceso-os');
+    const chkApp = document.getElementById('chk-acceso-app');
+    
+    // Si no está definido, deducimos el acceso
+    let accOs = role.acceso_os;
+    if (accOs === undefined) {
+        accOs = !['vendedor', 'call center'].includes((role.nombre || '').toLowerCase());
+    }
+    
+    chkOs.checked = !!accOs;
+    chkApp.checked = !!role.acceso_app;
+    
+    document.getElementById('sec-os-modules').style.display = chkOs.checked ? 'block' : 'none';
+    document.getElementById('sec-app-modules').style.display = chkApp.checked ? 'block' : 'none';
 
     document.querySelectorAll('.role-perm-chk').forEach(chk => {
         const modId = chk.dataset.mod;
@@ -10649,17 +10722,30 @@ window.saveAdminRole = async function() {
     const id = document.getElementById('inp-role-id').value;
     const isBase = document.getElementById('inp-role-isbase').value === 'true';
     const nombre = document.getElementById('inp-role-name').value.trim();
+    const acceso_os = document.getElementById('chk-acceso-os').checked;
+    const acceso_app = document.getElementById('chk-acceso-app').checked;
 
     if (!nombre) return showToast('El nombre del rol es obligatorio', 'error');
 
     const permisos = {};
     document.querySelectorAll('.role-perm-chk').forEach(chk => {
-        permisos[chk.dataset.mod] = chk.checked;
+        const isOsMod = chk.closest('#sec-os-modules');
+        const isAppMod = chk.closest('#sec-app-modules');
+        
+        // Si no tiene acceso a la plataforma, no guardamos sus módulos
+        if (isOsMod && !acceso_os) return;
+        if (isAppMod && !acceso_app) return;
+        
+        if (chk.checked) {
+            permisos[chk.dataset.mod] = true;
+        }
     });
 
     const roleObj = {
         id: id || genId('rol', db),
         nombre,
+        acceso_os,
+        acceso_app,
         permisos,
         is_base: isBase
     };
