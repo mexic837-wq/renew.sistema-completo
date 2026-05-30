@@ -43,6 +43,7 @@ import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
+import { _renderToolsForPipeline } from './screens/dashboard.js';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -499,6 +500,10 @@ export function navigate(screen, param = null) {
   }
 
   updateNavHighlight(screen);
+  // Populate sidebar tools if not already done (happens when landing on any non-dashboard screen)
+  if (!['login', 'hub'].includes(screen)) {
+    setTimeout(_ensureSidebarPopulated, 100);
+  }
 
   // Trigger Anuncios Interceptor for internal screens
   if (!['login', 'hub'].includes(screen)) {
@@ -660,6 +665,8 @@ function handleHashChange() {
       if (bNav) bNav.style.display = 'flex';
     }
     updateNavHighlight(screen);
+    // Ensure sidebar is populated even when landing on non-dashboard screens
+    _ensureSidebarPopulated();
 
     // Trigger Anuncios Interceptor for internal screens
     if (!['login', 'hub'].includes(screen)) {
@@ -673,6 +680,19 @@ function handleHashChange() {
 window.addEventListener('popstate', handleHashChange);
 
 window.addEventListener('hashchange', handleHashChange);
+
+// Ensure sidebar tools are populated whenever the user is logged in
+// (in case they refresh on a screen other than dashboard)
+function _ensureSidebarPopulated() {
+  const desktopContainer = document.getElementById('desktop-dynamic-tools');
+  if (desktopContainer && desktopContainer.innerHTML.trim() === '') {
+    const user = getCurrentUser();
+    if (user) {
+      const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
+      _renderToolsForPipeline(user, activeUnit);
+    }
+  }
+}
 
 // ── Bootstrap ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {

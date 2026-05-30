@@ -529,7 +529,7 @@ function _buildPipelineChips(user, activeUnit) {
   });
 }
 
-function _renderToolsForPipeline(user, activeUnit) {
+export function _renderToolsForPipeline(user, activeUnit) {
   const grid = document.getElementById('dash-tools-grid');
   if (!grid) return;
 
