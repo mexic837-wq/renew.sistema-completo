@@ -6823,6 +6823,13 @@ async function showWorkerDetail(id) {
     }
     // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
+    // Toggle RRHH-only sections based on current view
+    const isRRHHView = window.location.hash.includes('rrhh') || window.location.hash.includes('hrhub');
+    const rrhhOnlyContainer = document.getElementById('det-usr-rrhh-only');
+    if (rrhhOnlyContainer) {
+        rrhhOnlyContainer.style.display = isRRHHView ? 'block' : 'none';
+    }
+
     const avatarBox = document.getElementById('det-usr-avatar');
     if (usr.foto) {
         avatarBox.style.backgroundImage = `url(${usr.foto})`;

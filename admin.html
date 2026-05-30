@@ -1711,38 +1711,41 @@
                                     <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Dirección Personal</label><p id="det-usr-direccion" class="text-sm font-bold text-[#333]">-</p></div>
                                 </div>
                                 
-                                <!-- Zelle View Section -->
-                                <div class="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl">
-                                    <label class="block text-[9px] text-purple-500 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
-                                        <i class="fa-solid fa-money-bill-transfer"></i> Información de Pago (Zelle)
-                                    </label>
-                                    <div class="grid grid-cols-3 gap-4">
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nombre</label><p id="det-usr-zelle-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Cuenta/Email</label><p id="det-usr-zelle-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Número</label><p id="det-usr-zelle-tel" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                    </div>
-                                </div>
+                                <!-- RRHH Only Info wrapper -->
+                                <div id="det-usr-rrhh-only">
+                                  <!-- Zelle View Section -->
+                                  <div class="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl mb-4">
+                                      <label class="block text-[9px] text-purple-500 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                                          <i class="fa-solid fa-money-bill-transfer"></i> Información de Pago (Zelle)
+                                      </label>
+                                      <div class="grid grid-cols-3 gap-4">
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nombre</label><p id="det-usr-zelle-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Cuenta/Email</label><p id="det-usr-zelle-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Número</label><p id="det-usr-zelle-tel" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                      </div>
+                                  </div>
 
-                                <!-- Información Bancaria View -->
-                                <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                                    <label class="block text-[9px] text-emerald-600 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
-                                        <i class="fa-solid fa-building-columns"></i> Información Bancaria
-                                    </label>
-                                    <div class="grid grid-cols-3 gap-4">
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Banco</label><p id="det-usr-banco-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Cuenta</label><p id="det-usr-banco-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                        <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Ruta</label><p id="det-usr-banco-ruta" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                    </div>
-                                </div>
+                                  <!-- Información Bancaria View -->
+                                  <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                                      <label class="block text-[9px] text-emerald-600 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                                          <i class="fa-solid fa-building-columns"></i> Información Bancaria
+                                      </label>
+                                      <div class="grid grid-cols-3 gap-4">
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Banco</label><p id="det-usr-banco-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Cuenta</label><p id="det-usr-banco-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Ruta</label><p id="det-usr-banco-ruta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                      </div>
+                                  </div>
 
-                        <div class="pt-4 border-t border-gray-50 mt-4">
-                          <label class="block text-[10px] text-gray-400 font-medium mb-3 uppercase tracking-widest flex items-center gap-2">
-                              <i class="fa-solid fa-folder-open text-tealAccent"></i> DOCUMENTACIÓN (PDF O IMAGEN)
-                          </label>
-                          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="det-usr-docs-interactive">
-                              <!-- Se renderiza desde admin-app.js -->
-                          </div>
-                        </div>
+                                  <div class="pt-4 border-t border-gray-50 mt-4">
+                                    <label class="block text-[10px] text-gray-400 font-medium mb-3 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fa-solid fa-folder-open text-tealAccent"></i> DOCUMENTACIÓN (PDF O IMAGEN)
+                                    </label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="det-usr-docs-interactive">
+                                        <!-- Se renderiza desde admin-app.js -->
+                                    </div>
+                                  </div>
+                                </div>
                         </div></div>
                     </div>
                 </div>
