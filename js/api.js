@@ -1305,6 +1305,8 @@ export async function saveAdminWorker(worker) {
     is_suspended:               src.is_suspended               || false,
     sede:                       src.sede                       || null,
     unidades:                   Array.isArray(src.unidades) ? src.unidades : [],
+    equipo_ids:                 Array.isArray(src.equipo_ids) ? src.equipo_ids : [],
+    pipeline_ids:               Array.isArray(src.pipeline_ids) ? src.pipeline_ids : [],
     tel_emergencia:             src.tel_emergencia             || null,
     contacto_emergencia_nombre: src.contacto_emergencia_nombre || null,
     direccion:                  src.direccion                  || null,
