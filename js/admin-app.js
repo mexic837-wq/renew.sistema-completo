@@ -3032,7 +3032,7 @@ window.renderView = async function renderView() {
   // Toggle Search Bar Visibility
   const searchInput = document.getElementById('global-search-input');
   if (searchInput) {
-      if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores', 'hrhub'].includes(state.activeView)) {
+      if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores', 'hrhub', 'roles'].includes(state.activeView)) {
           searchInput.parentElement.style.display = 'block';
       } else {
           searchInput.parentElement.style.display = 'none';
@@ -3057,6 +3057,12 @@ window.renderView = async function renderView() {
     setGlobalButton(true, '<i class="fa-solid fa-plus"></i> New Pipeline');
     renderConstructor();
   } 
+  else if (state.activeView === 'roles') {
+    if (UI.viewTitle) UI.viewTitle.textContent = "Roles y Permisos";
+    if (UI.viewDesc) UI.viewDesc.textContent = "Administra los roles personalizados y los accesos modulares al sistema.";
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol');
+    if (typeof renderRolesBuilder === 'function') renderRolesBuilder();
+  }
   else if (state.activeView === 'lista-precios') {
     UI.viewTitle.textContent = "Lista de Precios - Renew Water";
     UI.viewDesc.textContent = "Gestiona los productos, categorías y precios por rango para Renew Water.";
@@ -7604,7 +7610,29 @@ function renderDiscussionHTML(discusion, pipelineColor) {
 }
 
 function openKanbanDrawer(projectId, targetPhaseId = null) {
-  window.openKanbanDrawer = openKanbanDrawer;
+  window.populateRolesDropdowns = function() {
+    const db = getDB();
+    const roles = db.Admin_Roles || [];
+    if (!roles.length) return; // Wait for sync or defaults
+
+    const optionsHtml = roles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    
+    const inpRol = document.getElementById('inp-usr-rol');
+    if (inpRol) {
+        const val = inpRol.value;
+        inpRol.innerHTML = optionsHtml;
+        if(val) inpRol.value = val;
+    }
+    
+    const detRol = document.getElementById('det-edit-rol');
+    if (detRol) {
+        const val = detRol.value;
+        detRol.innerHTML = optionsHtml;
+        if(val) detRol.value = val;
+    }
+};
+
+window.openKanbanDrawer = openKanbanDrawer;
   const db = getDB();
   const p = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
   if (!p) return;
@@ -10468,3 +10496,200 @@ window.saveDynamicFields = async function(dealId, respuestas) {
 };
 
 window.openKanbanDrawer = openKanbanDrawer;
+
+// ─── ROLES BUILDER (CONSTRUCTOR DE ROLES) ────────────────────────
+window.renderRolesBuilder = function() {
+    const db = getDB();
+    const roles = db.Admin_Roles || [];
+
+    const modules = [
+        { id: 'dashboard', label: 'Dashboard / Rendimiento' },
+        { id: 'mapa', label: 'Mapa de Clientes' },
+        { id: 'crm', label: 'CRM (Clientes)' },
+        { id: 'call_center', label: 'Call Center' },
+        { id: 'hrhub', label: 'RRHH (Adelantos/Staff)' },
+        { id: 'inventario', label: 'Inventario' },
+        { id: 'lista_precios', label: 'Lista de Precios' },
+        { id: 'kanban', label: 'Kanban Pulse' },
+        { id: 'academia', label: 'Gestor Academia' },
+        { id: 'anuncios', label: 'Anuncios Globales' },
+        { id: 'admin_config', label: 'Constructor / Config. Admin' }
+    ];
+
+    const cardsHtml = roles.map(r => {
+        const perms = r.permisos || {};
+        const activeCount = Object.values(perms).filter(Boolean).length;
+        
+        return `
+        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative group">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-black text-lg text-gray-900 dark:text-white">${r.nombre}</h3>
+                    <p class="text-xs text-gray-500 mt-1">${activeCount} módulos permitidos</p>
+                </div>
+                ${r.is_base ? '<span class="px-2 py-1 bg-tealAccent/10 text-tealAccent text-[9px] font-black uppercase rounded-lg">Base Role</span>' : ''}
+            </div>
+            
+            <div class="flex flex-wrap gap-1 mb-6">
+                ${Object.entries(perms).map(([key, val]) => val ? `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 rounded text-[9px]">${key}</span>` : '').join('')}
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="window.editAdminRole('${r.id}')" class="flex-1 py-2 bg-tealAccent/10 text-tealAccent hover:bg-tealAccent hover:text-black rounded-xl text-xs font-bold transition-colors">
+                    <i class="fa-solid fa-pen-to-square mr-1"></i> Editar Permisos
+                </button>
+                ${!r.is_base ? `
+                <button onclick="window.deleteAdminRole('${r.id}')" class="w-10 flex-shrink-0 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-xs flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+                ` : ''}
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    UI.canvas.innerHTML = `
+        <div class="max-w-6xl mx-auto animate-fadeIn">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                ${cardsHtml}
+                
+                <!-- Botón Nuevo -->
+                <div onclick="window.editAdminRole(null)" class="border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-400 hover:text-tealAccent hover:border-tealAccent cursor-pointer transition-all min-h-[200px] bg-gray-50/50 dark:bg-white/[0.01] hover:bg-tealAccent/5">
+                    <i class="fa-solid fa-plus text-3xl mb-3"></i>
+                    <p class="font-bold text-sm">Crear Nuevo Rol</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Edición de Rol -->
+        <div id="modal-edit-role" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[999] flex items-center justify-center opacity-0 transition-opacity">
+            <div class="bg-white dark:bg-darkCard w-full max-w-2xl rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform" id="modal-edit-role-box">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-black text-gray-900 dark:text-white" id="modal-role-title">Crear Rol</h2>
+                        <p class="text-xs text-gray-500 mt-1">Define el nombre y los permisos de acceso modulares.</p>
+                    </div>
+                    <button onclick="document.getElementById('modal-edit-role').classList.add('hidden')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-red-500 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre del Rol</label>
+                        <input type="text" id="inp-role-name" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-tealAccent" placeholder="Ej. Supervisor Regional">
+                        <input type="hidden" id="inp-role-id">
+                        <input type="hidden" id="inp-role-isbase">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Permisos Modulares</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="role-perms-container">
+                            ${modules.map(m => `
+                                <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl cursor-pointer hover:border-tealAccent/50 transition-colors">
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${m.label}</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" data-mod="${m.id}" class="role-perm-chk toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:border-tealAccent checked:translate-x-5 focus:outline-none"/>
+                                        <div class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-200 ease-in-out peer-checked:bg-tealAccent"></div>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <button onclick="window.saveAdminRole()" class="w-full py-4 bg-tealAccent text-black rounded-xl font-black uppercase tracking-widest text-xs hover:bg-teal-400 transition-colors mt-4">
+                        <i class="fa-solid fa-save mr-2"></i> Guardar Rol
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Fix button global if user clicks "+" icon in header
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol', () => window.editAdminRole(null));
+};
+
+window.editAdminRole = function(roleId) {
+    const db = getDB();
+    const modal = document.getElementById('modal-edit-role');
+    const box = document.getElementById('modal-edit-role-box');
+    
+    let role = { nombre: '', permisos: {}, is_base: false };
+    if (roleId) {
+        role = (db.Admin_Roles || []).find(r => r.id === roleId) || role;
+    }
+
+    document.getElementById('modal-role-title').textContent = roleId ? 'Editar Rol' : 'Crear Rol';
+    document.getElementById('inp-role-id').value = roleId || '';
+    document.getElementById('inp-role-name').value = role.nombre;
+    document.getElementById('inp-role-isbase').value = role.is_base ? 'true' : 'false';
+    
+    // Si es un rol base, proteger el nombre? Mejor no para flexibilidad, pero el check is_base se mantiene
+
+    document.querySelectorAll('.role-perm-chk').forEach(chk => {
+        const modId = chk.dataset.mod;
+        chk.checked = !!(role.permisos && role.permisos[modId]);
+    });
+
+    modal.classList.remove('hidden');
+    // slight delay for animation
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        box.classList.remove('scale-95');
+    }, 10);
+};
+
+window.saveAdminRole = async function() {
+    const db = getDB();
+    const id = document.getElementById('inp-role-id').value;
+    const isBase = document.getElementById('inp-role-isbase').value === 'true';
+    const nombre = document.getElementById('inp-role-name').value.trim();
+
+    if (!nombre) return showToast('El nombre del rol es obligatorio', 'error');
+
+    const permisos = {};
+    document.querySelectorAll('.role-perm-chk').forEach(chk => {
+        permisos[chk.dataset.mod] = chk.checked;
+    });
+
+    const roleObj = {
+        id: id || genId('rol', db),
+        nombre,
+        permisos,
+        is_base: isBase
+    };
+
+    if (!db.Admin_Roles) db.Admin_Roles = [];
+    const idx = db.Admin_Roles.findIndex(r => r.id === roleObj.id);
+    if (idx > -1) {
+        db.Admin_Roles[idx] = roleObj;
+    } else {
+        db.Admin_Roles.push(roleObj);
+    }
+
+    try {
+        await saveGranular('admin_roles', [roleObj]);
+        showToast('Rol guardado exitosamente', 'success');
+        document.getElementById('modal-edit-role').classList.add('hidden');
+        if (state.activeView === 'roles') renderRolesBuilder();
+    } catch (e) {
+        showToast('Error al guardar rol', 'error');
+    }
+};
+
+window.deleteAdminRole = async function(roleId) {
+    if (!confirm('¿Seguro que deseas eliminar este rol? Los usuarios asignados podrían perder su acceso.')) return;
+    
+    const db = getDB();
+    const role = (db.Admin_Roles || []).find(r => r.id === roleId);
+    if (role && role.is_base) return showToast('Los roles base no se pueden eliminar', 'error');
+
+    try {
+        if (typeof deleteRecord === 'function') await deleteRecord('admin_roles', roleId);
+        db.Admin_Roles = (db.Admin_Roles || []).filter(r => r.id !== roleId);
+        showToast('Rol eliminado', 'success');
+        if (state.activeView === 'roles') renderRolesBuilder();
+    } catch(e) {
+        showToast('Error al eliminar rol', 'error');
+    }
+};

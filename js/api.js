@@ -135,7 +135,8 @@ export async function initDB() {
                         calendario_eventos_reads: 'calendario_eventos_reads',
                         mensajes_internos: 'mensajes_internos',
                         calendario_eventos: 'calendario_eventos',
-                        recibos_pagos: 'Recibos_Pagos'
+                        recibos_pagos: 'Recibos_Pagos',
+                        admin_roles: 'Admin_Roles'
                     };
 
                     const mappedDB = {};
@@ -201,7 +202,8 @@ export async function initDB() {
           calendario_eventos_reads: 'calendario_eventos_reads',
           mensajes_internos: 'mensajes_internos',
           calendario_eventos: 'calendario_eventos',
-          recibos_pagos: 'Recibos_Pagos'
+          recibos_pagos: 'Recibos_Pagos',
+          admin_roles: 'Admin_Roles'
       };
 
       const mappedData = {};
@@ -261,12 +263,11 @@ export async function initDB() {
             cachedDB = JSON.parse(rawCache);
             console.log('[DB] Fallback to local cache due to cloud error.');
         } else {
-            cachedDB = {
               Admin_Pipelines: [], Admin_Fases: [], Admin_Campos_Formulario: [],
               Clientes_Maestro: [], Proyectos_Dinamicos: [], Respuestas_Dinamicas: [],
               Usuarios: [], academiaContent: [], inventarioGlobal: [], historialInventario: [],
               anuncios_corporativos: [], admin_meetings: [], admin_meetings_reads: [], calendario_eventos_reads: [], Admin_Proveedores: [], 
-              calendario_eventos: [], mensajes_internos: [],
+              calendario_eventos: [], mensajes_internos: [], Admin_Roles: [],
               Counters: { cli: 0, proy: 0, resp: 0, pip: 0, fase: 0, campo: 0 }
             };
         }
@@ -362,7 +363,8 @@ export async function saveGranular(table, records) {
             'Mensajes_Internos': 'mensajes_internos',
             'mensajes_internos': 'mensajes_internos',
             'Rrhh_Adelantos': 'rrhh_adelantos',
-            'rrhh_adelantos': 'rrhh_adelantos'
+            'rrhh_adelantos': 'rrhh_adelantos',
+            'Admin_Roles': 'Admin_Roles'
         };
         const dbKey = dbKeyMap[tableName] || tableName;
         
@@ -657,13 +659,12 @@ export function getDB() {
         }
     }
     
-    // Safety: Ensure all required tables exist as arrays
     const requiredTables = [
         'Admin_Pipelines', 'Admin_Fases', 'Admin_Campos_Formulario',
         'Clientes_Maestro', 'Proyectos_Dinamicos', 'Respuestas_Dinamicas',
         'Usuarios', 'academiaContent', 'inventarioGlobal', 'historialInventario',
         'anuncios_corporativos', 'admin_meetings', 'admin_meetings_reads', 'calendario_eventos_reads', 'Deleted_Workers', 'calendario_eventos',
-        'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos', 'mensajes_internos', 'rrhh_adelantos'
+        'Recibos_Pagos', 'Water_Productos', 'Admin_Catalogos', 'mensajes_internos', 'rrhh_adelantos', 'Admin_Roles'
     ];
     
     requiredTables.forEach(table => {
