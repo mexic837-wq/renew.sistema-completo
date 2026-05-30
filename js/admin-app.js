@@ -2866,6 +2866,9 @@ window.showModal = (m) => {
   // Trigger rank visibility check if worker modal
   if (m.id === 'modal-nuclear-usr') {
       setTimeout(() => {
+          if (typeof window.populateRolesDropdowns === 'function') {
+              window.populateRolesDropdowns();
+          }
           if (typeof window.updateWorkerRankVisibility === 'function') {
               window.updateWorkerRankVisibility();
           }
@@ -10526,16 +10529,22 @@ window.openKanbanDrawer = openKanbanDrawer;
 window.populateRolesDropdowns = function() {
     const db = getDB();
     const roles = db.Admin_Roles || [];
-    if (!roles.length) return;
 
-    const optionsHtml = roles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    // Fallback en caso de que Admin_Roles esté vacío
+    const defaultRoles = [
+        'CEO', 'Administración', 'Project Manager', 'Supervisor',
+        'Call Center', 'Procesador', 'Técnico', 'Vendedor'
+    ];
+
+    const optionsHtml = roles.length
+        ? roles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('')
+        : defaultRoles.map(r => `<option value="${r}">${r}</option>`).join('');
     
     const inpRol = document.getElementById('inp-usr-rol');
     if (inpRol) {
         const val = inpRol.value;
         inpRol.innerHTML = optionsHtml;
-        if (val && roles.some(r => r.nombre === val)) inpRol.value = val;
-        // Trigger visibility on first populate
+        if (val && (roles.some(r => r.nombre === val) || defaultRoles.includes(val))) inpRol.value = val;
         if (typeof window.updateWorkerRankVisibility === 'function') {
             window.updateWorkerRankVisibility();
         }
@@ -10545,7 +10554,7 @@ window.populateRolesDropdowns = function() {
     if (detRol) {
         const val = detRol.value;
         detRol.innerHTML = optionsHtml;
-        if (val && roles.some(r => r.nombre === val)) detRol.value = val;
+        if (val && (roles.some(r => r.nombre === val) || defaultRoles.includes(val))) detRol.value = val;
     }
 };
 
