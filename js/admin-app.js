@@ -10624,7 +10624,8 @@ window.renderRolesBuilder = function() {
         { id: 'app_adelantos', label: 'Mis Adelantos' },
         { id: 'app_precios', label: 'Lista de Precios' },
         { id: 'app_plantillas', label: 'Plantillas' },
-        { id: 'app_calc', label: 'Calculadora Solar' }
+        { id: 'app_calc', label: 'Calculadora Solar' },
+        { id: 'app_partners', label: 'Directorio Partners' }
     ];
 
     const cardsHtml = roles.map(r => {

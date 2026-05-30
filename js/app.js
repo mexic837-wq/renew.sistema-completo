@@ -409,7 +409,8 @@ export function navigate(screen, param = null) {
   if (screen === 'partners' && user) {
     const userRole = (user.rol || '').toLowerCase();
     const isAdmin = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRole);
-    if (!isAdmin && !userRole.includes('representante') && !userRole.includes('vendedor')) {
+    const hasPerm = user.permisos && user.permisos.app_partners;
+    if (!isAdmin && !userRole.includes('representante') && !userRole.includes('vendedor') && !userRole.includes('supervisor') && !userRole.includes('supervisión') && !hasPerm) {
       import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
       navigate('dashboard');
       return;
