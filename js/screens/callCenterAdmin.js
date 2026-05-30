@@ -240,8 +240,8 @@ async function loadCCLeads() {
                         ${l.estado}
                     </span>
                 </td>
-                <td class="py-4 text-right flex justify-end gap-2">
-                <td class="py-4 text-right flex justify-end gap-2">
+                <td class="py-4 text-right">
+                    <div class="flex justify-end gap-2">
                     <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="const b=this;b.disabled=true;const old=b.innerHTML;b.innerHTML='<i class=\\\'fa-solid fa-spinner fa-spin text-xs\\\'></i>';fetch('/api/cc-prospectos/${l.id}').then(r=>r.json()).then(d=>{b.disabled=false;b.innerHTML=old;if(window.showZadarmaHistory)window.showZadarmaHistory(d.historial_llamadas||[]);else alert('Sin historial')}).catch(()=>{b.disabled=false;b.innerHTML=old;alert('Error al cargar historial')});" title="Ver Historial de Llamadas">
                         <i class="fa-solid fa-headphones text-xs"></i>
                     </button>
@@ -251,6 +251,7 @@ async function loadCCLeads() {
                     <button class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 text-gray-400 transition-colors" onclick="adminDeleteCCLead('${l.id}')">
                         <i class="fa-solid fa-trash text-xs"></i>
                     </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
