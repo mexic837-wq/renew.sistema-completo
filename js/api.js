@@ -263,6 +263,7 @@ export async function initDB() {
             cachedDB = JSON.parse(rawCache);
             console.log('[DB] Fallback to local cache due to cloud error.');
         } else {
+            cachedDB = {
               Admin_Pipelines: [], Admin_Fases: [], Admin_Campos_Formulario: [],
               Clientes_Maestro: [], Proyectos_Dinamicos: [], Respuestas_Dinamicas: [],
               Usuarios: [], academiaContent: [], inventarioGlobal: [], historialInventario: [],
