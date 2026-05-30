@@ -26,7 +26,8 @@ export async function renderMenu() {
   const waterHighRoles = ['Admin', 'Administrador', 'Desarrollador', 'CEO', 'Supervisión', 'Contabilidad', 'Procesador'];
   let canSeeWaterForms = waterHighRoles.includes(user.rol);
 
-  if (!canSeeWaterForms && (user.rol === 'Vendedor' || user.rol === 'Representante de Ventas')) {
+  const isVentasUser = ['Vendedor', 'Representante de Ventas', 'Supervisor', 'Supervisión'].includes(user.rol);
+  if (!canSeeWaterForms && isVentasUser) {
     // Verificar si el vendedor tiene acceso al pipeline Renew Water
     try {
       const db = getDB();

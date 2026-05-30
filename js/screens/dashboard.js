@@ -549,11 +549,12 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const userRole    = (user.rol || '').toLowerCase();
   const isTecnico   = /t[eé]cn[io]co/i.test(user.rol || '');
   const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
+  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || userRole === 'supervisor' || userRole === 'supervisión';
   const canInventory= [isTecnico, 'contabilidad','finanzas','procesador','supervisión','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
 
   const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
-  if (!canWater && (userRole.includes('vendedor') || userRole.includes('representante') || isTecnico)) {
+  if (!canWater && (isVentas || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
     const hasWaterUnit = (user.unidades || []).includes('Renew Water');
     if (waterPip) {
@@ -688,7 +689,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
       action: () => window.appNavigate('mi-equipo'), delay: '0.22s', screen: 'mi-equipo'
     },
-    (isAdmin || userRole.includes('representante') || userRole.includes('vendedor')) ? {
+    (isAdmin || isVentas) ? {
       name: 'Partners', tag: null,
       gradient: 'linear-gradient(90deg,#10b981,#059669)',
       iconBg: 'rgba(16,185,129,0.1)', iconColor: '#10b981',
