@@ -1259,10 +1259,9 @@ export async function getAdminPartners() {
 export async function saveAdminWorker(worker) {
   const db = getDB();
   if (!db.Usuarios) db.Usuarios = [];
-  
+
   const idx = db.Usuarios.findIndex(u => u.id === worker.id);
   if (idx > -1) {
-    // Preserve old fields if not provided in the worker object (like rango if it's auto-managed)
     db.Usuarios[idx] = { ...db.Usuarios[idx], ...worker };
   } else {
     if (!worker.id) worker.id = 'u' + Date.now();
@@ -1274,11 +1273,42 @@ export async function saveAdminWorker(worker) {
   cachedDB = db;
   localStorage.setItem('rs_admin_db', JSON.stringify(db));
 
-  // Use granular save for the individual worker record (faster + passes through
-  // field sanitization in /api/upsert, avoiding virtual fields like sub_rol,
-  // supervisor_id, initials, w9Url, etc. that don't exist in Supabase)
-  const workerToSave = idx > -1 ? db.Usuarios[idx] : worker;
-  await saveGranular('usuarios', [workerToSave]);
+  // ── CLIENT-SIDE SANITIZATION ──
+  // Strip virtual/computed fields that do NOT exist as columns in Supabase's
+  // 'usuarios' table. Sending them causes "column does not exist" errors.
+  const src = idx > -1 ? db.Usuarios[idx] : worker;
+  const sanitized = {
+    id:                         src.id                         || null,
+    nombre:                     src.nombre                     || null,
+    apellido:                   src.apellido                   || null,
+    email:                      src.email                      || null,
+    password:                   src.password                   || src.pass || null,
+    rol:                        src.rol                        || null,
+    rango:                      src.rango                      || null,
+    department:                 src.department                 || null,
+    dob:                        src.dob                        || null,
+    foto:                       src.foto                       || null,
+    telefono:                   src.telefono                   || null,
+    w9_url:                     src.w9_url                     || src.w9Url     || null,
+    carnet_url:                 src.carnet_url                 || src.carnetUrl || null,
+    contrato_url:               src.contrato_url               || src.contratoUrl || null,
+    estatus_rrhh:               src.estatus_rrhh               || null,
+    is_suspended:               src.is_suspended               || false,
+    sede:                       src.sede                       || null,
+    unidades:                   Array.isArray(src.unidades) ? src.unidades : [],
+    tel_emergencia:             src.tel_emergencia             || null,
+    contacto_emergencia_nombre: src.contacto_emergencia_nombre || null,
+    direccion:                  src.direccion                  || null,
+    zelle_nombre:               src.zelle_nombre               || null,
+    zelle_cuenta:               src.zelle_cuenta               || null,
+    zelle_tel:                  src.zelle_tel                  || null,
+    banco_nombre:               src.banco_nombre               || null,
+    banco_cuenta:               src.banco_cuenta               || null,
+    banco_ruta:                 src.banco_ruta                 || null,
+    zadarma_sip_id:             src.zadarma_sip_id             || null,
+  };
+
+  await saveGranular('usuarios', [sanitized]);
 
   return worker;
 }
