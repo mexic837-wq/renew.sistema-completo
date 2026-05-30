@@ -10698,8 +10698,13 @@ window.editAdminRole = function(roleId) {
         accOs = !['vendedor', 'call center'].includes((role.nombre || '').toLowerCase());
     }
     
+    let accApp = role.acceso_app;
+    if (accApp === undefined) {
+        accApp = true;
+    }
+    
     chkOs.checked = !!accOs;
-    chkApp.checked = !!role.acceso_app;
+    chkApp.checked = !!accApp;
     
     document.getElementById('sec-os-modules').style.display = chkOs.checked ? 'block' : 'none';
     document.getElementById('sec-app-modules').style.display = chkApp.checked ? 'block' : 'none';
