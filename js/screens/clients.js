@@ -193,6 +193,16 @@ export async function renderClients() {
 async function _renderList(user, container) {
   const todosClientes = await getClientesMaestro();
   const db = getDB();
+
+  // Sync user profile from DB to get latest permissions/equipo_ids
+  if (db && db.Usuarios) {
+      const freshUser = db.Usuarios.find(u => u.id === user.id);
+      if (freshUser) {
+          user = { ...user, ...freshUser };
+          try { localStorage.setItem('rs_user', JSON.stringify(user)); } catch(e) {}
+      }
+  }
+
   const pipelineToMatch = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
   const activePipelineObj = pipelineToMatch ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === pipelineToMatch.toLowerCase().trim()) : null;
   const allProys = [...(db.Proyectos_Dinamicos || [])].sort((a,b) => new Date(b.created_at || b.fecha || 0) - new Date(a.created_at || a.fecha || 0));
@@ -427,15 +437,31 @@ async function _renderList(user, container) {
     const targetId = proy ? proy.id : null;
 
     let deleteBtnHtml = '';
-    const isDeletableRole = ['admin', 'administrador', 'ceo', 'vendedor', 'representante'].some(r => userRolNorm.includes(r));
-    if (isDeletableRole) {
-      deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="Eliminar Cliente"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
-    }
+      const isDeletableRole = ['admin', 'administrador', 'ceo', 'vendedor', 'representante'].some(r => userRolNorm.includes(r));
+      if (isDeletableRole) {
+        deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="Eliminar Cliente"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
+      }
 
-    return `
-      <div class="deal-card" style="--card-accent:var(--primary); background:var(--surface); border-radius:16px; padding:16px; border-left:4px solid var(--primary); margin-bottom:12px; cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
-        <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-          <div class="deal-client-name" style="color:var(--text-primary); font-weight:bold; font-size:1.1rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.2;">${c.nombre} ${deptBadgeHtml}</div>
+      // Resolve Representative
+      let repId = c.vendedor_asignado_id || c.responsable_id || c.creador_id;
+      if (proy) repId = proy.responsable_id || proy.creador_id || repId;
+      if (repId && String(repId).includes(',')) repId = String(repId).split(',')[0].trim();
+      const repUser = allWorkers.find(u => String(u.id) === String(repId));
+      const repName = repUser ? (repUser.nombre + ' ' + (repUser.apellido || '')).trim() : (c.vendedor_asignado_nombre || 'Desconocido');
+
+      const repHtml = `
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-user-tie"></i> <span>Rep: <strong>${repName}</strong></span>
+        </div>
+      `;
+
+      return `
+        <div class="deal-card" style="--card-accent:var(--primary); background:var(--surface); border-radius:16px; padding:16px; border-left:4px solid var(--primary); margin-bottom:12px; cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
+          <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+               <div class="deal-client-name" style="color:var(--text-primary); font-weight:bold; font-size:1.1rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.2;">${c.nombre} ${deptBadgeHtml}</div>
+               ${repHtml}
+            </div>
           <div style="display:flex; align-items:center;">
              ${deleteBtnHtml}
              <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}" style="padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${etapaLabel}</span>
