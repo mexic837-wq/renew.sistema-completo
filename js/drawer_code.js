@@ -48,7 +48,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   if (cli.adjuntos_oficina) {
       if (cli.adjuntos_oficina.orden_trabajo_url) combinedFiles.push({ url: cli.adjuntos_oficina.orden_trabajo_url, etiqueta: 'Orden de Trabajo', id: 'sys-orden' });
       if (cli.adjuntos_oficina.contrato_url) combinedFiles.push({ url: cli.adjuntos_oficina.contrato_url, etiqueta: 'Contrato Firmado', id: 'sys-contrato' });
-      if (cli.adjuntos_oficina.app_url) combinedFiles.push({ url: cli.adjuntos_oficina.app_url, etiqueta: 'Hoja de AplicaciÃ³n', id: 'sys-app' });
+      if (cli.adjuntos_oficina.app_url) combinedFiles.push({ url: cli.adjuntos_oficina.app_url, etiqueta: 'Hoja de Aplicación', id: 'sys-app' });
       const rUrl = cli.adjuntos_oficina.recibo_url || cli.adjuntos_oficina.recibo_vendedor_url || cli.adjuntos_oficina.recibo_tecnico_url;
       if (rUrl) combinedFiles.push({ url: rUrl, etiqueta: 'Recibo de Pago', id: 'sys-recibo' });
   }
@@ -114,7 +114,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;">
                 <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs items-center">
                     <div class="text-gray-400 font-medium">Description:</div>
-                    <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripciÃ³n'}</div>
+                    <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripción'}</div>
                     
                     <div class="text-gray-400 font-medium">Assignee:</div>
                     <div class="text-gray-800 font-medium flex items-center gap-2">
@@ -238,7 +238,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           p.fecha_finalizacion = e.target.value;
           try {
               await saveGranular('proyectos_dinamicos', [p]);
-              showToast('Fecha de finalizaciÃ³n guardada', 'success');
+              showToast('Fecha de finalización guardada', 'success');
           } catch(err) {
               console.error(err);
               showToast('Error al guardar fecha', 'error');
@@ -311,15 +311,15 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             </select>
           </div>
         `;
-      } else if (c.tipo === 'TÃ©cnico') {
-        const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'TÃ©cnico' || w.rol === 'Tecnico');
+      } else if (c.tipo === 'Técnico') {
+        const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico');
         fieldHtml = `
           <div style="margin-bottom:8px;">
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
             <select id="dfd_${c.id}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
-              <option value="">Seleccionar TÃ©cnico...</option>
+              <option value="">Seleccionar Técnico...</option>
               ${technicians.map(w => `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${w.nombre} ${w.apellido || ''}</option>`).join('')}
             </select>
           </div>
@@ -330,7 +330,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
               ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
             </label>
-            <input type="${c.tipo === 'NÃºmero' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
+            <input type="${c.tipo === 'Número' ? 'number' : (c.tipo==='Fecha'?'date':'text')}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc;">
           </div>
         `;
       }
@@ -425,7 +425,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                   <button id="close-obs" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
               </div>
               <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
-                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay mÃ¡s usuarios disponibles</p>' : ''}
+                  ${eligible.length === 0 ? '<p class="text-center text-xs text-gray-400 py-4">No hay más usuarios disponibles</p>' : ''}
                   ${eligible.map(w => `
                   <div class="obs-item flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 transition-colors" data-id="${w.id}">
                       <div class="flex items-center gap-3">
@@ -437,7 +437,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                               <div class="text-[10px] text-gray-500">${w.rol}</div>
                           </div>
                       </div>
-                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">AÃ±adir</button>
+                      <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">Añadir</button>
                   </div>
                   `).join('')}
               </div>
@@ -453,7 +453,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                       import('./api.js').then(async ({addObserver}) => {
                           try {
                               await addObserver(p.id, worker);
-                              showToast('Observador aÃ±adido', 'success');
+                              showToast('Observador añadido', 'success');
                               div.remove();
                               openKanbanDrawer(p.id, displayPhaseId);
                           } catch(e) {

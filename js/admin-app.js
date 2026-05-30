@@ -159,7 +159,7 @@ window.subtractStock = (id) => {
             const val = parseInt(inputQty.value) || 0;
             if (val > 0) {
                 if (item.stockActual < val) {
-                    if (!confirm('El stock actual es menor a la cantidad a retirar. Â¿Continuar con stock negativo?')) return;
+                    if (!confirm('El stock actual es menor a la cantidad a retirar. ¿Continuar con stock negativo?')) return;
                 }
                 item.stockActual = (parseInt(item.stockActual) || 0) - val;
                 saveInventario(invData);
@@ -276,7 +276,7 @@ window.deleteInventarioHistorialItem = async (fecha) => {
 
 window.adminDeletePartner = async (id, e) => {
     e.stopPropagation();
-    if (!confirm('Â¿Seguro que deseas eliminar este partner/proveedor?')) return;
+    if (!confirm('¿Seguro que deseas eliminar este partner/proveedor?')) return;
     const db = getDB();
     if (!db.Admin_Proveedores) return;
     db.Admin_Proveedores = db.Admin_Proveedores.filter(p => String(p.id) !== String(id));
@@ -294,7 +294,7 @@ window.adminBulkDeletePartners = async () => {
         showToast('Debes seleccionar al menos un partner', 'error');
         return;
     }
-    if (!confirm(`Â¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
+    if (!confirm(`¿Seguro que deseas eliminar ${checked.length} partners seleccionados?`)) return;
     
     const ids = Array.from(checked).map(c => c.dataset.id);
     const db = getDB();
@@ -794,7 +794,7 @@ const updateAdminNavLabels = () => {
 // Administrative Actions Attached to Window for Inline Buttons
 window.adminDeletePipeline = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Â¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
+    if (confirm('¿ELIMINAR ESTE PIPELINE PERMANENTEMENTE?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -833,7 +833,7 @@ window.adminEditFaseName = async (id, e) => {
 
 window.adminDeleteFase = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Â¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
+    if (confirm('¿BORRAR ESTA FASE Y TODAS SUS PREGUNTAS?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -848,7 +848,7 @@ window.adminDeleteFase = async (id, e) => {
 
 window.adminDeleteCampo = async (id, e) => {
     e.stopPropagation(); e.preventDefault();
-    if (confirm('Â¿ELIMINAR ESTA PREGUNTA?')) {
+    if (confirm('¿ELIMINAR ESTA PREGUNTA?')) {
       const btn = e.target.closest ? e.target.closest('button') : null;
       if (btn) { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-red-500"></i>'; btn.style.pointerEvents = 'none'; }
       try {
@@ -893,7 +893,7 @@ window.adminEditCampo = (id, e) => {
 };
 
 window.adminDeleteAcademia = async (id) => {
-    if (confirm('Â¿Eliminar este contenido?')) {
+    if (confirm('¿Eliminar este contenido?')) {
         try {
             const db = getDB();
             db.academiaContent = (db.academiaContent || []).filter(i => i.id !== id);
@@ -910,7 +910,7 @@ window.adminDeleteAcademia = async (id) => {
 
 window.adminDeleteWorker = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('Â¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
+    if (confirm('¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
       await deleteAdminWorker(id);
       await renderView();
     }
@@ -930,7 +930,7 @@ window.adminToggleWorkerStatus = async (id, isEnabled, e) => {
 
 window.adminDeleteClient = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('Â¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
+    if (confirm('¿ELIMINAR ESTE CLIENTE Y SUS PROYECTOS?')) {
       const btn = e.target.closest('.btn-delete-client');
       const originalHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -959,7 +959,7 @@ window.adminDeleteClient = async (id, e) => {
 window.adminBulkDeleteWorkers = async () => {
     const checked = Array.from(document.querySelectorAll('.worker-chk:checked')).map(chk => chk.dataset.id);
     if(checked.length === 0) return alert('Selecciona al menos un trabajador');
-    if (confirm(`Â¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
+    if (confirm(`¿ELIMINAR ${checked.length} TRABAJADORES SELECCIONADOS?`)) {
       await deleteAdminWorker(checked);
       await renderView();
     }
@@ -971,7 +971,7 @@ window.adminBulkDeleteClients = async () => {
     
     if(checked.length === 0) return alert('Selecciona al menos un cliente');
     
-    if (confirm(`Â¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
+    if (confirm(`¿ELIMINAR ${checked.length} CLIENTES SELECCIONADOS?`)) {
       const btn = document.getElementById('btn-bulk-delete-cli');
       const originalHtml = btn ? btn.innerHTML : '';
       if (btn) {
@@ -998,7 +998,7 @@ window.adminBulkDeleteClients = async () => {
 
 window.adminDeleteProject = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
-    if (confirm('Â¿ESTÑÂS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
+    if (confirm('¿ESTÑÂS SEGURO DE ELIMINAR ESTE PROYECTO?')) {
         await deleteAdminProject(id);
         const drawer = document.getElementById('kanban-drawer-overlay');
         if(drawer) drawer.remove();
@@ -2555,7 +2555,7 @@ function bindGlobalEvents() {
         btnSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
         btnSend.classList.remove('bg-tealAccent');
         btnSend.classList.add('bg-green-500');
-        showSuccessModal('Â¡Ya está activado! Los protocolos de Email Engine se han sincronizado con éxito.');
+        showSuccessModal('¡Ya está activado! Los protocolos de Email Engine se han sincronizado con éxito.');
       })
       .catch(err => {
         console.error('Email Engine Error:', err);
@@ -2653,7 +2653,7 @@ function bindGlobalEvents() {
         btnWaSend.innerHTML = '<i class="fa-solid fa-check"></i> Activated!';
         btnWaSend.classList.remove('bg-tealAccent');
         btnWaSend.classList.add('bg-green-500');
-        showSuccessModal('Â¡Protocolo WhatsApp Activado! Las señales se están transmitiendo a la red.');
+        showSuccessModal('¡Protocolo WhatsApp Activado! Las señales se están transmitiendo a la red.');
       })
       .catch(err => {
         console.error('WhatsApp Engine Error:', err);
@@ -4322,7 +4322,7 @@ window.renderView = async function renderView() {
          <div>
             <h4 class="font-bold text-gray-800 dark:text-white text-sm mb-1">${item.titulo}</h4>
             <div class="flex items-center gap-2 text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-widest">
-               <i class="fa-solid ${(item.tipo || '').includes('Video') ? 'fa-play' : 'fa-file'}"></i> ${(item.tipo || '').replace('InformaciÃ³n', 'Información')}
+               <i class="fa-solid ${(item.tipo || '').includes('Video') ? 'fa-play' : 'fa-file'}"></i> ${(item.tipo || '').replace('Información', 'Información')}
             </div>
             <div class="flex flex-wrap gap-1">${item.permisos.map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
          </div>
@@ -5165,7 +5165,7 @@ window.renderView = async function renderView() {
                   dbLoc.anuncios_corporativos.push(nuevoAnuncio);
                   await saveDB(dbLoc);
                   state.currentAnnFoto = null;
-                  showToast('Â¡Anuncio publicado globalmente!', 'success');
+                  showToast('¡Anuncio publicado globalmente!', 'success');
                   renderView();
                 };
             }
@@ -5275,7 +5275,7 @@ window.renderView = async function renderView() {
 
 // Ventana global para visualizar reporte de lectura
 window.deleteAnuncio = async (id, btn) => {
-    if (!confirm('Â¿Seguro que deseas eliminar este anuncio? No podrá recuperarse.')) return;
+    if (!confirm('¿Seguro que deseas eliminar este anuncio? No podrá recuperarse.')) return;
     
     try {
         if (btn) {
@@ -5304,7 +5304,7 @@ window.deleteAnuncio = async (id, btn) => {
 };
 
 window.deleteMeeting = async (id, btn) => {
-    if (!confirm('Â¿Seguro que deseas eliminar esta reunión?')) return;
+    if (!confirm('¿Seguro que deseas eliminar esta reunión?')) return;
     
     try {
         if (btn) {
@@ -6108,7 +6108,7 @@ window.eliminarEventoCalendarioAdmin = async function() {
     return;
   }
 
-  if (!confirm('Â¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) return;
 
   try {
     btn.disabled = true;
@@ -10072,7 +10072,7 @@ window.savePrecio = async function() {
 };
 
 window.deleteListaPrecioItem = async function(id) {
-    if (!confirm('Â¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
+    if (!confirm('¿Seguro que deseas eliminar este producto de la lista de precios?')) return;
     try {
         const { deleteListaPrecio } = await import('./api.js');
         const success = await deleteListaPrecio(id);
@@ -10204,7 +10204,7 @@ window.openInviteModal = function() {
         const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
-        const msg = `Â¡Hola ${user.nombre}! 
+        const msg = `¡Hola ${user.nombre}! 
 
 Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.
 
@@ -10213,7 +10213,7 @@ Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus cred
 <i class="fa-solid fa-key"></i> Contraseña: ${user.password || user.pass || 'renew123'}
 
 Si tienes alguna duda, no dudes en contactar al administrador.
-Â¡Éxitos!`;
+¡Éxitos!`;
         
         previewText.textContent = msg;
         previewBox.classList.remove('hidden');
