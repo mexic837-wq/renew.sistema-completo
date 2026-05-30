@@ -10673,7 +10673,7 @@ window.saveAdminRole = async function() {
     }
 
     try {
-        await saveGranular('admin_roles', [roleObj]);
+        await saveGranular('Admin_Roles', db.Admin_Roles);
         showToast('Rol guardado exitosamente', 'success');
         document.getElementById('modal-edit-role').classList.add('hidden');
         if (state.activeView === 'roles') renderRolesBuilder();

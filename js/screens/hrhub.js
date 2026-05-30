@@ -243,6 +243,26 @@ export async function renderHRHub() {
                 import('../components/toast.js').then(m => m.showToast('Error al solventar adelanto', 'error'));
             }
         };
+
+        window.deleteAdelanto = async (id) => {
+            if (!confirm('¿Estás seguro de que deseas eliminar este adelanto? Esta acción no se puede deshacer.')) return;
+            try {
+                const { deleteRecord } = await import('../api.js');
+                await deleteRecord('rrhh_adelantos', id);
+                
+                const db = getDB();
+                if (db.rrhh_adelantos) {
+                    db.rrhh_adelantos = db.rrhh_adelantos.filter(a => String(a.id) !== String(id));
+                    localStorage.setItem('rs_admin_db', JSON.stringify(db));
+                }
+                
+                import('../components/toast.js').then(m => m.showToast('Adelanto eliminado exitosamente', 'success'));
+                renderAdelantos();
+            } catch (err) {
+                console.error("Error al eliminar adelanto:", err);
+                import('../components/toast.js').then(m => m.showToast('Error al eliminar adelanto', 'error'));
+            }
+        };
     }
 
     function bindHRToggle() {
@@ -653,11 +673,12 @@ export async function renderHRHub() {
                         <td class="px-4 py-3 whitespace-nowrap font-black text-tealAccent text-xs">$${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-[10px] text-gray-500">${adel.fecha || '-'}</td>
                         <td class="px-4 py-3 text-[10px] text-gray-600 dark:text-gray-400 italic">${adel.motivo || '-'}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-right">
+                        <td class="px-4 py-3 whitespace-nowrap text-right flex items-center justify-end gap-1">
                             ${adel.document_url ? `<a href="${adel.document_url}" target="_blank" class="px-3 py-1 bg-tealAccent/10 text-tealAccent rounded-lg text-[8px] font-black uppercase border border-tealAccent/20 hover:bg-tealAccent/20 transition-all"><i class="fa-solid fa-file-pdf mr-1"></i>Ver Doc</a>` : '<span class="text-[9px] text-gray-300">Sin Doc</span>'}
                             ${adel.status === 'Solventado' 
-                                ? `<span class="ml-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[8px] font-black uppercase border border-emerald-500/20">Solventado</span>`
-                                : `<button onclick="event.stopPropagation(); window.solventarAdelanto('${adel.id}')" class="ml-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase border border-amber-500/20 hover:bg-amber-500/20 transition-all" title="Marcar como Solventado"><i class="fa-solid fa-check mr-1"></i>Solventar</button>`}
+                                ? `<span class="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[8px] font-black uppercase border border-emerald-500/20">Solventado</span>`
+                                : `<button onclick="event.stopPropagation(); window.solventarAdelanto('${adel.id}')" class="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase border border-amber-500/20 hover:bg-amber-500/20 transition-all" title="Marcar como Solventado"><i class="fa-solid fa-check mr-1"></i>Solventar</button>`}
+                            <button onclick="event.stopPropagation(); window.deleteAdelanto('${adel.id}')" class="px-2 py-1 bg-red-500/10 text-red-500 rounded-lg text-[10px] hover:bg-red-500/20 transition-all ml-1" title="Eliminar Adelanto"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>`;
                 }).join('');
