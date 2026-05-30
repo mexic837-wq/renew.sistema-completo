@@ -2489,6 +2489,30 @@ app.post('/api/zadarma/call', async (req, res) => {
     }
 });
 
+app.get('/api/zadarma/webrtc-key', async (req, res) => {
+    try {
+        const { sip } = req.query;
+        if (!sip) return res.status(400).json({ error: 'Falta parámetro (sip)' });
+
+        const params = { sip };
+        const method = '/v1/webrtc/get_key/';
+        const { queryString, signature } = generateZadarmaSignature(method, params);
+
+        const response = await fetch(`https://api.zadarma.com${method}?${queryString}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `${ZADARMA_KEY}:${signature}`
+            }
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error('[ZADARMA WEBRTC]', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (req, res) => {
     try {
         console.log('[ZADARMA WEBHOOK] Evento recibido', req.body);

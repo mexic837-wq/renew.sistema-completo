@@ -537,6 +537,10 @@ async function init() {
           return;
       }
       console.log('[INIT] User:', user.email);
+      
+      if (window.initZadarmaWebRTC) {
+          setTimeout(() => window.initZadarmaWebRTC(), 1000);
+      }
 
       // Deep Linking Logic
       if (hash && hash.startsWith('#crmDetail?id=')) {

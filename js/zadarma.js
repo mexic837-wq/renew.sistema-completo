@@ -97,3 +97,30 @@ window.showZadarmaHistory = (historial) => {
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 };
+
+window.initZadarmaWebRTC = async () => {
+    const currentUser = _getZadarmaUser();
+    if (!currentUser || !currentUser.zadarma_sip_id) {
+        console.log('[Zadarma WebRTC] No SIP ID found for current user. Widget will not load.');
+        return;
+    }
+
+    try {
+        console.log('[Zadarma WebRTC] Fetching key for SIP:', currentUser.zadarma_sip_id);
+        const res = await fetch('/api/zadarma/webrtc-key?sip=' + encodeURIComponent(currentUser.zadarma_sip_id));
+        const data = await res.json();
+        
+        if (data.status === 'success' && data.key) {
+            console.log('[Zadarma WebRTC] Key received, initializing widget...');
+            if (typeof zadarmaWidgetFn === 'function') {
+                zadarmaWidgetFn(data.key, currentUser.zadarma_sip_id);
+            } else {
+                console.warn('[Zadarma WebRTC] zadarmaWidgetFn not found. Are scripts loaded in index.html?');
+            }
+        } else {
+            console.error('[Zadarma WebRTC] Error fetching key:', data);
+        }
+    } catch(err) {
+        console.error('[Zadarma WebRTC] Initialization failed:', err);
+    }
+};

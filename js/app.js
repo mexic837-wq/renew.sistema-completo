@@ -696,6 +696,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  if (user && window.initZadarmaWebRTC) {
+      setTimeout(() => window.initZadarmaWebRTC(), 1000);
+  }
+
   // Desktop Sidebar Toggle (Delegated below)
   if (localStorage.getItem('sidebar_collapsed') === 'true') {
     document.body.classList.add('sidebar-collapsed');
