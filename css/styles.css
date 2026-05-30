@@ -1532,13 +1532,14 @@ body.no-nav #bottom-nav {
   /* Reset Center Button for Sidebar */
   .nav-item-plus {
     position: static !important;
-    top: 0 !important;
-    padding-bottom: 0 !important;
+    top: auto !important;
+    padding: 12px 18px !important;
+    height: auto !important;
     justify-content: flex-start !important;
   }
   .plus-circle {
-    width: 24px !important;
-    height: 24px !important;
+    width: 22px !important;
+    height: 22px !important;
     background: none !important;
     border: none !important;
     box-shadow: none !important;
@@ -1546,8 +1547,8 @@ body.no-nav #bottom-nav {
     margin: 0 !important;
   }
   .nav-item-plus .plus-circle svg {
-    width: 24px !important;
-    height: 24px !important;
+    width: 22px !important;
+    height: 22px !important;
   }
   .nav-item-plus .plus-circle { border-radius: 0 !important; }
 
