@@ -10536,8 +10536,8 @@ window.populateRolesDropdowns = function() {
 
     // Fallback en caso de que Admin_Roles esté vacío
     const defaultRoles = [
-        'CEO', 'Administración', 'Project Manager', 'Supervisor',
-        'Call Center', 'Procesador', 'Técnico', 'Vendedor'
+        'CEO', 'Project Manager', 'Supervisor',
+        'Call Center', 'Técnico', 'Vendedor'
     ];
 
     // Merge roles and defaultRoles
