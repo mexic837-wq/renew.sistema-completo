@@ -42,12 +42,25 @@ window.zadarmaCall = async (phone) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ from: currentUser.zadarma_sip_id, to: phone })
         });
-        const data = await res.json();
+
+        // Detect when the server returns HTML instead of JSON (e.g. 404 on outdated server)
+        if (res.status === 404) {
+            throw new Error('El servidor no tiene el módulo Zadarma activo. Contacta al administrador para reiniciar el servidor.');
+        }
+
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch(parseErr) {
+            throw new Error('Respuesta inesperada del servidor. El servidor puede necesitar reiniciarse.');
+        }
+
         if (data.status === 'success') {
-            if (window.showToast) window.showToast('Llamada en curso. Contesta tu teléfono Zadarma.', 'success');
+            if (window.showToast) window.showToast('✅ Llamada en curso. Contesta tu teléfono Zadarma.', 'success');
             else alert('Llamada en curso. Contesta tu teléfono Zadarma.');
         } else {
-            throw new Error(data.message || 'Error de Zadarma');
+            throw new Error(data.message || data.error || 'Error de Zadarma');
         }
     } catch (e) {
         console.error('[ZADARMA]', e);
@@ -55,6 +68,7 @@ window.zadarmaCall = async (phone) => {
         else alert('Error: ' + e.message);
     }
 };
+
 
 
 window.showZadarmaHistory = (historial) => {
