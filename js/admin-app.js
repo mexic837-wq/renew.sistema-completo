@@ -7610,7 +7610,6 @@ function renderDiscussionHTML(discusion, pipelineColor) {
 }
 
 function openKanbanDrawer(projectId, targetPhaseId = null) {
-  window.populateRolesDropdowns = function() {
     const db = getDB();
     const roles = db.Admin_Roles || [];
     if (!roles.length) return; // Wait for sync or defaults
@@ -10496,6 +10495,28 @@ window.saveDynamicFields = async function(dealId, respuestas) {
 };
 
 window.openKanbanDrawer = openKanbanDrawer;
+
+window.populateRolesDropdowns = function() {
+    const db = getDB();
+    const roles = db.Admin_Roles || [];
+    if (!roles.length) return;
+
+    const optionsHtml = roles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    
+    const inpRol = document.getElementById('inp-usr-rol');
+    if (inpRol) {
+        const val = inpRol.value;
+        inpRol.innerHTML = optionsHtml;
+        if(val) inpRol.value = val;
+    }
+    
+    const detRol = document.getElementById('det-edit-rol');
+    if (detRol) {
+        const val = detRol.value;
+        detRol.innerHTML = optionsHtml;
+        if(val) detRol.value = val;
+    }
+};
 
 // ─── ROLES BUILDER (CONSTRUCTOR DE ROLES) ────────────────────────
 window.renderRolesBuilder = function() {
