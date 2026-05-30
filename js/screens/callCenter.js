@@ -61,7 +61,8 @@ async function crearLeadEnCRM(prospecto, ecosistema, notas, operador) {
     origen_id:                operador.id,
     vendedor_asignado_id:     null,
     vendedor_asignado_nombre: null,
-    origen_lead_cc:           prospecto.origen || null
+    origen_lead_cc:           prospecto.origen || null,
+    historial_llamadas:       prospecto.historial_llamadas || []
   };
 
 

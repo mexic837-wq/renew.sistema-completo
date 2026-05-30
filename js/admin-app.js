@@ -7712,6 +7712,39 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     ${filesHtml}
                 </div>
             </div>
+
+            <div style="padding:20px 20px 20px;border-top:1px solid #f1f5f9;">
+                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-microphone text-blue-400"></i> Llamadas Vinculadas</h3>
+                <div class="flex flex-col gap-2">
+                    ${(() => {
+                        const projectCalls = (cli.historial_llamadas || []).filter(c => c.proyecto_id === p.id);
+                        if (projectCalls.length === 0) return '<p class="text-[10px] text-gray-400 italic">No hay llamadas vinculadas a este proyecto</p>';
+                        return projectCalls.reverse().map(call => {
+                            const dateStr = new Date(call.fecha).toLocaleDateString('es-ES', { month:'short', day:'numeric' });
+                            return `
+                            <div class="bg-gray-50 border border-gray-100 p-2 rounded-lg flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center ${call.tipo === 'Entrante' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}">
+                                        <i class="fa-solid ${call.tipo === 'Entrante' ? 'fa-arrow-down' : 'fa-arrow-up'} text-[8px]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-gray-700 leading-none">${call.tipo || 'Llamada'}</p>
+                                        <p class="text-[8px] text-gray-400">${dateStr}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    ${call.grabacion_url ? `
+                                    <audio id="drawer-audio-${call.call_id}" src="${call.grabacion_url}" preload="none"></audio>
+                                    <button onclick="const a=document.getElementById('drawer-audio-${call.call_id}'); if(a.paused){a.play();this.innerHTML='<i class=\\'fa-solid fa-pause\\'></i>';}else{a.pause();this.innerHTML='<i class=\\'fa-solid fa-play\\'></i>';}" class="w-6 h-6 rounded bg-white border border-gray-200 text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-colors">
+                                        <i class="fa-solid fa-play text-[8px]"></i>
+                                    </button>
+                                    ` : '<span class="text-[8px] font-bold text-gray-400 bg-white border border-gray-100 px-1 rounded">Procesando...</span>'}
+                                </div>
+                            </div>`;
+                        }).join('');
+                    })()}
+                </div>
+            </div>
         </div>
       </div>
       
@@ -8890,6 +8923,79 @@ async function showClientDetail(id) {
             `;
         }
     }
+        }
+    }
+
+    // --- CALLS TAB ---
+    const callsBadge = document.getElementById('cli-calls-count-badge');
+    const callsCont = document.getElementById('cli-calls-container');
+    if (callsCont && callsBadge) {
+        const history = cli.historial_llamadas || [];
+        callsBadge.textContent = `${history.length} LLAMADAS`;
+        
+        if (history.length > 0) {
+            // Retrieve client projects to build dropdown
+            const dbRef = getDB();
+            const activeProjects = (dbRef.Proyectos_Dinamicos || []).filter(p => p.cliente_id === cli.id);
+            const pipelines = dbRef.Admin_Pipelines || [];
+            
+            callsCont.innerHTML = history.slice().reverse().map((call, i) => {
+                const callDate = new Date(call.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                const durMin = Math.floor(call.duracion / 60);
+                const durSec = call.duracion % 60;
+                
+                let playHTML = `<span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">Procesando...</span>`;
+                if (call.grabacion_url && call.grabacion_url.startsWith('http')) {
+                    playHTML = `
+                    <audio id="audio-${call.call_id}" src="${call.grabacion_url}" preload="none"></audio>
+                    <button onclick="const a=document.getElementById('audio-${call.call_id}'); if(a.paused){a.play();this.innerHTML='<i class=\\'fa-solid fa-pause\\'></i>';}else{a.pause();this.innerHTML='<i class=\\'fa-solid fa-play\\'></i>';}" class="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center hover:bg-sky-200 transition-colors">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                    <a href="${call.grabacion_url}" download class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                        <i class="fa-solid fa-download"></i>
+                    </a>`;
+                }
+                
+                let projectSelectHTML = `<select disabled class="text-[10px] px-2 py-1 bg-gray-50 border border-gray-200 rounded outline-none w-32"><option>Sin proyectos</option></select>`;
+                if (activeProjects.length > 0) {
+                    projectSelectHTML = `<select class="text-[10px] px-2 py-1 bg-white border border-gray-200 rounded outline-none w-36 hover:border-tealAccent transition-colors" onchange="window.linkCallToProject('${cli.id}', '${call.call_id}', this.value)">
+                        <option value="">Vincular a proyecto...</option>
+                        ${activeProjects.map(p => {
+                            const pip = pipelines.find(pl => pl.id === p.pipeline_id) || { nombre: 'Proyecto' };
+                            const isLinked = call.proyecto_id === p.id;
+                            return `<option value="${p.id}" ${isLinked ? 'selected' : ''}>${pip.nombre} (${p.id.substring(0,6)})</option>`;
+                        }).join('')}
+                    </select>`;
+                }
+                
+                return `
+                <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-tealAccent hover:shadow-sm transition-all group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center ${call.tipo === 'Entrante' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}">
+                            <i class="fa-solid ${call.tipo === 'Entrante' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-bold text-gray-800">${call.tipo || 'Llamada'}</p>
+                                ${call.proyecto_id ? `<span class="text-[9px] font-black text-white bg-tealAccent px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><i class="fa-solid fa-link"></i> Vinculada</span>` : ''}
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-0.5 font-medium"><i class="fa-regular fa-clock"></i> ${callDate} • <i class="fa-solid fa-stopwatch"></i> ${durMin}m ${durSec}s</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${projectSelectHTML}
+                        ${playHTML}
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            callsCont.innerHTML = `
+            <div class="col-span-full py-20 text-center opacity-30">
+                <i class="fa-solid fa-microphone-slash text-4xl mb-3"></i>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em]">Sin historial de llamadas</p>
+            </div>`;
+        }
+    }
 
 
     // Default to main tab on open
@@ -8906,6 +9012,37 @@ async function showClientDetail(id) {
 
     window.showModal(UI.modCliDetail);
 }
+
+// Lógica para vincular llamadas
+window.linkCallToProject = async function(clientId, callId, projectId) {
+    try {
+        const dbRef = getDB();
+        const cliIdx = dbRef.Clientes_Maestro.findIndex(c => c.id === clientId);
+        if (cliIdx === -1) return;
+        
+        const history = dbRef.Clientes_Maestro[cliIdx].historial_llamadas || [];
+        const callIdx = history.findIndex(h => h.call_id === callId);
+        
+        if (callIdx !== -1) {
+            history[callIdx].proyecto_id = projectId || null;
+            dbRef.Clientes_Maestro[cliIdx].historial_llamadas = history;
+            await saveDB(dbRef);
+            
+            // Also notify the server to update the specific call
+            fetch('/api/db', { // Usamos cualquier endpoint post que haga un guardado completo, o saveDB ya lo hace
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Clientes_Maestro: dbRef.Clientes_Maestro })
+            });
+            
+            showToast(projectId ? 'Llamada vinculada exitosamente' : 'Vínculo removido', 'success');
+            await showClientDetail(clientId); // Refresh view
+        }
+    } catch(err) {
+        console.error(err);
+        showToast('Error al vincular llamada', 'error');
+    }
+};
 
 // Global Tab Handler
 document.addEventListener('click', (e) => {
