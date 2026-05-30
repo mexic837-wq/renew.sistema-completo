@@ -295,7 +295,7 @@ export async function renderDashboard() {
         --bg-tool-clientes: linear-gradient(135deg, #fff7ed, #ffedd5);
         --bg-tool-calendario: linear-gradient(135deg, #f0fdfa, #ccfbf1);
         --bg-tool-admin: linear-gradient(135deg, #fff1f2, #ffe4e6);
-        --bg-tool-callcenter: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+        --bg-tool-callcenter: linear-gradient(135deg, #e6fffa, #ccfbf1);
         --bg-tool-default: linear-gradient(135deg, #f8fafc, #f1f5f9);
       }
       body.dark-theme {

@@ -352,7 +352,6 @@ export async function saveGranular(table, records) {
     // ── CRITICAL: Update local cachedDB immediately so subsequent calls to getDB() see the changes ──
     if (cachedDB) {
         const tableName = table.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('_');
-        // Map common table names to DB keys if they differ
         const dbKeyMap = {
             'Proyectos_Dinamicos': 'Proyectos_Dinamicos',
             'Respuestas_Dinamicas': 'Respuestas_Dinamicas',
@@ -361,10 +360,18 @@ export async function saveGranular(table, records) {
             'Admin_Campos_Formulario': 'Admin_Campos_Formulario',
             'Usuarios': 'Usuarios',
             'Historial_Inventario': 'historialInventario',
+            'Inventario_Global': 'inventarioGlobal',
+            'Academia_Content': 'academiaContent',
             'Mensajes_Internos': 'mensajes_internos',
             'mensajes_internos': 'mensajes_internos',
             'Rrhh_Adelantos': 'rrhh_adelantos',
             'rrhh_adelantos': 'rrhh_adelantos',
+            'Anuncios_Corporativos': 'anuncios_corporativos',
+            'Admin_Meetings': 'admin_meetings',
+            'Admin_Meetings_Reads': 'admin_meetings_reads',
+            'Calendario_Eventos': 'calendario_eventos',
+            'Calendario_Eventos_Reads': 'calendario_eventos_reads',
+            'Observadores_Reads': 'observadores_reads',
             'Admin_Roles': 'Admin_Roles'
         };
         const dbKey = dbKeyMap[tableName] || tableName;
