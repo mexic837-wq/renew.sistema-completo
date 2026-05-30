@@ -691,6 +691,48 @@ function _ensureSidebarPopulated() {
   }
 }
 
+// ── Theme & Sidebar – registered ONCE at module level ──────
+const _applyTheme = (theme) => {
+  if (theme === 'dark') {
+    document.body.classList.add('dark-theme');
+    document.documentElement.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark-theme');
+    document.documentElement.classList.remove('dark');
+  }
+  const themeStatusText = document.getElementById('theme-status-text');
+  if (themeStatusText) {
+    themeStatusText.innerText = (theme === 'dark') ? t('menu_theme_dark') : t('menu_theme_light');
+  }
+};
+
+document.addEventListener('click', (e) => {
+  const themeBtn = e.target.closest('#btn-theme-toggle') || e.target.closest('#btn-theme-toggle-mobile');
+  const sidebarToggleBtn = e.target.closest('#btn-toggle-sidebar');
+
+  if (sidebarToggleBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('sidebar_collapsed', document.body.classList.contains('sidebar-collapsed'));
+    return;
+  }
+
+  if (themeBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const isCurrentlyDark = document.body.classList.contains('dark-theme');
+    const newTheme = isCurrentlyDark ? 'light' : 'dark';
+    localStorage.setItem('theme', newTheme);
+    _applyTheme(newTheme);
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
+    import('./components/toast.js').then(m => m.showToast(
+      newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : '☀️ Modo Claro',
+      'success'
+    ));
+  }
+});
+
 // ── Bootstrap ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await initDB(); // Sync with local server
@@ -717,52 +759,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       setTimeout(() => window.initZadarmaWebRTC(), 1000);
   }
 
-  // Desktop Sidebar Toggle (Delegated below)
+  // Desktop Sidebar Toggle
   if (localStorage.getItem('sidebar_collapsed') === 'true') {
     document.body.classList.add('sidebar-collapsed');
   }
 
-  const applyTheme = (theme) => {
-    if (theme === 'dark') {
-      document.body.classList.add('dark-theme');
-      document.documentElement.classList.add('dark');
-    } else {
-      document.body.classList.remove('dark-theme');
-      document.documentElement.classList.remove('dark');
-    }
-    // Update any UI elements that need hard text updates
-    const themeStatusText = document.getElementById('theme-status-text');
-    if (themeStatusText) {
-      themeStatusText.innerText = (theme === 'dark') ? t('menu_theme_dark') : t('menu_theme_light');
-    }
-  };
-
+  // Apply saved theme on load (listener is registered at module level above)
   const currentSavedTheme = localStorage.getItem('theme') || 'light';
-  applyTheme(currentSavedTheme);
-
-  document.addEventListener('click', (e) => {
-    const themeBtn = e.target.closest('#btn-theme-toggle') || e.target.closest('#btn-theme-toggle-mobile');
-    const sidebarToggleBtn = e.target.closest('#btn-toggle-sidebar');
-    
-    if (sidebarToggleBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.body.classList.toggle('sidebar-collapsed');
-      localStorage.setItem('sidebar_collapsed', document.body.classList.contains('sidebar-collapsed'));
-      return;
-    }
-
-    if (themeBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const isCurrentlyDark = document.body.classList.contains('dark-theme');
-      const newTheme = isCurrentlyDark ? 'light' : 'dark';
-      localStorage.setItem('theme', newTheme);
-      applyTheme(newTheme);
-      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
-      showToast(newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : '☀️ Modo Claro', 'success');
-    }
-  });
+  _applyTheme(currentSavedTheme);
 
 
   window.addEventListener('langchange', () => {
