@@ -2638,7 +2638,7 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
                     if (response && response.status === 'success' && response.links && response.links.length > 0) {
                         const call_record_link = response.links[0];
                         
-                        let recordSaved = false;
+                        
                         
                         // 1. Intentar guardar en leads
                         const { data: leads } = await supabase.from('call_center_prospectos').select('id, historial_llamadas');
@@ -2650,26 +2650,20 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
                                     lead.historial_llamadas[callIndex].grabacion_url = call_record_link;
                                     await supabase.from('call_center_prospectos').update({ historial_llamadas: lead.historial_llamadas }).eq('id', lead.id);
                                     console.log(`[ZADARMA] Grabación vinculada exitosamente al lead ${lead.id}`);
-                                    recordSaved = true;
-                                    break;
                                 }
                             }
                         }
                         
                         // 2. Intentar guardar en clientes_maestro
-                        if (!recordSaved) {
-                            const { data: clientes } = await supabase.from('clientes_maestro').select('id, historial_llamadas');
-                            if (clientes) {
-                                for (const cliente of clientes) {
-                                    if (!cliente.historial_llamadas) continue;
-                                    const callIndex = cliente.historial_llamadas.findIndex(h => h.call_id === call_id_with_rec || h.call_id === pbx_call_id);
-                                    if (callIndex !== -1) {
-                                        cliente.historial_llamadas[callIndex].grabacion_url = call_record_link;
-                                        await supabase.from('clientes_maestro').update({ historial_llamadas: cliente.historial_llamadas }).eq('id', cliente.id);
-                                        console.log(`[ZADARMA] Grabación vinculada exitosamente al CLIENTE ${cliente.id}`);
-                                        recordSaved = true;
-                                        break;
-                                    }
+                        const { data: clientes } = await supabase.from('clientes_maestro').select('id, historial_llamadas');
+                        if (clientes) {
+                            for (const cliente of clientes) {
+                                if (!cliente.historial_llamadas) continue;
+                                const callIndex = cliente.historial_llamadas.findIndex(h => h.call_id === call_id_with_rec || h.call_id === pbx_call_id);
+                                if (callIndex !== -1) {
+                                    cliente.historial_llamadas[callIndex].grabacion_url = call_record_link;
+                                    await supabase.from('clientes_maestro').update({ historial_llamadas: cliente.historial_llamadas }).eq('id', cliente.id);
+                                    console.log(`[ZADARMA] Grabación vinculada exitosamente al CLIENTE ${cliente.id}`);
                                 }
                             }
                         }
