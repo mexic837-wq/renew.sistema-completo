@@ -373,10 +373,11 @@ async function _renderList(user, container) {
     else if (mainDept.toLowerCase().includes('home')) { deptColor = '#a855f7'; deptBg = 'rgba(168, 85, 247, 0.15)'; mainDept = 'Home'; }
     const deptBadgeHtml = `<span style="font-size:0.55rem; font-weight:900; background:${deptBg}; color:${deptColor}; padding:2px 6px; border-radius:6px; text-transform:uppercase; margin-left:6px; letter-spacing:0.5px; align-self:center;">${mainDept}</span>`;
 
+    const allWorkers = [...(db.Usuarios || [])];
+    
     // --- "En manos de" chip ---
     // Show when the current phase's responsible is NOT the vendor (Vendedor)
     if (rolEncargado && !['vendedor', 'representante'].some(r => rolEncargado.toLowerCase().includes(r))) {
-      const allWorkers = [...(db.Usuarios || [])];
 
       // Helper: find the first worker matching a role (case-insensitive)
       const findByRol = (rolStr) => allWorkers.find(u => u.rol && u.rol.toLowerCase().includes(rolStr.toLowerCase()));
