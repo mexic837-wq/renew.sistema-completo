@@ -28,7 +28,7 @@ export function renderMeetings() {
   });
 
   const meetingsHtml = meetings.map(mt => {
-    const isRead = reads.some(r => r.meeting_id === mt.id && r.user_id === user.id);
+    const isRead = reads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
     
     return `
       <div class="meeting-card ${isRead ? 'read' : 'unread'}" data-id="${mt.id}">
@@ -268,18 +268,24 @@ export function renderMeetings() {
   screen.querySelectorAll('.btn-confirm-mt').forEach(btn => {
     btn.onclick = async () => {
         const mtId = btn.dataset.id;
-        const isAlreadyRead = reads.some(r => r.meeting_id === mtId && r.user_id === user.id);
+        const isAlreadyRead = reads.some(r => String(r.meeting_id) === String(mtId) && String(r.user_id) === String(user.id));
         if (isAlreadyRead) return;
 
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
         try {
-            await saveGranular('admin_meetings_reads', [{ meeting_id: mtId, user_id: user.id }]);
+            // Use a deterministic ID (meeting_id + user_id) to avoid duplicates in Supabase
+            const readId = `rd_${String(mtId)}_${String(user.id)}`;
+            const readRecord = { id: readId, meeting_id: String(mtId), user_id: String(user.id), read_at: new Date().toISOString() };
+            await saveGranular('admin_meetings_reads', [readRecord]);
             showToast('Asistencia confirmada', 'success');
             // Optimistic update
             const dbLoc = getDB();
             if(!dbLoc.admin_meetings_reads) dbLoc.admin_meetings_reads = [];
-            dbLoc.admin_meetings_reads.push({ meeting_id: mtId, user_id: user.id });
+            const alreadyIn = dbLoc.admin_meetings_reads.findIndex(r => String(r.meeting_id) === String(mtId) && String(r.user_id) === String(user.id));
+            if (alreadyIn === -1) {
+                dbLoc.admin_meetings_reads.push(readRecord);
+            }
             renderMeetings();
         } catch (err) {
             console.error(err);

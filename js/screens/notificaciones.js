@@ -54,7 +54,7 @@ export async function renderNotificaciones() {
       const matchesUser = tags.includes(`user_${user.id}`);
       return matchesRole || matchesPipe || matchesUser;
   }).map(mt => {
-      const isRead = meetingReads.some(r => r.meeting_id === mt.id && String(r.user_id) === String(user.id));
+      const isRead = meetingReads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
       return {
           type: 'meeting',
           id: mt.id,
@@ -372,13 +372,25 @@ export async function renderNotificaciones() {
                       await saveDB(db);
                   }
               } else if (item.type === 'meeting') {
+                  // Use a deterministic ID (meeting_id + user_id) to avoid duplicates
+                  const readId = `rd_${String(item.id)}_${String(user.id)}`;
                   const newRead = {
-                      id: 'rd_' + Date.now().toString(36),
-                      meeting_id: item.id,
-                      user_id: user.id,
+                      id: readId,
+                      meeting_id: String(item.id),
+                      user_id: String(user.id),
                       read_at: new Date().toISOString()
                   };
-                  meetingReads.push(newRead);
+                  // Update cachedDB directly to ensure it persists across re-renders
+                  const dbNow = getDB();
+                  if (!dbNow.admin_meetings_reads) dbNow.admin_meetings_reads = [];
+                  const existingIdx = dbNow.admin_meetings_reads.findIndex(r => String(r.meeting_id) === String(item.id) && String(r.user_id) === String(user.id));
+                  if (existingIdx === -1) {
+                      dbNow.admin_meetings_reads.push(newRead);
+                  }
+                  // Also push to the local meetingReads reference for the current render cycle
+                  if (!meetingReads.some(r => String(r.meeting_id) === String(item.id) && String(r.user_id) === String(user.id))) {
+                      meetingReads.push(newRead);
+                  }
                   await saveGranular('admin_meetings_reads', [newRead]);
               } else if (item.type === 'evento_calendario') {
                   if (!db.calendario_eventos_reads) db.calendario_eventos_reads = [];
