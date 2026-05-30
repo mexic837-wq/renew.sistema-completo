@@ -2594,31 +2594,46 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
             }
         }
         
-        // 2. Cuando la grabación está lista, actualizamos el historial con el link
+        // 2. Cuando la grabación está lista, pedimos el link usando la API de Zadarma
         if (event === 'NOTIFY_RECORD') {
-            const { call_id_with_rec, call_record_link } = req.body;
-            console.log(`[ZADARMA] Grabación recibida para call_id: ${call_id_with_rec}`);
+            const { call_id_with_rec, pbx_call_id } = req.body;
+            console.log(`[ZADARMA] NOTIFY_RECORD recibido para call_id_with_rec: ${call_id_with_rec}, pbx_call_id: ${pbx_call_id}`);
             
-            if (call_id_with_rec && call_record_link) {
-                const { data: leads } = await supabase.from('call_center_prospectos').select('id, historial_llamadas');
-                
-                if (leads) {
-                    // Buscar el lead que tenga esta llamada en su historial
-                    for (const lead of leads) {
-                        if (!lead.historial_llamadas) continue;
+            if (pbx_call_id || call_id_with_rec) {
+                try {
+                    const { api: z_api } = require('zadarma');
+                    const response = await z_api({
+                        api_method: '/v1/pbx/record/request/',
+                        api_user_key: 'cd41f69ba094fd7f962e',
+                        api_secret_key: '43e065ae9b6e36670558',
+                        params: {
+                            pbx_call_id: pbx_call_id || '',
+                            call_id: call_id_with_rec || '',
+                            lifetime: 7200
+                        }
+                    });
+                    
+                    console.log(`[ZADARMA API] Respuesta link:`, response);
+                    
+                    if (response && response.status === 'success' && response.links && response.links.length > 0) {
+                        const call_record_link = response.links[0];
                         
-                        const callIndex = lead.historial_llamadas.findIndex(h => h.call_id === call_id_with_rec);
-                        if (callIndex !== -1) {
-                            lead.historial_llamadas[callIndex].grabacion_url = call_record_link;
-                            
-                            await supabase.from('call_center_prospectos')
-                                .update({ historial_llamadas: lead.historial_llamadas })
-                                .eq('id', lead.id);
-                                
-                            console.log(`[ZADARMA] Grabación vinculada exitosamente al lead ${lead.id}`);
-                            break; // Terminamos de buscar
+                        const { data: leads } = await supabase.from('call_center_prospectos').select('id, historial_llamadas');
+                        if (leads) {
+                            for (const lead of leads) {
+                                if (!lead.historial_llamadas) continue;
+                                const callIndex = lead.historial_llamadas.findIndex(h => h.call_id === call_id_with_rec || h.call_id === pbx_call_id);
+                                if (callIndex !== -1) {
+                                    lead.historial_llamadas[callIndex].grabacion_url = call_record_link;
+                                    await supabase.from('call_center_prospectos').update({ historial_llamadas: lead.historial_llamadas }).eq('id', lead.id);
+                                    console.log(`[ZADARMA] Grabación vinculada exitosamente al lead ${lead.id}`);
+                                    break;
+                                }
+                            }
                         }
                     }
+                } catch(err) {
+                    console.error('[ZADARMA API] Error pidiendo el link:', err);
                 }
             }
         }
