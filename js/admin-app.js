@@ -8,7 +8,7 @@ import {
   getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
   getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
-  getCatalogos, saveCatalogo
+  getCatalogos, saveCatalogo, deleteRecord
 } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
@@ -10879,7 +10879,7 @@ window.deleteAdminRole = async function(roleId) {
     if (role && role.is_base) return showToast('Los roles base no se pueden eliminar', 'error');
 
     try {
-        if (typeof deleteRecord === 'function') await deleteRecord('admin_roles', roleId);
+        await deleteRecord('admin_roles', roleId);
         db.Admin_Roles = (db.Admin_Roles || []).filter(r => r.id !== roleId);
         showToast('Rol eliminado', 'success');
         if (state.activeView === 'roles') renderRolesBuilder();
