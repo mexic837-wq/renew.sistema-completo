@@ -8922,8 +8922,9 @@ async function showClientDetail(id) {
                 </div>
             `;
         }
+    }
+
     // --- CALLS TAB ---
-    const callsBadge = document.getElementById('cli-calls-count-badge');
     const callsCont = document.getElementById('cli-calls-container');
     if (callsCont && callsBadge) {
         const history = cli.historial_llamadas || [];
