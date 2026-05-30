@@ -3988,11 +3988,19 @@ window.renderView = async function renderView() {
     UI.viewDesc.textContent = "Real-time visualization of all deals across the RENEW spectrum.";
     setGlobalButton(false);
     
-    const activePip = state.pipelines.find(p => p.id === state.activePipId) || state.pipelines[0];
-    if (!activePip) return UI.canvas.innerHTML = '<div class="py-20 text-center text-gray-600 font-black uppercase tracking-[0.3em]">System Offline: No Pipelines Installed</div>';
+    const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    const rol = (currentUser.rol || '').toLowerCase();
+    let userPips = state.pipelines;
+    if (rol === 'project manager') {
+       const allowedIds = currentUser.pipeline_ids || [];
+       userPips = state.pipelines.filter(p => allowedIds.includes(String(p.id)));
+    }
+
+    const activePip = userPips.find(p => p.id === state.activePipId) || userPips[0];
+    if (!activePip) return UI.canvas.innerHTML = '<div class="py-20 text-center text-gray-600 font-black uppercase tracking-[0.3em]">System Offline: No Pipelines Installed or Assigned</div>';
     state.activePipId = activePip.id;
 
-    const tabsHtml = state.pipelines.map(p => `
+    const tabsHtml = userPips.map(p => `
       <button class="pip-tab px-10 py-5 rounded-t-3xl font-black text-[10px] uppercase tracking-[0.2em] border-t-2 transition-all ${p.id === state.activePipId ? 'bg-white dark:bg-darkCard border-tealAccent text-tealAccent' : 'bg-transparent border-transparent text-gray-400 dark:text-gray-700 hover:text-tealAccent'}" data-id="${p.id}">
         ${p.nombre}
       </button>
@@ -7039,27 +7047,47 @@ async function toggleDetailEditMode(id) {
         
         const rolEl = document.getElementById('det-edit-rol');
         if (rolEl) {
-            rolEl.value = usr.rol || 'Vendedor';
+            let roleVal = usr.rol || 'Vendedor';
+            if (roleVal === 'Supervisión') roleVal = 'Supervisor'; // Migration
+            if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Project Manager'; // Migration
+            rolEl.value = roleVal;
             
-            const pmCont = document.getElementById('det-edit-pm-container');
-            const supCont = document.getElementById('det-edit-supervisor-container');
-            const subRolEl = document.getElementById('det-edit-sub-rol');
-            const supEl = document.getElementById('det-edit-supervisor');
+            const equipoCont = document.getElementById('det-edit-equipo-container');
+            const pipesCont = document.getElementById('det-edit-pipelines-container');
             
-            if (pmCont) pmCont.classList.toggle('hidden', rolEl.value !== 'Project Manager');
-            if (supCont) supCont.classList.toggle('hidden', rolEl.value !== 'Vendedor');
+            if (equipoCont) {
+                equipoCont.classList.toggle('hidden', roleVal !== 'Supervisor');
+                // Renderizar checkboxes de vendedores
+                const equipoChks = document.getElementById('equipo-checkboxes');
+                if (equipoChks) {
+                    equipoChks.innerHTML = '';
+                    const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas');
+                    const selectedIds = usr.equipo_ids || [];
+                    vendedores.forEach(vend => {
+                        const lbl = document.createElement('label');
+                        lbl.className = 'flex items-center gap-2 cursor-pointer';
+                        const chk = document.createElement('input');
+                        chk.type = 'checkbox';
+                        chk.className = 'w-4 h-4 text-blue-500 rounded focus:ring-blue-500 rep-equipo-chk';
+                        chk.value = vend.id;
+                        chk.checked = selectedIds.includes(vend.id);
+                        
+                        const span = document.createElement('span');
+                        span.className = 'text-sm text-gray-700';
+                        span.textContent = `${vend.nombre || ''} ${vend.apellido || ''}`.trim();
+                        
+                        lbl.appendChild(chk);
+                        lbl.appendChild(span);
+                        equipoChks.appendChild(lbl);
+                    });
+                }
+            }
             
-            if (subRolEl) subRolEl.value = usr.sub_rol || 'Supervisor';
-            
-            if (supEl) {
-                supEl.innerHTML = '<option value="">Ninguno</option>';
-                const pms = workers.filter(w => w.rol === 'Project Manager' && (w.sub_rol === 'Supervisor' || w.sub_rol === 'Manager de Ventas'));
-                pms.forEach(pm => {
-                    const opt = document.createElement('option');
-                    opt.value = pm.id;
-                    opt.textContent = `${pm.nombre || ''} ${pm.apellido || ''}`.trim();
-                    if (usr.supervisor_id === pm.id) opt.selected = true;
-                    supEl.appendChild(opt);
+            if (pipesCont) {
+                pipesCont.classList.toggle('hidden', roleVal !== 'Project Manager');
+                const selectedPipes = usr.pipeline_ids || [];
+                document.querySelectorAll('.pm-pipeline-chk').forEach(chk => {
+                    chk.checked = selectedPipes.includes(chk.value);
                 });
             }
         }
@@ -7325,10 +7353,8 @@ async function toggleDetailEditMode(id) {
             const banco_cuenta = document.getElementById('det-edit-banco-cuenta')?.value.trim() || '';
             const banco_ruta   = document.getElementById('det-edit-banco-ruta')?.value.trim()   || '';
 
-            const subRolEl = document.getElementById('det-edit-sub-rol');
-            const supEl = document.getElementById('det-edit-supervisor');
-            const sub_rol = (rol === 'Project Manager' && subRolEl) ? subRolEl.value : null;
-            const supervisor_id = (rol === 'Vendedor' && supEl) ? supEl.value : null;
+            const equipo_ids = (rol === 'Supervisor') ? Array.from(document.querySelectorAll('.rep-equipo-chk:checked')).map(c => c.value) : [];
+            const pipeline_ids = (rol === 'Project Manager') ? Array.from(document.querySelectorAll('.pm-pipeline-chk:checked')).map(c => c.value) : [];
 
             const unidades = [];
             if (document.getElementById('chk-unit-solar') && document.getElementById('chk-unit-solar').checked) unidades.push('Renew Solar');
@@ -7365,7 +7391,7 @@ async function toggleDetailEditMode(id) {
                     ...usr,
                     nombre, apellido, email, telefono, rol, rango, department, password, initials, dob, sede,
                     unidades: unidades.length > 0 ? unidades : checkedPips,
-                    sub_rol, supervisor_id,
+                    equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
                     w9Url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9Url || null),
                     w9_url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9_url || null),
@@ -9785,6 +9811,11 @@ async function renderListaPreciosAdmin() {
   const db = getDB();
   const allProducts = db.Water_Productos || [];
   
+  const currentUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
+  const rolName = (currentUsr.rol || '').toLowerCase();
+  const isAdminPriceList = ['admin', 'administrador', 'ceo'].includes(rolName);
+
+  
   // Rank Tab Logic (Instead of Sede)
   const activeRank = state.activePreciosRank || 'vendedor';
   const rankLabels = {
@@ -9809,11 +9840,12 @@ async function renderListaPreciosAdmin() {
     return `
     <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
       <td class="px-6 py-4 whitespace-nowrap">
-        <div class="relative w-10 h-10 group/img cursor-pointer" onclick="window.adminUploadPrecioFoto('${p.id}')">
+        <div class="relative w-10 h-10 group/img ${isAdminPriceList ? 'cursor-pointer' : ''}" ${isAdminPriceList ? `onclick="window.adminUploadPrecioFoto('${p.id}')"` : ''}>
             ${fotoHtml}
+            ${isAdminPriceList ? `
             <div class="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all">
                 <i class="fas fa-camera text-white text-[10px]"></i>
-            </div>
+            </div>` : ''}
         </div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
@@ -9845,6 +9877,7 @@ async function renderListaPreciosAdmin() {
             <span class="text-[10px] font-bold text-gray-400">$${(p.precio_maximo || 0).toLocaleString()}</span>
         </div>
       </td>
+      ${isAdminPriceList ? `
       <td class="px-6 py-4 whitespace-nowrap text-right">
         <div class="flex items-center justify-end gap-2">
           <button onclick="window.editListaPrecio('${p.id}')" class="w-8 h-8 rounded-lg bg-tealAccent/5 text-tealAccent hover:bg-tealAccent hover:text-black transition-all flex items-center justify-center">
@@ -9854,7 +9887,7 @@ async function renderListaPreciosAdmin() {
             <i class="fa-solid fa-trash text-[10px]"></i>
           </button>
         </div>
-      </td>
+      </td>` : ''}
     </tr>
   `;}).join('');
 
@@ -10205,11 +10238,35 @@ document.addEventListener('change', (e) => {
 window.updateEditWorkerRankVisibility = function() {
     const rol = document.getElementById('det-edit-rol');
     const rankContainer = document.getElementById('det-edit-rank-container');
-    const pmCont = document.getElementById('det-edit-pm-container');
-    const supCont = document.getElementById('det-edit-supervisor-container');
+    const equipoCont = document.getElementById('det-edit-equipo-container');
+    const pipesCont = document.getElementById('det-edit-pipelines-container');
     
-    if (rol && pmCont) pmCont.classList.toggle('hidden', rol.value !== 'Project Manager');
-    if (rol && supCont) supCont.classList.toggle('hidden', rol.value !== 'Vendedor');
+    if (rol && pipesCont) pipesCont.classList.toggle('hidden', rol.value !== 'Project Manager');
+    if (rol && equipoCont) {
+        equipoCont.classList.toggle('hidden', rol.value !== 'Supervisor');
+        if (rol.value === 'Supervisor') {
+            // Render equipo checkboxes if not rendered yet, but they are already rendered in showWorkerDetails.
+            // If they change role to Supervisor from something else, we should ideally render them if empty.
+            const equipoChks = document.getElementById('equipo-checkboxes');
+            if (equipoChks && equipoChks.children.length === 0) {
+                const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas');
+                vendedores.forEach(vend => {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'flex items-center gap-2 cursor-pointer';
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.className = 'w-4 h-4 text-blue-500 rounded focus:ring-blue-500 rep-equipo-chk';
+                    chk.value = vend.id;
+                    const span = document.createElement('span');
+                    span.className = 'text-sm text-gray-700';
+                    span.textContent = `${vend.nombre || ''} ${vend.apellido || ''}`.trim();
+                    lbl.appendChild(chk);
+                    lbl.appendChild(span);
+                    equipoChks.appendChild(lbl);
+                });
+            }
+        }
+    }
 
     if (!rankContainer || !rol) return;
     

@@ -240,13 +240,23 @@ async function _renderList(user, container) {
         String(p.creador_id) === String(user.id)
       );
 
+      // Supervisor logic
+      const isSupervisorOfRep = (userRolNorm === 'supervisor' || userRolNorm === 'supervisión') && 
+        (user.equipo_ids || []).some(id => 
+          String(c.creador_id) === String(id) || 
+          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
+          (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id)) ||
+          clientProjects.some(p => String(p.responsable_id) === String(id) || String(p.creador_id) === String(id))
+        );
+
       if (String(c.creador_id) !== String(user.id) &&
         String(c.responsable_id) !== String(user.id) &&
         String(c.vendedor_asignado_id) !== String(user.id) &&
         String(c.origen_id) !== String(user.id) &&
         String(c.tecnico_id) !== String(user.id) &&
         !isTecnicoOfProject && 
-        !isProjectOwner) return false;
+        !isProjectOwner &&
+        !isSupervisorOfRep) return false;
     }
 
     // Pipeline filter (applies to everyone including admins) — multi-dept aware
@@ -473,8 +483,13 @@ async function _renderList(user, container) {
         return;
       }
 
-      // ── CALL CENTER: show read-only lead info (no vendor flow) ──
-      if (isCallCenterRole) {
+      // ── CALL CENTER & SUPERVISOR: show read-only lead info (no vendor flow) ──
+      const isSupervisor = (userRolNorm === 'supervisor' || userRolNorm === 'supervisión');
+      const isOwner = String(client.creador_id) === String(user.id) || 
+                      (client.responsable_id || '').split(',').map(x=>x.trim()).includes(String(user.id)) ||
+                      (client.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(user.id));
+      
+      if (isCallCenterRole || (isSupervisor && !isOwner)) {
         _showCallCenterLeadModal(client, allProys, db);
         return;
       }
@@ -801,6 +816,10 @@ function _showPipelineSelector(client, user) {
   const userUnidades = user.unidades || [];
   const availablePipelines = allPipelines.filter(pip => {
     if (isHighRole) return true;
+    if (userRole === 'project manager' || userRole === 'supervisor' || userRole === 'supervisión') {
+        const allowedIds = user.pipeline_ids || [];
+        return allowedIds.includes(String(pip.id));
+    }
     // Match by pipeline name against user's authorized units
     return userUnidades.some(u => u.toLowerCase().trim() === pip.nombre.toLowerCase().trim());
   });

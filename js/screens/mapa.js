@@ -115,11 +115,19 @@ export async function renderMiMapa() {
 
       const userRole = (user.rol || '').toLowerCase();
       const isAdmin = ['admin', 'administrador', 'ceo', 'desenvolvedor', 'master'].includes(userRole);
+      const isSupervisor = (userRole === 'supervisor' || userRole === 'supervisión');
+      const teamIds = user.equipo_ids || [];
 
       const myClients = isAdmin ? allClients : allClients.filter(c =>
-        c.vendedor_asignado_id === user.id ||
-        c.creador_id === user.id ||
-        userClientIds.has(c.id)
+        String(c.vendedor_asignado_id) === String(user.id) ||
+        String(c.creador_id) === String(user.id) ||
+        userClientIds.has(c.id) ||
+        (isSupervisor && teamIds.some(tid => 
+          String(c.vendedor_asignado_id) === String(tid) || 
+          String(c.creador_id) === String(tid) || 
+          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(tid)) ||
+          allProys.some(p => p.cliente_id === c.id && (String(p.vendedor_id) === String(tid) || String(p.responsable_id) === String(tid)))
+        ))
       );
 
       if (myClients.length === 0) {

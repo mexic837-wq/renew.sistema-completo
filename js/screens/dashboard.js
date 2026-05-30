@@ -469,11 +469,20 @@ function _buildPipelineChips(user, activeUnit) {
         return rolFase.includes('tecnico') || rolFase.includes('técnico');
       });
 
+      // Supervisor logic
+      const isSupervisorOfRep = (userRole === 'supervisor' || userRole === 'supervisión') && 
+        (user.equipo_ids || []).some(id => 
+          c.creador_id === id || 
+          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
+          (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id))
+        );
+
       if (c.creador_id !== user.id && 
           !(c.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) && 
           !(c.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) &&
           c.tecnico_id !== user.id &&
-          !isTecnicoOfProject) return false;
+          !isTecnicoOfProject &&
+          !isSupervisorOfRep) return false;
       const cDepts = getDeptArray(c).map(d => d.toLowerCase());
       const pipShort = pipName.replace('Renew ','').toLowerCase();
       return cDepts.some(d => d === pipShort || d === pipName.toLowerCase() || pipName.toLowerCase().includes(d));

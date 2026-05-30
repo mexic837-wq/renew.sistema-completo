@@ -1,27 +1,26 @@
 const fs = require('fs');
 
-// Fix admin.html
-let adminHtml = fs.readFileSync('admin.html', 'utf8');
-adminHtml = adminHtml.replace(/<label class="aqua-label">.*?rea de Cobertura<\/label>/g, '<label class="aqua-label">Área de Cobertura</label>');
-fs.writeFileSync('admin.html', adminHtml);
+function fixEncoding(filePath) {
+    try {
+        let content = fs.readFileSync(filePath, 'utf8');
+        
+        // Fixing common ISO-8859-1 -> UTF-8 mojibake
+        content = content.replace(/Â¿/g, '¿');
+        content = content.replace(/Ã‘/g, 'Ñ');
+        content = content.replace(/Ã¡/g, 'á');
+        content = content.replace(/Ã©/g, 'é');
+        content = content.replace(/Ã­/g, 'í');
+        content = content.replace(/Ã³/g, 'ó');
+        content = content.replace(/Ãº/g, 'ú');
+        content = content.replace(/Ã±/g, 'ñ');
+        content = content.replace(/Â S/g, ' S');
+        content = content.replace(/ESTÑ Â/g, 'ESTÁS'); // ESTÑ Â S SEGURO
+        
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log(`Fixed encoding in ${filePath}`);
+    } catch (e) {
+        console.error(`Error fixing ${filePath}:`, e);
+    }
+}
 
-// Fix js/admin-app.js
-let adminJs = fs.readFileSync('js/admin-app.js', 'utf8');
-// Fix title
-adminJs = adminJs.replace(/textContent = 'A.*?adir Partner \/ Proveedor';/g, "textContent = 'Añadir Partner / Proveedor';");
-
-// Fix Emojis
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_fence'\)\}/, '>🚧 ${t(\'partner_cat_fence\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_roofing'\)\}/, '>🏠 ${t(\'partner_cat_roofing\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_solar'\)\}/, '>☀️ ${t(\'partner_cat_solar\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_hvac'\)\}/, '>❄️ ${t(\'partner_cat_hvac\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_painting'\)\}/, '>🎨 ${t(\'partner_cat_painting\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_remodelacion'\)\}/, '>🛠️ ${t(\'partner_cat_remodelacion\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_dumpsters'\)\}/, '>🗑️ ${t(\'partner_cat_dumpsters\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_gutters'\)\}/, '>🌧️ ${t(\'partner_cat_gutters\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_screens'\)\}/, '>🪟 ${t(\'partner_cat_screens\')}');
-adminJs = adminJs.replace(/>[^<]*?\$\{t\('partner_cat_general'\)\}/, '>⚙️ ${t(\'partner_cat_general\')}');
-
-fs.writeFileSync('js/admin-app.js', adminJs);
-
-console.log("Encoding and Emojis Fixed");
+fixEncoding('js/admin-app.js');
