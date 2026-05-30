@@ -725,8 +725,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const applyTheme = (theme) => {
     if (theme === 'dark') {
       document.body.classList.add('dark-theme');
+      document.documentElement.classList.add('dark');
     } else {
       document.body.classList.remove('dark-theme');
+      document.documentElement.classList.remove('dark');
     }
     // Update any UI elements that need hard text updates
     const themeStatusText = document.getElementById('theme-status-text');
@@ -751,6 +753,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (themeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
       const isCurrentlyDark = document.body.classList.contains('dark-theme');
       const newTheme = isCurrentlyDark ? 'light' : 'dark';
       localStorage.setItem('theme', newTheme);
