@@ -953,6 +953,38 @@ app.post('/api/upsert', async (req, res) => {
                 creador_id, responsable_id, id_photo, is_locked, 
                 foto_id, lat, lng, ...rest 
             }) => rest);
+        } else if (table === 'usuarios') {
+            // Map ONLY the columns that exist in Supabase's 'usuarios' table
+            sanitizedRecords = records.map(u => ({
+                id:                         u.id                         || null,
+                nombre:                     u.nombre                     || null,
+                apellido:                   u.apellido                   || null,
+                email:                      u.email                      || null,
+                password:                   u.password                   || null,
+                rol:                        u.rol                        || null,
+                rango:                      u.rango                      || null,
+                department:                 u.department                 || null,
+                dob:                        u.dob                        || null,
+                foto:                       u.foto                       || null,
+                telefono:                   u.telefono                   || null,
+                w9_url:                     u.w9_url                     || u.w9Url || null,
+                carnet_url:                 u.carnet_url                 || u.carnetUrl || null,
+                contrato_url:               u.contrato_url               || u.contratoUrl || null,
+                estatus_rrhh:               u.estatus_rrhh               || null,
+                is_suspended:               u.is_suspended               || false,
+                sede:                       u.sede                       || null,
+                unidades:                   Array.isArray(u.unidades) ? u.unidades : [],
+                tel_emergencia:             u.tel_emergencia             || null,
+                contacto_emergencia_nombre: u.contacto_emergencia_nombre || null,
+                direccion:                  u.direccion                  || null,
+                zelle_nombre:               u.zelle_nombre               || null,
+                zelle_cuenta:               u.zelle_cuenta               || null,
+                zelle_tel:                  u.zelle_tel                  || null,
+                banco_nombre:               u.banco_nombre               || null,
+                banco_cuenta:               u.banco_cuenta               || null,
+                banco_ruta:                 u.banco_ruta                 || null,
+                zadarma_sip_id:             u.zadarma_sip_id             || null
+            }));
         } else if (table === 'calendario_eventos') {
             sanitizedRecords = records.map(ev => ({
                 ...ev,

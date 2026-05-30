@@ -1269,8 +1269,17 @@ export async function saveAdminWorker(worker) {
     if (!worker.rango) worker.rango = 'novato';
     db.Usuarios.push(worker);
   }
-  
-  await saveDB(db);
+
+  // Update local cache immediately
+  cachedDB = db;
+  localStorage.setItem('rs_admin_db', JSON.stringify(db));
+
+  // Use granular save for the individual worker record (faster + passes through
+  // field sanitization in /api/upsert, avoiding virtual fields like sub_rol,
+  // supervisor_id, initials, w9Url, etc. that don't exist in Supabase)
+  const workerToSave = idx > -1 ? db.Usuarios[idx] : worker;
+  await saveGranular('usuarios', [workerToSave]);
+
   return worker;
 }
 
