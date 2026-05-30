@@ -2519,6 +2519,13 @@ app.get('/api/zadarma/webrtc-key', async (req, res) => {
     }
 });
 
+app.get('/api/zadarma/webhook', (req, res) => {
+    if (req.query.zd_echo) {
+        return res.send(req.query.zd_echo);
+    }
+    res.status(400).send('Bad Request');
+});
+
 app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (req, res) => {
     try {
         console.log('[ZADARMA WEBHOOK] Evento recibido', req.body);
