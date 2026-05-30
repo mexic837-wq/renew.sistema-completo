@@ -649,6 +649,15 @@
           box-shadow: 0 10px 40px rgba(0, 245, 212, 0.05);
           backdrop-filter: blur(10px);
       }
+
+      /* Zadarma WebRTC Widget Z-Index Fix */
+      iframe[src*="zadarma"], 
+      div[id*="zadarma"], 
+      div[class*="zadarma"],
+      #z-widget-root,
+      .z-widget {
+          z-index: 999999 !important;
+      }
     </style>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmuV4zmbor3JagjOJn2WKUcRA0SUGsh3U&libraries=places" defer></script>
 </head>

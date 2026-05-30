@@ -159,7 +159,7 @@
 
     /* Google Places Autocomplete Fix */
     .pac-container {
-      z-index: 100000 !important;
+      z-index: 9999 !important;
       border-radius: 12px;
       margin-top: 5px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.3);
@@ -185,6 +185,15 @@
     }
     .hide-scrollbar::-webkit-scrollbar {
       display: none !important; /* Chrome/Safari/Webkit */
+    }
+
+    /* Zadarma WebRTC Widget Z-Index Fix */
+    iframe[src*="zadarma"], 
+    div[id*="zadarma"], 
+    div[class*="zadarma"],
+    #z-widget-root,
+    .z-widget {
+        z-index: 999999 !important;
     }
   </style>
 
