@@ -54,7 +54,7 @@ export async function renderNotificaciones() {
       const matchesUser = tags.includes(`user_${user.id}`);
       return matchesRole || matchesPipe || matchesUser;
   }).map(mt => {
-      const isRead = meetingReads.some(r => r.meeting_id === mt.id && r.user_id === user.id);
+      const isRead = meetingReads.some(r => r.meeting_id === mt.id && String(r.user_id) === String(user.id));
       return {
           type: 'meeting',
           id: mt.id,

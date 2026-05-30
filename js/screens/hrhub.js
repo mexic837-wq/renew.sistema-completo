@@ -222,6 +222,27 @@ export async function renderHRHub() {
                 import('../components/toast.js').then(m => m.showToast('Error al eliminar recibo', 'error'));
             }
         };
+
+        window.solventarAdelanto = async (id) => {
+            if (!confirm('¿Estás seguro de que deseas marcar este adelanto como solventado?')) return;
+            try {
+                const db = getDB();
+                if (db.rrhh_adelantos) {
+                    const adelanto = db.rrhh_adelantos.find(a => String(a.id) === String(id));
+                    if (adelanto) {
+                        adelanto.status = 'Solventado';
+                        const { saveGranular } = await import('../api.js');
+                        await saveGranular('rrhh_adelantos', [adelanto]);
+                        localStorage.setItem('rs_admin_db', JSON.stringify(db));
+                        import('../components/toast.js').then(m => m.showToast('Adelanto marcado como solventado', 'success'));
+                        renderAdelantos();
+                    }
+                }
+            } catch (err) {
+                console.error("Error al solventar adelanto:", err);
+                import('../components/toast.js').then(m => m.showToast('Error al solventar adelanto', 'error'));
+            }
+        };
     }
 
     function bindHRToggle() {
@@ -634,6 +655,9 @@ export async function renderHRHub() {
                         <td class="px-4 py-3 text-[10px] text-gray-600 dark:text-gray-400 italic">${adel.motivo || '-'}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-right">
                             ${adel.document_url ? `<a href="${adel.document_url}" target="_blank" class="px-3 py-1 bg-tealAccent/10 text-tealAccent rounded-lg text-[8px] font-black uppercase border border-tealAccent/20 hover:bg-tealAccent/20 transition-all"><i class="fa-solid fa-file-pdf mr-1"></i>Ver Doc</a>` : '<span class="text-[9px] text-gray-300">Sin Doc</span>'}
+                            ${adel.status === 'Solventado' 
+                                ? `<span class="ml-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[8px] font-black uppercase border border-emerald-500/20">Solventado</span>`
+                                : `<button onclick="event.stopPropagation(); window.solventarAdelanto('${adel.id}')" class="ml-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase border border-amber-500/20 hover:bg-amber-500/20 transition-all" title="Marcar como Solventado"><i class="fa-solid fa-check mr-1"></i>Solventar</button>`}
                         </td>
                     </tr>`;
                 }).join('');
