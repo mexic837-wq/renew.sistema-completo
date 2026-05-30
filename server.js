@@ -2467,10 +2467,16 @@ function generateZadarmaSignature(method, params) {
 
 app.post('/api/zadarma/call', async (req, res) => {
     try {
-        const { from, to } = req.body;
+        let { from, to } = req.body;
         if (!from || !to) return res.status(400).json({ error: 'Faltan parámetros (from, to)' });
 
-        const params = { from, to };
+        // Si el SIP viene con el formato 524497-100, extraer solo la extensión (100)
+        let ext = from;
+        if (from.includes('-')) {
+            ext = from.split('-')[1];
+        }
+
+        const params = { from: ext, to, sip: ext };
         const method = '/v1/request/callback/';
         const { queryString, signature } = generateZadarmaSignature(method, params);
 
