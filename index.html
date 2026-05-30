@@ -1027,6 +1027,52 @@
   <!-- Zadarma WebRTC -->
   <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"></script>
   <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
+
+  <!-- Zadarma WebRTC Overlay Fixer -->
+  <script>
+    (function() {
+      const fixZadarmaZIndex = (node) => {
+        if (node.nodeType !== 1) return;
+        
+        // Check if the node itself is a Zadarma element
+        const isZadarma = (
+          (node.tagName === 'IFRAME' && (node.src || '').includes('zadarma')) ||
+          (node.id && node.id.includes('zdrm')) ||
+          (node.className && typeof node.className === 'string' && node.className.includes('zdrm'))
+        );
+
+        if (isZadarma) {
+          node.style.setProperty('z-index', '999999', 'important');
+        }
+
+        // Check children
+        if (node.querySelector) {
+          const zadarmaChildren = node.querySelectorAll('iframe[src*="zadarma"], [id*="zdrm"], [class*="zdrm"]');
+          zadarmaChildren.forEach(child => {
+             child.style.setProperty('z-index', '999999', 'important');
+             // Also fix the parent wrapper to ensure it breaks out of stacking contexts
+             if (child.parentElement && child.parentElement !== document.body) {
+                 child.parentElement.style.setProperty('z-index', '999999', 'important');
+             }
+          });
+        }
+      };
+
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            fixZadarmaZIndex(node);
+          });
+        });
+      });
+
+      window.addEventListener('load', () => {
+        observer.observe(document.body, { childList: true, subtree: true });
+        // Initial check for already existing nodes
+        document.body.childNodes.forEach(fixZadarmaZIndex);
+      });
+    })();
+  </script>
 </body>
 
 </html>
