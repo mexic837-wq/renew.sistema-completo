@@ -10788,12 +10788,12 @@ window.editAdminRole = function(roleId) {
     // Si no está definido, deducimos el acceso
     let accOs = (role.permisos && role.permisos.acceso_os !== undefined) ? role.permisos.acceso_os : role.acceso_os;
     if (accOs === undefined) {
-        accOs = !['vendedor', 'call center'].includes((role.nombre || '').toLowerCase());
+        accOs = false; // Por defecto no dar acceso a Renew OS a roles nuevos
     }
     
     let accApp = (role.permisos && role.permisos.acceso_app !== undefined) ? role.permisos.acceso_app : role.acceso_app;
     if (accApp === undefined) {
-        accApp = true;
+        accApp = true; // Por defecto dar acceso a la App
     }
     
     chkOs.checked = !!accOs;
@@ -10807,7 +10807,9 @@ window.editAdminRole = function(roleId) {
     document.querySelectorAll('.role-perm-chk').forEach(chk => {
         const modId = chk.dataset.mod;
         if (modId.startsWith('app_') && !hasAppPerms && chkApp.checked) {
-            chk.checked = true;
+            // Solo auto-activar los módulos más básicos por defecto, NO callcenter ni admin
+            const basicMods = ['app_clientes', 'app_mapa', 'app_calendario', 'app_ranking'];
+            chk.checked = basicMods.includes(modId);
         } else {
             chk.checked = !!(role.permisos && role.permisos[modId]);
         }
