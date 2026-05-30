@@ -2456,7 +2456,11 @@ function generateZadarmaSignature(method, params) {
     const crypto = require('crypto');
     const md5 = crypto.createHash('md5').update(queryString).digest('hex');
     const data = method + queryString + md5;
-    const signature = crypto.createHmac('sha1', ZADARMA_SECRET).update(data).digest('base64');
+    
+    // Zadarma API (PHP backend) expects the HMAC SHA1 to be output as a HEX string, 
+    // and THEN that HEX string is base64 encoded.
+    const hmacHex = crypto.createHmac('sha1', ZADARMA_SECRET).update(data).digest('hex');
+    const signature = Buffer.from(hmacHex).toString('base64');
     
     return { queryString, signature };
 }
