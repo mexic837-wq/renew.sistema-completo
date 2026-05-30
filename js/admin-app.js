@@ -4322,7 +4322,7 @@ window.renderView = async function renderView() {
          <div>
             <h4 class="font-bold text-gray-800 dark:text-white text-sm mb-1">${item.titulo}</h4>
             <div class="flex items-center gap-2 text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-widest">
-               <i class="fa-solid ${item.tipo.includes('Video') ? 'fa-play' : 'fa-file'}"></i> ${item.tipo}
+               <i class="fa-solid ${(item.tipo || '').includes('Video') ? 'fa-play' : 'fa-file'}"></i> ${(item.tipo || '').replace('InformaciÃ³n', 'Información')}
             </div>
             <div class="flex flex-wrap gap-1">${item.permisos.map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
          </div>
