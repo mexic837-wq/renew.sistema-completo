@@ -108,7 +108,14 @@ window.initZadarmaWebRTC = async () => {
         if (data.status === 'success' && data.key) {
             console.log('[Zadarma WebRTC] Key received, initializing widget...');
             if (typeof zadarmaWidgetFn === 'function') {
-                zadarmaWidgetFn(data.key, currentUser.zadarma_sip_id, 'sip');
+                zadarmaWidgetFn(
+                    data.key, 
+                    currentUser.zadarma_sip_id, 
+                    'square', // square | rounded
+                    'es',     // language
+                    true,     // is_webrtc
+                    {right:'10px',bottom:'5px'} // position
+                );
             } else {
                 console.warn('[Zadarma WebRTC] zadarmaWidgetFn not found. Are scripts loaded in index.html?');
             }
