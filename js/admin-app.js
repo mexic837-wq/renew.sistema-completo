@@ -10786,12 +10786,12 @@ window.editAdminRole = function(roleId) {
     const chkApp = document.getElementById('chk-acceso-app');
     
     // Si no está definido, deducimos el acceso
-    let accOs = role.acceso_os;
+    let accOs = (role.permisos && role.permisos.acceso_os !== undefined) ? role.permisos.acceso_os : role.acceso_os;
     if (accOs === undefined) {
         accOs = !['vendedor', 'call center'].includes((role.nombre || '').toLowerCase());
     }
     
-    let accApp = role.acceso_app;
+    let accApp = (role.permisos && role.permisos.acceso_app !== undefined) ? role.permisos.acceso_app : role.acceso_app;
     if (accApp === undefined) {
         accApp = true;
     }
@@ -10845,11 +10845,12 @@ window.saveAdminRole = async function() {
         }
     });
 
+    permisos.acceso_os = acceso_os;
+    permisos.acceso_app = acceso_app;
+
     const roleObj = {
         id: id || genId('rol', db),
         nombre,
-        acceso_os,
-        acceso_app,
         permisos,
         is_base: isBase
     };
