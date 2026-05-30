@@ -6770,15 +6770,15 @@ async function showWorkerDetail(id) {
             if (rankInfo && rankInfo.cur) {
                 displayRank = rankInfo.cur.name + ' (Automático)';
             } else {
-                displayRank = 'Novato por Referidos (Automático)';
+                displayRank = 'Nuevo (Automático)';
             }
         } catch(e) {
             displayRank = 'Automático';
         }
     } else {
         const rankMap = {
-            'referidos': 'Novato por Referidos',
-            'subvendedor': 'Subvendedor',
+            'referidos': 'Nuevo',
+            'subvendedor': 'Novato',
             'iniciante': 'Iniciante',
             'junior': 'Junior',
             'representante': 'Representante de Ventas',
@@ -6958,15 +6958,15 @@ async function toggleDetailEditMode(id) {
                 if (rankInfo && rankInfo.cur) {
                     displayRank = rankInfo.cur.name + ' (Automático)';
                 } else {
-                    displayRank = 'Novato por Referidos (Automático)';
+                    displayRank = 'Nuevo (Automático)';
                 }
             } catch(e) {
                 displayRank = 'Automático';
             }
         } else {
             const rankMap = {
-                'referidos': 'Novato por Referidos',
-                'subvendedor': 'Subvendedor',
+                'referidos': 'Nuevo',
+                'subvendedor': 'Novato',
                 'iniciante': 'Iniciante',
                 'junior': 'Junior',
                 'representante': 'Representante de Ventas',

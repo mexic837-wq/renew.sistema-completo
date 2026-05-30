@@ -21,8 +21,8 @@ import { initAdminBell, updateAdminBellBadge } from '../components/admin-notif-b
 // ========================================================================================================================
 export const RANK_CONFIG = {
   'Renew Water': [
-    { name: 'Novato por Referidos', emoji: '<i class="fa-solid fa-seedling"></i>', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total', priceKey: 'precio_subvende' },
-    { name: 'Subvendedor',         emoji: '<i class="fa-solid fa-medal" style="color:#b08d57"></i>', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total', priceKey: 'precio_subvende' },
+    { name: 'Nuevo', emoji: '<i class="fa-solid fa-seedling"></i>', color: '#5eead4', bg: 'rgba(94,234,212,0.1)',  border: 'rgba(94,234,212,0.25)', minSales: 0,  type: 'total', priceKey: 'precio_subvende' },
+    { name: 'Novato',         emoji: '<i class="fa-solid fa-medal" style="color:#b08d57"></i>', color: '#2dd4bf', bg: 'rgba(45,212,191,0.1)',  border: 'rgba(45,212,191,0.25)', minSales: 3,  type: 'total', priceKey: 'precio_subvende' },
     { name: 'Iniciante',           emoji: '<i class="fa-solid fa-medal" style="color:#c0c0c0"></i>', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total', priceKey: 'precio_iniciante' },
     { name: 'Junior',              emoji: '<i class="fa-solid fa-medal" style="color:#ffd700"></i>', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total', priceKey: 'precio_junior' },
     { name: 'Representante de Ventas',            emoji: '<i class="fa-solid fa-bolt"></i>',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total', priceKey: 'precio_vendedor' },
@@ -40,8 +40,8 @@ export function computeUserRank(userId, activeUnit, db) {
   
   if (dbUser && dbUser.rango && dbUser.rango !== 'auto' && dbUser.rango !== 'novato') {
     let targetRankName = '';
-    if (dbUser.rango === 'referidos') targetRankName = 'Novato por Referidos';
-    else if (dbUser.rango === 'subvendedor') targetRankName = 'Subvendedor';
+    if (dbUser.rango === 'referidos') targetRankName = 'Nuevo';
+    else if (dbUser.rango === 'subvendedor') targetRankName = 'Novato';
     else if (dbUser.rango === 'iniciante') targetRankName = 'Iniciante';
     else if (dbUser.rango === 'junior') targetRankName = 'Junior';
     else if (dbUser.rango === 'representante') targetRankName = 'Representante de Ventas';
@@ -229,7 +229,7 @@ export async function renderDashboard() {
         box-shadow: 0 4px 16px color-mix(in srgb, var(--pip-accent) 22%, transparent);
       }
       .pip-chip-logo {
-        /* natural landscape logo â€“ let width fill the chip, control height */
+        /* natural landscape logo “ let width fill the chip, control height */
         width: 72px; height: auto; max-height: 28px; object-fit: contain;
         filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
       }
