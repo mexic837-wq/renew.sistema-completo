@@ -380,7 +380,7 @@ window.adminEditCCLead = async (id, currentOpId) => {
 window.adminDeleteCCLead = async (id) => {
     if (!confirm('¿Eliminar este lead permanentemente?')) return;
     try {
-        const res = await fetch(`/api/cc-prospectos?id=${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/cc-prospectos/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('No se pudo eliminar');
         showToast('Lead eliminado', 'warning');
         await loadCCLeads();
