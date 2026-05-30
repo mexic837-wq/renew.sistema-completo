@@ -496,13 +496,21 @@ export function navigate(screen, param = null) {
   if (isNavHidden) {
     document.body.classList.add('no-nav');
     document.body.classList.remove('on-dashboard');
+    document.body.classList.remove('in-call-center');
     if (bNav) bNav.style.display = 'none';
   } else {
     document.body.classList.remove('no-nav');
+    
     if (screen === 'dashboard') {
         document.body.classList.add('on-dashboard');
     } else {
         document.body.classList.remove('on-dashboard');
+    }
+
+    if (screen === 'call-center') {
+        document.body.classList.add('in-call-center');
+    } else {
+        document.body.classList.remove('in-call-center');
     }
     
     if (bNav) {
@@ -676,9 +684,15 @@ function handleHashChange() {
     
     if (isNavHidden) {
       document.body.classList.add('no-nav');
+      document.body.classList.remove('in-call-center');
       if (bNav) bNav.style.display = 'none';
     } else {
       document.body.classList.remove('no-nav');
+      if (screen === 'call-center') {
+          document.body.classList.add('in-call-center');
+      } else {
+          document.body.classList.remove('in-call-center');
+      }
       if (bNav) bNav.style.display = 'flex';
     }
     // Ensure sidebar is populated even when landing on non-dashboard screens

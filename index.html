@@ -187,7 +187,7 @@
       display: none !important; /* Chrome/Safari/Webkit */
     }
 
-    /* Zadarma WebRTC Widget Z-Index Fix */
+    /* Zadarma WebRTC Widget Z-Index Fix & Visibility */
     iframe[src*="zadarma"], 
     div[id*="zadarma"], 
     div[class*="zadarma"],
@@ -196,6 +196,30 @@
     #z-widget-root,
     .z-widget {
         z-index: 999999 !important;
+    }
+
+    /* Hide globally unless on call-center screen */
+    body:not(.in-call-center) iframe[src*="zadarma"], 
+    body:not(.in-call-center) div[id*="zadarma"], 
+    body:not(.in-call-center) div[class*="zadarma"],
+    body:not(.in-call-center) div[id^="zdrm"],
+    body:not(.in-call-center) div[class*="zdrm"],
+    body:not(.in-call-center) #z-widget-root,
+    body:not(.in-call-center) .z-widget {
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Move up on mobile to avoid overlapping bottom nav */
+    @media (max-width: 767px) {
+        body.in-call-center #z-widget-root,
+        body.in-call-center .z-widget,
+        body.in-call-center iframe[src*="zadarma"],
+        body.in-call-center div[id^="zdrm"],
+        body.in-call-center div[class*="zdrm"] {
+            bottom: 75px !important;
+        }
     }
   </style>
 
