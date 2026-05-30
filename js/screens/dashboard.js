@@ -550,7 +550,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const isTecnico   = /t[eé]cn[io]co/i.test(user.rol || '');
   const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
   const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || userRole === 'supervisor' || userRole === 'supervisión';
-  const canInventory= [isTecnico, 'contabilidad','finanzas','procesador','supervisión','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
+  const canInventory= [isTecnico, 'contabilidad','finanzas','procesador','supervisor','supervisión','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole) || (user.permisos && user.permisos.app_inventario);
 
   const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
