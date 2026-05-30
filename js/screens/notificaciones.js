@@ -128,21 +128,8 @@ export async function renderNotificaciones() {
       };
   });
 
-  // Recopilar Mis Adelantos (worker sees their own)
-  const misAdelantos = (db.rrhh_adelantos || []).filter(adel => 
-      String(adel.trabajador_id) === String(user.id)
-  ).map(adel => ({
-      type: 'adelanto',
-      id: adel.id,
-      title: `Adelanto Registrado: $${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}`,
-      message: `Tienes un adelanto registrado por $${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}. Motivo: ${adel.motivo || 'Sin motivo'}.`,
-      date: new Date(adel.created_at || Date.now()),
-      isRead: false,
-      originalData: adel
-  }));
-
   // Only show global announcements and meetings in the app notification inbox
-  const allItems = [...misAnuncios, ...misMeetings, ...misAdelantos].sort((a,b) => b.date - a.date);
+  const allItems = [...misAnuncios, ...misMeetings].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {

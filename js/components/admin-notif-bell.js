@@ -214,6 +214,30 @@ export function gatherAdminNotifications(db, user) {
         });
     }
 
+    // ── 6. Mis Adelantos (Para el Trabajador) ───────────────────────────────
+    const misAdelantos = (db.rrhh_adelantos || []).filter(ad => String(ad.trabajador_id) === String(user.id));
+    misAdelantos.forEach(ad => {
+        const notifId = `mi_adel_${ad.id}`;
+        if (archivedIds.has(notifId)) return;
+        
+        notifs.push({
+            id: notifId,
+            type: 'adelanto_propio',
+            icon: 'fa-hand-holding-dollar',
+            color: '#0ea5e9',
+            bg: 'rgba(14, 165, 233, 0.12)',
+            title: `Adelanto Registrado`,
+            message: `Monto $${Number(ad.monto).toLocaleString('en-US', {minimumFractionDigits:2})} (${ad.motivo || 'Sin motivo'}).`,
+            date: new Date(ad.created_at || Date.now()),
+            isRead: readIds.has(notifId),
+            link: {
+                label: 'Ver mis adelantos',
+                action: 'mis_adelantos',
+                data: {}
+            }
+        });
+    });
+
     // Ordenar por fecha desc (más reciente primero)
     notifs.sort((a, b) => b.date - a.date);
     return notifs;
@@ -527,6 +551,13 @@ export function openAdminBellPanel() {
                     const adBtn = document.querySelector('.hr-view-btn[data-target="adelantos"]');
                     if (adBtn) adBtn.click();
                 }, 300);
+            } else if (action === 'mis_adelantos') {
+                close();
+                if (window.appNavigate) window.appNavigate('mis-adelantos');
+                else {
+                    const viewBtn = document.querySelector('[data-view="mis-adelantos"]');
+                    if (viewBtn) viewBtn.click();
+                }
             }
         });
     });
