@@ -338,7 +338,7 @@ window.verificarAnunciosNuevos = async function() {
   });
 
   for (let mt of misMeetings) {
-      const isRead = meetingReads.some(r => r.meeting_id === mt.id && r.user_id === user.id);
+      const isRead = meetingReads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
       if (!isRead) {
           unreadCount++;
       }

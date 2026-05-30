@@ -5360,8 +5360,8 @@ window.mostrarReporteMeeting = async (id) => {
     const reads = (db.admin_meetings_reads || []).filter(r => r.meeting_id === id);
     const workers = await getAdminWorkers();
     
-    const confirmedWorkers = workers.filter(w => reads.some(r => r.user_id === w.id));
-    const pendingWorkers = workers.filter(w => !reads.some(r => r.user_id === w.id));
+    const confirmedWorkers = workers.filter(w => reads.some(r => String(r.user_id) === String(w.id)));
+    const pendingWorkers = workers.filter(w => !reads.some(r => String(r.user_id) === String(w.id)));
     
     container.innerHTML = `
         <div class="w-full h-full flex flex-col p-6 overflow-y-auto hide-scrollbar">
