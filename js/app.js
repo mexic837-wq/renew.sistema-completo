@@ -361,7 +361,7 @@ window.verificarAnunciosNuevos = async function() {
   if (navBadge) {
       if (unreadCount > 0) {
           navBadge.textContent = unreadCount;
-          navBadge.style.display = 'block';
+          navBadge.style.display = 'flex';
       } else {
           navBadge.style.display = 'none';
       }
