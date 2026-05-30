@@ -295,6 +295,7 @@ export async function renderDashboard() {
         --bg-tool-clientes: linear-gradient(135deg, #fff7ed, #ffedd5);
         --bg-tool-calendario: linear-gradient(135deg, #f0fdfa, #ccfbf1);
         --bg-tool-admin: linear-gradient(135deg, #fff1f2, #ffe4e6);
+        --bg-tool-callcenter: linear-gradient(135deg, #f0fdfa, #ccfbf1);
         --bg-tool-default: linear-gradient(135deg, #f8fafc, #f1f5f9);
       }
       body.dark-theme {
@@ -304,6 +305,7 @@ export async function renderDashboard() {
         --bg-tool-clientes: linear-gradient(135deg, #1a1200, #3d2e00);
         --bg-tool-calendario: linear-gradient(135deg, #001a0f, #003d1f);
         --bg-tool-admin: linear-gradient(135deg, #1a0a00, #3d1500);
+        --bg-tool-callcenter: linear-gradient(135deg, #00302b, #004d40);
         --bg-tool-default: linear-gradient(135deg, #0f172a, #1e293b);
       }
 
@@ -717,7 +719,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
     'Inventario Real':       'var(--bg-tool-inventario)',
     'Mis Clientes':          'var(--bg-tool-clientes)',
     'Mis Llamadas':          'var(--bg-tool-clientes)',
-    'Gestión de Leads (Fase 1)': 'linear-gradient(135deg, #00302b, #004d40)',
+    'Gestión de Leads (Fase 1)': 'var(--bg-tool-callcenter)',
     'Mi Mapa':               'var(--bg-tool-mapa)',
     'Calendario':         'var(--bg-tool-calendario)',
     'Renew OS (Admin)':      'var(--bg-tool-admin)',
