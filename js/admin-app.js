@@ -7369,11 +7369,7 @@ async function toggleDetailEditMode(id) {
             const banco_ruta   = document.getElementById('det-edit-banco-ruta')?.value.trim()   || '';
 
             const equipo_ids = (rol === 'Supervisor') ? Array.from(document.querySelectorAll('.rep-equipo-chk:checked')).map(c => c.value) : [];
-            const pipeline_ids = (rol === 'Project Manager') ? Array.from(document.querySelectorAll('.pm-pipeline-chk:checked')).map(c => c.value) : [];
-
-            const unidades = [];
-            if (document.getElementById('chk-unit-solar') && document.getElementById('chk-unit-solar').checked) unidades.push('Renew Solar');
-            if (document.getElementById('chk-unit-water') && document.getElementById('chk-unit-water').checked) unidades.push('Renew Water');
+            const pipeline_ids = (rol === 'Project Manager') ? Array.from(document.querySelectorAll('.pip-perm-chk:checked')).map(c => c.dataset.pip) : [];
 
             // Read pipeline permissions
             const checkedPips = Array.from(
@@ -7405,7 +7401,7 @@ async function toggleDetailEditMode(id) {
                 const updatedUsr = {
                     ...usr,
                     nombre, apellido, email, telefono, rol, rango, department, password, initials, dob, sede,
-                    unidades: unidades.length > 0 ? unidades : checkedPips,
+                    unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
                     w9Url: state.detEditW9Url !== undefined ? state.detEditW9Url : (usr.w9Url || null),
@@ -10329,13 +10325,11 @@ window.updateEditWorkerRankVisibility = function() {
 
     if (!rankContainer || !rol) return;
     
-    // Check Water access from any of the checkboxes (Unidades de Negocio or pipelines)
-    const waterChecked = 
-        (document.getElementById('chk-unit-water') && document.getElementById('chk-unit-water').checked) ||
-        Array.from(document.querySelectorAll('.pip-perm-chk:checked, .pm-pipeline-chk:checked')).some(chk => {
-            const pipName = chk.dataset.pip || chk.value || '';
-            return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
-        });
+    // Check Water access from pipelines
+    const waterChecked = Array.from(document.querySelectorAll('.pip-perm-chk:checked')).some(chk => {
+        const pipName = chk.dataset.pip || chk.value || '';
+        return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
+    });
 
     const rolVal = (rol.value || '').toLowerCase();
     const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
@@ -10352,7 +10346,7 @@ window.updateEditWorkerRankVisibility = function() {
 };
 
 document.addEventListener('change', (e) => {
-    if (e.target.id === 'det-edit-rol' || e.target.id === 'chk-unit-water' || (e.target.classList && (e.target.classList.contains('pip-perm-chk') || e.target.classList.contains('pm-pipeline-chk')))) {
+    if (e.target.id === 'det-edit-rol' || (e.target.classList && e.target.classList.contains('pip-perm-chk'))) {
         if (typeof window.updateEditWorkerRankVisibility === 'function') {
             window.updateEditWorkerRankVisibility();
         }

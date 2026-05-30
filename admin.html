@@ -1473,22 +1473,11 @@
                 </div>
             </div>
 
-            <!-- Pipelines Permitidos (Project Manager) -->
+            <!-- Pipelines Permitidos -->
             <div id="container-usr-pipelines" class="hidden mb-4 p-4 rounded-lg border border-teal-100 bg-teal-50/50 dark:bg-teal-900/10 dark:border-teal-800/30">
                 <label class="block text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase tracking-widest mb-2">Pipelines Permitidos</label>
-                <div class="flex flex-col gap-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500 usr-pip-chk" data-pip="Solar" value="Solar">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Solar</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500 usr-pip-chk" data-pip="Water" value="Water">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Water</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500 usr-pip-chk" data-pip="Home" value="Home">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Home</span>
-                    </label>
+                <div id="usr-pipeline-perms" class="flex flex-col gap-2">
+                    <p class="text-xs text-gray-400 italic">Cargando pipelines...</p>
                 </div>
             </div>
 
@@ -1553,19 +1542,7 @@
                 </div>
             </div>
 
-            <div class="border-t border-gray-100 dark:border-white/5 pt-5 mb-2">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
-                        <i class="fa-solid fa-lock-open text-tealAccent text-[10px]"></i>
-                    </div>
-                    <label class="aqua-label mb-0">Ecosistemas Autorizados</label>
-                    <span class="text-[9px] text-gray-400">(acceso a pipelines del sistema móvil)</span>
-                </div>
-                <div id="usr-pipeline-perms" class="flex flex-col gap-2">
-                    <!-- Populated dynamically when modal opens -->
-                    <p class="text-xs text-gray-400 italic">Cargando pipelines...</p>
-                </div>
-            </div>
+
 
             <div class="flex gap-3 justify-end mt-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                 <button class="btn-cancel text-gray-500 dark:text-gray-400 dark:text-white px-4 py-2">Cancelar</button>
@@ -1829,34 +1806,11 @@
                             </div>
                         </div>
 
+                        <!-- Pipelines Permitidos (Dinámico) -->
                         <div id="det-edit-pipelines-container" class="hidden mb-4 p-4 rounded-lg border border-teal-100 bg-teal-50/50">
                             <label class="block text-[10px] text-teal-600 font-bold uppercase tracking-widest mb-2">Pipelines Permitidos</label>
-                            <div class="flex flex-col gap-2">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Solar" class="pm-pipeline-chk">
-                                    <span class="text-sm font-medium text-gray-700">Solar</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Water" class="pm-pipeline-chk">
-                                    <span class="text-sm font-medium text-gray-700">Water</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Home" class="pm-pipeline-chk">
-                                    <span class="text-sm font-medium text-gray-700">Home</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Unidades de Negocio</label>
-                            <div class="flex gap-4">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Renew Solar" id="chk-unit-solar">
-                                    <span class="text-sm font-medium text-gray-700">Renew Solar</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500" value="Renew Water" id="chk-unit-water">
-                                    <span class="text-sm font-medium text-gray-700">Renew Water</span>
-                                </label>
+                            <div id="det-edit-pipeline-perms" class="flex flex-col gap-2">
+                                <p class="text-[10px] text-gray-400 italic">Cargando pipelines...</p>
                             </div>
                         </div>
                         <div class="mb-6"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Contraseña</label><input id="det-edit-pass" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]" placeholder="renew123"></div>
@@ -1926,20 +1880,6 @@
                             </div>
                         </div>
 
-                        <!-- Ecosistemas Autorizados en Edición -->
-                        <div class="border-t border-gray-100 pt-5">
-                            <div class="flex items-center gap-2 mb-3">
-                                <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
-                                    <i class="fa-solid fa-lock-open text-tealAccent text-[10px]"></i>
-                                </div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Ecosistemas Autorizados</label>
-                                <span class="text-[9px] text-gray-400">(pipelines móviles)</span>
-                            </div>
-                            <div id="det-edit-pipeline-perms" class="flex flex-col gap-2">
-                                <!-- Populated dynamically -->
-                                <p class="text-[10px] text-gray-400 italic">Cargando ecosistemas...</p>
-                            </div>
-                        </div>
 
                         <!-- ZONA DE DOCUMENTOS en Edición -->
                         <div class="border-t border-gray-100 pt-5 mt-5">
