@@ -360,11 +360,18 @@ export function openAdminBellPanel() {
                     <p style="margin: 0; font-size: 0.65rem; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Administrativas</p>
                 </div>
             </div>
-            <button id="admin-bell-close-btn" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.05); border: none; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s;"
-                onmouseover="this.style.color='white'; this.style.background='rgba(255,255,255,0.1)'"
-                onmouseout="this.style.color='#64748b'; this.style.background='rgba(255,255,255,0.05)'">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                ${notifs.length > 0 ? `
+                <button id="admin-bell-clear-all-btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;" title="Vaciar todas las notificaciones">
+                    <i class="fa-solid fa-trash-can" style="margin-right: 4px;"></i> Vaciar todo
+                </button>
+                ` : ''}
+                <button id="admin-bell-close-btn" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.05); border: none; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s;"
+                    onmouseover="this.style.color='white'; this.style.background='rgba(255,255,255,0.1)'"
+                    onmouseout="this.style.color='#64748b'; this.style.background='rgba(255,255,255,0.05)'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
         </div>
 
         <!-- List -->
@@ -455,6 +462,38 @@ export function openAdminBellPanel() {
             }
         });
     });
+
+    // Botón de vaciar todo
+    const clearAllBtn = panel.querySelector('#admin-bell-clear-all-btn');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('¿Vaciar todas las notificaciones?')) {
+                const items = panel.querySelectorAll('.bell-notif-item');
+                items.forEach(item => {
+                    const btn = item.querySelector('.bell-notif-archive-btn');
+                    if (btn) {
+                        markAsArchived(btn.dataset.notifId);
+                    }
+                    item.style.transition = 'opacity 0.2s, height 0.2s';
+                    item.style.opacity = '0';
+                    item.style.height = item.offsetHeight + 'px';
+                    setTimeout(() => {
+                        item.style.height = '0px';
+                        item.style.padding = '0px';
+                        item.style.border = 'none';
+                        item.style.overflow = 'hidden';
+                    }, 200);
+                });
+                
+                setTimeout(() => {
+                    items.forEach(item => item.remove());
+                    updateAdminBellBadge();
+                    openAdminBellPanel();
+                }, 400);
+            }
+        });
+    }
 
     // Botones de enlace directo
     panel.querySelectorAll('.bell-link-btn').forEach(btn => {
