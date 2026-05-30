@@ -57,6 +57,17 @@ import { advanceDealPhase, syncKanbanActivity } from './api.js';
 
 // Listen for cross-frame messages (e.g., from Work Order iframe)
 window.addEventListener('message', async (e) => {
+  if (e.data && e.data.type === 'SEARCH_CLIENTS') {
+    try {
+      const response = await fetch(`/api/search-clients?q=${encodeURIComponent(e.data.query)}`);
+      const results = await response.json();
+      e.source.postMessage({ type: 'SEARCH_CLIENTS_RESULT', data: results }, '*');
+    } catch (err) {
+      console.error('[APP] Error searching clients:', err);
+    }
+    return;
+  }
+
   if (e.data && (e.data.type === 'WORK_ORDER_SUBMITTED' || e.data.type === 'CREDIT_APP_SUBMITTED')) {
     console.log(`[APP] Received ${e.data.type} message:`, e.data);
     try {

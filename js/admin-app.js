@@ -8604,6 +8604,27 @@ async function showClientDetail(id) {
         if(noIdMsg) noIdMsg.classList.remove('hidden');
     }
 
+    // Co-Applicant ID Photo View Logic
+    const btnViewCoId = document.getElementById('btn-view-cli-co-id-photo');
+    const noCoIdMsg = document.getElementById('det-cli-co-id-no-photo');
+    const coIdPhoto = cli.adjuntos_oficina?.co_applicant_id_url;
+    if (coIdPhoto) {
+        if(btnViewCoId) {
+            btnViewCoId.classList.remove('hidden');
+            btnViewCoId.classList.add('flex');
+            btnViewCoId.onclick = () => {
+                window.openFilePreview('co_id_photo_temp', 'Documento de Identidad del Co-Aplicante', { valor: coIdPhoto });
+            };
+        }
+        if(noCoIdMsg) noCoIdMsg.classList.add('hidden');
+    } else {
+        if(btnViewCoId) {
+            btnViewCoId.classList.add('hidden');
+            btnViewCoId.classList.remove('flex');
+        }
+        if(noCoIdMsg) noCoIdMsg.classList.remove('hidden');
+    }
+
     // Status label
     const statLbl = document.getElementById('det-cli-status-label');
     if (statLbl) {

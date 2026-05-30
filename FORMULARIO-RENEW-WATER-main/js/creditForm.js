@@ -57,6 +57,7 @@ function collectCreditFormData(formEl) {
     pagoMensual:      _val('cb_mortgage_payment'),
     tipoVivienda:     _radio(formEl, 'cb_housingType'),
     estatusVivienda:  _radio(formEl, 'cb_housingStatus'),
+    fotoId:           document.getElementById('cb_id_photo_preview')?.dataset.base64 || "",
   };
 
   // ── Sección C: Empleo e Ingresos — Aplicante ──
@@ -106,9 +107,10 @@ function collectCreditFormData(formEl) {
   data.tipo_formulario = 'aplicacion_credito';
   data._timestamp      = new Date().toISOString();
 
-  // ── Vincular con Proyecto ──
+  // ── Vincular con Proyecto o Cliente ──
   const urlParams = new URLSearchParams(window.location.search);
   data.proyectoId = urlParams.get('proyectoId') || null;
+  data.clienteId = document.getElementById('selected_client_id')?.value || null;
 
   return data;
 }
@@ -170,11 +172,18 @@ function resetCreditForm(formEl) {
   clearSignature('firma-co-aplicante');
   
   // Limpiar fotos
-  const preview = document.getElementById('ca_id_photo_preview');
-  if (preview) {
-    preview.innerHTML = '';
-    delete preview.dataset.base64;
+  const previewA = document.getElementById('ca_id_photo_preview');
+  if (previewA) {
+    previewA.innerHTML = '';
+    delete previewA.dataset.base64;
   }
+  const previewB = document.getElementById('cb_id_photo_preview');
+  if (previewB) {
+    previewB.innerHTML = '';
+    delete previewB.dataset.base64;
+  }
+  
+  resetCreditClientSelection();
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -198,6 +207,16 @@ async function handleCreditFormSubmit(e) {
   if (!validateCreditForm(form)) {
     showToast('Completa los campos obligatorios marcados en rojo.', 'error');
     form.querySelector('.error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  // Validación de cliente seleccionado
+  const urlParams = new URLSearchParams(window.location.search);
+  const proyectoId = urlParams.get('proyectoId');
+  const clienteId = document.getElementById('selected_client_id')?.value;
+  if (!proyectoId && !clienteId) {
+    showToast('Debe seleccionar un cliente antes de enviar la aplicación.', 'error');
+    document.getElementById('credit-client-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -235,15 +254,40 @@ async function handleCreditFormSubmit(e) {
       window.URL.revokeObjectURL(url);
       a.remove();
 
-      showToast('¡Aplicación de Crédito enviada y generada exitosamente! <i class="fa-solid fa-check text-green-500"></i>', 'success');
-      resetCreditForm(form);
+      // Subir documentos (ID Aplicante, ID Co-Aplicante, y el PDF)
+      const fotoIdAplicante = payload.aplicante.fotoId;
+      const fotoIdCoAplicante = payload.coAplicante.fotoId;
       
-      const pdfUrl = response.headers.get('X-Document-Url');
-      const urlParams = new URLSearchParams(window.location.search);
-      const proyectoId = urlParams.get('proyectoId');
-      if (proyectoId) {
-        window.parent.postMessage({ type: 'CREDIT_APP_SUBMITTED', proyectoId, formData: payload, pdfUrl: pdfUrl }, '*');
-      }
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const pdfBase64 = reader.result;
+        try {
+          const docsResp = await fetch('/api/save-credit-docs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clienteId: payload.clienteId || clienteId || "", 
+              fotoIdAplicante,
+              fotoIdCoAplicante,
+              pdfBase64
+            })
+          });
+          if (!docsResp.ok) {
+             console.error('Error guardando los documentos en el cliente');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        
+        showToast('¡Aplicación de Crédito enviada y generada exitosamente! <i class="fa-solid fa-check text-green-500"></i>', 'success');
+        resetCreditForm(form);
+        
+        const pdfUrl = response.headers.get('X-Document-Url');
+        if (proyectoId) {
+          window.parent.postMessage({ type: 'CREDIT_APP_SUBMITTED', proyectoId, formData: payload, pdfUrl: pdfUrl }, '*');
+        }
+      };
     } else {
       let errorMsg = `HTTP ${response.status}`;
       try {
@@ -486,8 +530,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Auto-llenado si hay proyectoId
   const urlParams = new URLSearchParams(window.location.search);
   const proyectoId = urlParams.get('proyectoId');
+  const formEl = document.getElementById('form-credit');
+  const selectorEl = document.getElementById('credit-client-selector');
   if (proyectoId) {
+    if (selectorEl) selectorEl.style.display = 'none'; // Esconder el selector si ya venimos de un proyecto
+    if (formEl) {
+      formEl.style.opacity = '1';
+      formEl.style.pointerEvents = 'auto';
+    }
     await autoFillFromProject(proyectoId);
+  } else {
+    // Escuchar mensajes para el buscador
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'SEARCH_CLIENTS_RESULT') {
+        renderCreditClientSearchResults(event.data.data);
+      }
+    });
   }
 });
 
@@ -534,5 +592,67 @@ async function autoFillFromProject(id) {
 
   } catch (err) {
     console.error('[AUTOFILL ERROR]', err);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   CLIENT SELECTOR LOGIC
+════════════════════════════════════════════════════════════ */
+function renderCreditClientSearchResults(results) {
+  const container = document.getElementById('credit-client-search-results');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (!results || results.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  
+  results.forEach(client => {
+    const div = document.createElement('div');
+    div.className = 'client-search-item hover:bg-gray-50';
+    div.style.cssText = 'padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column;';
+    div.innerHTML = `
+      <span style="font-size: 14px; font-weight: 600; color: #0f172a;">${client.nombre}</span>
+      <span style="font-size: 11px; color: #64748b;">${client.telefono || 'Sin teléfono'} - ${client.email || 'Sin email'}</span>
+    `;
+    div.onclick = () => {
+      setCreditClient(client.id, client.nombre);
+      container.style.display = 'none';
+      document.getElementById('credit-client-search-input').value = '';
+    };
+    container.appendChild(div);
+  });
+  
+  container.style.display = 'block';
+}
+
+function setCreditClient(id, nombre) {
+  document.getElementById('selected_client_id').value = id;
+  document.getElementById('selected_client_nombre').value = nombre;
+  document.getElementById('credit-client-selected-name').textContent = nombre;
+  
+  document.getElementById('credit-client-search-area').style.display = 'none';
+  document.getElementById('credit-client-selected-area').style.display = 'flex';
+  
+  const formEl = document.getElementById('form-credit');
+  if (formEl) {
+    formEl.style.opacity = '1';
+    formEl.style.pointerEvents = 'auto';
+  }
+}
+
+function resetCreditClientSelection() {
+  document.getElementById('selected_client_id').value = '';
+  document.getElementById('selected_client_nombre').value = '';
+  document.getElementById('credit-client-selected-name').textContent = '';
+  
+  document.getElementById('credit-client-search-area').style.display = 'block';
+  document.getElementById('credit-client-selected-area').style.display = 'none';
+  
+  const formEl = document.getElementById('form-credit');
+  if (formEl) {
+    formEl.style.opacity = '0.5';
+    formEl.style.pointerEvents = 'none';
   }
 }

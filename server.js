@@ -387,6 +387,148 @@ app.get('/api/project-info', async (req, res) => {
     }
 });
 
+// GET: Buscar clientes para autocompletar en el formulario de crédito
+app.get('/api/search-clients', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q || q.length < 2) return res.json([]);
+
+        console.log(`[API] Searching clients for: ${q}`);
+        
+        const { data, error } = await supabase
+            .from('clientes_maestro')
+            .select('id, nombre, telefono, email')
+            .or(`nombre.ilike.%${q}%,telefono.ilike.%${q}%`)
+            .limit(10);
+
+        if (error) {
+            console.error('[API ERROR] search-clients:', error);
+            return res.status(500).json({ error: 'Error buscando clientes' });
+        }
+
+        res.json(data || []);
+    } catch (error) {
+        console.error('[API ERROR] search-clients:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// POST: Guardar documentos de la aplicación de crédito en el perfil del cliente
+app.post('/api/save-credit-docs', async (req, res) => {
+    try {
+        const { clienteId, fotoIdAplicante, fotoIdCoAplicante, pdfBase64 } = req.body;
+        
+        if (!clienteId) {
+            return res.status(400).json({ error: 'ID de cliente requerido' });
+        }
+
+        console.log(`[API] Saving credit docs for client: ${clienteId}`);
+
+        // Helper para decodificar base64
+        const decodeBase64 = (dataString) => {
+            const matches = dataString.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            if (!matches || matches.length !== 3) return null;
+            return { type: matches[1], data: Buffer.from(matches[2], 'base64') };
+        };
+
+        const urls = {};
+        const updatePayload = {};
+
+        // 1. Obtener cliente actual para actualizar adjuntos_oficina
+        const { data: cliente, error: getErr } = await supabase
+            .from('clientes_maestro')
+            .select('adjuntos_oficina')
+            .eq('id', clienteId)
+            .single();
+
+        if (getErr) {
+            console.error('[API] Error getting client:', getErr);
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        let adjuntos = cliente.adjuntos_oficina || {};
+
+        // 2. Subir Foto ID Aplicante
+        if (fotoIdAplicante && fotoIdAplicante.startsWith('data:image')) {
+            const decoded = decodeBase64(fotoIdAplicante);
+            if (decoded) {
+                const fileName = `id_aplicante_${Date.now()}.jpg`;
+                const { data: sData, error: sErr } = await supabase.storage
+                    .from('archivos_renew')
+                    .upload(`clientes/${clienteId}/${fileName}`, decoded.data, { contentType: decoded.type, upsert: true });
+
+                if (!sErr) {
+                    const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(`clientes/${clienteId}/${fileName}`);
+                    urls.aplicante = publicUrl;
+                    updatePayload.adjunto_id_url = publicUrl;
+                    updatePayload.id_photo = publicUrl; // También para mantener compatibilidad
+                } else {
+                    console.error('[API] Error uploading ID Aplicante:', sErr);
+                }
+            }
+        }
+
+        // 3. Subir Foto ID Co-Aplicante
+        if (fotoIdCoAplicante && fotoIdCoAplicante.startsWith('data:image')) {
+            const decoded = decodeBase64(fotoIdCoAplicante);
+            if (decoded) {
+                const fileName = `id_coaplicante_${Date.now()}.jpg`;
+                const { data: sData, error: sErr } = await supabase.storage
+                    .from('archivos_renew')
+                    .upload(`clientes/${clienteId}/${fileName}`, decoded.data, { contentType: decoded.type, upsert: true });
+
+                if (!sErr) {
+                    const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(`clientes/${clienteId}/${fileName}`);
+                    urls.coaplicante = publicUrl;
+                    adjuntos.co_applicant_id_url = publicUrl;
+                } else {
+                    console.error('[API] Error uploading ID Co-Aplicante:', sErr);
+                }
+            }
+        }
+
+        // 4. Subir PDF
+        if (pdfBase64) {
+            const decoded = decodeBase64(pdfBase64);
+            if (decoded) {
+                const fileName = `credit_app_${Date.now()}.pdf`;
+                const { data: sData, error: sErr } = await supabase.storage
+                    .from('archivos_renew')
+                    .upload(`clientes/${clienteId}/${fileName}`, decoded.data, { contentType: 'application/pdf', upsert: true });
+
+                if (!sErr) {
+                    const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(`clientes/${clienteId}/${fileName}`);
+                    urls.pdf = publicUrl;
+                    adjuntos.app_url = publicUrl;
+                    updatePayload.credit_app_url = publicUrl; // Legacy
+                } else {
+                    console.error('[API] Error uploading PDF:', sErr);
+                }
+            }
+        }
+
+        updatePayload.adjuntos_oficina = adjuntos;
+
+        // 5. Actualizar registro en DB
+        if (Object.keys(updatePayload).length > 0) {
+            const { error: updErr } = await supabase
+                .from('clientes_maestro')
+                .update(updatePayload)
+                .eq('id', clienteId);
+
+            if (updErr) {
+                console.error('[API] Error updating client docs:', updErr);
+            }
+        }
+
+        res.json({ success: true, urls });
+
+    } catch (error) {
+        console.error('[API ERROR] save-credit-docs:', error);
+        res.status(500).json({ error: 'Error interno al guardar documentos' });
+    }
+});
+
 // POST: Generar PDF del recibo y subir a Supabase Storage
 app.post('/api/generate-receipt-pdf', async (req, res) => {
     try {

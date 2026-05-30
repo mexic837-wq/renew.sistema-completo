@@ -65,7 +65,32 @@
       <div class="global-progress-bar" id="credit-progress-bar"></div>
     </div>
 
-    <form id="form-credit" novalidate>
+    <!-- ── SELECTOR DE CLIENTE OBLIGATORIO ── -->
+    <div id="credit-client-selector" class="client-selector-box mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4" style="margin-bottom: 20px; background-color: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px;">
+      <h3 style="margin-top: 0; color: #1e3a8a; font-size: 14px; margin-bottom: 10px;">👤 Vincular Cliente</h3>
+      <p style="font-size: 12px; color: #475569; margin-bottom: 10px;">Busque y seleccione el cliente para esta aplicación de crédito.</p>
+      
+      <div id="credit-client-search-area" style="position: relative;">
+        <input type="text" id="credit-client-search-input" placeholder="Buscar por nombre o teléfono..." autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" oninput="window.parent.postMessage({ type: 'SEARCH_CLIENTS', query: this.value }, '*')">
+        <div id="credit-client-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 50; max-height: 200px; overflow-y: auto;">
+          <!-- Results populated here by app.js postMessage -->
+        </div>
+      </div>
+      
+      <div id="credit-client-selected-area" style="display: none; align-items: center; justify-content: space-between; background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+        <div>
+          <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold; display: block;">Cliente Seleccionado</span>
+          <strong id="credit-client-selected-name" style="color: #0f172a; font-size: 14px;"></strong>
+        </div>
+        <button type="button" onclick="resetCreditClientSelection()" style="background: none; border: none; color: #ef4444; font-size: 12px; font-weight: bold; cursor: pointer;">Cambiar</button>
+      </div>
+      
+      <input type="hidden" id="selected_client_id" name="selected_client_id">
+      <input type="hidden" id="selected_client_nombre" name="selected_client_nombre">
+    </div>
+
+    <!-- El formulario empieza bloqueado visualmente si no hay proyecto/cliente -->
+    <form id="form-credit" novalidate style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
 
       <!-- ── SECCIÓN A: Datos del Aplicante ── -->
       <div class="form-section">
@@ -296,6 +321,18 @@
                 <input type="radio" name="cb_housingStatus" id="cb_hs_rent"     value="Rentado">    <label for="cb_hs_rent">🔑 Rentado</label>
                 <input type="radio" name="cb_housingStatus" id="cb_hs_paid"     value="Pagado">     <label for="cb_hs_paid"><i class="fa-solid fa-check text-green-500"></i> Pagado</label>
                 <input type="radio" name="cb_housingStatus" id="cb_hs_mortgage" value="Hipotecado"> <label for="cb_hs_mortgage">🏦 Hipotecado</label>
+              </div>
+            </div>
+
+            <!-- Foto del ID Co-Aplicante -->
+            <div class="field-group span-full">
+              <label for="cb_id_photo">Foto de Identificación Co-Aplicante (ID Photo) <span class="optional-badge">Opcional</span></label>
+              <div class="file-upload-wrapper">
+                <input type="file" id="cb_id_photo" name="co_idPhoto" accept="image/*" style="display: none;" onchange="handleFileSelect(this, 'cb_id_photo_preview')" />
+                <button type="button" class="btn-secondary" onclick="document.getElementById('cb_id_photo').click()">
+                  📸 Tomar / Subir Foto ID Co-Aplicante
+                </button>
+                <div id="cb_id_photo_preview" class="file-preview"></div>
               </div>
             </div>
 
