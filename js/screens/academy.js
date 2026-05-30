@@ -294,7 +294,7 @@ export function renderAcademy() {
               <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo}</h4>
               <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
                 <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
-                ${(r.tipo || '').replace('Información', 'Información')}
+                ${(r.tipo || '').replace(/Informaci(?:\u00C3\u00B3|\u00f3)n/g, 'Información')}
               </p>
             </div>
             <div style="color: var(--border);">
