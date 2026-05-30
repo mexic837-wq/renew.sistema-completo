@@ -679,6 +679,17 @@ app.post('/api/db', async (req, res) => {
             if (existingClients) {
                 existingClients.forEach(c => existingMap[c.id] = c);
             }
+            
+            // Pre-fetch origin Leads for new clients to guarantee we don't lose webhooks that hit the lead before conversion
+            const newClientsFromLeads = db.Clientes_Maestro.filter(c => !existingMap[c.id] && c.origen_tipo === 'call_center' && c.origen_id);
+            const leadIds = newClientsFromLeads.map(c => c.origen_id);
+            const leadMap = {};
+            if (leadIds.length > 0) {
+                const { data: leadsData } = await supabase.from('call_center_prospectos').select('id, historial_llamadas').in('id', leadIds);
+                if (leadsData) {
+                    leadsData.forEach(l => leadMap[l.id] = l);
+                }
+            }
 
             // Mapeo para asegurar nombres de columnas correctos
             const cli = db.Clientes_Maestro.map(item => {
@@ -730,7 +741,7 @@ app.post('/api/db', async (req, res) => {
                 
                 // MERGE historial_llamadas
                 if (item.historial_llamadas) {
-                    const existing = existingMap[item.id];
+                    const existing = existingMap[item.id] || (item.origen_tipo === 'call_center' && leadMap[item.origen_id] ? leadMap[item.origen_id] : null);
                     if (existing && existing.historial_llamadas) {
                         const callMap = {};
                         // 1. Load server calls (source of truth for recordings and new calls)
