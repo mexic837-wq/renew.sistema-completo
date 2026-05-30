@@ -1310,6 +1310,19 @@ export async function saveAdminWorker(worker) {
 
   await saveGranular('usuarios', [sanitized]);
 
+  // ── SYNC SESSION: If the saved worker IS the current user, update localStorage ──
+  // This ensures zadarma_sip_id and other fields are immediately available
+  // without requiring the user to log out and log back in.
+  try {
+    const sessionStr = localStorage.getItem('rs_user');
+    if (sessionStr) {
+      const sessionUser = JSON.parse(sessionStr);
+      if (sessionUser.id === src.id) {
+        localStorage.setItem('rs_user', JSON.stringify({ ...sessionUser, ...src }));
+      }
+    }
+  } catch(e) { /* ignore */ }
+
   return worker;
 }
 

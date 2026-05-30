@@ -1,7 +1,34 @@
 // ── ZADARMA GLOBALS ─────────────────────────────────────────
-window.zadarmaCall = async (phone) => {
+
+// Helper: get the current user with fresh zadarma_sip_id from local DB if needed
+function _getZadarmaUser() {
     const userStr = localStorage.getItem('rs_user');
-    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const sessionUser = userStr ? JSON.parse(userStr) : null;
+    if (!sessionUser) return null;
+
+    // If SIP ID already in session, use it directly
+    if (sessionUser.zadarma_sip_id) return sessionUser;
+
+    // Try to get fresh data from local DB cache
+    try {
+        const dbStr = localStorage.getItem('rs_admin_db');
+        if (dbStr) {
+            const db = JSON.parse(dbStr);
+            const freshUser = (db.Usuarios || []).find(u => u.id === sessionUser.id);
+            if (freshUser && freshUser.zadarma_sip_id) {
+                // Update localStorage so future calls don't need this lookup
+                const merged = { ...sessionUser, zadarma_sip_id: freshUser.zadarma_sip_id };
+                localStorage.setItem('rs_user', JSON.stringify(merged));
+                return merged;
+            }
+        }
+    } catch(e) { /* ignore */ }
+
+    return sessionUser;
+}
+
+window.zadarmaCall = async (phone) => {
+    const currentUser = _getZadarmaUser();
     if (!currentUser || !currentUser.zadarma_sip_id) {
         if (window.showToast) window.showToast('Debes tener un SIP ID de Zadarma configurado en tu perfil.', 'error');
         else alert('Debes tener un SIP ID configurado.');
@@ -28,6 +55,7 @@ window.zadarmaCall = async (phone) => {
         else alert('Error: ' + e.message);
     }
 };
+
 
 window.showZadarmaHistory = (historial) => {
     if (!historial || historial.length === 0) {

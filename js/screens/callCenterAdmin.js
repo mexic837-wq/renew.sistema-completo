@@ -391,12 +391,33 @@ window.adminDeleteCCLead = async (id) => {
 
 
 window.adminZadarmaCall = async (phone) => {
-    const currentUser = getCurrentUser();
+    // Use _getZadarmaUser if available (defined in zadarma.js), otherwise fallback to getCurrentUser()
+    const currentUser = (typeof _getZadarmaUser === 'function')
+        ? _getZadarmaUser()
+        : (() => {
+            const sessionUser = getCurrentUser();
+            if (!sessionUser || sessionUser.zadarma_sip_id) return sessionUser;
+            // Try fresh from local DB
+            try {
+                const dbStr = localStorage.getItem('rs_admin_db');
+                if (dbStr) {
+                    const db = JSON.parse(dbStr);
+                    const freshUser = (db.Usuarios || []).find(u => u.id === sessionUser.id);
+                    if (freshUser && freshUser.zadarma_sip_id) {
+                        const merged = { ...sessionUser, zadarma_sip_id: freshUser.zadarma_sip_id };
+                        localStorage.setItem('rs_user', JSON.stringify(merged));
+                        return merged;
+                    }
+                }
+            } catch(e) { /* ignore */ }
+            return sessionUser;
+        })();
+
     if (!currentUser || !currentUser.zadarma_sip_id) {
         showToast('Debes tener un SIP ID de Zadarma configurado en tu perfil.', 'error');
         return;
     }
-    if (!confirm('�Deseas llamar al ' + phone + ' desde tu extensi�n ' + currentUser.zadarma_sip_id + '?')) return;
+    if (!confirm('¿Deseas llamar al ' + phone + ' desde tu extensión ' + currentUser.zadarma_sip_id + '?')) return;
 
     try {
         const res = await fetch('/api/zadarma/call', {
@@ -406,7 +427,7 @@ window.adminZadarmaCall = async (phone) => {
         });
         const data = await res.json();
         if (data.status === 'success') {
-            showToast('Llamada en curso. Contesta tu tel�fono Zadarma.', 'success');
+            showToast('Llamada en curso. Contesta tu teléfono Zadarma.', 'success');
         } else {
             throw new Error(data.message || 'Error de Zadarma');
         }
