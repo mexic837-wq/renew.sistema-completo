@@ -345,12 +345,26 @@ async function handleFase1Click(screen, user, e) {
   const btnHist = e.target.closest('.btn-cc-historial');
   if (btnHist) {
     const id = btnHist.dataset.id;
-    const pros = _ccState.prospectos.find(p => p.id === id);
-    if (pros) {
-        if (window.showZadarmaHistory) window.showZadarmaHistory(pros.historial_llamadas || []);
-        else alert('No hay historial disponible');
+    const oldHtml = btnHist.innerHTML;
+    btnHist.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    btnHist.disabled = true;
+    
+    try {
+        const res = await fetch(`/api/cc-prospectos/${id}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (window.showZadarmaHistory) window.showZadarmaHistory(data.historial_llamadas || []);
+            else alert('No hay historial disponible');
+        } else {
+            showToast('Error al cargar historial', 'error');
+        }
+    } catch (e) {
+        showToast('Error de conexión', 'error');
+    } finally {
+        btnHist.innerHTML = oldHtml;
+        btnHist.disabled = false;
+        screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     }
-    screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     return;
   }
 

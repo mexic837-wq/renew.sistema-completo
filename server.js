@@ -1829,6 +1829,20 @@ app.get('/api/cc-prospectos', async (req, res) => {
     }
 });
 
+// GET: Prospecto individual
+app.get('/api/cc-prospectos/:id', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('call_center_prospectos')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
+        if (error) throw error;
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 // POST: Ingresar nuevos prospectos (scraper n8n / manual / referidos / cualquier fuente)
 // Body: { nombre, telefono, direccion, email?, pipeline?, fuente? }
 //  OR batch: { leads: [ { ... } ] }

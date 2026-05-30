@@ -242,7 +242,7 @@ async function loadCCLeads() {
                 </td>
                 <td class="py-4 text-right flex justify-end gap-2">
                 <td class="py-4 text-right flex justify-end gap-2">
-                    <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="if(window.showZadarmaHistory) window.showZadarmaHistory(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(l.historial_llamadas || []))}'))); else alert('Sin historial')" title="Ver Historial de Llamadas">
+                    <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="const b=this;b.disabled=true;const old=b.innerHTML;b.innerHTML='<i class=\\\'fa-solid fa-spinner fa-spin text-xs\\\'></i>';fetch('/api/cc-prospectos/${l.id}').then(r=>r.json()).then(d=>{b.disabled=false;b.innerHTML=old;if(window.showZadarmaHistory)window.showZadarmaHistory(d.historial_llamadas||[]);else alert('Sin historial')}).catch(()=>{b.disabled=false;b.innerHTML=old;alert('Error al cargar historial')});" title="Ver Historial de Llamadas">
                         <i class="fa-solid fa-headphones text-xs"></i>
                     </button>
                     <button class="w-8 h-8 rounded-lg hover:bg-tealAccent/20 hover:text-tealAccent dark:hover:bg-tealAccent/10 text-gray-400 transition-colors" onclick="adminEditCCLead('${l.id}', '${l.operador_id || ''}')">
