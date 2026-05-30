@@ -8,7 +8,16 @@ let cachedDB = null;
 export const delay = ms => new Promise(r => setTimeout(r, ms));
 export function getCurrentUser() {
   const raw = localStorage.getItem('rs_user');
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  const user = JSON.parse(raw);
+  
+  if (cachedDB && cachedDB.Admin_Roles) {
+    const roleDef = cachedDB.Admin_Roles.find(r => (r.nombre || '').toLowerCase() === (user.rol || '').toLowerCase());
+    if (roleDef && roleDef.permisos) {
+      user.permisos = { ...(user.permisos || {}), ...roleDef.permisos };
+    }
+  }
+  return user;
 }
 export function logout() {
   localStorage.removeItem('rs_user');
