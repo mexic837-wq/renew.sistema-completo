@@ -318,6 +318,12 @@ window.handleGlobalAdd = async () => {
     const curView = state.activeView;
     console.log("handleGlobalAdd for view:", curView);
     
+    if (curView === 'roles') {
+        if (typeof window.editAdminRole === 'function') window.editAdminRole(null);
+        return;
+    }
+
+
     if (curView === 'inventario') {
         const modInv = document.getElementById('modal-nuclear-inv');
         const btnSave = document.getElementById('btn-save-inv');
@@ -3060,7 +3066,7 @@ window.renderView = async function renderView() {
   else if (state.activeView === 'roles') {
     if (UI.viewTitle) UI.viewTitle.textContent = "Roles y Permisos";
     if (UI.viewDesc) UI.viewDesc.textContent = "Administra los roles personalizados y los accesos modulares al sistema.";
-    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol', () => { if(window.editAdminRole) window.editAdminRole(null); });
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol', 'btn-premium flex items-center gap-3 px-6 py-3 shadow-lg');
     if (typeof renderRolesBuilder === 'function') renderRolesBuilder();
   }
   else if (state.activeView === 'lista-precios') {
@@ -10605,7 +10611,7 @@ window.renderRolesBuilder = function() {
     `;
 
     // Fix button global if user clicks "+" icon in header
-    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol', () => window.editAdminRole(null));
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol', 'btn-premium flex items-center gap-3 px-6 py-3 shadow-lg');
 };
 
 window.editAdminRole = function(roleId) {
