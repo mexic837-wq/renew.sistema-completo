@@ -122,7 +122,7 @@ app.get('/api/db', async (req, res) => {
             'proyectos_dinamicos', 'respuestas_dinamicas', 'usuarios', 'academia_content', 
             'inventario_global', 'historial_inventario', 'anuncios_corporativos', 'partners_directorio', 'calendario_eventos',
             'recibos_pagos', 'water_productos', 'admin_catalogos', 'admin_meetings', 'admin_meetings_reads', 'mensajes_internos',
-            'rrhh_adelantos'
+            'rrhh_adelantos', 'admin_roles'
         ];
         
         const results = await Promise.all(tables.map(t => fetchWithTimeout(t)));
@@ -282,6 +282,7 @@ app.get('/api/db', async (req, res) => {
                 image_url: fixUrl(m.image_url)
             })),
             rrhh_adelantos:          results[19].data || [],
+            Admin_Roles:             results[20].data || [],
             // Compute counters dynamically from real data — avoids collision bugs
             Counters: {
                 cli:   maxId(results[3].data,  'cli_'),
@@ -1036,6 +1037,17 @@ app.post('/api/db', async (req, res) => {
                 created_at: a.created_at || new Date().toISOString()
             }));
             syncTasks.push(supabase.from('rrhh_adelantos').upsert(cleanAdelantos, { onConflict: 'id' }));
+        }
+
+        if (db.Admin_Roles?.length) {
+            const cleanRoles = db.Admin_Roles.map(r => ({
+                id: r.id,
+                nombre: r.nombre || null,
+                permisos: r.permisos || {},
+                is_base: !!r.is_base,
+                created_at: r.created_at || new Date().toISOString()
+            }));
+            syncTasks.push(supabase.from('admin_roles').upsert(cleanRoles, { onConflict: 'id' }));
         }
 
         if (db.calendario_eventos?.length) {

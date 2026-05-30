@@ -3060,7 +3060,7 @@ window.renderView = async function renderView() {
   else if (state.activeView === 'roles') {
     if (UI.viewTitle) UI.viewTitle.textContent = "Roles y Permisos";
     if (UI.viewDesc) UI.viewDesc.textContent = "Administra los roles personalizados y los accesos modulares al sistema.";
-    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol');
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Crear Rol', () => { if(window.editAdminRole) window.editAdminRole(null); });
     if (typeof renderRolesBuilder === 'function') renderRolesBuilder();
   }
   else if (state.activeView === 'lista-precios') {

@@ -1,17 +1,34 @@
 const fs = require('fs');
+
 let content = fs.readFileSync('server.js', 'utf8');
 
-// Fix 1: /api/db endpoint for proyectos_dinamicos
-content = content.replace(
-  'const proy = db.Proyectos_Dinamicos.map(({ estado, fase_id, asignado_a, ...rest }) => ({',
-  'const proy = db.Proyectos_Dinamicos.map(({ estado, fase_id, asignado_a, direccion, nombre_cliente, telefono_cliente, email_cliente, email, telefono, etapa, fase_orden, total_fases, zip, licencia, id_photo, is_locked, rol_fase, ultima_actividad_label, ultima_actividad, actividad, ...rest }) => ({'
-);
+const rrhhUpsertStr = "syncTasks.push(supabase.from('rrhh_adelantos').upsert(cleanAdelantos, { onConflict: 'id' }));\n        }";
+const adminRolesUpsertStr = `
+        if (db.Admin_Roles?.length) {
+            const cleanRoles = db.Admin_Roles.map(r => ({
+                id: r.id,
+                nombre: r.nombre || null,
+                permisos: r.permisos || {},
+                is_base: !!r.is_base,
+                created_at: r.created_at || new Date().toISOString()
+            }));
+            syncTasks.push(supabase.from('admin_roles').upsert(cleanRoles, { onConflict: 'id' }));
+        }`;
 
-// Fix 2: /api/upsert endpoint for proyectos_dinamicos
-content = content.replace(
-  /ultima_actividad_label, rol_fase, is_locked,\\s*\\.\\.\\.rest/g,
-  'ultima_actividad_label, rol_fase, is_locked,\\n                  direccion, nombre_cliente, telefono_cliente, email_cliente, email, telefono, etapa, fase_orden, total_fases, zip, licencia, id_photo,\\n                  ...rest'
-);
+if (content.includes(rrhhUpsertStr) && !content.includes("db.Admin_Roles?.length")) {
+    content = content.replace(rrhhUpsertStr, rrhhUpsertStr + adminRolesUpsertStr);
+    console.log('Appended admin_roles upsert to server.js');
+}
 
-fs.writeFileSync('server.js', content);
+// I also need to make sure GET /api/db has admin_roles mapped since I undid it with checkout
+content = content.replace("'rrhh_adelantos'", "'rrhh_adelantos', 'admin_roles'");
 
+const adminRolesMapStr = "Admin_Roles:             results[20].data || [],";
+const rrhhStr = "rrhh_adelantos:          results[19].data || [],";
+if (content.includes(rrhhStr) && !content.includes(adminRolesMapStr)) {
+    content = content.replace(rrhhStr, rrhhStr + "\n            " + adminRolesMapStr);
+    console.log('Appended admin_roles fetch to server.js');
+}
+
+fs.writeFileSync('server.js', content, 'utf8');
+console.log('Fixed server.js');
