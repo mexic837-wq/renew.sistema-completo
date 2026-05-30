@@ -721,6 +721,9 @@ app.post('/api/db', async (req, res) => {
                 if (item.credit_app_url) {
                     mapped.credit_app_url = item.credit_app_url;
                 }
+                if (item.historial_llamadas) {
+                    mapped.historial_llamadas = item.historial_llamadas;
+                }
                 return mapped;
             });
             syncTasks.push(supabase.from('clientes_maestro').upsert(cli, { onConflict: 'id' }));
