@@ -517,7 +517,7 @@ export async function renderMiCalendario() {
         btnEditar.classList.remove('hidden');
         btnEliminar.classList.remove('hidden');
 
-        document.getElementById('ev-nombre').value = event.title || '';
+        document.getElementById('ev-nombre').value = event.title ? event.title.replace(/<[^>]*>?/gm, '').trim() : '';
         document.getElementById('ev-nombre').readOnly = true;
 
         document.getElementById('ev-fecha-inicio').value = toLocalISOString(event.start);

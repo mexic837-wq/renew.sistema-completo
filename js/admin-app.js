@@ -5802,7 +5802,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
     
 
-    document.getElementById('ev-nombre').value = event.title || '';
+    document.getElementById('ev-nombre').value = event.title ? event.title.replace(/<[^>]*>?/gm, '').trim() : '';
     document.getElementById('ev-nombre').readOnly = true;
 
     if (event.start) {
