@@ -684,13 +684,10 @@ window.addEventListener('hashchange', handleHashChange);
 // Ensure sidebar tools are populated whenever the user is logged in
 // (in case they refresh on a screen other than dashboard)
 function _ensureSidebarPopulated() {
-  const desktopContainer = document.getElementById('desktop-dynamic-tools');
-  if (desktopContainer && desktopContainer.innerHTML.trim() === '') {
-    const user = getCurrentUser();
-    if (user) {
-      const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
-      _renderToolsForPipeline(user, activeUnit);
-    }
+  const user = getCurrentUser();
+  if (user) {
+    const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
+    _renderToolsForPipeline(user, activeUnit);
   }
 }
 

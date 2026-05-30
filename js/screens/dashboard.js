@@ -531,7 +531,8 @@ function _buildPipelineChips(user, activeUnit) {
 
 export function _renderToolsForPipeline(user, activeUnit) {
   const grid = document.getElementById('dash-tools-grid');
-  if (!grid) return;
+  // Note: grid may not exist when called from non-dashboard screens,
+  // but we still want to populate the desktop sidebar, so we don't return early.
 
   const db          = getDB();
   const userRole    = (user.rol || '').toLowerCase();
@@ -714,22 +715,29 @@ export function _renderToolsForPipeline(user, activeUnit) {
     'Mis Adelantos':       'var(--bg-tool-credito)',
   };
 
-  grid.innerHTML = allTools.map((tool, i) => `
-    <div class="tool-row ${tool.className || ''}" id="tool-${i}"
-      style="background: ${VARS[tool.name] || 'var(--bg-tool-default)'}; animation-delay:${tool.delay || `${i*0.07}s`};">
-      <div class="tool-row-overlay"></div>
-      <div style="position:absolute; top:0; left:0; right:0; height:2.5px; background:${tool.gradient};"></div>
-      <div class="tool-row-body">
-        <div class="tool-row-icon" style="background:${tool.iconBg}; color:${tool.iconColor};">
-          ${tool.icon}
-        </div>
-        <div class="tool-row-text">
-          ${tool.tag ? `<span class="tool-row-tag">${tool.tag}</span>` : ''}
-          <span class="tool-row-name">${tool.name}</span>
+  if (grid) {
+    grid.innerHTML = allTools.map((tool, i) => `
+      <div class="tool-row ${tool.className || ''}" id="tool-${i}"
+        style="background: ${VARS[tool.name] || 'var(--bg-tool-default)'}; animation-delay:${tool.delay || `${i*0.07}s`};">
+        <div class="tool-row-overlay"></div>
+        <div style="position:absolute; top:0; left:0; right:0; height:2.5px; background:${tool.gradient};"></div>
+        <div class="tool-row-body">
+          <div class="tool-row-icon" style="background:${tool.iconBg}; color:${tool.iconColor};">
+            ${tool.icon}
+          </div>
+          <div class="tool-row-text">
+            ${tool.tag ? `<span class="tool-row-tag">${tool.tag}</span>` : ''}
+            <span class="tool-row-name">${tool.name}</span>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+
+    allTools.forEach((tool, i) => {
+      const el = document.getElementById(`tool-${i}`);
+      if (el && tool.action) el.addEventListener('click', tool.action);
+    });
+  }
 
   // Dynamically populate desktop sidebar
   const desktopContainer = document.getElementById('desktop-dynamic-tools');
@@ -754,11 +762,6 @@ export function _renderToolsForPipeline(user, activeUnit) {
       });
     });
   }
-
-  allTools.forEach((tool, i) => {
-    const el = document.getElementById(`tool-${i}`);
-    if (el && tool.action) el.addEventListener('click', tool.action);
-  });
 }
 
 function renderDeals(deals, user, screen, rankData = null) {
