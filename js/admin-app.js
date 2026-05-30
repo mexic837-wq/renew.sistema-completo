@@ -10227,8 +10227,9 @@ window.updateWorkerRankVisibility = function() {
     const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
     const isProjectManager = rolVal === 'project manager';
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión' || rolVal === 'supervisión';
+    const isCallCenter = rolVal.includes('call center');
     
-    const hasPipelines = isProjectManager || isSupervisor || isVendedor;
+    const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter;
 
     // Rango: Vendedores, PM, Supervisor con Water
     const waterChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
@@ -10295,8 +10296,9 @@ window.updateEditWorkerRankVisibility = function() {
     const rankContainer = document.getElementById('det-edit-rank-container');
     const equipoCont = document.getElementById('det-edit-equipo-container');
     const pipesCont = document.getElementById('det-edit-pipelines-container');
-    
-    if (rol && pipesCont) pipesCont.classList.toggle('hidden', rol.value !== 'Project Manager');
+    const rolVal = (rol ? rol.value.toLowerCase() : '');
+    const hasPipelines = ['project manager', 'vendedor', 'representante de ventas', 'supervisor', 'supervisión'].includes(rolVal) || rolVal.includes('call center');
+    if (rol && pipesCont) pipesCont.classList.toggle('hidden', !hasPipelines);
     if (rol && equipoCont) {
         equipoCont.classList.toggle('hidden', rol.value !== 'Supervisor');
         if (rol.value === 'Supervisor') {
@@ -10539,9 +10541,16 @@ window.populateRolesDropdowns = function() {
         'Call Center', 'Procesador', 'Técnico', 'Vendedor'
     ];
 
-    const optionsHtml = roles.length
-        ? roles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('')
-        : defaultRoles.map(r => `<option value="${r}">${r}</option>`).join('');
+    // Merge roles and defaultRoles
+    const dbRolesNames = roles.map(r => r.nombre.toLowerCase());
+    const mergedRoles = [...roles];
+    defaultRoles.forEach(dr => {
+        if (!dbRolesNames.includes(dr.toLowerCase())) {
+            mergedRoles.push({ nombre: dr });
+        }
+    });
+
+    const optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
     
     const inpRol = document.getElementById('inp-usr-rol');
     if (inpRol) {
