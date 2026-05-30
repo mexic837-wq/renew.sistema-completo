@@ -1453,23 +1453,14 @@
                 </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="aqua-label">Rol / Cargo</label>
                     <select id="inp-usr-rol" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
-                        <option value="CEO">CEO</option>
-                        <option value="Admin">Administración</option>
-                        <option value="Manager de Ventas">Manager de Ventas</option>
-                        <option value="Account Manager">Account Manager</option>
-                        <option value="Project Manager">Project Manager</option>
-                        <option value="Supervisión">Supervisión</option>
-                        <option value="Call Center">Call Center</option>
-                        <option value="Procesador">Oficina</option>
-                        <option value="Técnico">Técnicos</option>
-                        <option value="Vendedor">Representante de Ventas</option>
+                        <!-- Se llena dinámicamente desde Admin_Roles -->
                     </select>
                 </div>
-                <div id="container-usr-rank">
+                <div id="container-usr-rank" class="hidden">
                     <label class="aqua-label">Rango (Vendedores)</label>
                     <select id="inp-usr-rank" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
                         <option value="novato">Nuevo</option>
@@ -1479,6 +1470,33 @@
                         <option value="vendedor">Representante de Ventas</option>
                         <option value="analista">Analista</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Pipelines Permitidos (Project Manager) -->
+            <div id="container-usr-pipelines" class="hidden mb-4 p-4 rounded-lg border border-teal-100 bg-teal-50/50 dark:bg-teal-900/10 dark:border-teal-800/30">
+                <label class="block text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase tracking-widest mb-2">Pipelines Permitidos</label>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500 usr-pip-chk" data-pip="Solar" value="Solar">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Solar</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500 usr-pip-chk" data-pip="Water" value="Water">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Water</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 text-teal-500 rounded focus:ring-teal-500 usr-pip-chk" data-pip="Home" value="Home">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Home</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Equipo Asignado (Supervisor) -->
+            <div id="container-usr-equipo" class="hidden mb-4 p-4 rounded-lg border border-blue-100 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800/30">
+                <label class="block text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mb-2">Equipo (Representantes Asignados)</label>
+                <div id="usr-equipo-checkboxes" class="flex flex-col gap-2 max-h-40 overflow-y-auto bg-white dark:bg-white/5 p-2 border border-gray-200 dark:border-white/10 rounded">
+                    <!-- Se llena dinámicamente -->
                 </div>
             </div>
 

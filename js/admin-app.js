@@ -10216,23 +10216,66 @@ document.addEventListener('click', async e => {
 });
 
 
-// -- Rango de Trabajadores (Visibilidad Dinámica) -------------------------
+// -- Rango, Pipelines y Equipo de Trabajadores (Visibilidad Dinámica) ----
 window.updateWorkerRankVisibility = function() {
     const rol = document.getElementById('inp-usr-rol');
     const rankContainer = document.getElementById('container-usr-rank');
-    if (!rankContainer || !rol) return;
-    
+    const pipelinesContainer = document.getElementById('container-usr-pipelines');
+    const equipoContainer = document.getElementById('container-usr-equipo');
+    if (!rol) return;
+
+    const rolVal = (rol.value || '').toLowerCase();
+    const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
+    const isProjectManager = rolVal === 'project manager';
+    const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión' || rolVal === 'supervisión';
+
+    // Rango: solo Vendedores con Water
     const waterChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
         const pipName = chk.dataset.pip || '';
         return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
     });
+    if (rankContainer) {
+        if (isVendedor && waterChecked) {
+            rankContainer.classList.remove('hidden');
+        } else {
+            rankContainer.classList.add('hidden');
+            const rankSelect = document.getElementById('inp-usr-rank');
+            if (rankSelect) rankSelect.value = 'novato';
+        }
+    }
 
-    if (rol.value === 'Vendedor' && waterChecked) {
-        rankContainer.classList.remove('hidden');
-    } else {
-        rankContainer.classList.add('hidden');
-        const rankSelect = document.getElementById('inp-usr-rank');
-        if (rankSelect) rankSelect.value = 'novato'; 
+    // Pipelines: solo Project Manager
+    if (pipelinesContainer) {
+        pipelinesContainer.classList.toggle('hidden', !isProjectManager);
+    }
+
+    // Equipo: solo Supervisor
+    if (equipoContainer) {
+        equipoContainer.classList.toggle('hidden', !isSupervisor);
+        if (isSupervisor) {
+            const chksCont = document.getElementById('usr-equipo-checkboxes');
+            if (chksCont && chksCont.children.length === 0) {
+                const db = getDB();
+                const vendedores = (db.Usuarios || []).filter(w => {
+                    const r = (w.rol || '').toLowerCase();
+                    return r === 'vendedor' || r === 'representante de ventas';
+                });
+                vendedores.forEach(vend => {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'flex items-center gap-2 cursor-pointer';
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.className = 'w-4 h-4 text-blue-500 rounded focus:ring-blue-500 usr-equipo-chk';
+                    chk.value = vend.id;
+                    const span = document.createElement('span');
+                    span.className = 'text-sm text-gray-700 dark:text-gray-300';
+                    span.textContent = `${vend.nombre || ''} ${vend.apellido || ''}`.trim();
+                    lbl.appendChild(chk);
+                    lbl.appendChild(span);
+                    chksCont.appendChild(lbl);
+                });
+            }
+        }
     }
 };
 
@@ -10491,14 +10534,18 @@ window.populateRolesDropdowns = function() {
     if (inpRol) {
         const val = inpRol.value;
         inpRol.innerHTML = optionsHtml;
-        if(val) inpRol.value = val;
+        if (val && roles.some(r => r.nombre === val)) inpRol.value = val;
+        // Trigger visibility on first populate
+        if (typeof window.updateWorkerRankVisibility === 'function') {
+            window.updateWorkerRankVisibility();
+        }
     }
     
     const detRol = document.getElementById('det-edit-rol');
     if (detRol) {
         const val = detRol.value;
         detRol.innerHTML = optionsHtml;
-        if(val) detRol.value = val;
+        if (val && roles.some(r => r.nombre === val)) detRol.value = val;
     }
 };
 
