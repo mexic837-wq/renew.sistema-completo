@@ -1843,6 +1843,17 @@ app.get('/api/cc-prospectos/:id', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+
+// DEBUG ONLY
+app.get('/api/zadarma/debug', (req, res) => {
+    const fs = require('fs');
+    try {
+        const log = fs.readFileSync(path.join(__dirname, 'zadarma_debug.jsonl'), 'utf8');
+        res.type('text/plain').send(log);
+    } catch(e) {
+        res.send('No log yet');
+    }
+});
 // POST: Ingresar nuevos prospectos (scraper n8n / manual / referidos / cualquier fuente)
 // Body: { nombre, telefono, direccion, email?, pipeline?, fuente? }
 //  OR batch: { leads: [ { ... } ] }
@@ -2543,6 +2554,8 @@ app.get('/api/zadarma/webhook', (req, res) => {
 app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (req, res) => {
     try {
         console.log('[ZADARMA WEBHOOK] Evento recibido', req.body);
+        const fs = require('fs');
+        fs.appendFileSync(path.join(__dirname, 'zadarma_debug.jsonl'), JSON.stringify(req.body) + '\\n');
         
         if (req.query.zd_echo) {
             return res.send(req.query.zd_echo);
