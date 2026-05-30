@@ -27,8 +27,13 @@ export function renderMeetings() {
       });
   });
 
+  // localStorage is the reliable source of truth (Supabase UUID columns reject custom string IDs)
+  const localReadsKey = `rs_meeting_reads_${user.id}`;
+  const localReadIds = JSON.parse(localStorage.getItem(localReadsKey) || '[]');
+
   const meetingsHtml = meetings.map(mt => {
-    const isRead = reads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
+    const isRead = localReadIds.includes(String(mt.id))
+                || reads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
     
     return `
       <div class="meeting-card ${isRead ? 'read' : 'unread'}" data-id="${mt.id}">
@@ -268,23 +273,32 @@ export function renderMeetings() {
   screen.querySelectorAll('.btn-confirm-mt').forEach(btn => {
     btn.onclick = async () => {
         const mtId = btn.dataset.id;
-        const isAlreadyRead = reads.some(r => String(r.meeting_id) === String(mtId) && String(r.user_id) === String(user.id));
+        // Check localStorage first (reliable), then DB fallback
+        const isAlreadyRead = localReadIds.includes(String(mtId))
+                           || reads.some(r => String(r.meeting_id) === String(mtId) && String(r.user_id) === String(user.id));
         if (isAlreadyRead) return;
 
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
         try {
-            // Use a deterministic ID (meeting_id + user_id) to avoid duplicates in Supabase
-            const readId = `rd_${String(mtId)}_${String(user.id)}`;
-            const readRecord = { id: readId, meeting_id: String(mtId), user_id: String(user.id), read_at: new Date().toISOString() };
-            await saveGranular('admin_meetings_reads', [readRecord]);
+            // PRIMARY: Save to localStorage (always works)
+            const lrIds = JSON.parse(localStorage.getItem(localReadsKey) || '[]');
+            if (!lrIds.includes(String(mtId))) {
+                lrIds.push(String(mtId));
+                localStorage.setItem(localReadsKey, JSON.stringify(lrIds));
+            }
             showToast('Asistencia confirmada', 'success');
-            // Optimistic update
-            const dbLoc = getDB();
-            if(!dbLoc.admin_meetings_reads) dbLoc.admin_meetings_reads = [];
-            const alreadyIn = dbLoc.admin_meetings_reads.findIndex(r => String(r.meeting_id) === String(mtId) && String(r.user_id) === String(user.id));
-            if (alreadyIn === -1) {
-                dbLoc.admin_meetings_reads.push(readRecord);
+            // SECONDARY: Try Supabase sync (best-effort)
+            try {
+                const readId = `rd_${String(mtId)}_${String(user.id)}`;
+                const readRecord = { id: readId, meeting_id: String(mtId), user_id: String(user.id), read_at: new Date().toISOString() };
+                await saveGranular('admin_meetings_reads', [readRecord]);
+                const dbLoc = getDB();
+                if(!dbLoc.admin_meetings_reads) dbLoc.admin_meetings_reads = [];
+                const alreadyIn = dbLoc.admin_meetings_reads.findIndex(r => String(r.meeting_id) === String(mtId) && String(r.user_id) === String(user.id));
+                if (alreadyIn === -1) dbLoc.admin_meetings_reads.push(readRecord);
+            } catch(syncErr) {
+                console.warn('[Meetings] No se pudo sincronizar a Supabase:', syncErr.message);
             }
             renderMeetings();
         } catch (err) {

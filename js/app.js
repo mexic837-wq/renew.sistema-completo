@@ -327,6 +327,10 @@ window.verificarAnunciosNuevos = async function() {
   }
 
   // 2. Contar meetings no leídas
+  // Use localStorage as primary source of truth (Supabase UUID columns reject custom string IDs)
+  const localReadsKey = `rs_meeting_reads_${user.id}`;
+  const localReadIds = JSON.parse(localStorage.getItem(localReadsKey) || '[]');
+
   const misMeetings = meetings.filter(mt => {
       const tags = mt.audiencia_tags || [mt.audiencia || 'Todos'];
       const isAll = tags.includes('todos') || tags.includes('Todos');
@@ -338,7 +342,9 @@ window.verificarAnunciosNuevos = async function() {
   });
 
   for (let mt of misMeetings) {
-      const isRead = meetingReads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
+      // Check localStorage first, then DB fallback
+      const isRead = localReadIds.includes(String(mt.id))
+                  || meetingReads.some(r => String(r.meeting_id) === String(mt.id) && String(r.user_id) === String(user.id));
       if (!isRead) {
           unreadCount++;
       }
