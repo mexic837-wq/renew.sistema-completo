@@ -10586,7 +10586,7 @@ window.renderRolesBuilder = function() {
 
         <!-- Modal de Edición de Rol -->
         <div id="modal-edit-role" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[999] flex items-center justify-center opacity-0 transition-opacity">
-            <div class="bg-white dark:bg-darkCard w-full max-w-2xl rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform" id="modal-edit-role-box">
+            <div class="bg-white dark:bg-darkCard w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform" id="modal-edit-role-box">
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="text-2xl font-black text-gray-900 dark:text-white" id="modal-role-title">Crear Rol</h2>
@@ -10709,9 +10709,15 @@ window.editAdminRole = function(roleId) {
     document.getElementById('sec-os-modules').style.display = chkOs.checked ? 'block' : 'none';
     document.getElementById('sec-app-modules').style.display = chkApp.checked ? 'block' : 'none';
 
+    const hasAppPerms = Object.keys(role.permisos || {}).some(k => k.startsWith('app_'));
+
     document.querySelectorAll('.role-perm-chk').forEach(chk => {
         const modId = chk.dataset.mod;
-        chk.checked = !!(role.permisos && role.permisos[modId]);
+        if (modId.startsWith('app_') && !hasAppPerms && chkApp.checked) {
+            chk.checked = true;
+        } else {
+            chk.checked = !!(role.permisos && role.permisos[modId]);
+        }
     });
 
     modal.classList.remove('hidden');
