@@ -87,7 +87,7 @@ let state = {
   crmKanbanActive: false
 };
 
-// ââ€â‚¬ââ€â‚¬ GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) ââ‚¬ââ‚¬
 window.addStock = (id) => {
     console.log("Global addStock called for ID:", id);
     const invData = getInventario();
@@ -313,7 +313,7 @@ window.adminBulkDeletePartners = async () => {
 };
 
 
-// ââ€â‚¬ââ€â‚¬ Global Header Action Wrapper ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ Global Header Action Wrapper ââ‚¬ââ‚¬
 window.handleGlobalAdd = async () => {
     const curView = state.activeView;
     console.log("handleGlobalAdd for view:", curView);
@@ -514,7 +514,7 @@ async function init() {
     if (txt && text) txt.textContent = text;
   };
 
-  // ââ€â‚¬ââ€â‚¬ Safety net: force-remove preloader after 30s no matter what ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Safety net: force-remove preloader after 30s no matter what ââ‚¬ââ‚¬
   const safetyTimer = setTimeout(() => {
     const p = document.getElementById('admin-preloader');
     if (p) { p.classList.add('fade-out'); setTimeout(() => p.remove(), 800); }
@@ -562,7 +562,7 @@ async function init() {
           }
       }
 
-      // ââ€â‚¬ââ€â‚¬ ?reasignar=PROJECT_ID deep link (from rejection email) ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ ?reasignar=PROJECT_ID deep link (from rejection email) ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
       // When admin clicks "Reasignar Técnico Ahora" in the email, this opens
       // the Kanban drawer directly on that project so they can assign a new tech.
       const urlSearchParams = new URLSearchParams(window.location.search);
@@ -603,7 +603,7 @@ async function init() {
                           <button onclick="document.getElementById('reasignar-banner').remove()"
                               style="background:rgba(255,255,255,0.2); border:none; color:white; width:28px; height:28px;
                                      border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">
-                              Ñâ€”
+                              Ñ”
                           </button>
                       `;
                       document.body.appendChild(banner);
@@ -632,7 +632,7 @@ async function init() {
               }
           }, 2000);
       }
-      // ââ€â‚¬ââ€â‚¬ END ?reasignar deep link ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ END ?reasignar deep link ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
       updateProgress(50, 'Configurando Interfaz...');
       cacheElements();
@@ -658,9 +658,9 @@ async function init() {
   } catch (err) {
       console.error('[INIT FATAL] Initialization failed:', err);
       initError = err;
-      updateProgress(0, 'Error ââ‚¬â€ revisa la consola');
+      updateProgress(0, 'Error - revisa la consola');
   } finally {
-      // ââ€â‚¬ââ€â‚¬ ALWAYS remove the preloader, success or failure ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ ALWAYS remove the preloader, success or failure ââ‚¬ââ‚¬
       clearTimeout(safetyTimer);
       setTimeout(() => {
         const preloader = document.getElementById('admin-preloader');
@@ -940,7 +940,7 @@ window.adminDeleteClient = async (id, e) => {
 
       try {
         // deleteClientesMaestro already updates local state atomically.
-        // Do NOT call initDB() ââ‚¬â€ it re-fetches from cloud and races the delete,
+        // Do NOT call initDB() - it re-fetches from cloud and races the delete,
         // causing the deleted client to reappear before Supabase propagates.
         await deleteClientesMaestro(id);
         await renderView(); // Refresh UI immediately from updated local state
@@ -1162,7 +1162,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Sidebar Toggle (Collapse) ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Sidebar Toggle (Collapse) ââ‚¬ââ‚¬
   if (UI.hambBtn && UI.sidebar) {
     UI.hambBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1175,7 +1175,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Global Action Button (Ensure reliability) ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Global Action Button (Ensure reliability) ââ‚¬ââ‚¬
   if (UI.btnAddGlobal) {
       UI.btnAddGlobal.addEventListener('click', (e) => {
           e.preventDefault();
@@ -1185,9 +1185,9 @@ function bindGlobalEvents() {
       });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Global Edit Delegate (Most Robust) ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Global Edit Delegate (Most Robust) ââ‚¬ââ‚¬
   document.addEventListener('click', async (e) => {
-    // ââ€â‚¬ââ€â‚¬ Theme Toggle Handle ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Theme Toggle Handle ââ‚¬ââ‚¬
     const themeBtn = e.target.closest('#btn-theme-toggle');
     if (themeBtn) {
       const isCurrentlyDark = document.documentElement.classList.contains('dark');
@@ -1203,7 +1203,7 @@ function bindGlobalEvents() {
     }
 
     try {
-        // ââ€â‚¬ââ€â‚¬ Inventory & Global Actions (Prioritized) ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Inventory & Global Actions (Prioritized) ââ‚¬ââ‚¬
         // (Global Action is handled via inline onclick in admin.html)
 
         // (Inventory button clicks are handled via inline onclick in renderView)
@@ -1410,7 +1410,7 @@ function bindGlobalEvents() {
         if (usr.w9Url) {
           if (w9Placeholder) w9Placeholder.classList.add('hidden');
           if (w9Success) { w9Success.classList.remove('hidden'); w9Success.classList.add('flex'); }
-          if (w9NameEl) w9NameEl.textContent = 'Archivo cargado âÅ“â€œ';
+          if (w9NameEl) w9NameEl.textContent = 'Archivo cargado âÅ“œ';
         } else {
           if (w9Placeholder) w9Placeholder.classList.remove('hidden');
           if (w9Success) { w9Success.classList.add('hidden'); w9Success.classList.remove('flex'); }
@@ -1586,7 +1586,7 @@ function bindGlobalEvents() {
 
 
 
-  // ââ€â‚¬ââ€â‚¬ Save/Edit Usuario Event ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Save/Edit Usuario Event ââ‚¬ââ‚¬
   if (UI.btnSaveUsr) {
     UI.btnSaveUsr.addEventListener('click', async () => {
       const id = UI.inpUsrId.value;
@@ -1648,7 +1648,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // ââ€â‚¬ââ€â‚¬ User Photo Upload ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ User Photo Upload ââ‚¬ââ‚¬
   if (UI.dropUsrFoto) {
     UI.dropUsrFoto.addEventListener('click', () => UI.inpUsrFotoFile.click());
     UI.dropUsrFoto.addEventListener('dragover', (e) => {
@@ -1695,7 +1695,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // ââ€â‚¬ââ€â‚¬ W-9 File Upload ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ W-9 File Upload ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
   state.currentUsrW9Url = null;
 
   window.clearW9Upload = function() {
@@ -1734,9 +1734,9 @@ function bindGlobalEvents() {
       }
     });
   }
-  // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
-  // ââ€â‚¬ââ€â‚¬ Upload Partners W9 ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Upload Partners W9 ââ‚¬ââ‚¬
   const inpPartnerW9 = document.getElementById('inp-partner-w9-file');
   if (inpPartnerW9) {
       inpPartnerW9.addEventListener('change', async () => {
@@ -1752,7 +1752,7 @@ function bindGlobalEvents() {
       });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Upload Partners Seguro ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Upload Partners Seguro ââ‚¬ââ‚¬
   const inpPartnerSeguro = document.getElementById('inp-partner-seguro-file');
   if (inpPartnerSeguro) {
       inpPartnerSeguro.addEventListener('change', async () => {
@@ -1768,7 +1768,7 @@ function bindGlobalEvents() {
       });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Save Partner / Proveedor ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Save Partner / Proveedor ââ‚¬ââ‚¬
   const btnSavePartner = document.getElementById('btn-save-partner');
   if (btnSavePartner) {
       btnSavePartner.addEventListener('click', async () => {
@@ -1859,9 +1859,9 @@ function bindGlobalEvents() {
 
       window.showModal(document.getElementById('modal-nuclear-partner'));
   };
-  // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
-  // ââ€â‚¬ââ€â‚¬ Detail User Photo Upload ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Detail User Photo Upload ââ‚¬ââ‚¬
   const inpDetUsrFotoFile = document.getElementById('det-usr-foto-file');
   if (inpDetUsrFotoFile) {
       inpDetUsrFotoFile.addEventListener('change', async (e) => {
@@ -2017,7 +2017,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // Kanban Card Click ââ‚¬â€œ Open Project Detail Drawer
+  // Kanban Card Click - Open Project Detail Drawer
   document.addEventListener('click', (e) => {
     const card = e.target.closest('.kanban-card');
     // Ignore if currently dragging
@@ -2027,7 +2027,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // ââ€â‚¬ââ€â‚¬ Global Modal Close Delegate ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Global Modal Close Delegate ââ‚¬ââ‚¬
   document.addEventListener('click', (e) => {
     const btnCancel = e.target.closest('.btn-cancel');
     if (btnCancel) {
@@ -2037,9 +2037,9 @@ function bindGlobalEvents() {
     }
   });
 
-  // Save Cliente (CRM) Event ââ‚¬â€ with Document Upload (Phase 4)
+  // Save Cliente (CRM) Event - with Document Upload (Phase 4)
   if (UI.btnSaveCli) {
-    // ââ€â‚¬ââ€â‚¬ File Upload Visual Feedback Helper ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ File Upload Visual Feedback Helper ââ‚¬ââ‚¬
     const setupDocUpload = (inputId, dropId, labelId, successColor) => {
       const inp = document.getElementById(inputId);
       const drop = document.getElementById(dropId);
@@ -2048,7 +2048,7 @@ function bindGlobalEvents() {
       inp.addEventListener('change', () => {
         if (inp.files.length) {
           if (drop) { drop.style.borderColor = successColor; drop.style.background = successColor + '10'; }
-          if (lbl) { lbl.textContent = 'âÅ“â€œ ' + inp.files[0].name.substring(0, 20); lbl.style.color = successColor; }
+          if (lbl) { lbl.textContent = 'âÅ“œ ' + inp.files[0].name.substring(0, 20); lbl.style.color = successColor; }
         }
       });
     };
@@ -2071,7 +2071,7 @@ function bindGlobalEvents() {
       const empresa = document.getElementById('inp-cli-empresa').value.trim();
       const estado = document.getElementById('inp-cli-estado').value;
 
-      // New fields ââ‚¬â€ multi-department checkboxes
+      // New fields - multi-department checkboxes
       const deptChecks = document.querySelectorAll('input[name="chk-cli-dept"]:checked');
       const departamentos_activos = Array.from(deptChecks).map(cb => cb.value);
       const departamento = departamentos_activos[0] || '';
@@ -2079,14 +2079,14 @@ function bindGlobalEvents() {
       const notas = document.getElementById('inp-cli-notas') ? document.getElementById('inp-cli-notas').value.trim() : '';
       const macro_estado = document.getElementById('inp-cli-macro-estado') ? document.getElementById('inp-cli-macro-estado').value : 'Prospecto';
 
-      // ââ€â‚¬ââ€â‚¬ VALIDATION ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ VALIDATION ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
       if (!firstNom || !apellido) { alert('El Nombre y Apellido son obligatorios'); return; }
       if (!email) { alert('El Email es obligatorio'); return; }
       if (!direccion) { alert('La Dirección es obligatoria'); return; }
       if (!telVal) { alert('El Teléfono es obligatorio'); return; }
-      // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
-      // ââ€â‚¬ââ€â‚¬ DISABLE BUTTON WHILE SAVING ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ DISABLE BUTTON WHILE SAVING ââ‚¬ââ‚¬
       const originalBtnHtml = UI.btnSaveCli.innerHTML;
       UI.btnSaveCli.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
       UI.btnSaveCli.disabled = true;
@@ -2095,7 +2095,7 @@ function bindGlobalEvents() {
       try {
         const fullNombre = `${firstNom} ${apellido}`.trim();
 
-        // ââ€â‚¬ââ€â‚¬ UPLOAD DOCUMENTS TO SUPABASE STORAGE ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ UPLOAD DOCUMENTS TO SUPABASE STORAGE ââ‚¬ââ‚¬
         const uploadIfPresent = async (inputId, folder) => {
           const inp = document.getElementById(inputId);
           if (inp && inp.files && inp.files.length > 0) {
@@ -2130,7 +2130,7 @@ function bindGlobalEvents() {
           state_id, dob, empresa, 
           estado: estado === 'Not selected' ? 'Lead' : estado,
           foto: state.currentCliFoto,
-          // ââ€â‚¬ââ€â‚¬ MULTI-DEPT & LIFECYCLE ââ€â‚¬ââ€â‚¬
+          // ââ‚¬ââ‚¬ MULTI-DEPT & LIFECYCLE ââ‚¬ââ‚¬
           departamento: departamento || null,
           departamentos_activos: departamentos_activos.length > 0 ? departamentos_activos : [],
           macro_estado: macro_estado,
@@ -2228,7 +2228,7 @@ function bindGlobalEvents() {
     });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Edit Pipeline Roles (pencil icon) ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Edit Pipeline Roles (pencil icon) ââ‚¬ââ‚¬
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
   const ROLES_LIST = ['Administración', 'Oficina', 'Técnicos', 'Representante de Ventas', 'Project Manager'];
   const ROLE_ICONS_MAP = {
@@ -2358,9 +2358,9 @@ function bindGlobalEvents() {
     });
   }
 
-  // ââ€â‚¬ââ€â‚¬ Unified Delegation for Generic View Actions ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Unified Delegation for Generic View Actions ââ‚¬ââ‚¬
   document.body.addEventListener('click', async (e) => {
-    // ââ€â‚¬ââ€â‚¬ GENERAL ACTIONS (Only if inside canvas and not a delete) ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ GENERAL ACTIONS (Only if inside canvas and not a delete) ââ‚¬ââ‚¬
     const target = e.target;
     
     // 0. Global Modal Actions (Cancel / Success Close)
@@ -2466,7 +2466,7 @@ function bindGlobalEvents() {
       return;
     }
 
-    // ââ€â‚¬ââ€â‚¬ Marketing / WA ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Marketing / WA ââ‚¬ââ‚¬
     const btnAddPaso = e.target.closest('#btn-add-paso');
     if (btnAddPaso) {
       const container = document.getElementById('mk-secuencia-container');
@@ -2673,7 +2673,7 @@ function bindGlobalEvents() {
     }
   });
 
-  // ââ€â‚¬ââ€â‚¬ Audience Search Filtering ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Audience Search Filtering ââ‚¬ââ‚¬
   UI.canvas.addEventListener('input', (e) => {
     if (e.target.classList.contains('chk-search-input')) {
       const q = e.target.value.toLowerCase();
@@ -2765,7 +2765,7 @@ window.showSuccessModal = (msg) => {
   window.showModal(UI.modSuccess);
 };
 
-// ââ€â‚¬ââ€â‚¬ W-9 Viewer: opens base64 data URLs as Blob to avoid Chrome blank page ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ W-9 Viewer: opens base64 data URLs as Blob to avoid Chrome blank page ââ‚¬ââ‚¬
 window.openW9File = function(dataUrl) {
   if (!dataUrl) return;
   try {
@@ -3068,7 +3068,7 @@ window.renderView = async function renderView() {
     if (UI.viewDesc) UI.viewDesc.textContent = t('crm_desc');
     setGlobalButton(true, `<i class="fa-solid fa-user-plus"></i> ${t('crm_btn_add')}`);
 
-    // ââ€â‚¬ââ€â‚¬ Build a responsable lookup: clienteId ââ€ â€™ worker name ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Build a responsable lookup: clienteId â ™ worker name ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
     const allWorkers = await getAdminWorkers(); // mock + dynamic merged
     const allProys = db.Proyectos_Dinamicos || [];
 
@@ -3094,7 +3094,7 @@ window.renderView = async function renderView() {
       if (!worker) return null;
       return [worker.nombre, worker.apellido].filter(Boolean).join(' ');
     }
-    // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
     
     let clientesFiltrados = db.Clientes_Maestro || [];
     
@@ -3153,8 +3153,8 @@ window.renderView = async function renderView() {
            </div>`
         : `<span class="text-[9px] text-gray-300 dark:text-gray-700 italic">Sin asignar</span>`;
 
-      // ORIGEN BADGE ââ‚¬â€ 3 tipos: call_center | vendedor | referido
-      let origenHtml = `<span class="text-[9px] text-gray-300 dark:text-gray-600 italic">ââ‚¬â€œ</span>`;
+      // ORIGEN BADGE - 3 tipos: call_center | vendedor | referido
+      let origenHtml = `<span class="text-[9px] text-gray-300 dark:text-gray-600 italic">-</span>`;
       if (c.origen_tipo === 'call_center') {
         origenHtml = `
           <div class="flex items-center gap-1.5">
@@ -3196,7 +3196,7 @@ window.renderView = async function renderView() {
       ];
     });
 
-    // ââ€â‚¬ââ€â‚¬ CRM Sub-View Tabs: Table | Kanban Lifecycle ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ CRM Sub-View Tabs: Table | Kanban Lifecycle ââ‚¬ââ‚¬
     const crmTabsHtml = `
       <div class="flex items-center gap-2 mb-5 mt-2" id="crm-view-tabs">
         <button class="crm-sub-tab px-4 py-2 rounded-xl text-xs font-bold border transition-all ${!state.crmKanbanActive ? 'bg-tealAccent/10 text-tealAccent border-tealAccent/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-gray-200 dark:border-white/10 hover:text-tealAccent'}" data-crm-tab="table">
@@ -3209,7 +3209,7 @@ window.renderView = async function renderView() {
     `;
 
     if (state.crmKanbanActive) {
-      // ââ€â‚¬ââ€â‚¬ KANBAN LIFECYCLE VIEW ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ KANBAN LIFECYCLE VIEW ââ‚¬ââ‚¬
       const MACRO_COLS = [
         { key: 'Prospecto',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
         { key: 'En Proceso',    emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
@@ -3287,7 +3287,7 @@ window.renderView = async function renderView() {
         </div>
       `;
 
-      // ââ€â‚¬ââ€â‚¬ Drag & Drop Logic ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ Drag & Drop Logic ââ‚¬ââ‚¬
       const cards = UI.canvas.querySelectorAll('.kanban-card');
       const zones = UI.canvas.querySelectorAll('.kanban-drop-zone');
 
@@ -3424,7 +3424,7 @@ window.renderView = async function renderView() {
       });
 
     } else {
-      // ââ€â‚¬ââ€â‚¬ TABLE VIEW (original) ââ€â‚¬ââ€â‚¬
+      // ââ‚¬ââ‚¬ TABLE VIEW (original) ââ‚¬ââ‚¬
       renderTable(
         [`<button id="btn-bulk-delete-cli" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="${t('crm_bulk_delete')}"><i class="fa-solid fa-trash-can"></i></button>`, t('crm_col_id'), t('crm_col_name'), t('crm_col_contact'), t('crm_col_email'), t('crm_col_address'), t('crm_col_dept'), 'ORIGEN', t('crm_col_rep'), t('crm_col_status'), ""],
         rows
@@ -3709,7 +3709,7 @@ window.renderView = async function renderView() {
           });
         });
 
-        // ââ€â‚¬ââ€â‚¬ Vendor Search Bar Logic ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Vendor Search Bar Logic ââ‚¬ââ‚¬
         const searchInput = document.getElementById('rep-search-input');
         const searchDropdown = document.getElementById('rep-search-dropdown');
         const searchClear = document.getElementById('rep-search-clear');
@@ -4197,7 +4197,7 @@ window.renderView = async function renderView() {
       updateArrows();
     }, 200);
 
-    // ââ€â‚¬ââ€â‚¬ââ€â‚¬ Kanban Project Drawer ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ââ‚¬ Kanban Project Drawer ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
     renderView._openKanbanDrawer = openKanbanDrawer;
   }
   else if (state.activeView === 'rendimiento-global') {
@@ -4437,7 +4437,7 @@ window.renderView = async function renderView() {
        const onProgress = (pct, msg) => {
            if (progressFill) progressFill.style.width = `${pct}%`;
            if (progressText) progressText.textContent = msg;
-           btnSave.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${pct}% ââ‚¬â€œ ${msg}`;
+           btnSave.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${pct}% - ${msg}`;
        };
 
        try {
@@ -4778,7 +4778,7 @@ window.renderView = async function renderView() {
             </table>
         </div>
 
-        <!-- ââ€â‚¬ââ€â‚¬ Historial de Movimientos ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ -->
+        <!-- ââ‚¬ââ‚¬ Historial de Movimientos ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ -->
         <div class="mt-8">
           <div class="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
               <div class="flex items-center justify-between">
@@ -4811,7 +4811,7 @@ window.renderView = async function renderView() {
             </table>
           </div>
         </div>
-        <!-- ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ -->
+        <!-- ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ -->
 
       </div>
     `;
@@ -5755,7 +5755,7 @@ function renderCalendario() {
   window.currentCalendar = calendar;
 }
 
-// ââ€â‚¬ââ€â‚¬ Auto-fill end date when start date changes ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ Auto-fill end date when start date changes ââ‚¬ââ‚¬
 window.onStartDateChange = function(startInput) {
     const finInput = document.getElementById('ev-fecha-fin');
     if (!startInput.value) return;
@@ -5976,7 +5976,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         r.checked = false;
     });
 
-    // ââ€â‚¬ââ€â‚¬ Load collaborators as checkboxes with email for Google Calendar attendees ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Load collaborators as checkboxes with email for Google Calendar attendees ââ‚¬ââ‚¬
     const container = document.getElementById('ev-colaboradores-container');
     if (container) {
         container.innerHTML = '<p class="text-xs text-gray-400 italic">Cargando equipo...</p>';
@@ -6014,7 +6014,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     }
   }
 
-  // ââ€â‚¬ââ€â‚¬ Google Places Autocomplete for address field (Exact match from mobile version) ââ€â‚¬ââ€â‚¬
+  // ââ‚¬ââ‚¬ Google Places Autocomplete for address field (Exact match from mobile version) ââ‚¬ââ‚¬
   const evDirInput = document.getElementById('ev-direccion');
   const evMapPreview = document.getElementById('ev-map-preview');
   const evMapCanvas = document.getElementById('ev-map-canvas');
@@ -6096,7 +6096,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
   window.showModal(modal);
 };
 
-// ââ€â‚¬ââ€â‚¬ Eliminar Evento del Calendario (Admin) ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ Eliminar Evento del Calendario (Admin) ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 window.eliminarEventoCalendarioAdmin = async function() {
   const btn = document.getElementById('btn-eliminar-evento-admin');
   const eventId = btn?.dataset?.eventId;
@@ -6152,7 +6152,7 @@ window.eliminarEventoCalendarioAdmin = async function() {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>'; }
   }
 };
-// ââ€â‚¬ââ€â‚¬ END Eliminar Evento ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ END Eliminar Evento ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
 window.guardarEventoCalendario = async function(e) {
   if (e) e.preventDefault();
@@ -6183,7 +6183,7 @@ window.guardarEventoCalendario = async function(e) {
     
     const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
     
-    // ââ€â‚¬ââ€â‚¬ Read collaborators from checkboxes (stores id + email for Google Calendar) ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Read collaborators from checkboxes (stores id + email for Google Calendar) ââ‚¬ââ‚¬
     const colaboradores = [];
     document.querySelectorAll('.ev-colab-chk:checked').forEach(chk => {
         try {
@@ -6228,7 +6228,7 @@ window.guardarEventoCalendario = async function(e) {
     db.calendario_eventos.push(nuevoEvento);
     await saveDB(db);
     
-    // ââ€â‚¬ââ€â‚¬ SYNC WITH GOOGLE CALENDAR VIA SERVER (SERVICE ACCOUNT) ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ SYNC WITH GOOGLE CALENDAR VIA SERVER (SERVICE ACCOUNT) ââ‚¬ââ‚¬
     try {
         const CALENDAR_ID = 'c_0300a26935f9ffbe1772a440f9070fa95f02f551157e69bd0d71092777559943@group.calendar.google.com';
         
@@ -6779,7 +6779,7 @@ async function showWorkerDetail(id) {
         }
     }
 
-    // ââ€â‚¬ââ€â‚¬ Interactive Documentation Zones ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Interactive Documentation Zones ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
     const docsZone = document.getElementById('det-usr-docs-interactive');
     if (docsZone) {
         const renderDocBtn = (type, label, url, icon) => {
@@ -6821,7 +6821,7 @@ async function showWorkerDetail(id) {
             ` : ''}
         `;
     }
-    // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
     const avatarBox = document.getElementById('det-usr-avatar');
     if (usr.foto) {
@@ -6883,7 +6883,7 @@ async function toggleDetailEditMode(id) {
     const isEditing = editPanel && !editPanel.classList.contains('hidden');
 
     if (isEditing) {
-        // Cancel ââ€ â€™ return to view mode
+        // Cancel â ™ return to view mode
         exitDetailEditMode();
         // Restore view data
         document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
@@ -7032,7 +7032,7 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-banco-cuenta')) document.getElementById('det-edit-banco-cuenta').value = usr.banco_cuenta || '';
         if (document.getElementById('det-edit-banco-ruta'))   document.getElementById('det-edit-banco-ruta').value   = usr.banco_ruta   || '';
 
-        // ââ€â‚¬ââ€â‚¬ Pre-fill W-9 state in edit panel ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Pre-fill W-9 state in edit panel ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
         state.detEditW9Url = usr.w9Url || usr.w9_url || null;
         const detW9Placeholder = document.getElementById('det-edit-w9-placeholder');
         const detW9Success = document.getElementById('det-edit-w9-success');
@@ -7073,7 +7073,7 @@ async function toggleDetailEditMode(id) {
             });
         }
 
-        // ââ€â‚¬ââ€â‚¬ Pre-fill Carnet state ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Pre-fill Carnet state ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
         state.detEditCarnetUrl = usr.carnet_url || usr.carnetUrl || null;
         const detCarnetPlaceholder = document.getElementById('det-edit-carnet-placeholder');
         const detCarnetSuccess = document.getElementById('det-edit-carnet-success');
@@ -7114,7 +7114,7 @@ async function toggleDetailEditMode(id) {
             });
         }
 
-        // ââ€â‚¬ââ€â‚¬ Pre-fill Contrato state ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Pre-fill Contrato state ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
         state.detEditContratoUrl = usr.contrato_url || usr.contratoUrl || null;
         const detContratoPlaceholder = document.getElementById('det-edit-contrato-placeholder');
         const detContratoSuccess = document.getElementById('det-edit-contrato-success');
@@ -7154,9 +7154,9 @@ async function toggleDetailEditMode(id) {
                 }
             });
         }
-        // ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
-        // ââ€â‚¬ââ€â‚¬ Pipeline Permissions ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Pipeline Permissions ââ‚¬ââ‚¬
         const pipBox = document.getElementById('det-edit-pipeline-perms');
         if (pipBox) {
             const dbLocal = getDB();
@@ -7349,7 +7349,7 @@ async function toggleDetailEditMode(id) {
                     }
                 }
 
-                // ââ€â‚¬ââ€â‚¬ Update interactive docs in view panel ââ€â‚¬ââ€â‚¬
+                // ââ‚¬ââ‚¬ Update interactive docs in view panel ââ‚¬ââ‚¬
                 showWorkerDetail(updatedUsr.id);
 
                 exitDetailEditMode();
@@ -7461,9 +7461,9 @@ function updateSidebarUser() {
     }
 }
 
-// ââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Â
+// â¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Â
 //  KANBAN PROJECT DETAIL DRAWER
-// ââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Âââ€¢Â
+// â¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Â
 function renderDiscussionHTML(discusion, pipelineColor) {
     if (!discusion) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>';
     let arr = discusion;
@@ -8397,7 +8397,7 @@ window.handleContractView = (clientId) => {
     }
 };
 
-// ââ€â‚¬ââ€â‚¬ CLIENT PROFILE LOGIC ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ CLIENT PROFILE LOGIC ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
 async function showClientDetail(id) {
     const db = getDB();
@@ -8411,7 +8411,7 @@ async function showClientDetail(id) {
     if(document.getElementById('det-cli-nombre')) document.getElementById('det-cli-nombre').textContent = cli.nombre || '-';
     if(document.getElementById('det-cli-email')) document.getElementById('det-cli-email').textContent = cli.email || '-';
     if(document.getElementById('det-cli-tel')) document.getElementById('det-cli-tel').textContent = cli.telefono || '-';
-    // ââ€â‚¬ââ€â‚¬ Multi-dept badges ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Multi-dept badges ââ‚¬ââ‚¬
     const detDeptEl = document.getElementById('det-cli-dept');
     if (detDeptEl) {
       const _depts = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento || cli.empresa ? [cli.departamento || cli.empresa] : []);
@@ -8425,7 +8425,7 @@ async function showClientDetail(id) {
         detDeptEl.innerHTML = '<span class="text-sm text-gray-300 italic">Sin departamento</span>';
       }
     }
-    // ââ€â‚¬ââ€â‚¬ Macro estado ââ€â‚¬ââ€â‚¬
+    // ââ‚¬ââ‚¬ Macro estado ââ‚¬ââ‚¬
     const detMacroEl = document.getElementById('det-cli-macro-estado');
     if (detMacroEl) {
       let _me = cli.macro_estado || 'Prospecto';
@@ -9096,10 +9096,10 @@ function toggleClientEditMode(id) {
         if(document.getElementById('det-cli-edit-nombre')) document.getElementById('det-cli-edit-nombre').value = cli.nombre || '';
         if(document.getElementById('det-cli-edit-email')) document.getElementById('det-cli-edit-email').value = cli.email || '';
         if(document.getElementById('det-cli-edit-tel')) document.getElementById('det-cli-edit-tel').value = cli.telefono || '';
-        // ââ€â‚¬ââ€â‚¬ Populate multi-dept checkboxes ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Populate multi-dept checkboxes ââ‚¬ââ‚¬
         const _deptArr = Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length ? cli.departamentos_activos : (cli.departamento || cli.empresa ? [(cli.departamento || cli.empresa).replace('Renew ','')] : []);
         document.querySelectorAll('input[name="det-chk-dept"]').forEach(cb => { cb.checked = _deptArr.some(d => d.replace('Renew ','').toLowerCase() === cb.value.toLowerCase()); });
-        // ââ€â‚¬ââ€â‚¬ Populate macro_estado ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Populate macro_estado ââ‚¬ââ‚¬
         if(document.getElementById('det-cli-edit-macro-estado')) document.getElementById('det-cli-edit-macro-estado').value = cli.macro_estado || 'Prospecto';
         if(document.getElementById('det-cli-edit-fecha-inicio')) document.getElementById('det-cli-edit-fecha-inicio').value = cli.fecha_inicio || '';
         if(document.getElementById('det-cli-edit-direccion')) {
@@ -9183,7 +9183,7 @@ async function saveClientChanges() {
         nombre,
         email: document.getElementById('det-cli-edit-email').value.trim(),
         telefono: document.getElementById('det-cli-edit-tel').value.trim(),
-        // ââ€â‚¬ââ€â‚¬ Multi-dept from checkboxes ââ€â‚¬ââ€â‚¬
+        // ââ‚¬ââ‚¬ Multi-dept from checkboxes ââ‚¬ââ‚¬
         departamentos_activos: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value),
         departamento: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value)[0] || null,
         empresa: Array.from(document.querySelectorAll('input[name="det-chk-dept"]:checked')).map(cb => cb.value).join(', ') || null,
@@ -9258,7 +9258,7 @@ async function saveClientChanges() {
 window.saveClientChanges = saveClientChanges;
 window.toggleClientEditMode = toggleClientEditMode;
 
-// ââ€â‚¬ââ€â‚¬ NEW: EVENT LISTENERS FOR CLIENT PHOTO & EVIDENCE ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ NEW: EVENT LISTENERS FOR CLIENT PHOTO & EVIDENCE ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
 // 1. Photo Upload (ID Photo) in Edit Modal
 document.addEventListener('click', (e) => {
@@ -9437,7 +9437,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ââ€â‚¬ââ€â‚¬ Global Search Listener ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ Global Search Listener ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 window.globalSearchQuery = '';
 
 window.normalizeSearchString = (str) => {
@@ -9479,7 +9479,7 @@ if (document.readyState === 'loading') {
     initGlobalSearch();
 }
 
-// ââ€â‚¬ââ€â‚¬ IFRAME FORM MESSAGE LISTENER ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ IFRAME FORM MESSAGE LISTENER ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 // Handles WORK_ORDER_SUBMITTED and CREDIT_APP_SUBMITTED messages
 // from embedded iframes (credit app, work order forms).
 // Updates the local cachedDB with the PDF URL and saves to Supabase.
@@ -9702,7 +9702,7 @@ window._verAdelantosWorker = async function(workerId, workerName) {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
 
-// ââ€â‚¬ââ€â‚¬ââ€â‚¬ LISTA DE PRECIOS RENEW WATER ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬ââ€â‚¬
+// ââ‚¬ââ‚¬ââ‚¬ LISTA DE PRECIOS RENEW WATER ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 async function renderListaPreciosAdmin() {
   const db = getDB();
   const allProducts = db.Water_Productos || [];
