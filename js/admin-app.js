@@ -10333,7 +10333,6 @@ window.updateEditWorkerRankVisibility = function() {
         return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
     });
 
-    const rolVal = (rol.value || '').toLowerCase();
     const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
     const isProjectManager = rolVal === 'project manager';
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión';
