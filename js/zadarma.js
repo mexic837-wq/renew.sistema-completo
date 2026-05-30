@@ -94,6 +94,9 @@ window.showZadarmaHistory = (historial) => {
 };
 
 window.initZadarmaWebRTC = async () => {
+    if (window._zadarmaWebRTCInitialized) return;
+    window._zadarmaWebRTCInitialized = true;
+
     const currentUser = _getZadarmaUser();
     if (!currentUser || !currentUser.zadarma_sip_id) {
         console.log('[Zadarma WebRTC] No SIP ID found for current user. Widget will not load.');
