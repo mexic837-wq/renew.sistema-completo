@@ -672,6 +672,14 @@ app.post('/api/db', async (req, res) => {
             );
         }
         if (db.Clientes_Maestro?.length) {
+            // Pre-fetch existing clients to merge server-side background data safely (like grabacion_url)
+            const clientIds = db.Clientes_Maestro.map(c => c.id);
+            const { data: existingClients } = await supabase.from('clientes_maestro').select('id, historial_llamadas').in('id', clientIds);
+            const existingMap = {};
+            if (existingClients) {
+                existingClients.forEach(c => existingMap[c.id] = c);
+            }
+
             // Mapeo para asegurar nombres de columnas correctos
             const cli = db.Clientes_Maestro.map(item => {
                 const mapped = {
@@ -706,10 +714,8 @@ app.post('/api/db', async (req, res) => {
                     fecha_inicio:       item.fecha_inicio       || null,
                     google_place_id:    item.google_place_id    || null,
                 };
-                // <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> CRITICAL: Only include adjuntos_oficina and contrato_water_url if they
-                // have a real value in the LOCAL cache. If they are null/empty locally, we
-                // skip them (undefined) so Supabase does NOT overwrite values previously
-                // written directly by the server (race condition prevention).
+                // CRITICAL: Only include adjuntos_oficina and contrato_water_url if they
+                // have a real value in the LOCAL cache.
                 if (item.adjuntos_oficina && !Array.isArray(item.adjuntos_oficina) && Object.keys(item.adjuntos_oficina).length > 0) {
                     mapped.adjuntos_oficina = item.adjuntos_oficina;
                 }
@@ -721,8 +727,33 @@ app.post('/api/db', async (req, res) => {
                 if (item.credit_app_url) {
                     mapped.credit_app_url = item.credit_app_url;
                 }
+                
+                // MERGE historial_llamadas
                 if (item.historial_llamadas) {
-                    mapped.historial_llamadas = item.historial_llamadas;
+                    const existing = existingMap[item.id];
+                    if (existing && existing.historial_llamadas) {
+                        const callMap = {};
+                        // 1. Load server calls (source of truth for recordings and new calls)
+                        existing.historial_llamadas.forEach(c => {
+                            if (c.call_id) callMap[c.call_id] = { ...c };
+                        });
+                        // 2. Overlay client calls (source of truth for proyecto_id modifications)
+                        item.historial_llamadas.forEach(c => {
+                            if (c.call_id) {
+                                if (callMap[c.call_id]) {
+                                    callMap[c.call_id].proyecto_id = c.proyecto_id || callMap[c.call_id].proyecto_id;
+                                    if (!callMap[c.call_id].grabacion_url && c.grabacion_url) {
+                                        callMap[c.call_id].grabacion_url = c.grabacion_url;
+                                    }
+                                } else {
+                                    callMap[c.call_id] = { ...c };
+                                }
+                            }
+                        });
+                        mapped.historial_llamadas = Object.values(callMap).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+                    } else {
+                        mapped.historial_llamadas = item.historial_llamadas;
+                    }
                 }
                 return mapped;
             });
