@@ -962,6 +962,11 @@ let quickAdjSeguro = null;
 
 function resetModal() {
   window.quickSelectedClientId = null;
+  const btnGuardarQuick = document.getElementById('btn-guardar-quick');
+  if (btnGuardarQuick) {
+      btnGuardarQuick.innerHTML = 'Guardar';
+      btnGuardarQuick.disabled = false;
+  }
   const searchInp = document.getElementById('quick-search-existing');
   if(searchInp) { 
       searchInp.value = ''; 
