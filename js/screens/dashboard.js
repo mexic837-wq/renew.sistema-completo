@@ -550,7 +550,8 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const isTecnico   = /t[eé]cn[io]co/i.test(user.rol || '');
   const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
   const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || userRole === 'supervisor' || userRole === 'supervisión';
-  const canInventory= [isTecnico, 'contabilidad','finanzas','procesador','supervisor','supervisión','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole) || (user.permisos && user.permisos.app_inventario);
+  let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','supervisor','supervisión','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
+  if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
 
   const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
@@ -582,7 +583,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
         action: () => window.appNavigate('clients'), delay: '0s', screen: 'clients'
       } : null,
-      (canWater && !isTecnico) ? {
+      ((user.permisos && 'app_plantillas' in user.permisos) ? user.permisos.app_plantillas : (canWater && !isTecnico)) ? {
         name: 'Plantillas', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#2563eb,#0d9488)',
         iconBg: 'rgba(37,99,235,0.12)', iconColor: '#2563eb',
@@ -626,7 +627,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
         action: () => window.appNavigate('clients'), delay: '0s', screen: 'clients'
       },
-      (!isTecnico) ? {
+      ((user.permisos && 'app_plantillas' in user.permisos) ? user.permisos.app_plantillas : !isTecnico) ? {
         name: 'Plantillas', tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
