@@ -1622,6 +1622,8 @@ function bindGlobalEvents() {
         sede: UI.inpUsrSede ? UI.inpUsrSede.value : 'orlando',
         password: UI.inpUsrPass.value.trim(),
         unidades: checkedPips,
+        equipo_ids: (UI.inpUsrRol.value === 'Supervisor') ? Array.from(document.querySelectorAll('.usr-equipo-chk:checked')).map(c => c.value) : [],
+        pipeline_ids: (UI.inpUsrRol.value === 'Project Manager') ? Array.from(document.querySelectorAll('.usr-pip-chk:checked')).map(c => c.dataset.pip) : [],
         is_suspended: existing ? (existing.is_suspended || false) : false,
         banco_nombre: document.getElementById('inp-usr-banco-nombre')?.value.trim() || '',
         banco_cuenta: document.getElementById('inp-usr-banco-cuenta')?.value.trim() || '',
@@ -6810,19 +6812,42 @@ async function showWorkerDetail(id) {
         displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
     }
     document.getElementById('det-usr-rank').textContent = displayRank;
-    // Hide rank if not (Vendedor/Representante de Ventas)
+    // Hide rank if not (Vendedor/Representante de Ventas/Supervisor/Call Center)
     const viewRankContainer = document.getElementById('det-view-rank-container');
     const editRankContainer = document.getElementById('det-edit-rank-container');
-    const isVendedor = usr.rol === 'Vendedor' || usr.rol === 'Representante de Ventas';
+    const rolLower = (usr.rol || '').toLowerCase();
+    const hasRank = rolLower.includes('vendedor') || rolLower.includes('representante') || rolLower.includes('supervisor') || rolLower.includes('call center');
     if (viewRankContainer) {
-        viewRankContainer.style.display = isVendedor ? 'block' : 'none';
+        viewRankContainer.style.display = hasRank ? 'block' : 'none';
     }
     if (editRankContainer) {
-        editRankContainer.style.display = isVendedor ? 'block' : 'none';
+        editRankContainer.style.display = hasRank ? 'block' : 'none';
     }
 
     document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
     document.getElementById('det-usr-sede').textContent = usr.sede || '-';
+    
+    // Equipo Asignado
+    const equipoContainer = document.getElementById('det-usr-equipo-container');
+    const equipoList = document.getElementById('det-usr-equipo-list');
+    if (equipoContainer && equipoList) {
+        if (usr.rol === 'Supervisor') {
+            equipoContainer.classList.remove('hidden');
+            if (usr.equipo_ids && usr.equipo_ids.length > 0) {
+                const db = getDB();
+                const equipoNombres = usr.equipo_ids.map(eid => {
+                    const member = (db.Usuarios || []).find(w => w.id === eid);
+                    return member ? `• ${member.nombre} ${member.apellido}` : '';
+                }).filter(Boolean);
+                equipoList.innerHTML = equipoNombres.length > 0 ? equipoNombres.join('<br>') : '<span class="italic text-gray-400">Sin equipo</span>';
+            } else {
+                equipoList.innerHTML = '<span class="italic text-gray-400">Sin equipo</span>';
+            }
+        } else {
+            equipoContainer.classList.add('hidden');
+        }
+    }
+
     document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
     if (document.getElementById('det-usr-sip-id')) document.getElementById('det-usr-sip-id').textContent = usr.zadarma_sip_id || '-';
     document.getElementById('det-usr-tel-emergencia').textContent = usr.tel_emergencia || '-';
