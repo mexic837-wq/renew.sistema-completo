@@ -6,24 +6,19 @@ function _getZadarmaUser() {
     const sessionUser = userStr ? JSON.parse(userStr) : null;
     if (!sessionUser) return null;
 
-    // If SIP ID already in session, use it directly
-    if (sessionUser.zadarma_sip_id) return sessionUser;
-
-    // Try to get fresh data from local DB cache
+    // Always try to get fresh data from local DB cache
     try {
         const dbStr = localStorage.getItem('rs_admin_db');
         if (dbStr) {
             const db = JSON.parse(dbStr);
             const freshUser = (db.Usuarios || []).find(u => u.id === sessionUser.id);
-            if (freshUser && freshUser.zadarma_sip_id) {
-                // Update localStorage so future calls don't need this lookup
-                const merged = { ...sessionUser, zadarma_sip_id: freshUser.zadarma_sip_id };
-                localStorage.setItem('rs_user', JSON.stringify(merged));
-                return merged;
+            if (freshUser) {
+                sessionUser.zadarma_sip_id = freshUser.zadarma_sip_id;
+                localStorage.setItem('rs_user', JSON.stringify(sessionUser));
             }
         }
     } catch(e) { /* ignore */ }
-
+    
     return sessionUser;
 }
 
