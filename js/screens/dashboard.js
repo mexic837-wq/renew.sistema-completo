@@ -668,21 +668,21 @@ export function _renderToolsForPipeline(user, activeUnit) {
   };
 
   const commonTools = [
-    {
+    ((user.permisos && 'app_mapa' in user.permisos) ? user.permisos.app_mapa : true) ? {
       name: 'Mi Mapa', tag: null,
       gradient: 'linear-gradient(90deg,#8b5cf6,#d946ef)',
       iconBg: 'rgba(139,92,246,0.1)', iconColor: '#a78bfa',
       icon: `<i class="fas fa-map-marked-alt"></i>`,
       action: () => window.appNavigate('mi-mapa'), delay: '0.19s', screen: 'mi-mapa'
-    },
-    {
+    } : null,
+    ((user.permisos && 'app_calendario' in user.permisos) ? user.permisos.app_calendario : true) ? {
       name: 'Calendario', tag: null,
       gradient: 'linear-gradient(90deg,#00ff88,#00d4ff)',
       iconBg: 'rgba(0,255,136,0.1)', iconColor: '#00ff88',
       icon: `<i class="fas fa-calendar-alt"></i>`,
       className: 'desktop-only',
       action: () => window.appNavigate('mi-calendario'), delay: '0.20s', screen: 'mi-calendario'
-    },
+    } : null,
     {
       name: 'Mi Equipo', tag: null,
       gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
@@ -704,7 +704,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
       action: () => { window.location.href = 'admin.html'; }, delay: '0.24s'
     } : null,
-    !isAdmin ? {
+    (!isAdmin && ((user.permisos && 'app_adelantos' in user.permisos) ? user.permisos.app_adelantos : true)) ? {
       name: 'Mis Adelantos', tag: 'RRHH',
       gradient: 'linear-gradient(90deg,#0ea5e9,#2563eb)',
       iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',
