@@ -452,8 +452,8 @@ function _buildPipelineChips(user, activeUnit) {
   const allPipelines = db.Admin_Pipelines || [];
   const allClientes  = db.Clientes_Maestro || [];
   const allProyectos = db.Proyectos_Dinamicos || [];
-  const userRole     = (user.rol || '').toLowerCase();
-  const isHighRole   = ['admin', 'administrador', 'ceo'].includes(userRole);
+  const userRole     = (user.rol || '').toLowerCase().trim();
+  const isHighRole   = ['admin', 'administrador', 'ceo', 'manager'].includes(userRole);
 
   const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
   
@@ -462,29 +462,31 @@ function _buildPipelineChips(user, activeUnit) {
     const isActive= pipName === activeUnit;
 
     const myClients = allClientes.filter(c => {
-      // Ownership check (Strict for everyone)
-      const isTecnicoOfProject = allProyectos.some(p => {
-        if (p.cliente_id !== c.id || p.tecnico_id !== user.id) return false;
-        const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id);
-        if (!fase) return false;
-        const rolFase = (fase.rol_encargado || '').toLowerCase();
-        return rolFase.includes('tecnico') || rolFase.includes('técnico');
-      });
+      if (!isHighRole) {
+        // Ownership check (Strict for everyone)
+        const isTecnicoOfProject = allProyectos.some(p => {
+          if (p.cliente_id !== c.id || p.tecnico_id !== user.id) return false;
+          const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id);
+          if (!fase) return false;
+          const rolFase = (fase.rol_encargado || '').toLowerCase();
+          return rolFase.includes('tecnico') || rolFase.includes('técnico');
+        });
 
-      // Supervisor logic
-      const isSupervisorOfRep = (userRole === 'supervisor' || userRole === 'supervisión') && 
-        (user.equipo_ids || []).some(id => 
-          c.creador_id === id || 
-          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
-          (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id))
-        );
+        // Supervisor logic
+        const isSupervisorOfRep = (userRole === 'supervisor' || userRole === 'supervisión') && 
+          (user.equipo_ids || []).some(id => 
+            c.creador_id === id || 
+            (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
+            (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id))
+          );
 
-      if (c.creador_id !== user.id && 
-          !(c.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) && 
-          !(c.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) &&
-          c.tecnico_id !== user.id &&
-          !isTecnicoOfProject &&
-          !isSupervisorOfRep) return false;
+        if (c.creador_id !== user.id && 
+            !(c.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) && 
+            !(c.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) &&
+            c.tecnico_id !== user.id &&
+            !isTecnicoOfProject &&
+            !isSupervisorOfRep) return false;
+      }
       const cDepts = getDeptArray(c).map(d => d.toLowerCase());
       const pipShort = pipName.replace('Renew ','').toLowerCase();
       return cDepts.some(d => d === pipShort || d === pipName.toLowerCase() || pipName.toLowerCase().includes(d));
@@ -608,11 +610,11 @@ export function _renderToolsForPipeline(user, activeUnit) {
   // but we still want to populate the desktop sidebar, so we don't return early.
 
   const db          = getDB();
-  const userRole    = (user.rol || '').toLowerCase();
-  const isTecnico   = /t[eé]cn[io]co/i.test(user.rol || '');
+  const userRole    = (user.rol || '').toLowerCase().trim();
+  const isTecnico   = /t[eé]cn[io]co/i.test(userRole);
   const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
-  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || userRole === 'supervisor' || userRole === 'supervisión' || userRole === 'manager';
-  let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
+  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || ['supervisor', 'supervisión', 'manager'].includes(userRole);
+  let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','manager'].some(r => typeof r === 'boolean' ? r : r === userRole);
   if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
 
   const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador','manager'];

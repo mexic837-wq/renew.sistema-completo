@@ -247,7 +247,7 @@ async function _renderList(user, container) {
   const activeUnit = pipelineToMatch;
 
   const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-  const isHighRole = ['admin', 'administrador', 'ceo'].includes(userRolNorm);
+  const isHighRole = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
   const isCallCenterRole = userRolNorm.includes('call');
 
   const misClientes = (todosClientes || []).filter(c => {
