@@ -6540,10 +6540,13 @@ function renderConstructor() {
                   <i class="fa-solid fa-user-astronaut text-[9px] text-tealAccent"></i>
                 </div>
                 <select class="sel-fase-rol bg-transparent border-none text-[9px] font-black text-gray-400 dark:text-gray-500 p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors uppercase tracking-[0.05em]" data-faseid="${f.id}">
-                  <option value="Procesador" ${f.rol_encargado === 'Procesador' ? 'selected' : ''}>Oficina</option>
-                  <option value="Vendedor" ${f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
-                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnicos</option>
-                  <option value="Admin" ${f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
+                  <option value="Representante de Ventas" ${f.rol_encargado === 'Representante de Ventas' || f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
+                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
+                  <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
+                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
+                  <option value="Manager" ${f.rol_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
+                  <option value="Administración" ${f.rol_encargado === 'Administración' || f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
+                  <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
                   <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
                 </select>
               </div>
@@ -6690,11 +6693,7 @@ async function openFaseUserPicker(faseId) {
       await updateAdminFaseUsers(faseId, selectedIds);
       
       // 2. Cerrar Modal
-      if (typeof window.closeModals === 'function') {
-        window.closeModals();
-      } else {
-        modal.classList.add('nuclear-hidden');
-      }
+      modal.classList.add('nuclear-hidden');
       
       showToast('Asignación de usuarios actualizada', 'success');
       
