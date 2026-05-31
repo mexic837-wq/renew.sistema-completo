@@ -4068,6 +4068,8 @@ window.renderView = async function renderView() {
     `;
   }
   else if (state.activeView === 'call-center') {
+      UI.viewTitle.textContent = "Call Center";
+      UI.viewDesc.textContent = "Centro de operaciones y gestión de leads del equipo telefónico.";
       setGlobalButton(false);
       renderCallCenterAdmin();
   }
