@@ -7023,9 +7023,12 @@ async function showWorkerDetail(id) {
 
     // Toggle RRHH-only sections based on current view
     const isRRHHView = window.location.hash.includes('rrhh') || window.location.hash.includes('hrhub') || window.location.hash.includes('equipo') || window.location.hash.includes('usuarios') || ['rrhh', 'hrhub', 'equipo', 'usuarios'].includes(state.activeView);
+    const currentUserForView = (() => { try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; } })();
+    const currentRolForView = (currentUserForView.rol || '').toLowerCase();
+    const isManagerView = currentRolForView === 'manager' || currentRolForView === 'manager de ventas';
     const rrhhOnlyContainer = document.getElementById('det-usr-rrhh-only');
     if (rrhhOnlyContainer) {
-        rrhhOnlyContainer.style.display = isRRHHView ? 'block' : 'none';
+        rrhhOnlyContainer.style.display = (isRRHHView && !isManagerView) ? 'block' : 'none';
     }
 
     const avatarBox = document.getElementById('det-usr-avatar');
