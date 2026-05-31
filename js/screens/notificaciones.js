@@ -135,8 +135,8 @@ export async function renderNotificaciones() {
       };
   });
 
-  // Only show global announcements and meetings in the app notification inbox
-  const allItems = [...misAnuncios, ...misMeetings].sort((a,b) => b.date - a.date);
+  // Show global announcements, meetings, and personal notifications (assignments, events, observers)
+  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario, ...misObservaciones].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
