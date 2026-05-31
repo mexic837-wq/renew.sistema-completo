@@ -1550,8 +1550,8 @@ function bindGlobalEvents() {
     UI.notList.insertAdjacentHTML('afterbegin', html);
     
     // Show badge if panel is closed
-    if (UI.notPanel.classList.contains('translate-x-full')) {
-      UI.notBadge.classList.remove('hidden');
+    if (UI.notPanel && UI.notPanel.classList.contains('translate-x-full')) {
+      if (UI.notBadge) UI.notBadge.classList.remove('hidden');
     }
   };
 
