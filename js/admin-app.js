@@ -8930,7 +8930,7 @@ async function showClientDetail(id) {
         const db2 = getDB();
         const pipelines = db2.Admin_Pipelines || [];
         const fasesAll = db2.Admin_Fases || [];
-        const proyectos = (db2.Proyectos_Dinamicos || []).filter(p => p.cliente_id === cli.id);
+        const proyectos = (db2.Proyectos_Dinamicos || []).filter(p => String(p.cliente_id) === String(cli.id));
 
         if (proyectos.length > 0) {
             badge.textContent = `${proyectos.length} PROYECTOS`;
@@ -9071,7 +9071,7 @@ async function showClientDetail(id) {
         if (history.length > 0) {
             // Retrieve client projects to build dropdown
             const dbRef = getDB();
-            const activeProjects = (dbRef.Proyectos_Dinamicos || []).filter(p => p.cliente_id === cli.id);
+            const activeProjects = (dbRef.Proyectos_Dinamicos || []).filter(p => String(p.cliente_id) === String(cli.id));
             const pipelines = dbRef.Admin_Pipelines || [];
             
             callsCont.innerHTML = history.slice().reverse().map((call, i) => {
