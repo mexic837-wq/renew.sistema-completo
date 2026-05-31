@@ -121,9 +121,9 @@ export async function renderListaPrecios() {
       }
       .precio-card:active { transform: scale(0.97); }
       .precio-card-img {
-        width: 100%; height: 130px; object-fit: cover;
+        width: 100%; height: 160px; object-fit: contain;
         background: var(--surface-alt);
-        display: block;
+        display: block; padding: 10px;
       }
       .precio-card-img-placeholder {
         width: 100%; height: 130px;
