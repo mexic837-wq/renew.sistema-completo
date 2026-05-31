@@ -122,7 +122,6 @@ export async function renderClients() {
 
     // ── Search Bar ───────────────────────────────────────────
     let searchHTML = '';
-    const isCallCenter = userRolNorm.includes('call');
     searchHTML = `
       <div style="padding:0 16px; margin-bottom:12px;">
         <div style="position:relative;">
