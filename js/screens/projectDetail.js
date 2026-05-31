@@ -208,7 +208,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
       <div style="display:flex; flex-direction:column; gap:24px;">
         <div id="dynamic-action-section"></div>
 
-        ${(pipeline.nombre || '').toLowerCase().includes('water') ? `
+        ${(pipeline.nombre || '').toLowerCase().includes('water') && currentFaseObj && currentFaseObj.nombre.toLowerCase().includes('instalaci') ? `
         <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
         <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
           Materiales del Proyecto
