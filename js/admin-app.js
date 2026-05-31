@@ -7802,7 +7802,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     ${cli.nombre[0].toUpperCase()}
                 </div>
                 <div style="min-width:0;">
-                    <h2 class="text-sm font-bold text-gray-800 truncate" title="${cli.nombre}">${cli.nombre}</h2>
+                    <h2 class="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer truncate transition-colors" title="Ver detalle de cliente" onclick="window.closeAllModals(); window.openClientModal('${cli.id}')">${cli.nombre}</h2>
                     <p class="text-[10px] text-gray-500">ID: ${p.id.substring(0,8).toUpperCase()}</p>
                 </div>
             </div>
