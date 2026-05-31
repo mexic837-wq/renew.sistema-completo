@@ -34,17 +34,17 @@ export async function renderPartners() {
         </div>
     </div>
 
-    <div class="team-container" style="padding: 24px; padding-bottom: 100px; width: 100%; max-width: 1600px; margin: 0 auto;">
-      <div id="partners-grid" class="team-grid">
+    <div class="partners-container" style="padding: 24px; padding-bottom: 100px; width: 100%; max-width: 1600px; margin: 0 auto;">
+      <div id="partners-grid" class="partners-grid-inner">
         <!-- Skeleton Loaders -->
         ${[1, 2, 3, 4, 5, 6].map(() => `
-          <div class="team-card skeleton" style="height: 220px; border-radius: 24px; background: var(--surface-alt); opacity: 0.5;"></div>
+          <div class="partner-card skeleton" style="height: 220px; border-radius: 24px; background: var(--surface-alt); opacity: 0.5;"></div>
         `).join('')}
       </div>
     </div>
 
     <style>
-      .team-grid {
+      .partners-grid-inner {
         display: grid;
         grid-template-columns: repeat(1, 1fr);
         gap: 12px;
@@ -52,14 +52,14 @@ export async function renderPartners() {
       }
       
       @media (min-width: 768px) {
-        .team-grid {
+        .partners-grid-inner {
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
           gap: 24px;
           padding: 10px 0;
         }
       }
 
-      .team-card {
+      .partner-card {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 24px;
@@ -71,7 +71,7 @@ export async function renderPartners() {
         overflow: hidden;
         box-shadow: var(--shadow-sm);
       }
-      .team-card:active {
+      .partner-card:active {
         transform: scale(0.98);
       }
       
@@ -82,7 +82,7 @@ export async function renderPartners() {
         margin-bottom: 16px;
       }
 
-      .team-photo-wrapper {
+      .partner-photo-wrapper {
         width: 50px;
         height: 50px;
         border-radius: 14px;
@@ -96,7 +96,7 @@ export async function renderPartners() {
         border: 1px solid var(--border);
         overflow: hidden;
       }
-      .team-photo {
+      .partner-photo {
         width: 100%;
         height: 100%;
         object-fit: cover;
@@ -107,7 +107,7 @@ export async function renderPartners() {
         min-width: 0;
       }
 
-      .team-name {
+      .partner-name {
         font-size: 1rem;
         font-weight: 850;
         color: var(--text-primary);
@@ -122,7 +122,7 @@ export async function renderPartners() {
         font-weight: 600;
       }
 
-      .team-role {
+      .partner-role-badge {
         font-size: 0.6rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -154,14 +154,14 @@ export async function renderPartners() {
         color: var(--text-muted);
       }
 
-      .team-contact {
+      .partner-contact-row {
         display: flex;
         gap: 8px;
         margin-top: auto;
         padding-top: 12px;
         border-top: 1px solid var(--border);
       }
-      .contact-icon {
+      .partner-icon-btn {
         flex: 1;
         height: 36px;
         border-radius: 12px;
@@ -181,7 +181,7 @@ export async function renderPartners() {
         min-width: 0;
         padding: 0 8px;
       }
-      .contact-icon:hover {
+      .partner-icon-btn:hover {
         background: var(--primary);
         color: white;
       }
@@ -242,27 +242,27 @@ export async function renderPartners() {
           const service = p.servicio || 'Proveedor';
           
           return `
-            <div class="team-card animate-fade-in" style="animation-delay: ${idx * 0.05}s">
+            <div class="partner-card animate-fade-in" style="animation-delay: ${idx * 0.05}s">
               <div class="doc-badges">
                 ${p.w9Url ? `<div class="doc-badge" style="background:rgba(245,158,11,0.1); color:#f59e0b;" title="W-9 disponible"><i class="fas fa-file-contract"></i></div>` : ''}
                 ${p.seguroUrl ? `<div class="doc-badge" style="background:rgba(59,130,246,0.1); color:#3b82f6;" title="Seguro disponible"><i class="fas fa-shield-alt"></i></div>` : ''}
               </div>
 
               <div class="partner-header">
-                <div class="team-photo-wrapper">
+                <div class="partner-photo-wrapper">
                     ${photoUrl 
-                      ? `<img src="${photoUrl}" class="team-photo" alt="${p.empresa}">`
+                      ? `<img src="${photoUrl}" class="partner-photo" alt="${p.empresa}">`
                       : initials
                     }
                 </div>
                 <div class="partner-info">
-                    <div class="team-name">${p.empresa || 'Empresa Sin Nombre'}</div>
+                    <div class="partner-name">${p.empresa || 'Empresa Sin Nombre'}</div>
                     <div class="partner-contact-name">${p.contacto || 'Sin contacto asignado'}</div>
                 </div>
               </div>
 
               <div style="margin-bottom: 12px;">
-                <div class="team-role">${service}</div>
+                <div class="partner-role-badge">${service}</div>
               </div>
               
               <div class="partner-details">
@@ -284,15 +284,15 @@ export async function renderPartners() {
                 ` : ''}
               </div>
               
-              <div class="team-contact">
+              <div class="partner-contact-row">
                 ${p.telefono ? `
-                  <a href="tel:${p.telefono}" class="contact-icon">
+                  <a href="tel:${p.telefono}" class="partner-icon-btn">
                     <i class="fas fa-phone"></i>
                     <span style="overflow:hidden; text-overflow:ellipsis;">Llamar</span>
                   </a>
                 ` : ''}
                 ${p.email ? `
-                  <a href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(p.email)}" target="_blank" rel="noopener" class="contact-icon">
+                  <a href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(p.email)}" target="_blank" rel="noopener" class="partner-icon-btn">
                     <i class="fas fa-envelope"></i>
                     <span style="overflow:hidden; text-overflow:ellipsis;">Email</span>
                   </a>
