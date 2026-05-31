@@ -15,14 +15,14 @@ export async function renderMiEquipo() {
 
   // UI Initial Skeleton
   screen.innerHTML = `
-    <div class="dash-header" style="padding-bottom: 0;">
-      <div class="dash-header-top" style="display: flex; align-items: center; justify-content: center; position: relative; min-height: 60px;">
-        <button id="btn-team-back" style="position: absolute; left: 0; background: none; border: none; color: var(--text); padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+    <div class="dash-header" style="padding-bottom: 16px; position: sticky; top: 0; z-index: 50;">
+      <div class="dash-header-top" style="display: flex; align-items: center; justify-content: center; position: relative; min-height: 40px; margin-bottom: 0;">
+        <button id="btn-team-back" style="position: absolute; left: 0; background: none; border: none; color: var(--text-primary); padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
           <i class="fa-solid fa-arrow-left text-xl"></i>
         </button>
         <div class="dash-greeting" style="text-align: center;">
-          <div class="greeting-time" id="team-greeting-time">Compañeros de</div>
-          <h1 style="margin: 0; font-size: 1.3rem;">${activeUnit}</h1>
+          <div class="greeting-time" id="team-greeting-time" style="margin-bottom: 2px;">Compañeros de</div>
+          <h1 style="margin: 0; font-size: 1.25rem;">${activeUnit}</h1>
         </div>
       </div>
     </div>

@@ -14,14 +14,14 @@ export async function renderPartners() {
   
   // UI Initial Skeleton
   screen.innerHTML = `
-    <div class="dash-header" style="padding-bottom: 0;">
-      <div class="dash-header-top" style="display: flex; align-items: center; justify-content: center; position: relative; min-height: 60px;">
-        <button id="btn-partners-back" style="position: absolute; left: 0; background: none; border: none; color: var(--text); padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+    <div class="dash-header" style="padding-bottom: 16px; position: sticky; top: 0; z-index: 50;">
+      <div class="dash-header-top" style="display: flex; align-items: center; justify-content: center; position: relative; min-height: 40px; margin-bottom: 0;">
+        <button id="btn-partners-back" style="position: absolute; left: 0; background: none; border: none; color: var(--text-primary); padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
           <i class="fa-solid fa-arrow-left text-xl"></i>
         </button>
         <div class="dash-greeting" style="text-align: center;">
-          <div class="greeting-time">Directorio de</div>
-          <h1 style="margin: 0; font-size: 1.3rem;">Partners</h1>
+          <div class="greeting-time" style="margin-bottom: 2px;">Directorio de</div>
+          <h1 style="margin: 0; font-size: 1.25rem;">Partners</h1>
         </div>
       </div>
     </div>
