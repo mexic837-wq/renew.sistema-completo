@@ -167,7 +167,7 @@ export async function renderRendimientoGlobal() {
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Representante</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tasa Cierre</th>
-                                <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Comisiones Proy.</th>
+                                <th class="hidden px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Comisiones Proy.</th>
                             </tr>
                         </thead>
                         <tbody id="global-leaderboard-body"></tbody>
@@ -565,7 +565,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                         <span class="text-[10px] font-black text-gray-500">${v.closeRate}%</span>
                     </div>
                 </td>
-                <td class="px-8 py-6 text-right">
+                <td class="hidden px-8 py-6 text-right">
                     <span class="text-sm font-black text-tealAccent">$${v.commissions.toLocaleString()}</span>
                 </td>
             </tr>
