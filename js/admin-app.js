@@ -2012,7 +2012,7 @@ function bindGlobalEvents() {
       const projectId = e.dataTransfer.getData('text/plain');
       const newFaseId = zone.dataset.faseid;
       
-      const { saveDB } = await import('./api.js');
+      const { saveGranular } = await import('./api.js');
       const db = getDB();
       const p = db.Proyectos_Dinamicos.find(x => x.id === projectId);
       if (p && p.fase_id !== newFaseId) {
@@ -2032,7 +2032,7 @@ function bindGlobalEvents() {
             // p.fecha_cierre = null;
         }
 
-        await saveDB(db);
+        await saveGranular('proyectos_dinamicos', [p]);
         await renderView();
       }
     }
