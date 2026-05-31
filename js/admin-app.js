@@ -3951,9 +3951,18 @@ window.renderView = async function renderView() {
     `;
   }
   else if (state.activeView === 'proveedores') {
+    const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    const rolName = (curUsr.rol || '').toLowerCase();
+    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rolName);
+    
     UI.viewTitle.textContent = "Partners Hub";
     UI.viewDesc.textContent = "Directorio oficial de proveedores y subcontratistas.";
-    setGlobalButton(true, '<i class="fa-solid fa-handshake"></i> Add Partner');
+    
+    if (!isRestrictedManager) {
+        setGlobalButton(true, '<i class="fa-solid fa-handshake"></i> Add Partner');
+    } else {
+        setGlobalButton(false);
+    }
     
     let items = (db.Admin_Proveedores || []);
     
@@ -3964,7 +3973,9 @@ window.renderView = async function renderView() {
         });
     }
 
-    const headers = [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
+    const headers = isRestrictedManager ?
+        ["", "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""] :
+        [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
     const rowsHtml = items.map(u => {
         const safeEmpresa = u.empresa || 'Empresa Desconocida';
         const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
@@ -4000,13 +4011,13 @@ window.renderView = async function renderView() {
         return `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
                 <td class="px-4 py-2.5 w-4 text-center">
-                    <input type="checkbox" class="partner-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${u.id}">
+                    ${!isRestrictedManager ? `<input type="checkbox" class="partner-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${u.id}">` : ''}
                 </td>
                 <td class="px-4 py-2.5 whitespace-nowrap">
                     <div class="flex items-center gap-3">
                         ${fotoHtml}
                         <div class="flex flex-col">
-                            <a href="#" class="partner-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight" data-id="${u.id}">${safeEmpresa}</a>
+                            ${!isRestrictedManager ? `<a href="#" class="partner-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight" data-id="${u.id}">${safeEmpresa}</a>` : `<span class="font-bold text-gray-900 dark:text-white text-xs tracking-tight cursor-default">${safeEmpresa}</span>`}
                             <span class="text-[8px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-widest">${u.contacto || 'Sin contacto'}</span>
                         </div>
                     </div>
@@ -4035,7 +4046,7 @@ window.renderView = async function renderView() {
                     }
                 </td>
                 <td class="px-4 py-2.5 whitespace-nowrap text-right">
-                    <button class="btn-delete-partner text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    ${!isRestrictedManager ? `<button class="btn-delete-partner text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>` : ''}
                 </td>
             </tr>
         `;
@@ -10681,7 +10692,18 @@ window.populateRolesDropdowns = function() {
         return existing || { nombre: dr };
     });
 
-    const optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    const rolName = (curUsr.rol || '').toLowerCase();
+    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rolName);
+    
+    let optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    
+    if (isRestrictedManager) {
+        const allowedRoles = ['manager', 'supervisor', 'call center', 'técnico', 'vendedor'];
+        optionsHtml = mergedRoles
+            .filter(r => allowedRoles.includes(r.nombre.toLowerCase()))
+            .map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    }
     
     const inpRol = document.getElementById('inp-usr-rol');
     if (inpRol) {
