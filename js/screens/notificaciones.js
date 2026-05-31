@@ -81,9 +81,9 @@ export async function renderNotificaciones() {
       // Sólo si es pipeline de Water o si el técnico está asignado a otro que requiera
       const pipe = (db.Admin_Pipelines || []).find(x => x.id === p.pipeline_id);
       if (!pipe || !pipe.nombre.toLowerCase().includes('water')) return false;
-      // Verificar si ya respondió
-      const resp = (db.Respuestas_Dinamicas || []).find(r => r.proyecto_id === p.id && r.campo_id === '__estado_asignacion_tecnico__');
-      return !resp; // Si no hay respuesta, está pendiente
+      // Verificar si ya respondió localmente
+      const hasResponded = localStorage.getItem(`rs_asig_resp_${p.id}_${user.id}`);
+      return !hasResponded; // Si no hay respuesta, está pendiente
   }).map(p => {
       const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
       return {
@@ -465,17 +465,9 @@ export async function renderNotificaciones() {
 async function procesarRespuestaAsignacion(proyecto, cliente, decision, horario, user) {
     const db = getDB();
     
-    // 1. Guardar la respuesta en Respuestas_Dinamicas para evitar volver a preguntar
-    const respId = 'resp_' + Date.now() + Math.random().toString(36).substr(2, 5);
-    const newResp = {
-        id: respId,
-        proyecto_id: proyecto.id,
-        campo_id: '__estado_asignacion_tecnico__',
-        valor: decision
-    };
-    if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
-    db.Respuestas_Dinamicas.push(newResp);
-    await saveGranular('respuestas_dinamicas', [newResp]);
+    // 1. Guardar la respuesta en localStorage para evitar volver a preguntar en este dispositivo
+    // Ya que no podemos insertar IDs de campos falsos en Respuestas_Dinamicas por la llave foránea
+    localStorage.setItem(`rs_asig_resp_${proyecto.id}_${user.id}`, decision);
 
     // 2. Si Aceptado, guardar en calendario_eventos
     if (decision === 'Aceptado' && horario) {
