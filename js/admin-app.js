@@ -4085,12 +4085,12 @@ window.renderView = async function renderView() {
     let userPips = state.pipelines;
     
     if (isRestrictedManager) {
-       const allowedIds = currentUser.pipeline_ids || [];
+       const allowedIds = (currentUser.pipeline_ids || []).map(id => id.toLowerCase());
        const allowedUnits = (currentUser.unidades || []).map(u => u.toLowerCase());
        
        userPips = state.pipelines.filter(p => {
            const pName = (p.nombre || '').toLowerCase();
-           return allowedIds.includes(String(p.id)) || allowedUnits.some(u => pName.includes(u.replace('renew ', '').trim()) || u.includes(pName.replace('renew ', '').trim()));
+           return allowedIds.includes(pName) || allowedUnits.some(u => pName.includes(u.replace('renew ', '').trim()) || u.includes(pName.replace('renew ', '').trim()));
        });
     }
 

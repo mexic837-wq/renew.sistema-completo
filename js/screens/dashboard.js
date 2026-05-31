@@ -454,7 +454,7 @@ function _buildPipelineChips(user, activeUnit) {
   const allClientes  = db.Clientes_Maestro || [];
   const allProyectos = db.Proyectos_Dinamicos || [];
   const userRole     = (user.rol || '').toLowerCase().trim();
-  const isHighRole   = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRole);
+  const isHighRole   = ['admin', 'administrador', 'ceo', 'partner'].includes(userRole);
 
   const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
   
