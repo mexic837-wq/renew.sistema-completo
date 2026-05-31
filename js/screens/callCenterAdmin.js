@@ -226,7 +226,7 @@ async function loadCCLeads() {
                 <td class="py-4 font-bold text-gray-900 dark:text-white">${l.nombre || 'Sin nombre'}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 flex items-center gap-2">
                     ${l.telefono || '-'}
-                    ${l.telefono ? `<button onclick="adminZadarmaCall('${l.telefono}')" class="w-6 h-6 rounded bg-teal-100 text-teal-600 hover:bg-teal-500 hover:text-white flex items-center justify-center transition-colors" title="Click to Call (Zadarma)"><i class="fa-solid fa-phone text-[10px]"></i></button>` : ''}
+                    ${l.telefono ? `<button onclick="adminZadarmaCall('${l.telefono}')" class="hidden w-6 h-6 rounded bg-teal-100 text-teal-600 hover:bg-teal-500 hover:text-white items-center justify-center transition-colors" title="Click to Call (Zadarma)"><i class="fa-solid fa-phone text-[10px]"></i></button>` : ''}
                 </td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.direccion || '-'} ${l.ciudad ? ', ' + l.ciudad : ''}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.email || '-'}</td>
