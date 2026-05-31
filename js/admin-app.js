@@ -785,7 +785,7 @@ const updateAdminNavLabels = () => {
     const rol = (usr.rol || '').toLowerCase();
     
     if (['project manager', 'manager de ventas', 'account manager', 'manager', 'supervisión'].includes(rol)) {
-        document.querySelectorAll('#admin-nav a[data-view="hrhub"], #admin-nav a[data-view="roles"]').forEach(el => {
+        document.querySelectorAll('#admin-nav a[data-view="hrhub"], #admin-nav a[data-view="roles"], #admin-nav a[data-view="inventario"]').forEach(el => {
             el.style.display = 'none';
         });
 
