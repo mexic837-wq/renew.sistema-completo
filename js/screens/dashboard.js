@@ -545,53 +545,6 @@ function _buildPipelineChips(user, activeUnit) {
     });
   });
 
-  const remainingHTML = `
-    <div id="tab-inicio" class="dash-tab-content">
-      <div id="dash-tools-grid" class="tool-list mobile-only"></div>
-      
-      <!-- DESKTOP WELCOME PRESENTATION -->
-      <div class="desktop-only w-full">
-        <div class="flex flex-col items-center justify-center text-center w-full" style="padding: 60px 20px; background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(0,245,212,0.02) 100%); border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); margin-top: 20px; min-height: 400px; box-shadow: inset 0 0 40px rgba(0,0,0,0.2);">
-          <div style="position: relative; margin-bottom: 30px;">
-            <div style="position: absolute; inset: -20px; background: radial-gradient(circle, rgba(0,245,212,0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(20px);"></div>
-            <img src="assets/images/renew copia logo.png" alt="Equipo Renew" style="width: 130px; position: relative; z-index: 10; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));">
-          </div>
-          <h2 style="font-size: 2.2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 16px; letter-spacing: -0.5px;">Bienvenido al <span style="color: #00f5d4;">Portal de Ventas</span></h2>
-          <p style="color: var(--text-secondary); max-width: 550px; font-size: 1.15rem; line-height: 1.6; margin-bottom: 30px;">El centro de operaciones del Equipo Renew para llevar tu rendimiento al siguiente nivel. Selecciona una herramienta del menú lateral para comenzar tu jornada.</p>
-          
-          <div class="flex gap-4" style="justify-content: center;">
-            <button onclick="document.querySelector('[data-target=\\'tab-rendimiento\\']').click()" style="background: rgba(0,245,212,0.1); color: #00f5d4; border: 1px solid rgba(0,245,212,0.3); padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: all 0.2s hover:bg-opacity-20 hover:scale-105; cursor: pointer;">
-              <i class="fa-solid fa-chart-line mr-2"></i> Ver Mi Rendimiento
-            </button>
-            <button onclick="document.querySelector('[data-target=\\'tab-leaderboard\\']').click()" style="background: var(--surface-alt); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; border-radius: 12px; font-weight: 600; transition: all 0.2s hover:bg-opacity-10 hover:scale-105; cursor: pointer;">
-              <i class="fa-solid fa-trophy mr-2" style="color: #f59e0b;"></i> Leaderboard
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="desktop-dashboard-wrapper" style="padding:0 20px;">
-      <div id="tab-rendimiento" class="dash-tab-content" style="display:none; padding:0 0 24px;">
-        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:16px; margin-top:8px;">${t('dash_month_perf')}</h3>
-        <div style="background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); padding:20px; border-radius:24px; border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow-lg);">
-          <canvas id="rendimientoChart" height="220"></canvas>
-        </div>
-        <div id="rendimiento-quick-stats" style="margin-top:24px;"></div>
-        <div id="rank-banner-rendimiento" style="margin-top:20px;"></div>
-      </div>
-
-      <div id="tab-leaderboard" class="dash-tab-content" style="display:none; padding:0 0 24px;">
-        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:12px; margin-top:8px;">${t('dash_top_sellers')}</h3>
-        <div style="background:var(--surface-alt); padding:16px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-          <canvas id="leaderboardChart" height="240"></canvas>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  screen.innerHTML += remainingHTML;
-
   document.getElementById('avatar-btn').addEventListener('click', showProfileModal);
 
   // Init admin bell (re-init each time dashboard renders so bell button is fresh)
