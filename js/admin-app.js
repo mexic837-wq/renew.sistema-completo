@@ -1623,7 +1623,7 @@ function bindGlobalEvents() {
         password: UI.inpUsrPass.value.trim(),
         unidades: checkedPips,
         equipo_ids: (UI.inpUsrRol.value === 'Supervisor') ? Array.from(document.querySelectorAll('.usr-equipo-chk:checked')).map(c => c.value) : [],
-        pipeline_ids: (UI.inpUsrRol.value === 'Project Manager') ? Array.from(document.querySelectorAll('.usr-pip-chk:checked')).map(c => c.dataset.pip) : [],
+        pipeline_ids: (UI.inpUsrRol.value === 'Manager') ? Array.from(document.querySelectorAll('.usr-pip-chk:checked')).map(c => c.dataset.pip) : [],
         is_suspended: existing ? (existing.is_suspended || false) : false,
         banco_nombre: document.getElementById('inp-usr-banco-nombre')?.value.trim() || '',
         banco_cuenta: document.getElementById('inp-usr-banco-cuenta')?.value.trim() || '',
@@ -2238,7 +2238,7 @@ function bindGlobalEvents() {
 
   // ââ‚¬ââ‚¬ Edit Pipeline Roles (pencil icon) ââ‚¬ââ‚¬
   const modEditPipRoles = document.getElementById('modal-edit-pip-roles');
-  const ROLES_LIST = ['Administración', 'Oficina', 'Técnicos', 'Representante de Ventas', 'Project Manager'];
+  const ROLES_LIST = ['Administración', 'Oficina', 'Técnicos', 'Representante de Ventas', 'Manager'];
   const ROLE_ICONS_MAP = {
     'Procesador': 'fa-headset',
     'Vendedor': 'fa-handshake', 'Técnico': 'fa-screwdriver-wrench',
@@ -3118,7 +3118,7 @@ window.renderView = async function renderView() {
     // --- ROLE-BASED FILTERING ---
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const role = currentUser.rol || '';
-    if (['Project Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
+    if (['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
         clientesFiltrados = clientesFiltrados.filter(c => {
             const hasAccessToUnit = currentUser.unidades && currentUser.unidades.length > 0
                 ? currentUser.unidades.some(u => c.departamento && c.departamento.toLowerCase().includes(u.replace('Renew ', '').toLowerCase()))
@@ -3133,7 +3133,7 @@ window.renderView = async function renderView() {
                 const vendorId = c.vendedor_asignado_id || c.creador_id || '';
                 const vendorUser = allWorkers.find(w => w.id === vendorId);
                 return vendorUser && vendorUser.supervisor_id === currentUser.id;
-            } else if (role === 'Project Manager') {
+            } else if (role === 'Manager') {
                 const subRol = currentUser.sub_rol || '';
                 if (subRol === 'Manager de Ventas') return hasAccessToUnit;
                 if (subRol === 'Account Manager') return hasAccessToUnit && c.account_manager_id === currentUser.id;
@@ -4869,7 +4869,7 @@ window.renderView = async function renderView() {
         const anunciosHtml = sortedAnuncios.map(an => {
           const getTagBadge = (tag) => {
               if (tag === 'todos') return 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400';
-              const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'];
+              const roles = ['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Manager', 'Supervisión', 'CEO'];
               if (roles.includes(tag)) return 'bg-sky-500/10 text-sky-500 border border-sky-500/20';
               return 'bg-tealAccent/10 text-tealAccent border border-tealAccent/20';
           };
@@ -4937,7 +4937,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'].map(r => `
+                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Manager', 'Supervisión', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
@@ -5068,7 +5068,7 @@ window.renderView = async function renderView() {
                         <div class="pt-2 border-t border-gray-100 dark:border-white/5">
                             <p class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Por Roles / Cargos</p>
                             <div class="grid grid-cols-1 gap-2">
-                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Project Manager', 'Supervisión', 'CEO'].map(r => `
+                                ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Manager', 'Supervisión', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="mt-aud-check w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" value="${r}">
                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors">${r}</span>
@@ -7089,7 +7089,7 @@ async function toggleDetailEditMode(id) {
         if (rolEl) {
             let roleVal = usr.rol || 'Vendedor';
             if (roleVal === 'Supervisión') roleVal = 'Supervisor'; // Migration
-            if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Project Manager'; // Migration
+            if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Manager'; // Migration
             rolEl.value = roleVal;
             
             const equipoCont = document.getElementById('det-edit-equipo-container');
@@ -7124,7 +7124,7 @@ async function toggleDetailEditMode(id) {
             }
             
             if (pipesCont) {
-                pipesCont.classList.toggle('hidden', roleVal !== 'Project Manager');
+                pipesCont.classList.toggle('hidden', roleVal !== 'Manager');
                 const selectedPipes = usr.pipeline_ids || [];
                 document.querySelectorAll('.pm-pipeline-chk').forEach(chk => {
                     chk.checked = selectedPipes.includes(chk.value);
@@ -7394,7 +7394,7 @@ async function toggleDetailEditMode(id) {
             const banco_ruta   = document.getElementById('det-edit-banco-ruta')?.value.trim()   || '';
 
             const equipo_ids = (rol === 'Supervisor') ? Array.from(document.querySelectorAll('.rep-equipo-chk:checked')).map(c => c.value) : [];
-            const pipeline_ids = (rol === 'Project Manager') ? Array.from(document.querySelectorAll('.pip-perm-chk:checked')).map(c => c.dataset.pip) : [];
+            const pipeline_ids = (rol === 'Manager') ? Array.from(document.querySelectorAll('.pip-perm-chk:checked')).map(c => c.dataset.pip) : [];
 
             // Read pipeline permissions
             const checkedPips = Array.from(
@@ -10561,7 +10561,7 @@ window.populateRolesDropdowns = function() {
 
     // Fallback en caso de que Admin_Roles esté vacío
     const defaultRoles = [
-        'CEO', 'Project Manager', 'Supervisor',
+        'CEO', 'Manager', 'Supervisor',
         'Call Center', 'Técnico', 'Vendedor'
     ];
 
