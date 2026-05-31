@@ -367,7 +367,7 @@ export async function renderDashboard() {
       <div class="dash-tabs-container">
         <button class="dash-tab active" data-target="tab-inicio">Inicio</button>
         <button class="dash-tab" data-target="tab-rendimiento">${t('dash_tab_perf')}</button>
-        <button class="dash-tab" data-target="tab-leaderboard">${t('dash_tab_rank')}</button>
+        ${((user.permisos && 'app_ranking' in user.permisos) ? user.permisos.app_ranking : true) ? `<button class="dash-tab" data-target="tab-leaderboard">${t('dash_tab_rank')}</button>` : ''}
       </div>
     </div>
 
@@ -569,14 +569,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
 
   const TOOLS = {
     'Renew Water': [
-      (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call')) ? {
+      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call'))) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
-      (canWater || isTecnico) ? {
+      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico)) ? {
         name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
@@ -597,14 +597,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
         action: () => window.appNavigate('inventory-tech'), delay: '0.12s', screen: 'inventory-tech'
       } : null,
-      (canWater || isTecnico) ? {
+      ((user.permisos && 'app_pagos' in user.permisos) ? user.permisos.app_pagos : (canWater || isTecnico)) ? {
         name: 'Mis Recibos de Pagos', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#8b5cf6,#6366f1)',
         iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
         action: () => window.appNavigate('mis-recibos'), delay: '0.15s', screen: 'mis-recibos'
       } : null,
-      (canWater) ? {
+      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : canWater) ? {
         name: 'Lista de Precios', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#ec4899,#f43f5e)',
         iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899',
@@ -613,20 +613,20 @@ export function _renderToolsForPipeline(user, activeUnit) {
       } : null,
     ],
     'Renew Solar': [
-      (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call')) ? {
+      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call'))) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
-      {
+      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : true) ? {
         name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
         action: () => window.appNavigate('clients'), delay: '0s', screen: 'clients'
-      },
+      } : null,
       ((user.permisos && 'app_plantillas' in user.permisos) ? user.permisos.app_plantillas : !isTecnico) ? {
         name: 'Plantillas', tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
@@ -641,29 +641,29 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
         action: () => window.appNavigate('inventory-tech'), delay: '0.06s', screen: 'inventory-tech'
       } : null,
-      {
+      ((user.permisos && 'app_pagos' in user.permisos) ? user.permisos.app_pagos : true) ? {
         name: 'Mis Recibos de Pagos', tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
         action: () => window.appNavigate('mis-recibos'), delay: '0.15s', screen: 'mis-recibos'
-      },
+      } : null,
     ],
     'Renew Home': [
-      (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call')) ? {
+      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call'))) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
-      {
+      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : true) ? {
         name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Home',
         gradient: 'linear-gradient(90deg,#a3d96b,#84cc16)',
         iconBg: 'rgba(163,217,107,0.12)', iconColor: '#a3d96b',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
         action: () => window.appNavigate('clients'), delay: '0s', screen: 'clients'
-      },
+      } : null,
     ],
   };
 
@@ -690,21 +690,21 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
       action: () => window.appNavigate('mi-equipo'), delay: '0.22s', screen: 'mi-equipo'
     },
-    (isAdmin || isVentas || (user.permisos && user.permisos.app_partners)) ? {
+    ((user.permisos && 'app_partners' in user.permisos) ? user.permisos.app_partners : (isAdmin || isVentas)) ? {
       name: 'Partners', tag: null,
       gradient: 'linear-gradient(90deg,#10b981,#059669)',
       iconBg: 'rgba(16,185,129,0.1)', iconColor: '#10b981',
       icon: `<i class="fa-solid fa-handshake"></i>`,
       action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
     } : null,
-    isAdmin ? {
+    ((user.permisos && 'app_os' in user.permisos) ? user.permisos.app_os : isAdmin) ? {
       name: 'Renew OS (Admin)', tag: null,
       gradient: 'linear-gradient(90deg,#f59e0b,#ef4444)',
       iconBg: 'rgba(245,158,11,0.1)', iconColor: 'var(--warning)',
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
       action: () => { window.location.href = 'admin.html'; }, delay: '0.24s'
     } : null,
-    (!isAdmin && ((user.permisos && 'app_adelantos' in user.permisos) ? user.permisos.app_adelantos : true)) ? {
+    ((user.permisos && 'app_adelantos' in user.permisos) ? user.permisos.app_adelantos : !isAdmin) ? {
       name: 'Mis Adelantos', tag: 'RRHH',
       gradient: 'linear-gradient(90deg,#0ea5e9,#2563eb)',
       iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',

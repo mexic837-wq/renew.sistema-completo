@@ -582,6 +582,16 @@ export function updateNavHighlight(activeScreen) {
         item.style.display = (isCallCenter || isTecnico) ? 'none' : 'flex';
     }
 
+    // Check permissions for specific static nav items
+    if (sc === 'mi-calendario') {
+        const canCalendario = (user && user.permisos && 'app_calendario' in user.permisos) ? user.permisos.app_calendario : true;
+        if (!canCalendario) {
+            item.style.display = 'none';
+        } else if (item.style.display === 'none') {
+            item.style.display = 'flex';
+        }
+    }
+
     const screenMatch = item.dataset.screen === activeScreen;
     if (screenMatch) {
       item.classList.add('active');
