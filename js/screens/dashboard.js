@@ -545,29 +545,6 @@ function _buildPipelineChips(user, activeUnit) {
       }
     });
   });
-
-  document.getElementById('avatar-btn').addEventListener('click', showProfileModal);
-
-  // Init admin bell (re-init each time dashboard renders so bell button is fresh)
-  initAdminBell();
-
-  _buildPipelineChips(user, activeUnit);
-  _renderToolsForPipeline(user, activeUnit);
-
-  const tabs     = document.querySelectorAll('.dash-tab');
-  const contents = document.querySelectorAll('.dash-tab-content');
-
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      contents.forEach(c => c.style.display = 'none');
-      tab.classList.add('active');
-      const id = tab.dataset.target;
-      document.getElementById(id).style.display = 'block';
-      if (id === 'tab-rendimiento' && !window.rendimientoChartInstance) initRendimientoChart(user);
-      if (id === 'tab-leaderboard' && !window.leaderboardChartInstance) initLeaderboardChart(user);
-    });
-  });
 }
 
 export function _renderToolsForPipeline(user, activeUnit) {
