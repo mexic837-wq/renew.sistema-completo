@@ -10166,30 +10166,40 @@ window.adminUploadCatalogo = async function(rank) {
 };
 window.savePrecio = async function() {
     const id = document.getElementById('inp-prec-id').value;
+    const getNumVal = (elId) => {
+        const el = document.getElementById(elId);
+        return el ? (parseFloat(el.value) || 0) : 0;
+    };
+    
+    const getStrVal = (elId) => {
+        const el = document.getElementById(elId);
+        return el ? el.value : '';
+    };
+
     const producto = {
         id: id || null,
-        nombre: document.getElementById('inp-prec-nombre').value,
-        codigo: document.getElementById('inp-prec-codigo').value,
-        categoria: document.getElementById('inp-prec-cat').value,
-        sede: document.getElementById('sel-prec-sede').value,
-        medida: document.getElementById('inp-prec-medida').value,
-        boton: document.getElementById('inp-prec-boton').value,
-        color: document.getElementById('inp-prec-color').value,
-        precio_iniciante: parseFloat(document.getElementById('inp-prec-iniciante').value) || 0,
-        precio_junior: parseFloat(document.getElementById('inp-prec-junior').value) || 0,
-        precio_subvende: parseFloat(document.getElementById('inp-prec-subvende').value) || 0,
-        precio_vendedor: parseFloat(document.getElementById('inp-prec-vendedor').value) || 0,
-        precio_analista: parseFloat(document.getElementById('inp-prec-analista').value) || 0,
-        precio_oficina: parseFloat(document.getElementById('inp-prec-oficina').value) || 0,
-        precio_full: parseFloat(document.getElementById('inp-prec-full').value) || 0,
-        solo_equipo_grande: parseFloat(document.getElementById('inp-prec-grande').value) || 0,
-        precio_minimo: parseFloat(document.getElementById('inp-prec-min').value) || 0,
-        precio_maximo: parseFloat(document.getElementById('inp-prec-max').value) || 0,
-        unidad: document.getElementById('inp-prec-unidad').value,
-        garantia: document.getElementById('inp-prec-garantia').value,
-        foto_url: document.getElementById('inp-prec-foto').value,
-        pdf_url: document.getElementById('inp-prec-pdf').value,
-        descripcion: document.getElementById('inp-prec-desc').value,
+        nombre: getStrVal('inp-prec-nombre'),
+        codigo: getStrVal('inp-prec-codigo'),
+        categoria: getStrVal('inp-prec-cat'),
+        sede: getStrVal('sel-prec-sede'),
+        medida: getStrVal('inp-prec-medida'),
+        boton: getStrVal('inp-prec-boton'),
+        color: getStrVal('inp-prec-color'),
+        precio_iniciante: getNumVal('inp-prec-iniciante'),
+        precio_junior: getNumVal('inp-prec-junior'),
+        precio_subvende: getNumVal('inp-prec-subvende'),
+        precio_vendedor: getNumVal('inp-prec-vendedor'),
+        precio_analista: getNumVal('inp-prec-analista'),
+        precio_oficina: getNumVal('inp-prec-oficina'),
+        precio_full: getNumVal('inp-prec-full'),
+        solo_equipo_grande: getNumVal('inp-prec-grande'),
+        precio_minimo: getNumVal('inp-prec-min'),
+        precio_maximo: getNumVal('inp-prec-max'),
+        unidad: getStrVal('inp-prec-unidad'),
+        garantia: getStrVal('inp-prec-garantia'),
+        foto_url: getStrVal('inp-prec-foto'),
+        pdf_url: getStrVal('inp-prec-pdf'),
+        descripcion: getStrVal('inp-prec-desc'),
         es_activo: true
     };
 
