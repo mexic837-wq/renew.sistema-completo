@@ -534,6 +534,10 @@ function _buildPipelineChips(user, activeUnit) {
       localStorage.setItem('active_unit', pip);
       row.querySelectorAll('.pip-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
+      
+      // Update tools grid for the new active unit
+      _renderToolsForPipeline(user, pip);
+
       // Destroy and nullify both chart instances to force re-render on next tab switch
       if (window.rendimientoChartInstance) {
         if (typeof window.rendimientoChartInstance.destroy === 'function') window.rendimientoChartInstance.destroy();
@@ -542,6 +546,14 @@ function _buildPipelineChips(user, activeUnit) {
       if (window.leaderboardChartInstance) {
         if (typeof window.leaderboardChartInstance.destroy === 'function') window.leaderboardChartInstance.destroy();
         window.leaderboardChartInstance = null;
+      }
+      
+      // Re-render active tab content if needed
+      const activeTab = document.querySelector('.dash-tab.active');
+      if (activeTab) {
+          const id = activeTab.dataset.target;
+          if (id === 'tab-rendimiento') initRendimientoChart(user);
+          else if (id === 'tab-leaderboard') initLeaderboardChart(user);
       }
     });
   });
