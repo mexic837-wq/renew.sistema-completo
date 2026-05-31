@@ -188,11 +188,19 @@ export async function renderClients() {
         const modal = document.getElementById('modal-nuevo-cliente');
         if (modal) modal.style.display = 'flex';
 
-        // Ensure map container is visible and reset loading flag
         const mapCont = document.getElementById('quick-map-container');
         if (mapCont) mapCont.style.display = 'block';
         const dirInput = document.getElementById('quick-direccion');
         if (dirInput) dirInput.dataset.quickMapsLoaded = '';
+
+        // Pre-select current department
+        const deptSelect = document.getElementById('quick-dept');
+        if (deptSelect) {
+            let activePipName = (activeDeptFilter === 'Todos') ? (localStorage.getItem('active_unit') || 'Renew Solar') : activeDeptFilter;
+            if (activePipName.includes('Solar')) deptSelect.value = 'Solar';
+            else if (activePipName.includes('Water')) deptSelect.value = 'Water';
+            else if (activePipName.includes('Home')) deptSelect.value = 'Home';
+        }
 
         if (window.initQuickMaps) setTimeout(window.initQuickMaps, 400);
       });
