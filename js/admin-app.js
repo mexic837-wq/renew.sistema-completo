@@ -4062,8 +4062,11 @@ window.renderView = async function renderView() {
     
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const rol = (currentUser.rol || '').toLowerCase();
+    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rol);
+
     let userPips = state.pipelines;
-    if (rol === 'project manager') {
+    
+    if (isRestrictedManager) {
        const allowedIds = currentUser.pipeline_ids || [];
        userPips = state.pipelines.filter(p => allowedIds.includes(String(p.id)));
     }
