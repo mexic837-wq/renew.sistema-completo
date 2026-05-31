@@ -123,7 +123,7 @@ export async function renderClients() {
     // ── Search Bar ───────────────────────────────────────────
     let searchHTML = '';
     searchHTML = `
-      <div style="padding:0 16px; margin-bottom:12px;">
+      <div style="padding:0 16px; margin-top:16px; margin-bottom:12px;">
         <div style="position:relative;">
           <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
           <input id="clients-app-search" type="text" placeholder="Buscar por nombre de cliente..." autocomplete="off"
