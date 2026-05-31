@@ -6683,7 +6683,11 @@ async function openFaseUserPicker(faseId) {
   if (btnCancel) {
       btnCancel.onclick = (e) => {
           e.preventDefault();
-          modal.classList.add('nuclear-hidden');
+          if (typeof window.closeModals === 'function') {
+              window.closeModals();
+          } else {
+              modal.classList.add('nuclear-hidden');
+          }
       };
   }
   
@@ -6701,7 +6705,11 @@ async function openFaseUserPicker(faseId) {
       await updateAdminFaseUsers(faseId, selectedIds);
       
       // 2. Cerrar Modal
-      modal.classList.add('nuclear-hidden');
+      if (typeof window.closeModals === 'function') {
+        window.closeModals();
+      } else {
+        modal.classList.add('nuclear-hidden');
+      }
       
       showToast('Asignación de usuarios actualizada', 'success');
       
@@ -6716,9 +6724,11 @@ async function openFaseUserPicker(faseId) {
       btnConfirm.disabled = false;
       btnConfirm.innerHTML = 'Confirmar Asignación';
     }
-  };
-  
-  modal.classList.remove('nuclear-hidden');
+  if (typeof window.showModal === 'function') {
+      window.showModal(modal);
+  } else {
+      modal.classList.remove('nuclear-hidden');
+  }
 }
 
 window.openFaseUserPicker = openFaseUserPicker;
