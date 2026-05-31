@@ -6261,6 +6261,12 @@ window.eliminarEventoCalendarioAdmin = async function(passedEventId) {
         showToast('Evento eliminado correctamente.', 'success');
     }
 
+    // Reset button state
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+    }
+
     // Close modal and re-render calendar
     closeModals();
     if (typeof renderCalendario === 'function') renderCalendario();
