@@ -310,7 +310,7 @@ window.verificarAnunciosNuevos = async function() {
     if (an.audiencia === 'todos') {
       pertenece = true;
     } else if (user.unidades) {
-      pertenece = user.unidades.includes(an.audiencia);
+      pertenece = user.unidades.some(u => u.toLowerCase() === an.audiencia.toLowerCase() || an.audiencia.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim()));
     }
     
     if (pertenece) {
@@ -337,7 +337,7 @@ window.verificarAnunciosNuevos = async function() {
       if (isAll) return true;
       const matchesRole = tags.some(tag => tag.toLowerCase() === (user.rol || '').toLowerCase());
       const pipelinePerms = user.pipeline_perms || [];
-      const matchesPipe = tags.some(tag => pipelinePerms.includes(tag) || (user.unidades || []).includes(tag));
+      const matchesPipe = tags.some(tag => pipelinePerms.includes(tag) || (user.unidades || []).some(u => u.toLowerCase() === tag.toLowerCase() || tag.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
       return matchesRole || matchesPipe;
   });
 

@@ -508,7 +508,7 @@ function _buildPipelineChips(user, activeUnit) {
     const clientes   = myClients.filter(c =>  projectClientIds.has(String(c.id))).length;
     const total      = prospectos + clientes;
 
-    const hasAccess = isHighRole || (user.unidades && user.unidades.includes(pipName));
+    const hasAccess = isHighRole || (user.unidades && user.unidades.some(u => u.toLowerCase() === pipName.toLowerCase() || pipName.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
     const disabledStyle = hasAccess ? '' : 'filter: grayscale(1); opacity: 0.4; cursor: not-allowed; border-color: rgba(255,255,255,0.05);';
 
     return `
@@ -1486,7 +1486,7 @@ async function initLeaderboardChart(user) {
   workers.forEach(w => {
     const count = projectCountByUserId[w.id] || 0;
     const isWHighRole = ['admin', 'administrador', 'ceo'].includes((w.rol || '').toLowerCase());
-    const hasUnitAccess = isWHighRole || (w.unidades && w.unidades.includes(activeUnit));
+    const hasUnitAccess = isWHighRole || (w.unidades && w.unidades.some(u => u.toLowerCase() === activeUnit.toLowerCase() || activeUnit.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
     
     const isWTecnico = /t[eé]cn[io]co/i.test(w.rol || '');
     const isWVendedor = (w.rol || '').toLowerCase().includes('vendedor') || (w.rol || '').toLowerCase().includes('representante');
@@ -1666,7 +1666,7 @@ function showProfileModal() {
   const isHighRole = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
 
   const unitsHtml = allUnits.map(u => {
-    const hasUnit = isHighRole || (user.unidades && user.unidades.includes(u.name));
+    const hasUnit = isHighRole || (user.unidades && user.unidades.some(un => un.toLowerCase() === u.name.toLowerCase() || u.name.toLowerCase().includes(un.toLowerCase().replace('renew ', '').trim())));
     const divStyle = [
       'display:flex', 'flex-direction:column', 'align-items:center',
       hasUnit ? 'cursor:default' : 'cursor:default; opacity:0.35; filter:grayscale(1)'
