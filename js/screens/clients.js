@@ -120,6 +120,20 @@ export async function renderClients() {
       });
     }
 
+    // ── Search Bar ───────────────────────────────────────────
+    let searchHTML = '';
+    const isCallCenter = userRolNorm.includes('call');
+    searchHTML = `
+      <div style="padding:0 16px; margin-bottom:12px;">
+        <div style="position:relative;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
+          <input id="clients-app-search" type="text" placeholder="Buscar por nombre de cliente..." autocomplete="off"
+            style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+      </div>
+    `;
+
     // ── Wire up tab switching ─────────────────────────────────
     document.querySelectorAll('[data-clients-tab]').forEach(btn => {
       const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
@@ -147,6 +161,19 @@ export async function renderClients() {
         _renderList(user, container);
       });
     });
+
+    // Insert Search Bar after tabs (find parent of tabs)
+    const tabsContainer = document.querySelector('.clients-tabs-container') || document.querySelector('[data-clients-tab]')?.parentElement;
+    if (tabsContainer && !document.getElementById('clients-app-search-container')) {
+      const searchDiv = document.createElement('div');
+      searchDiv.id = 'clients-app-search-container';
+      searchDiv.innerHTML = searchHTML;
+      tabsContainer.parentNode.insertBefore(searchDiv, tabsContainer.nextSibling);
+
+      document.getElementById('clients-app-search')?.addEventListener('input', () => {
+        _renderList(user, container);
+      });
+    }
 
     // ── Wire "+" nav button → open new prospect modal ────────
     const navPlus = document.getElementById('nav-btn-nuevo-cliente');
@@ -305,6 +332,13 @@ async function _renderList(user, container) {
       if (currentClientsTab === 'prospectos') return !hasProject;
       return hasProject;
     });
+  }
+
+  const searchInput = document.getElementById('clients-app-search');
+  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+  if (searchQuery) {
+    filtered = filtered.filter(c => (c.nombre || '').toLowerCase().includes(searchQuery));
   }
 
   console.log('Rendering list for technician:', isTecnico, 'Found:', filtered.length, 'records');
