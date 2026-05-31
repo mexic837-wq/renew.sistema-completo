@@ -489,83 +489,49 @@ function _buildPipelineChips(user, activeUnit) {
       const pipShort = pipName.replace('Renew ','').toLowerCase();
       return cDepts.some(d => d === pipShort || d === pipName.toLowerCase() || pipName.toLowerCase().includes(d));
     });
---bg-tool-admin: linear-gradient(135deg, #fff1f2, #ffe4e6);
-        --bg-tool-callcenter: linear-gradient(135deg, #e6fffa, #ccfbf1);
-        --bg-tool-default: linear-gradient(135deg, #f8fafc, #f1f5f9);
-      }
-      body.dark-theme {
-        --bg-tool-credito: linear-gradient(135deg, #0f172a, #1e3a5f);
-        --bg-tool-trabajo: linear-gradient(135deg, #0f1f1e, #063e38);
-        --bg-tool-inventario: linear-gradient(135deg, #0f172a, #1e1b4b);
-        --bg-tool-clientes: linear-gradient(135deg, #1a1200, #3d2e00);
-        --bg-tool-calendario: linear-gradient(135deg, #001a0f, #003d1f);
-        --bg-tool-admin: linear-gradient(135deg, #1a0a00, #3d1500);
-        --bg-tool-callcenter: linear-gradient(135deg, #00302b, #004d40);
-        --bg-tool-default: linear-gradient(135deg, #0f172a, #1e293b);
-      }
+    const prospectos = myClients.filter(c => !allProyectos.some(p => p.cliente_id === c.id)).length;
+    const clientes   = myClients.filter(c =>  allProyectos.some(p => p.cliente_id === c.id)).length;
+    const total      = prospectos + clientes;
 
-      /* —— Desktop Proportions —— */
-      @media (min-width: 768px) {
-        .pip-chips-row {
-          gap: 16px;
-          margin: 10px 0 24px !important;
-        }
-        .pip-chip {
-          min-width: 150px;
-          padding: 14px 24px 12px;
-          gap: 10px;
-          border-radius: 20px;
-          border-width: 2px;
-        }
-        .pip-chip-logo {
-          width: 100px;
-          max-height: 40px;
-        }
-        .pip-chip-badge {
-          font-size: 0.7rem;
-          letter-spacing: 0.8px;
-        }
-      }
-    </style>
+    const hasAccess = isHighRole || (user.unidades && user.unidades.includes(pipName));
+    const disabledStyle = hasAccess ? '' : 'filter: grayscale(1); opacity: 0.4; cursor: not-allowed; border-color: rgba(255,255,255,0.05);';
 
-    <div class="dash-header" style="padding-bottom: 12px;">
-      <div class="dash-header-top">
-        <div class="dash-greeting">
-          <div class="greeting-time">${getGreeting()}</div>
-          <h1 class="text-xl font-black tracking-tight">Hola, ${user.nombre.split(' ')[0]} <i class="fa-solid fa-handshake"></i></h1>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <button id="btn-app-bell" title="Notificaciones Admin"
-            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
-            <i class="fa-solid fa-bell text-xl"></i>
-            <span id="app-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-[#0b1120] animate-pulse"></span>
-          </button>
-
-          <button id="btn-chat-mobile" onclick="window.openInternalChat && window.openInternalChat()" 
-            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
-            <i class="fa-solid fa-comment-dots text-xl"></i>
-            <span id="chat-badge-mobile" class="absolute -top-1 -right-1 bg-tealAccent text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#0b1120] ${window._unreadChatCount > 0 ? '' : 'hidden'}">${window._unreadChatCount || 0}</span>
-          </button>
-          
-          <button class="avatar-btn" id="avatar-btn" aria-label="Perfil"
-            style="${user.foto ? `background-image:url(${user.foto});background-size:cover;background-position:center;color:transparent;border:2px solid rgba(255,255,255,0.15)` : ''}">
-            ${user.foto ? '' : (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase()}
-          </button>
-        </div>
+    return `
+      <div class="pip-chip ${isActive ? 'active' : ''}" data-pip="${pipName}" data-access="${hasAccess}"
+        style="--pip-accent:${meta.accent}; ${disabledStyle}">
+        ${meta.img
+          ? `<img class="pip-chip-logo" src="${meta.img}" alt="${pipName}">`
+          : `<span style="font-weight:900;font-size:0.85rem;color:${meta.accent}">${pipName.replace('Renew ','')}</span>`
+        }
+        <span class="pip-chip-badge">${hasAccess ? `${total} ${total === 1 ? 'contacto' : 'contactos'}` : 'Sin acceso'}</span>
       </div>
-    </div>
+    `;
+  }).join('');
 
-    <div id="pip-chips-row" class="pip-chips-row" style="margin: 8px 0 10px;"></div>
+  row.querySelectorAll('.pip-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const hasAccess = chip.dataset.access === 'true';
+      if (!hasAccess) {
+          showToast('No tienes acceso autorizado para esta unidad.', 'error');
+          return;
+      }
+      const pip = chip.dataset.pip;
+      localStorage.setItem('active_unit', pip);
+      row.querySelectorAll('.pip-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      // Destroy and nullify both chart instances to force re-render on next tab switch
+      if (window.rendimientoChartInstance) {
+        if (typeof window.rendimientoChartInstance.destroy === 'function') window.rendimientoChartInstance.destroy();
+        window.rendimientoChartInstance = null;
+      }
+      if (window.leaderboardChartInstance) {
+        if (typeof window.leaderboardChartInstance.destroy === 'function') window.leaderboardChartInstance.destroy();
+        window.leaderboardChartInstance = null;
+      }
+    });
+  });
 
-    <div class="dash-tabs-wrapper">
-      <div class="dash-tabs-container">
-        <button class="dash-tab active" data-target="tab-inicio">Inicio</button>
-        <button class="dash-tab" data-target="tab-rendimiento">${t('dash_tab_perf')}</button>
-        ${((user.permisos && 'app_ranking' in user.permisos) ? user.permisos.app_ranking : true) ? `<button class="dash-tab" data-target="tab-leaderboard">${t('dash_tab_rank')}</button>` : ''}
-      </div>
-    </div>
-
+  const remainingHTML = `
     <div id="tab-inicio" class="dash-tab-content">
       <div id="dash-tools-grid" class="tool-list mobile-only"></div>
       
@@ -609,6 +575,8 @@ function _buildPipelineChips(user, activeUnit) {
       </div>
     </div>
   `;
+  
+  screen.innerHTML += remainingHTML;
 
   document.getElementById('avatar-btn').addEventListener('click', showProfileModal);
 
