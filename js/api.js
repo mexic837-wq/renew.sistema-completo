@@ -171,6 +171,18 @@ export async function initDB() {
                     applyPostProcessing(fixedDB);
                     
                     cachedDB = { ...cachedDB, ...fixedDB };
+                    
+                    try {
+                        const sessionStr = localStorage.getItem('rs_user');
+                        if (sessionStr && cachedDB.Usuarios) {
+                            const sessionUser = JSON.parse(sessionStr);
+                            const freshUser = cachedDB.Usuarios.find(u => u.id === sessionUser.id);
+                            if (freshUser) {
+                                localStorage.setItem('rs_user', JSON.stringify({ ...sessionUser, ...freshUser }));
+                            }
+                        }
+                    } catch (e) {}
+
                     updateChatBadges();
                     window.dispatchEvent(new CustomEvent('db_synced'));
                 }
@@ -241,6 +253,18 @@ export async function initDB() {
 
       cachedDB = freshDB;
       updateChatBadges();
+      
+      // SYNC CURRENT SESSION USER
+      try {
+        const sessionStr = localStorage.getItem('rs_user');
+        if (sessionStr && cachedDB.Usuarios) {
+            const sessionUser = JSON.parse(sessionStr);
+            const freshUser = cachedDB.Usuarios.find(u => u.id === sessionUser.id);
+            if (freshUser) {
+                localStorage.setItem('rs_user', JSON.stringify({ ...sessionUser, ...freshUser }));
+            }
+        }
+      } catch (e) {}
       
       // Optional: Save a small copy for emergency offline access only
       try {
