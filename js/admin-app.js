@@ -6679,6 +6679,14 @@ async function openFaseUserPicker(faseId) {
     </div>
   `).join('');
   
+  const btnCancel = modal.querySelector('.btn-cancel');
+  if (btnCancel) {
+      btnCancel.onclick = (e) => {
+          e.preventDefault();
+          modal.classList.add('nuclear-hidden');
+      };
+  }
+  
   btnConfirm.onclick = async () => {
     const checks = list.querySelectorAll('.fase-user-check:checked');
     const selectedIds = Array.from(checks).map(c => c.value);
