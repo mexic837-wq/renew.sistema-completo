@@ -6724,6 +6724,8 @@ async function openFaseUserPicker(faseId) {
       btnConfirm.disabled = false;
       btnConfirm.innerHTML = 'Confirmar Asignación';
     }
+  };
+  
   if (typeof window.showModal === 'function') {
       window.showModal(modal);
   } else {
