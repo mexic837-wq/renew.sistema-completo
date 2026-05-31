@@ -8140,7 +8140,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                      Guardar Progreso
                   </button>
                   ${isCurrentPhase ? `
-                  <button id="btn-advance-drawer-fields" ${!isComplete ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} style="flex:1; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:pointer; transition:filter 0.2s;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='brightness(1)'">
+                  <button id="btn-advance-drawer-fields" ${!isComplete ? 'disabled' : ''} style="flex:1; background:${pipeline.color}; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; font-size:10px; cursor:${!isComplete ? 'not-allowed' : 'pointer'}; ${!isComplete ? 'opacity:0.5;' : ''} transition:filter 0.2s;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='brightness(1)'">
                      Avanzar Fase
                   </button>
                   ` : ''}
