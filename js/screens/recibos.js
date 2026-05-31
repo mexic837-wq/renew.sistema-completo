@@ -50,12 +50,15 @@ export function renderMisRecibos() {
         <button data-filter="tecnico"
           style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-tecnico">Técnicos</button>
+        <button data-filter="mis_recibos"
+          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
+          id="rfil-mis_recibos">Mis Recibos</button>
       </div>
       ` : ''}
 
       <!-- Receipts list -->
       <div id="recibos-list">
-        ${_renderRecibosList(isAdmin ? allRecibos.filter(r => r.tipo === 'vendedor') : allRecibos, isAdmin)}
+        ${_renderRecibosList(isAdmin ? allRecibos.filter(r => r.tipo === 'vendedor' && !(r.datos_json && r.datos_json.subtipo === 'oficina')) : allRecibos, isAdmin)}
       </div>
     </div>
 
@@ -79,14 +82,14 @@ export function renderMisRecibos() {
   // Back button
   document.getElementById('recibos-back-btn')?.addEventListener('click', () => window.appNavigate('dashboard'));
 
-  // Filter buttons (vendedor & tecnico only – no Todos)
+  // Filter buttons
   let currentFilter = 'vendedor'; // default to vendedor
-  ['vendedor','tecnico'].forEach(f => {
+  ['vendedor','tecnico','mis_recibos'].forEach(f => {
     document.getElementById(`rfil-${f}`)?.addEventListener('click', () => {
       currentFilter = f;
       applyReciboFilters();
       // Update button styles
-      ['vendedor','tecnico'].forEach(btn => {
+      ['vendedor','tecnico','mis_recibos'].forEach(btn => {
         const el = document.getElementById(`rfil-${btn}`);
         if (!el) return;
         const isActive = btn === f;
@@ -105,7 +108,12 @@ export function renderMisRecibos() {
 
   function applyReciboFilters() {
     const query = (document.getElementById('recibos-search')?.value || '').toLowerCase().trim();
-    let filtered = allRecibos.filter(r => r.tipo === currentFilter);
+    let filtered = [];
+    if (currentFilter === 'mis_recibos') {
+      filtered = allRecibos.filter(r => r.trabajador_id === user.id);
+    } else {
+      filtered = allRecibos.filter(r => r.tipo === currentFilter && !(r.datos_json && r.datos_json.subtipo === 'oficina'));
+    }
     if (query) {
       filtered = filtered.filter(r =>
         (r.cliente_nombre || '').toLowerCase().includes(query) ||
@@ -158,16 +166,29 @@ function _renderRecibosList(recibos, isAdmin) {
   `;
 
   return recibos.map(r => {
-    const isVendedor = r.tipo === 'vendedor';
-    const color  = isVendedor ? '#3b82f6' : '#10b981';
-    const label  = isVendedor ? 'Recibo de Pago – Representante' : 'Recibo de Instalación – Técnico';
-    const icon   = isVendedor
+    const datos = r.datos_json || {};
+    const isOficina = datos.subtipo === 'oficina' || r.tipo === 'oficina';
+    const isVendedor = r.tipo === 'vendedor' && !isOficina;
+    const isTecnico = r.tipo === 'tecnico';
+    
+    let color = '#10b981'; // tecnico
+    let label = 'Recibo de Instalación – Técnico';
+    let monto = datos.total_price ? `$${Number(datos.total_price).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
+
+    if (isOficina) {
+      color = '#8b5cf6';
+      label = 'Recibo de Pago – Oficina';
+      monto = datos.grand_total ? `$${Number(datos.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
+    } else if (isVendedor) {
+      color = '#3b82f6';
+      label = 'Recibo de Pago – Representante';
+      monto = datos.grand_total ? `$${Number(datos.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
+    }
+
+    const icon = isVendedor || isOficina
       ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`
       : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-    const datos  = r.datos_json || {};
-    const monto  = isVendedor
-      ? (datos.grand_total ? `$${Number(datos.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')
-      : (datos.total_price  ? `$${Number(datos.total_price ).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—');
+    
     const fecha  = r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—');
 
     return `
@@ -216,11 +237,13 @@ function _showReciboModal(r) {
   const cont   = document.getElementById('modal-recibo-content');
   if (!modal || !titulo || !cont) return;
 
-  const isVendedor = r.tipo === 'vendedor';
-  titulo.textContent = isVendedor ? 'Recibo de Pago – Representante' : 'Recibo de Instalación – Técnico';
-
   const d = r.datos_json || {};
-  const color = isVendedor ? '#3b82f6' : '#10b981';
+  const isOficina = d.subtipo === 'oficina' || r.tipo === 'oficina';
+  const isVendedor = r.tipo === 'vendedor' && !isOficina;
+
+  titulo.textContent = isOficina ? 'Recibo de Pago – Oficina' : (isVendedor ? 'Recibo de Pago – Representante' : 'Recibo de Instalación – Técnico');
+
+  const color = isOficina ? '#8b5cf6' : (isVendedor ? '#3b82f6' : '#10b981');
 
   const field = (label, value, highlight = false) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
@@ -231,7 +254,16 @@ function _showReciboModal(r) {
 
   let html = '';
 
-  if (isVendedor) {
+  if (isOficina) {
+    html = `
+      <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
+        <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
+        ${field('Colaborador', r.trabajador_nombre)}
+        ${field('Motivo / Cliente', r.cliente_nombre)}
+        ${field('Monto Total', d.grand_total ? `$${Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—', true)}
+      </div>
+    `;
+  } else if (isVendedor) {
     html = `
       <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
