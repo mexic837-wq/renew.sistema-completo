@@ -9199,7 +9199,7 @@ async function showClientDetail(id) {
                         <div>
                             <div class="flex items-center gap-2">
                                 <p class="text-sm font-bold text-gray-800">${call.tipo || 'Llamada'}</p>
-                                ${call.proyecto_id ? `<span class="text-[9px] font-black text-white bg-tealAccent px-1.5 py-0.5 rounded uppercase flex items-center gap-1"><i class="fa-solid fa-link"></i> Vinculada</span>` : ''}
+                                ${call.proyecto_id ? `<span class="text-[9px] font-black text-white bg-tealAccent px-1.5 py-0.5 rounded uppercase flex items-center gap-1">🔗 Vinculada</span>` : ''}
                             </div>
                             <p class="text-[10px] text-gray-400 mt-0.5 font-medium"><i class="fa-regular fa-clock"></i> ${callDate} • <i class="fa-solid fa-stopwatch"></i> ${durMin}m ${durSec}s</p>
                         </div>
@@ -10537,9 +10537,9 @@ window.openInviteModal = function() {
 
 Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.
 
-<i class="fa-solid fa-link"></i> Enlace de acceso: ${mainLink}
-âœ‰ï¸ Usuario: ${user.email}
-<i class="fa-solid fa-key"></i> Contraseña: ${user.password || user.pass || 'renew123'}
+🔗 Enlace de acceso: ${mainLink}
+✉️  Usuario: ${user.email}
+🔑 Contraseña: ${user.password || user.pass || 'renew123'}
 
 Si tienes alguna duda, no dudes en contactar al administrador.
 ¡Éxitos!`;

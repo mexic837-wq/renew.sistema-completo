@@ -1,12 +1,7 @@
 const fs = require('fs');
-const path = 'c:/Users/LENOVO/Downloads/renew-sistema-completo-main/renew.sistema-completo-main/js/admin-app.js';
-let content = fs.readFileSync(path, 'utf8');
-
-content = content.replace(/ðŸ”µ/g, '🔵');
-content = content.replace(/ðŸŸ¡/g, '🟡');
-content = content.replace(/ðŸŸ¢/g, '🟢');
-content = content.replace(/ðŸ”´/g, '🔴');
-content = content.replace(/Â·/g, '·');
-
-fs.writeFileSync(path, content, 'utf8');
-console.log('Done replacing garbled characters.');
+let content = fs.readFileSync('js/admin-app.js', 'utf8');
+content = content.replace(/<i class="fa-solid fa-link"><\/i>/g, '🔗');
+content = content.replace(/âœ‰ï¸\s?/g, '✉️ ');
+content = content.replace(/<i class="fa-solid fa-key"><\/i>/g, '🔑');
+fs.writeFileSync('js/admin-app.js', content);
+console.log('Fixed regex');
