@@ -17,7 +17,7 @@ export async function renderMenu() {
   const isAdmin = adminRoles.includes(user.rol);
 
   // Roles que pueden ver el Inventario Real (técnicos y superiores)
-  const inventarioRoles = ['Técnico', 'Contabilidad', 'Procesador', 'Supervisión', 'CEO', 'Admin', 'Administrador', 'Desarrollador'];
+  const inventarioRoles = ['Técnico', 'Contabilidad', 'Procesador', 'CEO', 'Admin', 'Administrador', 'Desarrollador'];
   const canSeeInventario = inventarioRoles.includes(user.rol);
 
   // ─ Acceso a formularios de Renew Water ─────────────────────────────
