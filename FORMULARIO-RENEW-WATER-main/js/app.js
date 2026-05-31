@@ -64,7 +64,7 @@ function showToast(msg, type = 'success', duration = APP_CONFIG.toastDuration) {
   const text  = document.getElementById('toast-message');
 
   toast.className = '';
-  icon.textContent = type === 'success' ? '<i class="fa-solid fa-check text-green-500"></i>' : '<i class="fa-solid fa-xmark text-red-500"></i>';
+  icon.innerHTML = type === 'success' ? '<i class="fa-solid fa-check text-green-500"></i>' : '<i class="fa-solid fa-xmark text-red-500"></i>';
   text.textContent = msg;
   toast.classList.add(type, 'show');
 
