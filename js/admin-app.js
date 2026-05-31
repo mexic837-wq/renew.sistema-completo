@@ -6922,7 +6922,7 @@ async function showWorkerDetail(id) {
     // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
     // Toggle RRHH-only sections based on current view
-    const isRRHHView = window.location.hash.includes('rrhh') || window.location.hash.includes('hrhub');
+    const isRRHHView = window.location.hash.includes('rrhh') || window.location.hash.includes('hrhub') || window.location.hash.includes('equipo') || window.location.hash.includes('usuarios') || ['rrhh', 'hrhub', 'equipo', 'usuarios'].includes(state.activeView);
     const rrhhOnlyContainer = document.getElementById('det-usr-rrhh-only');
     if (rrhhOnlyContainer) {
         rrhhOnlyContainer.style.display = isRRHHView ? 'block' : 'none';
