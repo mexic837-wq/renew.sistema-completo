@@ -5906,6 +5906,10 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     if (btnEliminar) {
       btnEliminar.classList.remove('hidden');
       btnEliminar.dataset.eventId = event.id || '';
+      btnEliminar.onclick = (e) => {
+        e.preventDefault();
+        window.eliminarEventoCalendarioAdmin(event.id || '');
+      };
     }
 
     const btnEditar = document.getElementById('btn-editar-evento-admin');
@@ -6212,9 +6216,9 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 };
 
 // ââ‚¬ââ‚¬ Eliminar Evento del Calendario (Admin) ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
-window.eliminarEventoCalendarioAdmin = async function() {
+window.eliminarEventoCalendarioAdmin = async function(passedEventId) {
   const btn = document.getElementById('btn-eliminar-evento-admin');
-  const eventId = btn?.dataset?.eventId;
+  const eventId = passedEventId || btn?.dataset?.eventId;
 
   if (!eventId) {
     showToast('No se pudo identificar el evento.', 'error');
