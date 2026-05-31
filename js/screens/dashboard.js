@@ -528,43 +528,6 @@ function _buildPipelineChips(user, activeUnit) {
         if (typeof window.leaderboardChartInstance.destroy === 'function') window.leaderboardChartInstance.destroy();
         window.leaderboardChartInstance = null;
       }
-    <div class="dash-header" style="padding-bottom: 12px;">
-      <div class="dash-header-top">
-        <div class="dash-greeting">
-          <div class="greeting-time">${getGreeting()}</div>
-          <h1 class="text-xl font-black tracking-tight">Hola, ${user.nombre.split(' ')[0]} <i class="fa-solid fa-handshake"></i></h1>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <button id="btn-app-bell" title="Notificaciones Admin"
-            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
-            <i class="fa-solid fa-bell text-xl"></i>
-            <span id="app-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-[#0b1120] animate-pulse"></span>
-          </button>
-
-          <button id="btn-chat-mobile" onclick="window.openInternalChat && window.openInternalChat()" 
-            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
-            <i class="fa-solid fa-comment-dots text-xl"></i>
-            <span id="chat-badge-mobile" class="absolute -top-1 -right-1 bg-tealAccent text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#0b1120] ${window._unreadChatCount > 0 ? '' : 'hidden'}">${window._unreadChatCount || 0}</span>
-          </button>
-          
-          <button class="avatar-btn" id="avatar-btn" aria-label="Perfil"
-            style="${user.foto ? `background-image:url(${user.foto});background-size:cover;background-position:center;color:transparent;border:2px solid rgba(255,255,255,0.15)` : ''}">
-            ${user.foto ? '' : (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase()}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div id="pip-chips-row" class="pip-chips-row" style="margin: 8px 0 10px;"></div>
-
-    <div class="dash-tabs-wrapper">
-      <div class="dash-tabs-container">
-        <button class="dash-tab active" data-target="tab-inicio">Inicio</button>
-        <button class="dash-tab" data-target="tab-rendimiento">${t('dash_tab_perf')}</button>
-        ${((user.permisos && 'app_ranking' in user.permisos) ? user.permisos.app_ranking : true) ? `<button class="dash-tab" data-target="tab-leaderboard">${t('dash_tab_rank')}</button>` : ''}
-      </div>
-    </div>
 
     <div id="tab-inicio" class="dash-tab-content">
       <div id="dash-tools-grid" class="tool-list mobile-only"></div>
