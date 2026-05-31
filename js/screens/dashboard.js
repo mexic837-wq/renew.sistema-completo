@@ -409,7 +409,8 @@ export async function renderDashboard() {
       <div id="tab-leaderboard" class="dash-tab-content" style="display:none; padding:0 0 24px;">
         <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:12px; margin-top:8px;">${t('dash_top_sellers')}</h3>
         <div style="background:var(--surface-alt); padding:16px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-        <canvas id="leaderboardChart" height="240"></canvas>
+          <canvas id="leaderboardChart" height="240"></canvas>
+        </div>
       </div>
     </div>
   `;
