@@ -10571,17 +10571,14 @@ window.populateRolesDropdowns = function() {
 
     // Fallback en caso de que Admin_Roles esté vacío
     const defaultRoles = [
-        'CEO', 'Manager', 'Supervisor',
+        'CEO', 'Admin', 'Manager', 'Supervisor',
         'Call Center', 'Técnico', 'Vendedor'
     ];
 
-    // Merge roles and defaultRoles
-    const dbRolesNames = roles.map(r => r.nombre.toLowerCase());
-    const mergedRoles = [...roles];
-    defaultRoles.forEach(dr => {
-        if (!dbRolesNames.includes(dr.toLowerCase())) {
-            mergedRoles.push({ nombre: dr });
-        }
+    // Clean up: only show the requested default roles
+    const mergedRoles = defaultRoles.map(dr => {
+        const existing = roles.find(r => r.nombre.toLowerCase() === dr.toLowerCase());
+        return existing || { nombre: dr };
     });
 
     const optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
