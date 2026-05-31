@@ -282,10 +282,11 @@ async function _renderList(user, container) {
         return rolFase.includes('tecnico') || rolFase.includes('técnico');
       });
 
-      // Check if user is responsable or creator of any project
+      // Check if user is responsable or creator of any project, or a collaborator
       const isProjectOwner = clientProjects.some(p => 
         String(p.responsable_id) === String(user.id) || 
-        String(p.creador_id) === String(user.id)
+        String(p.creador_id) === String(user.id) ||
+        (Array.isArray(p.colaboradores) && p.colaboradores.some(colab => String(colab.id) === String(user.id)))
       );
 
       // Supervisor logic
@@ -329,8 +330,21 @@ async function _renderList(user, container) {
   let filtered = [];
 
   if (isTecnico) {
-    // Show everything assigned to them
-    filtered = misClientes;
+    // Show everything assigned to them, but filter by tab (Nuevas Citas vs Citas Cerradas)
+    filtered = misClientes.filter(c => {
+      const clientProjects = projectsByClient.get(c.id) || [];
+      const hasOpenProject = clientProjects.some(p => {
+        const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+        return !isTerminal;
+      });
+      const hasClosedProject = clientProjects.some(p => {
+        const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+        return isTerminal;
+      });
+      
+      if (currentClientsTab === 'prospectos') return hasOpenProject || clientProjects.length === 0;
+      return hasClosedProject;
+    });
     // Sort by date (newest first)
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else if (isCallCenterRole) {
@@ -374,6 +388,15 @@ async function _renderList(user, container) {
 
   container.innerHTML = filtered.flatMap(c => {
     let proysToRender = allProys.filter(p => p.cliente_id === c.id && (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
+    
+    if (isTecnico) {
+      proysToRender = proysToRender.filter(p => {
+        const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+        if (currentClientsTab === 'prospectos') return !isTerminal;
+        return isTerminal;
+      });
+    }
+
     if (proysToRender.length === 0 || (currentClientsTab === 'prospectos' && !isTecnico && !isCallCenterRole)) {
       proysToRender = [null];
     }
