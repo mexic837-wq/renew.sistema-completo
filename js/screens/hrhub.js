@@ -852,6 +852,30 @@ export async function renderHRHub() {
             modal.style.zIndex = '10000';
         }
 
+        // Initialize flatpickr explicitly attached to this modal to fix z-index issues
+        if (typeof flatpickr !== 'undefined') {
+            const dateInput = document.getElementById('recibo-fecha');
+            if (dateInput) {
+                // If it was already initialized, destroy it first
+                if (dateInput._flatpickr) dateInput._flatpickr.destroy();
+                flatpickr(dateInput, {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "m/d/Y",
+                    allowInput: true,
+                    monthSelectorType: "static",
+                    animate: true,
+                    disableMobile: "true",
+                    appendTo: modal,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        if (instance.calendarContainer) {
+                            instance.calendarContainer.style.zIndex = '2147483647';
+                        }
+                    }
+                });
+            }
+        }
+
         const fileInp = document.getElementById('inp-recibo-doc');
         const label = document.getElementById('lbl-recibo-doc');
         fileInp.onchange = (e) => {
