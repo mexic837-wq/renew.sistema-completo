@@ -546,10 +546,7 @@ export async function deleteAdminWorker(ids) {
 }
 
 // ─── AUTHENTICATION ─────────────────────────────────────────
-export const MOCK_USERS = [
-  { id: 'u1', nombre: 'Carlos', apellido: 'Rodríguez', email: 'carlos@renewsolar.com', password: '1234', initials: 'CR', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Vendedor', telefono: '+1 (305) 555-1234' },
-  { id: 'u3', nombre: 'Demo',   apellido: 'Vendedor',  email: 'demo@renew.com',        password: 'demo', initials: 'DV', unidades: ['Renew Solar', 'Renew Water', 'Renew Home'], rol: 'Admin', telefono: '+1 (555) 123-4567' },
-];
+export const MOCK_USERS = [];
 
 export async function loginUser(email, password) {
   // Always fetch fresh data from server to pick up admin changes (e.g., updated 'unidades')

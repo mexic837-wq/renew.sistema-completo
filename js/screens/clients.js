@@ -906,10 +906,7 @@ function _showPipelineSelector(client, user) {
   // Wait, getAdminWorkers is async. Let's just use getDB() synchronously to avoid refactoring the caller.
   const dynamicUsers = db.Usuarios || [];
   // MOCK_USERS equivalent since we can't await easily without making callers async
-  const mockUsers = [
-    { id: 'u1', nombre: 'Carlos', apellido: 'Rodríguez' },
-    { id: 'u3', nombre: 'Demo', apellido: 'Vendedor' }
-  ];
+  const mockUsers = [];
   const allWorkersMap = new Map();
   mockUsers.forEach(u => allWorkersMap.set(u.id, u));
   dynamicUsers.forEach(u => allWorkersMap.set(u.id, u));
