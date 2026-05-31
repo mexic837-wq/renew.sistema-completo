@@ -247,14 +247,21 @@ async function _renderList(user, container) {
   const activeUnit = pipelineToMatch;
 
   const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-  const isHighRole = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
+  const isHighRole = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRolNorm);
   const isCallCenterRole = userRolNorm.includes('call');
 
+  // Pre-map projects by client to fix O(N*M) performance issue
+  const projectsByClient = new Map();
+  allProys.forEach(p => {
+    if (!projectsByClient.has(p.cliente_id)) projectsByClient.set(p.cliente_id, []);
+    projectsByClient.get(p.cliente_id).push(p);
+  });
+
   const misClientes = (todosClientes || []).filter(c => {
+    const clientProjects = projectsByClient.get(c.id) || [];
     // ── CALL CENTER: only show clients whose active project phase belongs to CC ──
     if (isCallCenterRole) {
       // Find any project for this client that is currently in a CC-assigned phase
-      const clientProjects = allProys.filter(p => p.cliente_id === c.id);
       return clientProjects.some(p => {
         const fase = allFases.find(f => f.id === p.fase_id);
         if (!fase) return false;
@@ -266,9 +273,6 @@ async function _renderList(user, container) {
 
     // Ownership check for non-CC, non-admin users
     if (!isHighRole) {
-      // Find all projects for this client
-      const clientProjects = allProys.filter(p => p.cliente_id === c.id);
-      
       // For technicians, only show if they are assigned AND the phase corresponds to them
       const isTecnicoOfProject = clientProjects.some(p => {
         if (p.tecnico_id !== user.id) return false;
@@ -335,7 +339,8 @@ async function _renderList(user, container) {
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else {
     filtered = misClientes.filter(c => {
-      const hasProject = allProys.some(p => p.cliente_id === c.id && (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
+      const clientProjects = projectsByClient.get(c.id) || [];
+      const hasProject = clientProjects.some(p => (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
       if (currentClientsTab === 'prospectos') return !hasProject;
       return hasProject;
     });

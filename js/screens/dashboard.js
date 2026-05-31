@@ -453,9 +453,27 @@ function _buildPipelineChips(user, activeUnit) {
   const allClientes  = db.Clientes_Maestro || [];
   const allProyectos = db.Proyectos_Dinamicos || [];
   const userRole     = (user.rol || '').toLowerCase().trim();
-  const isHighRole   = ['admin', 'administrador', 'ceo', 'manager'].includes(userRole);
+  const isHighRole   = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRole);
 
   const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
+  
+  // Pre-calculate project presence and technician assignments to fix O(N*M) delay
+  const projectClientIds = new Set(allProyectos.map(p => String(p.cliente_id)));
+  const userTecnicoProjectClientIds = new Set();
+  if (!isHighRole) {
+    const allFases = db.Admin_Fases || [];
+    allProyectos.forEach(p => {
+      if (p.tecnico_id === user.id) {
+        const fase = allFases.find(f => f.id === p.fase_id);
+        if (fase) {
+          const rolFase = (fase.rol_encargado || '').toLowerCase();
+          if (rolFase.includes('tecnico') || rolFase.includes('técnico')) {
+            userTecnicoProjectClientIds.add(String(p.cliente_id));
+          }
+        }
+      }
+    });
+  }
   
   row.innerHTML = pipelineNames.map(pipName => {
     const meta    = PIPE_META[pipName] || { img: '', accent: 'var(--primary)' };
@@ -464,13 +482,7 @@ function _buildPipelineChips(user, activeUnit) {
     const myClients = allClientes.filter(c => {
       if (!isHighRole) {
         // Ownership check (Strict for everyone)
-        const isTecnicoOfProject = allProyectos.some(p => {
-          if (p.cliente_id !== c.id || p.tecnico_id !== user.id) return false;
-          const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id);
-          if (!fase) return false;
-          const rolFase = (fase.rol_encargado || '').toLowerCase();
-          return rolFase.includes('tecnico') || rolFase.includes('técnico');
-        });
+        const isTecnicoOfProject = userTecnicoProjectClientIds.has(String(c.id));
 
         // Supervisor logic
         const isSupervisorOfRep = (userRole === 'supervisor' || userRole === 'supervisión') && 
@@ -491,8 +503,8 @@ function _buildPipelineChips(user, activeUnit) {
       const pipShort = pipName.replace('Renew ','').toLowerCase();
       return cDepts.some(d => d === pipShort || d === pipName.toLowerCase() || pipName.toLowerCase().includes(d));
     });
-    const prospectos = myClients.filter(c => !allProyectos.some(p => p.cliente_id === c.id)).length;
-    const clientes   = myClients.filter(c =>  allProyectos.some(p => p.cliente_id === c.id)).length;
+    const prospectos = myClients.filter(c => !projectClientIds.has(String(c.id))).length;
+    const clientes   = myClients.filter(c =>  projectClientIds.has(String(c.id))).length;
     const total      = prospectos + clientes;
 
     const hasAccess = isHighRole || (user.unidades && user.unidades.includes(pipName));
@@ -612,12 +624,12 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const db          = getDB();
   const userRole    = (user.rol || '').toLowerCase().trim();
   const isTecnico   = /t[eé]cn[io]co/i.test(userRole);
-  const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo', 'manager'].includes(userRole);
-  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || ['supervisor', 'supervisión', 'manager'].includes(userRole);
-  let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','manager'].some(r => typeof r === 'boolean' ? r : r === userRole);
+  const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
+  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || ['supervisor', 'supervisión', 'manager', 'partner'].includes(userRole);
+  let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','manager', 'partner'].some(r => typeof r === 'boolean' ? r : r === userRole);
   if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
 
-  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador','manager'];
+  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador','manager', 'partner'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
   if (!canWater && (isVentas || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
@@ -761,7 +773,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<i class="fa-solid fa-handshake"></i>`,
       action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
     } : null,
-    ((user.permisos && 'app_os' in user.permisos) ? user.permisos.app_os : (isAdmin || userRole === 'manager')) ? {
+    ((user.permisos && 'app_os' in user.permisos) ? user.permisos.app_os : (isAdmin || userRole === 'manager' || userRole === 'partner')) ? {
       name: 'Renew OS (Admin)', tag: null,
       gradient: 'linear-gradient(90deg,#f59e0b,#ef4444)',
       iconBg: 'rgba(245,158,11,0.1)', iconColor: 'var(--warning)',
