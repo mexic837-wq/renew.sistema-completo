@@ -912,7 +912,6 @@ export async function renderHRHub() {
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     cliente_nombre: motivo || 'Pago Manual',
                     tipo: 'oficina',
-                    monto: parseFloat(monto),
                     fecha_recibo: fecha,
                     pdf_url: docUrl,
                     datos_json: { grand_total: parseFloat(monto) },
