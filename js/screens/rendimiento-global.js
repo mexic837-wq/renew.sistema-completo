@@ -15,11 +15,8 @@ export async function renderRendimientoGlobal() {
             <!-- Filters Row -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <!-- Tabs Ecosystem -->
-                <div class="flex items-center gap-4 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit">
-                    <button id="tab-home"  onclick="window.filterGlobalEco('Home')"  class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Home</button>
-                    <button id="tab-solar" onclick="window.filterGlobalEco('Solar')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Solar</button>
-                    <button id="tab-water" onclick="window.filterGlobalEco('Water')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Water</button>
-                    <button id="tab-group" onclick="window.filterGlobalEco('Group')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew Group</button>
+                <div class="flex items-center gap-4 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit" id="rendimiento-eco-tabs">
+                    <!-- Tabs will be dynamically inserted here -->
                 </div>
 
                 <!-- Time Filters -->  
@@ -192,11 +189,38 @@ export async function renderRendimientoGlobal() {
     `;
 
     // ── State ──────────────────────────────────────────────────────────────────
-    window.globalActiveEco      = 'Solar';
     window.globalTimeRange      = 'monthly';
     window.globalDateFrom       = null;
     window.globalDateTo         = null;
     window.globalSelectedVendors = []; // [] = todos
+
+    // Role-based ecosystem tab filtering
+    const usr = JSON.parse(localStorage.getItem('rs_user') || '{}');
+    const userRole = (usr.rol || '').toLowerCase();
+    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(userRole);
+    
+    let allowedEcos = ['Solar', 'Home', 'Water', 'Group'];
+    if (isRestrictedManager && usr.unidades && usr.unidades.length > 0) {
+        allowedEcos = ['Solar', 'Home', 'Water'].filter(eco => {
+            return usr.unidades.some(u => u.toLowerCase().includes(eco.toLowerCase()));
+        });
+        if (allowedEcos.length > 1) {
+            allowedEcos.push('Group'); // Allow Group if they have multiple
+        }
+    }
+
+    if (allowedEcos.length === 0) {
+         allowedEcos = ['Solar']; // Fallback
+    }
+
+    window.globalActiveEco = allowedEcos[0];
+
+    const ecoTabsContainer = document.getElementById('rendimiento-eco-tabs');
+    if (ecoTabsContainer) {
+        ecoTabsContainer.innerHTML = allowedEcos.map(eco => `
+            <button id="tab-${eco.toLowerCase()}" onclick="window.filterGlobalEco('${eco}')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew ${eco}</button>
+        `).join('');
+    }
 
     window.filterGlobalEco = (eco) => {
         window.globalActiveEco = eco;
@@ -358,7 +382,7 @@ export async function renderRendimientoGlobal() {
     }, { once: false });
 
     // Initial load
-    window.filterGlobalEco('Solar');
+    window.filterGlobalEco(window.globalActiveEco);
 }
 
 // ── Chart instance ─────────────────────────────────────────────────────────────
