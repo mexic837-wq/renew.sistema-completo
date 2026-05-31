@@ -1593,14 +1593,20 @@ function bindGlobalEvents() {
       }
   });
 
-  const btnLogout = document.getElementById('btn-quick-logout');
-  if (btnLogout) {
-    btnLogout.addEventListener('click', () => {
-      localStorage.removeItem('rs_user');
-      localStorage.removeItem('active_unit');
-      window.location.href = 'index.html';
-    });
-  }
+  const logoutButtons = [
+    document.getElementById('btn-quick-logout'),
+    document.getElementById('btn-logout-sidebar')
+  ];
+
+  logoutButtons.forEach(btn => {
+    if (btn) {
+      btn.addEventListener('click', () => {
+        localStorage.removeItem('rs_user');
+        localStorage.removeItem('active_unit');
+        window.location.href = 'index.html';
+      });
+    }
+  });
 
 
 
