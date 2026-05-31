@@ -2779,7 +2779,66 @@
                 </button>
             </div>
         </div>
- 
+    </div>
+
+    <!-- MODAL: RECIBO DE PAGO MANUAL -->
+    <div id="modal-recibo-manual" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[200] p-6">
+        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[500px] rounded-[2.5rem] shadow-2xl p-8 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn relative overflow-hidden group">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between mb-6 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-tealAccent/10 rounded-2xl flex items-center justify-center border border-tealAccent/20">
+                        <i class="fa-solid fa-file-invoice-dollar text-xl text-tealAccent"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Nuevo Recibo</h3>
+                    </div>
+                </div>
+                <button onclick="closeModals()" class="btn-cancel text-gray-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 relative z-10">
+                <div>
+                    <label class="aqua-label mb-1">Seleccionar Colaborador</label>
+                    <select id="recibo-trabajador-id" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                        <option value="">Seleccione un trabajador...</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="aqua-label mb-1">Monto ($)</label>
+                        <input type="number" id="recibo-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="aqua-label mb-1">Fecha</label>
+                        <input type="date" id="recibo-fecha" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1">Nombre del Cliente / Motivo</label>
+                    <textarea id="recibo-motivo" rows="2" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all resize-none" placeholder="Escriba el motivo..."></textarea>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1">Documento Respaldo (PDF/Imagen)</label>
+                    <div id="drop-recibo-doc" class="border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent/40 hover:bg-tealAccent/5 transition-all" onclick="document.getElementById('inp-recibo-doc').click()">
+                        <input type="file" id="inp-recibo-doc" class="hidden" accept="image/*,.pdf">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-tealAccent mb-2"></i>
+                        <span id="lbl-recibo-doc" class="text-[10px] text-gray-400 font-black uppercase tracking-widest text-center">Haga clic para subir archivo</span>
+                    </div>
+                </div>
+
+                <button id="btn-save-recibo-manual" class="w-full py-4 bg-tealAccent text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-tealAccent/20 hover:scale-[1.01] active:scale-95 transition-all mt-4">
+                    Guardar y Notificar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL: DETALLES HISTORIAL INVENTARIO -->
     <div id="modal-inv-history-details" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[300] p-6">

@@ -94,6 +94,9 @@ export async function renderHRHub() {
                         <h3 class="text-sm font-black text-gray-900 dark:text-white">Recibos de Pago</h3>
                         <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">Historial completo del equipo</p>
                     </div>
+                    <button id="btn-add-recibo" onclick="window.openReciboModal && window.openReciboModal()" class="px-6 py-2.5 bg-tealAccent text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Nuevo Recibo
+                    </button>
                 </div>
                 <!-- Row 1: Role Filter -->
                 <div class="flex items-center gap-2 mb-2 flex-wrap">
@@ -103,6 +106,9 @@ export async function renderHRHub() {
                     </button>
                     <button data-rf="tecnico"  class="rrhh-rf-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-emerald-500 hover:border-emerald-300 transition-all">
                         <i class="fa-solid fa-tools mr-1"></i>Técnicos
+                    </button>
+                    <button data-rf="oficina"  class="rrhh-rf-btn px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 text-gray-500 hover:text-blue-500 hover:border-blue-300 transition-all">
+                        <i class="fa-solid fa-building mr-1"></i>Oficina
                     </button>
                 </div>
                 <!-- Row 2: Department Filter -->
@@ -557,7 +563,13 @@ export async function renderHRHub() {
 
         // Apply role + dept filters
         let filtered = allRecibos;
-        if (roleFilter !== 'all') filtered = filtered.filter(r => r.tipo === roleFilter);
+        if (roleFilter !== 'all') {
+            if (roleFilter === 'oficina') {
+                filtered = filtered.filter(r => r.tipo === 'oficina' || (r.trabajador_id && usuarios.find(u => String(u.id) === String(r.trabajador_id) && ['Manager', 'Admin', 'CEO'].includes(u.rol))));
+            } else {
+                filtered = filtered.filter(r => r.tipo === roleFilter);
+            }
+        }
         if (deptFilter !== 'all') filtered = filtered.filter(r => getDeptKey(r) === deptFilter);
 
         // Apply search query (worker name or client name)
@@ -583,14 +595,15 @@ export async function renderHRHub() {
 
         tbody.innerHTML = sorted.map(r => {
             const isVendedor = r.tipo === 'vendedor';
-            const color      = isVendedor ? '#3b82f6' : '#10b981';
-            const tipoLabel  = isVendedor ? 'Vendedor' : 'Técnico';
-            const tipoIcon   = isVendedor ? 'fa-dollar-sign' : 'fa-tools';
+            const isOficina  = r.tipo === 'oficina' || (r.trabajador_id && usuarios.find(u => String(u.id) === String(r.trabajador_id) && ['Manager', 'Admin', 'CEO'].includes(u.rol)));
+            const color      = isOficina ? '#8b5cf6' : (isVendedor ? '#3b82f6' : '#10b981');
+            const tipoLabel  = isOficina ? 'Oficina' : (isVendedor ? 'Vendedor' : 'Técnico');
+            const tipoIcon   = isOficina ? 'fa-building' : (isVendedor ? 'fa-dollar-sign' : 'fa-tools');
 
             // Worker info
             const worker     = r.trabajador_id ? usuarios.find(u => String(u.id) === String(r.trabajador_id)) : null;
             const workerName = worker ? `${worker.nombre || ''} ${worker.apellido || ''}`.trim() : (r.trabajador_nombre || 'Staff');
-            const workerRol  = worker ? (worker.rol || '-') : (isVendedor ? 'Vendedor' : 'Técnico');
+            const workerRol  = worker ? (worker.rol || '-') : (isOficina ? 'Oficina' : (isVendedor ? 'Vendedor' : 'Técnico'));
             const initial    = workerName[0]?.toUpperCase() || '?';
             const avatar     = worker?.foto
                 ? `<img src="${worker.foto}" class="w-8 h-8 rounded-full object-cover border border-gray-100">`
@@ -602,9 +615,11 @@ export async function renderHRHub() {
 
             // Monto
             const d = r.datos_json || {};
-            const monto = isVendedor
-                ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US', {minimumFractionDigits:2}) : '-')
-                : (d.total_price  ? '$' + Number(d.total_price).toLocaleString('en-US',  {minimumFractionDigits:2}) : '-');
+            const monto = isOficina
+                ? (r.monto ? '$' + Number(r.monto).toLocaleString('en-US', {minimumFractionDigits:2}) : (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US', {minimumFractionDigits:2}) : '-'))
+                : (isVendedor
+                    ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US', {minimumFractionDigits:2}) : '-')
+                    : (d.total_price  ? '$' + Number(d.total_price).toLocaleString('en-US',  {minimumFractionDigits:2}) : '-'));
 
             return `
             <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -813,6 +828,106 @@ export async function renderHRHub() {
         };
     }
     window.openAdelantoModal = openAdelantoModal;
+
+    function openReciboModal() {
+        console.log("Opening Recibo Modal...");
+        const modal = document.getElementById('modal-recibo-manual');
+        const select = document.getElementById('recibo-trabajador-id');
+        if (!modal || !select) {
+            console.error("Modal elements not found!", { modal, select });
+            return;
+        }
+
+        // Populate workers select - filter by Oficina roles
+        const oficinaWorkers = empleadosData.filter(e => ['Manager', 'Admin', 'CEO'].includes(e.rol)).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
+            oficinaWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol})</option>`).join('');
+
+        if (window.showModal) {
+            window.showModal(modal);
+        } else {
+            modal.classList.remove('nuclear-hidden');
+            modal.style.display = 'flex';
+            modal.style.setProperty('display', 'flex', 'important');
+            modal.style.zIndex = '10000';
+        }
+
+        const fileInp = document.getElementById('inp-recibo-doc');
+        const label = document.getElementById('lbl-recibo-doc');
+        fileInp.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) label.textContent = file.name;
+        };
+
+        document.getElementById('btn-save-recibo-manual').onclick = async () => {
+            const workerId = select.value;
+            const monto = document.getElementById('recibo-monto').value;
+            const fecha = document.getElementById('recibo-fecha').value;
+            const motivo = document.getElementById('recibo-motivo').value;
+            const file = fileInp.files[0];
+
+            if (!workerId || !monto || !fecha) {
+                import('../components/toast.js').then(m => m.showToast('Complete los campos obligatorios.', 'error'));
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-recibo-manual');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+            try {
+                let docUrl = null;
+                if (file) {
+                    docUrl = await uploadFile(file, 'hr-recibos');
+                }
+
+                const worker = empleadosData.find(e => String(e.id) === String(workerId));
+                const newRecibo = {
+                    id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
+                    trabajador_id: workerId,
+                    trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
+                    cliente_nombre: motivo || 'Pago Manual',
+                    tipo: 'oficina',
+                    monto: parseFloat(monto),
+                    fecha_recibo: fecha,
+                    pdf_url: docUrl,
+                    datos_json: { grand_total: parseFloat(monto) },
+                    created_at: new Date().toISOString()
+                };
+
+                const db = getDB();
+                if (!db.Recibos_Pagos) db.Recibos_Pagos = [];
+                db.Recibos_Pagos.push(newRecibo);
+                try { localStorage.setItem('rs_admin_db', JSON.stringify(db)); } catch(e) {}
+
+                const { saveGranular } = await import('../api.js');
+                await saveGranular('recibos_pagos', [newRecibo]);
+
+                import('../components/toast.js').then(m => m.showToast('Recibo registrado correctamente.', 'success'));
+                
+                if (window.hideModal) {
+                    window.hideModal(modal);
+                } else {
+                    modal.classList.add('nuclear-hidden');
+                    modal.style.display = 'none';
+                    modal.style.setProperty('display', 'none', 'important');
+                }
+                
+                // Re-render
+                const roleBtn = document.querySelector('.rrhh-rf-btn.active');
+                const deptBtn = document.querySelector('.rrhh-dept-btn.active');
+                renderRecibos(roleBtn ? roleBtn.dataset.rf : 'all', deptBtn ? deptBtn.dataset.dept : 'all');
+
+            } catch (err) {
+                console.error("Error saving recibo:", err);
+                import('../components/toast.js').then(m => m.showToast('Error al guardar.', 'error'));
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar y Notificar';
+            }
+        };
+    }
+    window.openReciboModal = openReciboModal;
 
     function wireFilterBtns(currentRole, currentDept) {
         // Role filter buttons
