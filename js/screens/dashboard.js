@@ -612,7 +612,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const db          = getDB();
   const userRole    = (user.rol || '').toLowerCase().trim();
   const isTecnico   = /t[eé]cn[io]co/i.test(userRole);
-  const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
+  const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo', 'manager'].includes(userRole);
   const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || ['supervisor', 'supervisión', 'manager'].includes(userRole);
   let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','manager'].some(r => typeof r === 'boolean' ? r : r === userRole);
   if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
@@ -633,7 +633,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
 
   const TOOLS = {
     'Renew Water': [
-      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call'))) ? {
+      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (isAdmin || userRole.includes('call'))) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -677,7 +677,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       } : null,
     ],
     'Renew Solar': [
-      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call'))) ? {
+      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (isAdmin || userRole.includes('call'))) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
@@ -714,7 +714,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       } : null,
     ],
     'Renew Home': [
-      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (['admin', 'administrador', 'ceo'].includes(userRole) || userRole.includes('call'))) ? {
+      ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (isAdmin || userRole.includes('call'))) ? {
         name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
