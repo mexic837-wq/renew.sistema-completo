@@ -911,10 +911,10 @@ export async function renderHRHub() {
                     trabajador_id: workerId,
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     cliente_nombre: motivo || 'Pago Manual',
-                    tipo: 'oficina',
+                    tipo: 'vendedor',
                     fecha_recibo: fecha,
                     pdf_url: docUrl,
-                    datos_json: { grand_total: parseFloat(monto) },
+                    datos_json: { grand_total: parseFloat(monto), subtipo: 'oficina' },
                     created_at: new Date().toISOString()
                 };
 
