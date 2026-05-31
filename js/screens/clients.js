@@ -273,14 +273,8 @@ async function _renderList(user, container) {
 
     // Ownership check for non-CC, non-admin users
     if (!isHighRole) {
-      // For technicians, only show if they are assigned AND the phase corresponds to them
-      const isTecnicoOfProject = clientProjects.some(p => {
-        if (p.tecnico_id !== user.id) return false;
-        const fase = allFases.find(f => f.id === p.fase_id);
-        if (!fase) return false;
-        const rolFase = (fase.rol_encargado || '').toLowerCase();
-        return rolFase.includes('tecnico') || rolFase.includes('técnico');
-      });
+      // For technicians, show if they are assigned regardless of the current phase
+      const isTecnicoOfProject = clientProjects.some(p => String(p.tecnico_id) === String(user.id));
 
       // Check if user is responsable or creator of any project, or a collaborator
       const isProjectOwner = clientProjects.some(p => 
