@@ -273,7 +273,7 @@ export async function renderNotificaciones() {
 
           if (item.type === 'asignacion') {
               html += `
-                <div style="background: rgba(245, 158, 11, 0.04); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 20px; padding: 28px 24px; text-align: center; margin-top: 20px; position: relative; overflow: hidden;">
+                <div style="background: rgba(245, 158, 11, 0.04); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 20px; padding: 28px 24px; text-align: center; margin-top: 20px; position: relative;">
                   <h4 style="margin: 0 0 16px 0; color: #e2e8f0; font-size: 1.15rem; font-weight: 800; position: relative; z-index: 1;">Responde a esta asignación</h4>
                   
                   <div id="asignacion-actions" style="display:flex; gap:12px; justify-content:center; position:relative; z-index:1;">
@@ -287,7 +287,7 @@ export async function renderNotificaciones() {
 
                   <div id="asignacion-horario" style="display:none; margin-top:20px; text-align:left; position:relative; z-index:1;">
                       <label style="display:block; font-size:0.85rem; color:var(--text-muted); font-weight:700; margin-bottom:8px;">Selecciona Fecha y Hora de la Instalación:</label>
-                      <input type="datetime-local" id="inp-horario-asig" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:white; font-family:inherit; margin-bottom:16px;">
+                      <input type="datetime-local" id="inp-horario-asig" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:white; font-family:inherit; margin-bottom:16px; color-scheme: dark;">
                       <button id="btn-confirmar-horario" style="width:100%; padding: 14px 20px; background: var(--primary); color: black; border: none; border-radius: 12px; font-weight: 800; cursor:pointer; transition: all 0.2s;">
                           Confirmar Horario y Aceptar
                       </button>
