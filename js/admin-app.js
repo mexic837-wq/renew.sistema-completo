@@ -10374,10 +10374,11 @@ window.updateWorkerRankVisibility = function() {
     const rolVal = (rol.value || '').toLowerCase();
     const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
     const isProjectManager = rolVal === 'project manager';
+    const isManager = rolVal === 'manager';
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión' || rolVal === 'supervisión';
     const isCallCenter = rolVal.includes('call center');
     
-    const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter;
+    const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter || isManager;
 
     // Rango: Vendedores, PM, Supervisor con Water
     const waterChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
@@ -10445,7 +10446,7 @@ window.updateEditWorkerRankVisibility = function() {
     const equipoCont = document.getElementById('det-edit-equipo-container');
     const pipesCont = document.getElementById('det-edit-pipelines-container');
     const rolVal = (rol ? rol.value.toLowerCase() : '');
-    const hasPipelines = ['project manager', 'vendedor', 'representante de ventas', 'supervisor', 'supervisión'].includes(rolVal) || rolVal.includes('call center');
+    const hasPipelines = ['manager', 'project manager', 'vendedor', 'representante de ventas', 'supervisor', 'supervisión'].includes(rolVal) || rolVal.includes('call center');
     if (rol && pipesCont) pipesCont.classList.toggle('hidden', !hasPipelines);
     if (rol && equipoCont) {
         equipoCont.classList.toggle('hidden', rol.value !== 'Supervisor');
