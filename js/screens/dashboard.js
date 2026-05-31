@@ -489,20 +489,24 @@ function _buildPipelineChips(user, activeUnit) {
       const pipShort = pipName.replace('Renew ','').toLowerCase();
       return cDepts.some(d => d === pipShort || d === pipName.toLowerCase() || pipName.toLowerCase().includes(d));
     });
---bg-tool-admin: linear-gradient(135deg, #fff1f2, #ffe4e6);
-        --bg-tool-callcenter: linear-gradient(135deg, #e6fffa, #ccfbf1);
-        --bg-tool-default: linear-gradient(135deg, #f8fafc, #f1f5f9);
-      }
-      body.dark-theme {
-        --bg-tool-credito: linear-gradient(135deg, #0f172a, #1e3a5f);
-        --bg-tool-trabajo: linear-gradient(135deg, #0f1f1e, #063e38);
-        --bg-tool-inventario: linear-gradient(135deg, #0f172a, #1e1b4b);
-        --bg-tool-clientes: linear-gradient(135deg, #1a1200, #3d2e00);
-        --bg-tool-calendario: linear-gradient(135deg, #001a0f, #003d1f);
-        --bg-tool-admin: linear-gradient(135deg, #1a0a00, #3d1500);
-        --bg-tool-callcenter: linear-gradient(135deg, #00302b, #004d40);
-        --bg-tool-default: linear-gradient(135deg, #0f172a, #1e293b);
-      }
+    const prospectos = myClients.filter(c => !allProyectos.some(p => p.cliente_id === c.id)).length;
+    const clientes   = myClients.filter(c =>  allProyectos.some(p => p.cliente_id === c.id)).length;
+    const total      = prospectos + clientes;
+
+    const hasAccess = isHighRole || (user.unidades && user.unidades.includes(pipName));
+    const disabledStyle = hasAccess ? '' : 'filter: grayscale(1); opacity: 0.4; cursor: not-allowed; border-color: rgba(255,255,255,0.05);';
+
+    return `
+      <div class="pip-chip ${isActive ? 'active' : ''}" data-pip="${pipName}" data-access="${hasAccess}"
+        style="--pip-accent:${meta.accent}; ${disabledStyle}">
+        ${meta.img
+          ? `<img class="pip-chip-logo" src="${meta.img}" alt="${pipName}">`
+          : `<span style="font-weight:900;font-size:0.85rem;color:${meta.accent}">${pipName.replace('Renew ','')}</span>`
+        }
+        <span class="pip-chip-badge">${hasAccess ? `${total} ${total === 1 ? 'contacto' : 'contactos'}` : 'Sin acceso'}</span>
+      </div>
+    `;
+  }).join('');
 
       /* —— Desktop Proportions —— */
       @media (min-width: 768px) {
