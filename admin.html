@@ -15,7 +15,7 @@
         // â”€â”€ GLOBAL SECURITY GUARD â”€â”€
         (function() {
             var user = JSON.parse(localStorage.getItem('rs_user'));
-            var allowed = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
+            var allowed = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión', 'Manager', 'manager'];
             if (!user || !allowed.includes(user.rol)) {
                 document.write(`
                 <html>
