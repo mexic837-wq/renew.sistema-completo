@@ -788,6 +788,11 @@ const updateAdminNavLabels = () => {
         document.querySelectorAll('#admin-nav a[data-view="hrhub"], #admin-nav a[data-view="roles"], #admin-nav a[data-view="inventario"]').forEach(el => {
             el.style.display = 'none';
         });
+        
+        const btnInv = document.getElementById('btn-toggle-inv');
+        if (btnInv && btnInv.parentElement) {
+            btnInv.parentElement.style.display = 'none';
+        }
 
         // Hide Lista de Precios if they don't have access to Water
         const hasWaterAccess = (usr.unidades || []).some(u => u.toLowerCase().includes('water'));
