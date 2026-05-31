@@ -237,7 +237,7 @@ async function loadCCLeads() {
                         ${l.estado === 'pendiente' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :
                         l.estado === 'rechazado' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' :
                         'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'}">
-                        ${l.estado}
+                        ${(l.estado || '').replace(/_/g, ' ')}
                     </span>
                 </td>
                 <td class="py-4 text-right">
