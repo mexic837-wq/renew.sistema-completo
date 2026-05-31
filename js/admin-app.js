@@ -784,10 +784,18 @@ const updateAdminNavLabels = () => {
     const usr = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const rol = (usr.rol || '').toLowerCase();
     
-    if (['project manager', 'manager de ventas', 'account manager', 'manager'].includes(rol)) {
+    if (['project manager', 'manager de ventas', 'account manager', 'manager', 'supervisión'].includes(rol)) {
         document.querySelectorAll('#admin-nav a[data-view="hrhub"], #admin-nav a[data-view="roles"]').forEach(el => {
             el.style.display = 'none';
         });
+
+        // Hide Lista de Precios if they don't have access to Water
+        const hasWaterAccess = (usr.unidades || []).some(u => u.toLowerCase().includes('water'));
+        if (!hasWaterAccess) {
+            document.querySelectorAll('#admin-nav a[data-view="lista-precios"]').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
     }
 
     if (!['admin', 'administrador', 'ceo'].includes(rol)) {
@@ -3119,30 +3127,37 @@ window.renderView = async function renderView() {
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const role = currentUser.rol || '';
     if (['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
-        clientesFiltrados = clientesFiltrados.filter(c => {
-            const hasAccessToUnit = currentUser.unidades && currentUser.unidades.length > 0
-                ? currentUser.unidades.some(u => c.departamento && c.departamento.toLowerCase().includes(u.replace('Renew ', '').toLowerCase()))
+        const hasAccessToUnit = (c) => {
+            const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0 
+                          ? c.departamentos_activos.join(' ').toLowerCase() 
+                          : (c.departamento || '').toLowerCase();
+            return currentUser.unidades && currentUser.unidades.length > 0
+                ? currentUser.unidades.some(u => depts.includes(u.replace('Renew ', '').toLowerCase()))
                 : true;
+        };
+
+        clientesFiltrados = clientesFiltrados.filter(c => {
+            const hasUnit = hasAccessToUnit(c);
 
             if (role === 'Manager de Ventas') {
-                return hasAccessToUnit;
+                return hasUnit;
             } else if (role === 'Account Manager') {
                 const acctId = c.account_manager_id || '';
-                return hasAccessToUnit && acctId === currentUser.id;
+                return hasUnit && acctId === currentUser.id;
             } else if (role === 'Supervisión') {
                 const vendorId = c.vendedor_asignado_id || c.creador_id || '';
                 const vendorUser = allWorkers.find(w => w.id === vendorId);
                 return vendorUser && vendorUser.supervisor_id === currentUser.id;
             } else if (role === 'Manager') {
                 const subRol = currentUser.sub_rol || '';
-                if (subRol === 'Manager de Ventas') return hasAccessToUnit;
-                if (subRol === 'Account Manager') return hasAccessToUnit && c.account_manager_id === currentUser.id;
+                if (subRol === 'Manager de Ventas') return hasUnit;
+                if (subRol === 'Account Manager') return hasUnit && c.account_manager_id === currentUser.id;
                 if (subRol === 'Supervisor') {
                     const vendorId = c.vendedor_asignado_id || c.creador_id || '';
                     const vendorUser = allWorkers.find(w => w.id === vendorId);
                     return vendorUser && vendorUser.supervisor_id === currentUser.id;
                 }
-                return true; // Default PM fallback
+                return hasUnit; // Default PM fallback
             }
             return true;
         });
@@ -3611,9 +3626,49 @@ window.renderView = async function renderView() {
         try { workers = await getAdminWorkers(); } catch(e){}
 
         const db = getDB();
-        const clientes = db.Clientes_Maestro || [];
-        const proyectos = db.Proyectos_Dinamicos || [];
+        let clientes = db.Clientes_Maestro || [];
+        let proyectos = db.Proyectos_Dinamicos || [];
         const pipelines = db.Admin_Pipelines || [];
+
+        // --- ROLE-BASED FILTERING FOR MAP ---
+        const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
+        const role = currentUser.rol || '';
+        if (['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
+            const hasAccessToUnit = (c) => {
+                const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0 
+                              ? c.departamentos_activos.join(' ').toLowerCase() 
+                              : (c.departamento || '').toLowerCase();
+                return currentUser.unidades && currentUser.unidades.length > 0
+                    ? currentUser.unidades.some(u => depts.includes(u.replace('Renew ', '').toLowerCase()))
+                    : true;
+            };
+
+            clientes = clientes.filter(c => {
+                const hasUnit = hasAccessToUnit(c);
+                if (role === 'Manager de Ventas') return hasUnit;
+                if (role === 'Account Manager') return hasUnit && c.account_manager_id === currentUser.id;
+                if (role === 'Supervisión') {
+                    const vendorId = c.vendedor_asignado_id || c.creador_id || '';
+                    const vendorUser = workers.find(w => w.id === vendorId);
+                    return vendorUser && vendorUser.supervisor_id === currentUser.id;
+                }
+                if (role === 'Manager') {
+                    const subRol = currentUser.sub_rol || '';
+                    if (subRol === 'Manager de Ventas') return hasUnit;
+                    if (subRol === 'Account Manager') return hasUnit && c.account_manager_id === currentUser.id;
+                    if (subRol === 'Supervisor') {
+                        const vendorId = c.vendedor_asignado_id || c.creador_id || '';
+                        const vendorUser = workers.find(w => w.id === vendorId);
+                        return vendorUser && vendorUser.supervisor_id === currentUser.id;
+                    }
+                    return hasUnit; // Default PM fallback
+                }
+                return true;
+            });
+            const allowedClientIds = new Set(clientes.map(c => c.id));
+            proyectos = proyectos.filter(p => allowedClientIds.has(p.cliente_id));
+        }
+        // ------------------------------------
 
         // Helper: get dept key from a project using pipeline lookup
         const getDeptFromProject = (p) => {
@@ -9849,11 +9904,9 @@ async function renderListaPreciosAdmin() {
   const currentUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
   const rolName = (currentUsr.rol || '').toLowerCase();
   const isAdminPriceList = ['admin', 'administrador', 'ceo'].includes(rolName);
+  const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rolName);
 
-  
-  // Rank Tab Logic (Instead of Sede)
-  const activeRank = state.activePreciosRank || 'vendedor';
-  const rankLabels = {
+  let rankLabels = {
     'iniciante': 'Iniciante',
     'junior': 'Junior',
     'subvende': 'Novato',
@@ -9861,6 +9914,21 @@ async function renderListaPreciosAdmin() {
     'analista': 'Analista',
     'oficina': 'Oficina/Admin'
   };
+
+  if (isRestrictedManager) {
+      const assignedRango = currentUsr.rango || 'vendedor';
+      if (rankLabels[assignedRango]) {
+          rankLabels = { [assignedRango]: rankLabels[assignedRango] };
+      } else {
+          rankLabels = { 'vendedor': 'Vendedor' };
+      }
+      if (!rankLabels[state.activePreciosRank]) {
+          state.activePreciosRank = Object.keys(rankLabels)[0];
+      }
+  }
+
+  // Rank Tab Logic
+  const activeRank = state.activePreciosRank || 'vendedor';
 
   const catalogos = await getCatalogos();
   const pdfMap = {};
