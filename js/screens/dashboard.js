@@ -528,6 +528,201 @@ function _buildPipelineChips(user, activeUnit) {
         if (typeof window.leaderboardChartInstance.destroy === 'function') window.leaderboardChartInstance.destroy();
         window.leaderboardChartInstance = null;
       }
+    <div class="dash-header" style="padding-bottom: 12px;">
+      <div class="dash-header-top">
+        <div class="dash-greeting">
+          <div class="greeting-time">${getGreeting()}</div>
+          <h1 class="text-xl font-black tracking-tight">Hola, ${user.nombre.split(' ')[0]} <i class="fa-solid fa-handshake"></i></h1>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <button id="btn-app-bell" title="Notificaciones Admin"
+            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
+            <i class="fa-solid fa-bell text-xl"></i>
+            <span id="app-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-[#0b1120] animate-pulse"></span>
+          </button>
+
+          <button id="btn-chat-mobile" onclick="window.openInternalChat && window.openInternalChat()" 
+            class="relative w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-tealAccent transition-all active:scale-90 !bg-transparent !border-none !shadow-none">
+            <i class="fa-solid fa-comment-dots text-xl"></i>
+            <span id="chat-badge-mobile" class="absolute -top-1 -right-1 bg-tealAccent text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#0b1120] ${window._unreadChatCount > 0 ? '' : 'hidden'}">${window._unreadChatCount || 0}</span>
+          </button>
+          
+          <button class="avatar-btn" id="avatar-btn" aria-label="Perfil"
+            style="${user.foto ? `background-image:url(${user.foto});background-size:cover;background-position:center;color:transparent;border:2px solid rgba(255,255,255,0.15)` : ''}">
+            ${user.foto ? '' : (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase()}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pip-chips-row" class="pip-chips-row" style="margin: 8px 0 10px;"></div>
+
+    <div class="dash-tabs-wrapper">
+      <div class="dash-tabs-container">
+        <button class="dash-tab active" data-target="tab-inicio">Inicio</button>
+        <button class="dash-tab" data-target="tab-rendimiento">${t('dash_tab_perf')}</button>
+        ${((user.permisos && 'app_ranking' in user.permisos) ? user.permisos.app_ranking : true) ? `<button class="dash-tab" data-target="tab-leaderboard">${t('dash_tab_rank')}</button>` : ''}
+      </div>
+    </div>
+
+    <div id="tab-inicio" class="dash-tab-content">
+      <div id="dash-tools-grid" class="tool-list mobile-only"></div>
+      
+      <!-- DESKTOP WELCOME PRESENTATION -->
+      <div class="desktop-only w-full">
+        <div class="flex flex-col items-center justify-center text-center w-full" style="padding: 60px 20px; background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(0,245,212,0.02) 100%); border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); margin-top: 20px; min-height: 400px; box-shadow: inset 0 0 40px rgba(0,0,0,0.2);">
+          <div style="position: relative; margin-bottom: 30px;">
+            <div style="position: absolute; inset: -20px; background: radial-gradient(circle, rgba(0,245,212,0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(20px);"></div>
+            <img src="assets/images/renew copia logo.png" alt="Equipo Renew" style="width: 130px; position: relative; z-index: 10; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));">
+          </div>
+          <h2 style="font-size: 2.2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 16px; letter-spacing: -0.5px;">Bienvenido al <span style="color: #00f5d4;">Portal de Ventas</span></h2>
+          <p style="color: var(--text-secondary); max-width: 550px; font-size: 1.15rem; line-height: 1.6; margin-bottom: 30px;">El centro de operaciones del Equipo Renew para llevar tu rendimiento al siguiente nivel. Selecciona una herramienta del menú lateral para comenzar tu jornada.</p>
+          
+          <div class="flex gap-4" style="justify-content: center;">
+            <button onclick="document.querySelector('[data-target=\\'tab-rendimiento\\']').click()" style="background: rgba(0,245,212,0.1); color: #00f5d4; border: 1px solid rgba(0,245,212,0.3); padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: all 0.2s hover:bg-opacity-20 hover:scale-105; cursor: pointer;">
+              <i class="fa-solid fa-chart-line mr-2"></i> Ver Mi Rendimiento
+            </button>
+            <button onclick="document.querySelector('[data-target=\\'tab-leaderboard\\']').click()" style="background: var(--surface-alt); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; border-radius: 12px; font-weight: 600; transition: all 0.2s hover:bg-opacity-10 hover:scale-105; cursor: pointer;">
+              <i class="fa-solid fa-trophy mr-2" style="color: #f59e0b;"></i> Leaderboard
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="desktop-dashboard-wrapper" style="padding:0 20px;">
+      <div id="tab-rendimiento" class="dash-tab-content" style="display:none; padding:0 0 24px;">
+        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:16px; margin-top:8px;">${t('dash_month_perf')}</h3>
+        <div style="background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); padding:20px; border-radius:24px; border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow-lg);">
+          <canvas id="rendimientoChart" height="220"></canvas>
+        </div>
+        <div id="rendimiento-quick-stats" style="margin-top:24px;"></div>
+        <div id="rank-banner-rendimiento" style="margin-top:20px;"></div>
+      </div>
+
+      <div id="tab-leaderboard" class="dash-tab-content" style="display:none; padding:0 0 24px;">
+        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:12px; margin-top:8px;">${t('dash_top_sellers')}</h3>
+        <div style="background:var(--surface-alt); padding:16px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+        <canvas id="leaderboardChart" height="240"></canvas>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('avatar-btn').addEventListener('click', showProfileModal);
+
+  // Init admin bell (re-init each time dashboard renders so bell button is fresh)
+  initAdminBell();
+
+  _buildPipelineChips(user, activeUnit);
+  _renderToolsForPipeline(user, activeUnit);
+
+  const tabs     = document.querySelectorAll('.dash-tab');
+  const contents = document.querySelectorAll('.dash-tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.style.display = 'none');
+      tab.classList.add('active');
+      const id = tab.dataset.target;
+      document.getElementById(id).style.display = 'block';
+      if (id === 'tab-rendimiento' && !window.rendimientoChartInstance) initRendimientoChart(user);
+      if (id === 'tab-leaderboard' && !window.leaderboardChartInstance) initLeaderboardChart(user);
+    });
+  });
+}
+
+const PIPE_META = {
+  'Renew Solar': { img: 'assets/images/2.png', accent: '#f4c430' },
+  'Renew Water': { img: 'assets/images/1.png', accent: '#22c55e' },
+  'Renew Home':  { img: 'assets/images/3.png', accent: '#a3d96b' },
+};
+
+function _buildPipelineChips(user, activeUnit) {
+  const row = document.getElementById('pip-chips-row');
+  if (!row) return;
+
+  const db = getDB();
+  const allPipelines = db.Admin_Pipelines || [];
+  const allClientes  = db.Clientes_Maestro || [];
+  const allProyectos = db.Proyectos_Dinamicos || [];
+  const userRole     = (user.rol || '').toLowerCase();
+  const isHighRole   = ['admin', 'administrador', 'ceo'].includes(userRole);
+
+  const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
+  
+  row.innerHTML = pipelineNames.map(pipName => {
+    const meta    = PIPE_META[pipName] || { img: '', accent: 'var(--primary)' };
+    const isActive= pipName === activeUnit;
+
+    const myClients = allClientes.filter(c => {
+      // Ownership check (Strict for everyone)
+      const isTecnicoOfProject = allProyectos.some(p => {
+        if (p.cliente_id !== c.id || p.tecnico_id !== user.id) return false;
+        const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id);
+        if (!fase) return false;
+        const rolFase = (fase.rol_encargado || '').toLowerCase();
+        return rolFase.includes('tecnico') || rolFase.includes('técnico');
+      });
+
+      // Supervisor logic
+      const isSupervisorOfRep = (userRole === 'supervisor' || userRole === 'supervisión') && 
+        (user.equipo_ids || []).some(id => 
+          c.creador_id === id || 
+          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
+          (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id))
+        );
+
+      if (c.creador_id !== user.id && 
+          !(c.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) && 
+          !(c.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) &&
+          c.tecnico_id !== user.id &&
+          !isTecnicoOfProject &&
+          !isSupervisorOfRep) return false;
+      const cDepts = getDeptArray(c).map(d => d.toLowerCase());
+      const pipShort = pipName.replace('Renew ','').toLowerCase();
+      return cDepts.some(d => d === pipShort || d === pipName.toLowerCase() || pipName.toLowerCase().includes(d));
+    });
+    const prospectos = myClients.filter(c => !allProyectos.some(p => p.cliente_id === c.id)).length;
+    const clientes   = myClients.filter(c =>  allProyectos.some(p => p.cliente_id === c.id)).length;
+    const total      = prospectos + clientes;
+
+    const hasAccess = isHighRole || (user.unidades && user.unidades.includes(pipName));
+    const disabledStyle = hasAccess ? '' : 'filter: grayscale(1); opacity: 0.4; cursor: not-allowed; border-color: rgba(255,255,255,0.05);';
+
+    return `
+      <div class="pip-chip ${isActive ? 'active' : ''}" data-pip="${pipName}" data-access="${hasAccess}"
+        style="--pip-accent:${meta.accent}; ${disabledStyle}">
+        ${meta.img
+          ? `<img class="pip-chip-logo" src="${meta.img}" alt="${pipName}">`
+          : `<span style="font-weight:900;font-size:0.85rem;color:${meta.accent}">${pipName.replace('Renew ','')}</span>`
+        }
+        <span class="pip-chip-badge">${hasAccess ? `${total} ${total === 1 ? 'contacto' : 'contactos'}` : 'Sin acceso'}</span>
+      </div>
+    `;
+  }).join('');
+
+  row.querySelectorAll('.pip-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const hasAccess = chip.dataset.access === 'true';
+      if (!hasAccess) {
+          showToast('No tienes acceso autorizado para esta unidad.', 'error');
+          return;
+      }
+      const pip = chip.dataset.pip;
+      localStorage.setItem('active_unit', pip);
+      row.querySelectorAll('.pip-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      // Destroy and nullify both chart instances to force re-render on next tab switch
+      if (window.rendimientoChartInstance) {
+        if (typeof window.rendimientoChartInstance.destroy === 'function') window.rendimientoChartInstance.destroy();
+        window.rendimientoChartInstance = null;
+      }
+      if (window.leaderboardChartInstance) {
+        if (typeof window.leaderboardChartInstance.destroy === 'function') window.leaderboardChartInstance.destroy();
+        window.leaderboardChartInstance = null;
+      }
 
       const activeTabBtn = document.querySelector('.dash-tab.active');
       if (activeTabBtn) {
@@ -549,11 +744,11 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const userRole    = (user.rol || '').toLowerCase();
   const isTecnico   = /t[eé]cn[io]co/i.test(user.rol || '');
   const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
-  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || userRole === 'supervisor' || userRole === 'supervisión';
+  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || userRole === 'supervisor' || userRole === 'supervisión' || userRole === 'manager';
   let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador'].some(r => typeof r === 'boolean' ? r : r === userRole);
   if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
 
-  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador'];
+  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador','manager'];
   let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
   if (!canWater && (isVentas || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
@@ -576,7 +771,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
-      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico)) ? {
+      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico || userRole === 'manager')) ? {
         name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
@@ -620,7 +815,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
-      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : true) ? {
+      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (true || userRole === 'manager')) ? {
         name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
@@ -697,7 +892,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<i class="fa-solid fa-handshake"></i>`,
       action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
     } : null,
-    ((user.permisos && 'app_os' in user.permisos) ? user.permisos.app_os : isAdmin) ? {
+    ((user.permisos && 'app_os' in user.permisos) ? user.permisos.app_os : (isAdmin || userRole === 'manager')) ? {
       name: 'Renew OS (Admin)', tag: null,
       gradient: 'linear-gradient(90deg,#f59e0b,#ef4444)',
       iconBg: 'rgba(245,158,11,0.1)', iconColor: 'var(--warning)',
