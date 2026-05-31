@@ -224,23 +224,23 @@ export async function renderHRHub() {
         };
 
         window.solventarAdelanto = async (id) => {
-            if (!confirm('¿Estás seguro de que deseas marcar este adelanto como solventado?')) return;
+            if (!confirm('¿Estás seguro de que deseas marcar este adelanto como pagado?')) return;
             try {
                 const db = getDB();
                 if (db.rrhh_adelantos) {
                     const adelanto = db.rrhh_adelantos.find(a => String(a.id) === String(id));
                     if (adelanto) {
-                        adelanto.status = 'Solventado';
+                        adelanto.status = 'Pagado';
                         const { saveGranular } = await import('../api.js');
                         await saveGranular('rrhh_adelantos', [adelanto]);
                         localStorage.setItem('rs_admin_db', JSON.stringify(db));
-                        import('../components/toast.js').then(m => m.showToast('Adelanto marcado como solventado', 'success'));
+                        import('../components/toast.js').then(m => m.showToast('Adelanto marcado como pagado', 'success'));
                         renderAdelantos();
                     }
                 }
             } catch (err) {
-                console.error("Error al solventar adelanto:", err);
-                import('../components/toast.js').then(m => m.showToast('Error al solventar adelanto', 'error'));
+                console.error("Error al pagar adelanto:", err);
+                import('../components/toast.js').then(m => m.showToast('Error al pagar adelanto', 'error'));
             }
         };
 
@@ -675,9 +675,12 @@ export async function renderHRHub() {
                         <td class="px-4 py-3 text-[10px] text-gray-600 dark:text-gray-400 italic">${adel.motivo || '-'}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-right flex items-center justify-end gap-1">
                             ${adel.document_url ? `<a href="${adel.document_url}" target="_blank" class="px-3 py-1 bg-tealAccent/10 text-tealAccent rounded-lg text-[8px] font-black uppercase border border-tealAccent/20 hover:bg-tealAccent/20 transition-all"><i class="fa-solid fa-file-pdf mr-1"></i>Ver Doc</a>` : '<span class="text-[9px] text-gray-300">Sin Doc</span>'}
-                            ${adel.status === 'Solventado' 
-                                ? `<span class="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[8px] font-black uppercase border border-emerald-500/20">Solventado</span>`
-                                : `<button onclick="event.stopPropagation(); window.solventarAdelanto('${adel.id}')" class="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase border border-amber-500/20 hover:bg-amber-500/20 transition-all" title="Marcar como Solventado"><i class="fa-solid fa-check mr-1"></i>Solventar</button>`}
+                            ${(adel.status === 'Solventado' || adel.status === 'Pagado')
+                                ? `<span class="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[8px] font-black uppercase border border-emerald-500/20">Pagado</span>`
+                                : `<div class="flex items-center gap-2 justify-end">
+                                     <span class="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase border border-amber-500/20">Pending</span>
+                                     <button onclick="event.stopPropagation(); window.solventarAdelanto('${adel.id}')" class="px-3 py-1 bg-tealAccent/10 text-tealAccent rounded-lg text-[8px] font-black uppercase border border-tealAccent/20 hover:bg-tealAccent/20 transition-all" title="Marcar como Pagado"><i class="fa-solid fa-check mr-1"></i>Pagar</button>
+                                   </div>`}
                             <button onclick="event.stopPropagation(); window.deleteAdelanto('${adel.id}')" class="px-2 py-1 bg-red-500/10 text-red-500 rounded-lg text-[10px] hover:bg-red-500/20 transition-all ml-1" title="Eliminar Adelanto"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>`;

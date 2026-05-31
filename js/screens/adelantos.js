@@ -12,7 +12,7 @@ export function renderMisAdelantos() {
 
     const db = getDB();
     const myAdelantos = (db.rrhh_adelantos || []).filter(a => String(a.trabajador_id) === String(user.id));
-    const totalMonto = myAdelantos.filter(a => a.status !== 'Solventado').reduce((sum, a) => sum + (Number(a.monto) || 0), 0);
+    const totalMonto = myAdelantos.filter(a => a.status !== 'Solventado' && a.status !== 'Pagado').reduce((sum, a) => sum + (Number(a.monto) || 0), 0);
 
     screen.innerHTML = `
         <div class="screen-header slide-in-left" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border:none;">
@@ -47,15 +47,15 @@ export function renderMisAdelantos() {
                         <p style="font-weight:900; text-transform:uppercase; font-size:0.8rem; letter-spacing:1px;">Sin adelantos registrados</p>
                     </div>
                 ` : myAdelantos.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(adel => `
-                    <div class="adelanto-card" style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:16px; transition:all 0.2s; opacity:${adel.status === 'Solventado' ? '0.6' : '1'};">
+                    <div class="adelanto-card" style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:16px; transition:all 0.2s; opacity:${(adel.status === 'Solventado' || adel.status === 'Pagado') ? '0.6' : '1'};">
                         <div style="width:48px; height:48px; border-radius:14px; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2); display:flex; align-items:center; justify-content:center; color:#0ea5e9; flex-shrink:0;">
                             <i class="fa-solid fa-hand-holding-dollar"></i>
                         </div>
                         <div style="flex:1; min-width:0;">
                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:2px;">
-                                <span style="font-size:1.1rem; font-weight:900; color:var(--text-primary);${adel.status === 'Solventado' ? 'text-decoration:line-through;' : ''}">$${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}</span>
+                                <span style="font-size:1.1rem; font-weight:900; color:var(--text-primary);${(adel.status === 'Solventado' || adel.status === 'Pagado') ? 'text-decoration:line-through;' : ''}">$${Number(adel.monto).toLocaleString('en-US', {minimumFractionDigits:2})}</span>
                                 <span style="font-size:0.6rem; font-weight:800; color:#0ea5e9; background:rgba(14,165,233,0.1); padding:2px 8px; border-radius:99px; text-transform:uppercase;">${adel.fecha}</span>
-                                ${adel.status === 'Solventado' ? '<span style="font-size:0.6rem; font-weight:800; color:#10b981; background:rgba(16,185,129,0.1); padding:2px 8px; border-radius:99px; text-transform:uppercase;">Solventado</span>' : ''}
+                                ${(adel.status === 'Solventado' || adel.status === 'Pagado') ? '<span style="font-size:0.6rem; font-weight:800; color:#10b981; background:rgba(16,185,129,0.1); padding:2px 8px; border-radius:99px; text-transform:uppercase;">Pagado</span>' : '<span style="font-size:0.6rem; font-weight:800; color:#f59e0b; background:rgba(245,158,11,0.1); padding:2px 8px; border-radius:99px; text-transform:uppercase;">Pending</span>'}
                             </div>
                             <p style="font-size:0.75rem; color:var(--text-muted); margin:0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${adel.motivo || 'Sin motivo especificado'}</p>
                         </div>
