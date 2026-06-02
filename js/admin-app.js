@@ -11385,12 +11385,13 @@ async function handleSendCliChat(cliente_id, inputEl, fileInputEl) {
 }
 
 // Modal for Chat Access
-window.openChatAccessModal = function(cliente_id) {
+window.openChatAccessModal = async function(cliente_id) {
     const db = getDB();
     const cli = (db.Clientes_Maestro || []).find(c => c.id === cliente_id);
     if (!cli) return;
     
-    const managers = (db.Admin_Workers || []).filter(w => ['manager', 'supervisor'].includes((w.rol || '').toLowerCase()));
+    const allWorkers = await getAdminWorkers();
+    const managers = allWorkers.filter(w => ['manager', 'supervisor'].includes((w.rol || '').toLowerCase().trim()));
     const currentAllowed = cli.chat_managers || [];
     
     const html = `
