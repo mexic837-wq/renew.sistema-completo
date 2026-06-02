@@ -3706,35 +3706,53 @@ window.renderView = async function renderView() {
         // Build unique (client, dept) combos
         const adminCombos = [];
         const seenAdminCombo = new Set();
+        const coreDepts = ['solar', 'water', 'home'];
 
-        // Pass 1: clients with projects
+        // Helper for default address if missing
+        const getAddressAdmin = (c) => {
+          let addr = c.direccion || '';
+          if (addr.includes('@')) addr = '';
+          if (!addr && c.ciudad) addr = c.ciudad;
+          if (!addr && c.estado) addr = c.estado;
+          if (!addr) {
+            const tel = c.telefono || '';
+            if (tel.startsWith('+58') || tel.startsWith('041') || tel.startsWith('042')) addr = 'Venezuela';
+            else if (tel.startsWith('+57') || tel.startsWith('3')) addr = 'Colombia';
+            else addr = 'Florida, Estados Unidos';
+          }
+          return addr;
+        };
+
+        // Pass 1: projects (clientes)
         proyectos.forEach(p => {
           const c = clientes.find(cl => cl.id === p.cliente_id);
-          if (!c || !c.direccion) return;
+          if (!c) return;
+          const addr = getAddressAdmin(c);
+          if (!addr) return;
+          
           const deptKey = getDeptFromProject(p);
-          const combo = `${c.id}::${deptKey}`;
+          const combo = `${c.id}::${deptKey}::cliente`;
           if (!seenAdminCombo.has(combo)) {
             seenAdminCombo.add(combo);
-            adminCombos.push({ c, deptKey, statusKey: 'cliente' });
+            adminCombos.push({ c, addr, deptKey, statusKey: 'cliente' });
           }
         });
 
-        // Pass 2: prospectos (no projects at all)
+        // Pass 2: cross-sell prospectos
         clientes.forEach(c => {
-          if (!c.direccion || proyectos.some(p => p.cliente_id === c.id)) return;
-          let deptKey = 'otro';
-          let dptoStr = (c.departamento || c.empresa || '').toLowerCase();
-          if (c.unidades && Array.isArray(c.unidades)) {
-            dptoStr += ' ' + c.unidades.join(' ').toLowerCase();
-          }
-          if (dptoStr.includes('solar')) deptKey = 'solar';
-          else if (dptoStr.includes('water')) deptKey = 'water';
-          else if (dptoStr.includes('home')) deptKey = 'home';
-          const combo = `${c.id}::${deptKey}`;
-          if (!seenAdminCombo.has(combo)) {
-            seenAdminCombo.add(combo);
-            adminCombos.push({ c, deptKey, statusKey: 'prospecto' });
-          }
+          const addr = getAddressAdmin(c);
+          if (!addr) return;
+          
+          coreDepts.forEach(deptKey => {
+            // If they are not already a cliente in this dept, they are a prospecto
+            if (!seenAdminCombo.has(`${c.id}::${deptKey}::cliente`)) {
+              const combo = `${c.id}::${deptKey}::prospecto`;
+              if (!seenAdminCombo.has(combo)) {
+                seenAdminCombo.add(combo);
+                adminCombos.push({ c, addr, deptKey, statusKey: 'prospecto' });
+              }
+            }
+          });
         });
 
         // Pre-compute all depts per client (for showing all badges in InfoWindow)
@@ -3745,7 +3763,9 @@ window.renderView = async function renderView() {
           allClientDepts[p.cliente_id].add(dk);
         });
 
-        adminCombos.forEach(({ c, deptKey, statusKey }) => {
+        const latLngOffsets = {};
+
+        adminCombos.forEach(({ c, addr, deptKey, statusKey }) => {
           const statusCfg = statusConfig[statusKey];
           const repId = c.vendedor_asignado_id || repByClientDept[`${c.id}::${deptKey}`];
           let repName = 'Sin asignar';
@@ -3756,16 +3776,32 @@ window.renderView = async function renderView() {
 
           // All depts this client has (for badges)
           const clientDepts = [...(allClientDepts[c.id] || new Set([deptKey]))];
+          // Force all 3 core depts into the badge array for consistency if they are a cross-sell prospect
+          coreDepts.forEach(d => {
+             if (!clientDepts.includes(d)) clientDepts.push(d);
+          });
           const deptBadgesHtml = clientDepts.map(dk => {
             const cfg = deptConfig[dk] || deptConfig['otro'];
             return `<span style="font-size: 10px; background:${cfg.color}20; color:${cfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${cfg.color}40;">${cfg.label}</span>`;
           }).join('');
 
-          geocoder.geocode({ address: c.direccion }, (results, status) => {
+          geocoder.geocode({ address: addr }, (results, status) => {
             if (status === 'OK' && results[0]) {
+              const baseLat = results[0].geometry.location.lat();
+              const baseLng = results[0].geometry.location.lng();
+              const latLngKey = `${baseLat.toFixed(4)},${baseLng.toFixed(4)}`;
+              if (!latLngOffsets[latLngKey]) latLngOffsets[latLngKey] = 0;
+              
+              const count = latLngOffsets[latLngKey]++;
+              const radius = count * 0.015;
+              const angle = count * Math.PI / 3;
+              const latOffset = Math.sin(angle) * radius;
+              const lngOffset = Math.cos(angle) * radius;
+              const position = new google.maps.LatLng(baseLat + latOffset, baseLng + lngOffset);
+
               const marker = new google.maps.Marker({
                 map: map,
-                position: results[0].geometry.location,
+                position: position,
                 title: `${c.nombre || 'Cliente'} (${deptConfig[deptKey].label})`,
                 icon: deptConfig[deptKey].icon
               });
