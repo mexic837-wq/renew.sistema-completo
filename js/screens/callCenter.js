@@ -236,6 +236,7 @@ function buildFase1Card(p, index) {
           <div style="display:flex;flex-direction:column;gap:4px;">
               <button class="btn-cc-call" data-tel="${tel}" style="background:rgba(0,245,212,0.1);color:var(--primary);border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-mobile-screen"></i> Llamar</button>
               <button class="btn-cc-historial" data-id="${p.id}" style="background:rgba(245,158,11,0.1);color:#f59e0b;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-headphones"></i> Historial</button>
+              <button class="btn-cc-notas" data-id="${p.id}" data-notas="${encodeURIComponent(p.notas_pre || '')}" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-file-pen"></i> Notas${p.notas_pre ? ' <i class="fa-solid fa-circle text-[6px] text-red-500"></i>' : ''}</button>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
@@ -367,6 +368,63 @@ async function handleFase1Click(screen, user, e) {
         screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     }
     return;
+  }
+
+  // ── NOTAS PRE-ACEPTACIÓN ─────────────────────────────────
+  const btnNotas = e.target.closest('.btn-cc-notas');
+  if (btnNotas) {
+      const id = btnNotas.dataset.id;
+      const currentNotes = decodeURIComponent(btnNotas.dataset.notas || '');
+      
+      const noteHtml = `
+          <div id="modal-cc-pre-notas" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999999] flex items-center justify-center transition-opacity duration-300 opacity-0">
+              <div class="bg-[var(--bg)] w-full max-w-sm rounded-[2rem] shadow-2xl p-6 border border-[var(--border)] transform scale-95 transition-all duration-300">
+                  <div class="flex justify-between items-center mb-4">
+                      <h3 class="text-lg font-black text-[var(--text)]">Anotaciones del Lead</h3>
+                      <button id="btn-close-cc-notas" class="w-8 h-8 rounded-full bg-[var(--surface)] text-gray-500 hover:text-red-500 flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <textarea id="inp-cc-pre-notas" rows="4" class="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 text-sm text-[var(--text)] mb-4 outline-none focus:border-[var(--primary)]" placeholder="Ej. No contestó, Llamar mañana...">${currentNotes}</textarea>
+                  <button id="btn-save-cc-notas" class="w-full py-3 bg-[var(--primary)] text-black rounded-xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all">Guardar Notas</button>
+              </div>
+          </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', noteHtml);
+      const modal = document.getElementById('modal-cc-pre-notas');
+      setTimeout(() => {
+          modal.classList.remove('opacity-0');
+          modal.querySelector('div').classList.remove('scale-95');
+          document.getElementById('inp-cc-pre-notas').focus();
+      }, 10);
+
+      const closeModal = () => {
+          modal.classList.add('opacity-0');
+          modal.querySelector('div').classList.add('scale-95');
+          setTimeout(() => modal.remove(), 300);
+          screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
+      };
+
+      document.getElementById('btn-close-cc-notas').onclick = closeModal;
+      document.getElementById('btn-save-cc-notas').onclick = async () => {
+          const newNotes = document.getElementById('inp-cc-pre-notas').value.trim();
+          const btn = document.getElementById('btn-save-cc-notas');
+          btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+          btn.disabled = true;
+
+          try {
+              await patchProspecto(id, { notas_pre: newNotes });
+              const pros = _ccState.prospectos.find(p => p.id === id);
+              if (pros) pros.notas_pre = newNotes;
+              showToast('Notas guardadas', 'success');
+              modal.remove();
+              renderFase1(screen, user);
+          } catch (e) {
+              showToast('Error al guardar notas', 'error');
+              btn.innerHTML = 'Guardar Notas';
+              btn.disabled = false;
+          }
+      };
+      
+      return;
   }
 
   screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });

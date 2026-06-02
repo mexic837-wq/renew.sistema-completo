@@ -26,6 +26,7 @@ export async function renderCallCenterAdmin() {
                                 <th class="pb-4 font-black">Email</th>
                                 <th class="pb-4 font-black">Operador</th>
                                 <th class="pb-4 font-black">Origen</th>
+                                <th class="pb-4 font-black">Notas</th>
                                 <th class="pb-4 font-black">Estado</th>
                                 <th class="pb-4 font-black text-right">Acción</th>
                             </tr>
@@ -254,6 +255,9 @@ async function loadCCLeads() {
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-xs">${l.operador_nombre || '<span class="text-yellow-500">En Cola</span>'}</td>
                 <td class="py-4 text-gray-600 dark:text-gray-300 text-[10px] font-bold uppercase tracking-tight">${l.origen || '-'}</td>
                 <td class="py-4">
+                    <div class="text-xs text-gray-500 max-w-[150px] truncate" title="${l.notas_pre || ''}">${l.notas_pre || '-'}</div>
+                </td>
+                <td class="py-4">
                     <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider
                         ${l.estado === 'pendiente' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :
                         l.estado === 'rechazado' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' :
@@ -263,13 +267,16 @@ async function loadCCLeads() {
                 </td>
                 <td class="py-4 text-right">
                     <div class="flex justify-end gap-2">
+                    <button class="w-8 h-8 rounded-lg hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-500/10 text-gray-400 transition-colors" onclick="adminEditCCNotas('${l.id}', '${encodeURIComponent(l.notas_pre || '')}')" title="Ver/Editar Notas">
+                        <i class="fa-solid fa-file-pen text-xs"></i>
+                    </button>
                     <button class="w-8 h-8 rounded-lg hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-500/10 text-gray-400 transition-colors" onclick="const b=this;b.disabled=true;const old=b.innerHTML;b.innerHTML='<i class=\\\'fa-solid fa-spinner fa-spin text-xs\\\'></i>';fetch('/api/cc-prospectos/${l.id}').then(r=>r.json()).then(d=>{b.disabled=false;b.innerHTML=old;if(window.showZadarmaHistory)window.showZadarmaHistory(d.historial_llamadas||[]);else alert('Sin historial')}).catch(()=>{b.disabled=false;b.innerHTML=old;alert('Error al cargar historial')});" title="Ver Historial de Llamadas">
                         <i class="fa-solid fa-headphones text-xs"></i>
                     </button>
-                    <button class="w-8 h-8 rounded-lg hover:bg-tealAccent/20 hover:text-tealAccent dark:hover:bg-tealAccent/10 text-gray-400 transition-colors" onclick="adminEditCCLead('${l.id}', '${l.operador_id || ''}')">
-                        <i class="fa-solid fa-pen-to-square text-xs"></i>
+                    <button class="w-8 h-8 rounded-lg hover:bg-tealAccent/20 hover:text-tealAccent dark:hover:bg-tealAccent/10 text-gray-400 transition-colors" onclick="adminEditCCLead('${l.id}', '${l.operador_id || ''}')" title="Asignar Operador">
+                        <i class="fa-solid fa-user-pen text-xs"></i>
                     </button>
-                    <button class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 text-gray-400 transition-colors" onclick="adminDeleteCCLead('${l.id}')">
+                    <button class="w-8 h-8 rounded-lg hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 text-gray-400 transition-colors" onclick="adminDeleteCCLead('${l.id}')" title="Eliminar Lead">
                         <i class="fa-solid fa-trash text-xs"></i>
                     </button>
                     </div>
@@ -397,6 +404,25 @@ window.adminEditCCLead = async (id, currentOpId) => {
             updateBtn.innerHTML = 'Actualizar';
         }
     };
+};
+
+window.adminEditCCNotas = async (id, currentNotes) => {
+    const notes = decodeURIComponent(currentNotes || '');
+    const newNotes = window.prompt('Anotaciones del lead:', notes);
+    if (newNotes === null) return;
+    
+    try {
+        const res = await fetch(`/api/cc-prospectos/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notas_pre: newNotes.trim() })
+        });
+        if (!res.ok) throw new Error('No se pudo guardar la nota');
+        showToast('Notas actualizadas', 'success');
+        await loadCCLeads();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
 };
 
 window.adminDeleteCCLead = async (id) => {
