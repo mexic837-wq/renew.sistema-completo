@@ -10081,9 +10081,6 @@ async function renderListaPreciosAdmin() {
                     <i class="fa-solid fa-upload"></i>
                   </button>
               </div>
-              <button onclick="_showEditProducto({})" class="flex items-center gap-2 px-6 py-3 bg-tealAccent text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all">
-                <i class="fa-solid fa-plus"></i> Nuevo Producto
-              </button>
           </div>
       </div>
       <input type="file" id="inp-catalog-pdf" class="hidden" accept="application/pdf">
