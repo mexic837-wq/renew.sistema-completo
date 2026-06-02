@@ -320,7 +320,7 @@ export async function renderMiMapa() {
         } catch(e) {}
         
         let deptStr = deptsList.join(' ').toLowerCase();
-        if (!deptStr) deptStr = (c.empresa || c.departamento || '').toLowerCase();
+        if (!deptStr) deptStr = String(c.empresa || c.departamento || '').toLowerCase();
         
         let depts = [];
         if (deptStr.includes('solar')) depts.push('solar');
