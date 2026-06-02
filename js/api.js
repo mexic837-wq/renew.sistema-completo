@@ -977,12 +977,8 @@ export async function saveHistorialInventario(data) {
 export function getDeptArray(cli) {
   const depts = new Set();
   
-  // If they have active projects, those are the ONLY departments they belong to.
-  // This matches admin-app.js behavior and prevents old legacy departments from 
-  // causing them to appear in other tabs.
   if (Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length > 0) {
     cli.departamentos_activos.forEach(d => { if (d) depts.add(d); });
-    return Array.from(depts).filter(d => typeof d === 'string' && d.trim() !== '');
   }
   
   if (Array.isArray(cli.departamento)) {
