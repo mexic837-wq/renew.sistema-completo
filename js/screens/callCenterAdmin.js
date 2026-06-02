@@ -75,21 +75,7 @@ export async function renderCallCenterAdmin() {
                     </div>
                     <div>
                         <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Dirección Completa *</label>
-                        <input type="text" id="inp-cc-dir" required class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
-                    </div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Ciudad</label>
-                            <input type="text" id="inp-cc-ciudad" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Estado</label>
-                            <input type="text" id="inp-cc-estado-geo" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Zip Code</label>
-                            <input type="text" id="inp-cc-zip" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
-                        </div>
+                        <input type="text" id="inp-cc-dir" required placeholder="Buscar dirección con Google Maps..." autocomplete="off" class="w-full bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent outline-none transition-all">
                     </div>
 
                     <div>
@@ -128,8 +114,43 @@ export async function renderCallCenterAdmin() {
     const cancelBtn = document.getElementById('btn-cancel-cc');
     const form = document.getElementById('form-cc-admin');
 
+    setTimeout(() => {
+        const dirInp = document.getElementById('inp-cc-dir');
+        if (dirInp && window.google && window.google.maps && window.google.maps.places) {
+            const autocomplete = new window.google.maps.places.Autocomplete(dirInp, {
+                fields: ["address_components", "formatted_address"]
+            });
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.formatted_address) {
+                    dirInp.value = place.formatted_address;
+                    window._ccAdminCity = '';
+                    window._ccAdminState = '';
+                    window._ccAdminZip = '';
+                    
+                    if (place.address_components) {
+                        for (let comp of place.address_components) {
+                            if (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')) {
+                                window._ccAdminCity = comp.long_name;
+                            }
+                            if (comp.types.includes('administrative_area_level_1')) {
+                                window._ccAdminState = comp.long_name;
+                            }
+                            if (comp.types.includes('postal_code')) {
+                                window._ccAdminZip = comp.long_name;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }, 500);
+
     const openModal = () => {
         form.reset();
+        window._ccAdminCity = '';
+        window._ccAdminState = '';
+        window._ccAdminZip = '';
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.remove('opacity-0');
@@ -158,9 +179,9 @@ export async function renderCallCenterAdmin() {
             telefono: document.getElementById('sel-cc-tel-code').value + document.getElementById('inp-cc-tel').value.trim(),
             email: document.getElementById('inp-cc-email').value.trim(),
             direccion: document.getElementById('inp-cc-dir').value.trim(),
-            ciudad: document.getElementById('inp-cc-ciudad').value.trim(),
-            estado_geo: document.getElementById('inp-cc-estado-geo').value.trim(),
-            zip_code: document.getElementById('inp-cc-zip').value.trim(),
+            ciudad: window._ccAdminCity || '',
+            estado_geo: window._ccAdminState || '',
+            zip_code: window._ccAdminZip || '',
             operador_id: document.getElementById('sel-cc-operador').value || null,
             origen: document.getElementById('inp-cc-origen').value.trim() || 'Manual Admin',
             fuente: 'manual_admin'
