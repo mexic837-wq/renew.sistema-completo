@@ -308,17 +308,31 @@ export async function renderMiMapa() {
         clientsToMap[c.id].depts.add(deptKey);
       });
 
-      // 2. Second pass: Cross-selling Prospectos (All core departments)
-      const coreDepts = ['solar', 'water', 'home'];
+      // 2. Second pass: Prospectos (based strictly on assigned departments)
       myClients.forEach(c => {
         const addr = getAddress(c);
         if (!addr) return;
         
+        let clientDepts = [];
+        try { 
+            const rawDepts = getDeptArray(c); 
+            if (rawDepts && rawDepts.length > 0) clientDepts = rawDepts.map(d => d.toLowerCase());
+        } catch(e) {}
+        
+        let dptoStr = (c.departamento || c.empresa || '').toLowerCase();
+        
+        if (clientDepts.length === 0) {
+            if (dptoStr.includes('solar')) clientDepts.push('solar');
+            if (dptoStr.includes('water')) clientDepts.push('water');
+            if (dptoStr.includes('home')) clientDepts.push('home');
+            if (clientDepts.length === 0) clientDepts.push('otro');
+        }
+
         if (!clientsToMap[c.id]) clientsToMap[c.id] = { c, address: addr, combos: new Set(), depts: new Set() };
         
-        coreDepts.forEach(deptKey => {
+        clientDepts.forEach(deptKey => {
             clientsToMap[c.id].depts.add(deptKey);
-            // If they are not already a 'cliente' in this dept, they are automatically a 'prospecto' for cross-selling
+            // If they are not already a 'cliente' in this dept, they are automatically a 'prospecto'
             if (!clientsToMap[c.id].combos.has(`${deptKey}::cliente`)) {
                 clientsToMap[c.id].combos.add(`${deptKey}::prospecto`);
             }

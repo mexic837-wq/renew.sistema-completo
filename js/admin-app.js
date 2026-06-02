@@ -3738,12 +3738,28 @@ window.renderView = async function renderView() {
           }
         });
 
-        // Pass 2: cross-sell prospectos
+        // Pass 2: prospectos (based strictly on assigned departments)
         clientes.forEach(c => {
           const addr = getAddressAdmin(c);
           if (!addr) return;
+
+          let clientDepts = [];
+          try { 
+              const rawDepts = getDeptArray(c); 
+              if (rawDepts && rawDepts.length > 0) clientDepts = rawDepts.map(d => d.toLowerCase());
+          } catch(e) {}
+
+          let dptoStr = (c.departamento || c.empresa || '').toLowerCase();
+          if (c.unidades && Array.isArray(c.unidades)) dptoStr += ' ' + c.unidades.join(' ').toLowerCase();
+
+          if (clientDepts.length === 0) {
+              if (dptoStr.includes('solar')) clientDepts.push('solar');
+              if (dptoStr.includes('water')) clientDepts.push('water');
+              if (dptoStr.includes('home')) clientDepts.push('home');
+              if (clientDepts.length === 0) clientDepts.push('otro');
+          }
           
-          coreDepts.forEach(deptKey => {
+          clientDepts.forEach(deptKey => {
             // If they are not already a cliente in this dept, they are a prospecto
             if (!seenAdminCombo.has(`${c.id}::${deptKey}::cliente`)) {
               const combo = `${c.id}::${deptKey}::prospecto`;
@@ -3776,10 +3792,6 @@ window.renderView = async function renderView() {
 
           // All depts this client has (for badges)
           const clientDepts = [...(allClientDepts[c.id] || new Set([deptKey]))];
-          // Force all 3 core depts into the badge array for consistency if they are a cross-sell prospect
-          coreDepts.forEach(d => {
-             if (!clientDepts.includes(d)) clientDepts.push(d);
-          });
           const deptBadgesHtml = clientDepts.map(dk => {
             const cfg = deptConfig[dk] || deptConfig['otro'];
             return `<span style="font-size: 10px; background:${cfg.color}20; color:${cfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${cfg.color}40;">${cfg.label}</span>`;
