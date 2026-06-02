@@ -838,11 +838,10 @@ export async function renderHRHub() {
             return;
         }
 
-        // Populate workers select - include Oficina, Ventas, and Técnicos
-        const allowedRoles = ['Manager', 'Admin', 'CEO', 'Representante de Ventas', 'Técnico', 'Tecnico'];
-        const allowedWorkers = empleadosData.filter(e => allowedRoles.includes(e.rol)).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        // Populate workers select - include all workers
+        const allowedWorkers = empleadosData.sort((a,b) => a.nombre.localeCompare(b.nombre));
         select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
-            allowedWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol})</option>`).join('');
+            allowedWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol || 'Sin Rol'})</option>`).join('');
 
         if (window.showModal) {
             window.showModal(modal);
