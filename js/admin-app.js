@@ -11393,7 +11393,7 @@ window.openChatAccessModal = function(cliente_id) {
     const currentAllowed = cli.chat_managers || [];
     
     const html = `
-    <div id="modal-cli-chat-access" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+    <div id="modal-cli-chat-access" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" style="z-index: 99999;">
         <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative animate-scaleIn">
             <button onclick="document.getElementById('modal-cli-chat-access').remove()" class="absolute top-6 right-6 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
                 <i class="fa-solid fa-xmark"></i>

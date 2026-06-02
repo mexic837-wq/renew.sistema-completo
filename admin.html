@@ -2136,19 +2136,20 @@
                         </div>
                     </div>
                     <!-- Tab Content: Chat -->
-                    <div id="cli-tab-chat" class="cli-tab-content hidden transition-all duration-300 flex flex-col h-full absolute inset-0 bg-gray-50 z-10">
-                        <!-- Header -->
-                        <div class="h-[70px] bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-                            <div>
-                                <h3 class="text-lg font-black text-gray-800 flex items-center gap-2"><i class="fa-solid fa-comments text-tealAccent"></i> Chat Privado del Cliente</h3>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Comunicación exclusiva y notificaciones</p>
+                    <div id="cli-tab-chat" class="cli-tab-content hidden transition-all duration-300">
+                        <div class="flex flex-col h-[550px] bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                            <!-- Header -->
+                            <div class="h-[70px] bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
+                                <div>
+                                    <h3 class="text-lg font-black text-gray-800 flex items-center gap-2"><i class="fa-solid fa-comments text-tealAccent"></i> Chat Privado</h3>
+                                    <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Comunicación exclusiva y notificaciones</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <button id="btn-cli-chat-access" class="hidden px-4 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm">
+                                        <i class="fa-solid fa-shield-halved mr-1"></i> Accesos
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <button id="btn-cli-chat-access" class="hidden px-4 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm">
-                                    <i class="fa-solid fa-shield-halved mr-1"></i> Accesos
-                                </button>
-                            </div>
-                        </div>
                         
                         <!-- Messages Area -->
                         <div id="cli-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 hide-scrollbar relative">
@@ -2200,6 +2201,7 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
                         </div>
                     </div>
 
