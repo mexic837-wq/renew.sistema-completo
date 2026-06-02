@@ -450,12 +450,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
                 </div>
               ` : ''}
 
-              ${(prod.solo_equipo_grande > 0) ? `
-                <div style="background:rgba(245,158,11,0.08); border:1.5px dashed rgba(245,158,11,0.25); border-radius:18px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
-                   <span style="font-size:0.75rem; color:#f59e0b; font-weight:900; text-transform:uppercase; letter-spacing:1px;">Solo Tanque</span>
-                   <span style="font-size:1.15rem; font-weight:900; color:#f59e0b;">${formatPrice(prod.solo_equipo_grande)}</span>
-                </div>
-              ` : ''}
+
 
               ${prod.pdf_url ? `
                 <button onclick="window.open('${prod.pdf_url}', '_blank')" style="width:100%; padding:16px; background:#ef444410; border:2px solid #ef444430; border-radius:18px; color:#ef4444; font-size:0.9rem; font-weight:900; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; transition:0.2s; text-transform:uppercase; letter-spacing:1px;" onmouseover="this.style.background='#ef444420'" onmouseout="this.style.background='#ef444410'">
