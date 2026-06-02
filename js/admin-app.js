@@ -794,13 +794,17 @@ const updateAdminNavLabels = () => {
             btnInv.parentElement.style.display = 'none';
         }
 
-        // Hide Lista de Precios if they don't have access to Water
-        const hasWaterAccess = (usr.unidades || []).some(u => u.toLowerCase().includes('water'));
-        if (!hasWaterAccess) {
-            document.querySelectorAll('#admin-nav a[data-view="lista-precios"]').forEach(el => {
-                el.style.display = 'none';
-            });
-        }
+    }
+
+    // Hide Lista de Precios based on Water access or Rango
+    const isSpecialRole = ['admin', 'administrador', 'ceo'].includes(rol);
+    const hasWaterAccess = (usr.unidades || []).some(u => u.toLowerCase().includes('water'));
+    const rango = usr.rango_precios || 'no_aplica';
+    
+    if (!hasWaterAccess || (!isSpecialRole && rango === 'no_aplica')) {
+        document.querySelectorAll('#admin-nav a[data-view="lista-precios"]').forEach(el => {
+            el.style.display = 'none';
+        });
     }
 
     if (!['admin', 'administrador', 'ceo'].includes(rol)) {
