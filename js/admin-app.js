@@ -10339,7 +10339,7 @@ window.savePrecio = async function() {
         const success = await saveListaPrecio(producto);
         if (success) {
             showToast('Producto guardado correctamente', 'success');
-            closeNuclearModal('modal-nuclear-precios');
+            window.closeModals();
             renderListaPreciosAdmin();
         } else {
             throw new Error('Save failed');
