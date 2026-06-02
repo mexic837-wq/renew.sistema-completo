@@ -118,17 +118,27 @@ export async function renderMiMapa() {
       const isSupervisor = (userRole === 'supervisor' || userRole === 'supervisión');
       const teamIds = user.equipo_ids || [];
 
-      const myClients = isAdmin ? allClients : allClients.filter(c =>
-        String(c.vendedor_asignado_id) === String(user.id) ||
-        String(c.creador_id) === String(user.id) ||
-        userClientIds.has(c.id) ||
-        (isSupervisor && teamIds.some(tid => 
-          String(c.vendedor_asignado_id) === String(tid) || 
-          String(c.creador_id) === String(tid) || 
-          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(tid)) ||
-          allProys.some(p => p.cliente_id === c.id && (String(p.vendedor_id) === String(tid) || String(p.responsable_id) === String(tid)))
-        ))
-      );
+      const myClients = isAdmin ? allClients : allClients.filter(c => {
+        const clientProjects = allProys.filter(p => p.cliente_id === c.id);
+        const isProjectOwner = clientProjects.some(p => 
+            String(p.responsable_id) === String(user.id) || 
+            String(p.creador_id) === String(user.id) ||
+            String(p.vendedor_id) === String(user.id) ||
+            (Array.isArray(p.colaboradores) && p.colaboradores.some(colab => String(colab.id) === String(user.id)))
+        );
+        const isSupervisorMatch = isSupervisor && teamIds.some(tid => 
+            String(c.vendedor_asignado_id) === String(tid) || 
+            String(c.creador_id) === String(tid) || 
+            (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(tid)) ||
+            clientProjects.some(p => String(p.vendedor_id) === String(tid) || String(p.responsable_id) === String(tid))
+        );
+        
+        return String(c.vendedor_asignado_id) === String(user.id) ||
+               String(c.creador_id) === String(user.id) ||
+               String(c.origen_id) === String(user.id) ||
+               isProjectOwner ||
+               isSupervisorMatch;
+      });
 
       if (myClients.length === 0) {
         mapEl.innerHTML = '<div class="flex flex-col items-center justify-center w-full h-full text-gray-400 text-center"><i class="fa-solid fa-map-location-dot text-4xl mb-3 opacity-50"></i><p>No tienes clientes con dirección registrada aún.</p></div>';
