@@ -308,30 +308,17 @@ export async function renderMiMapa() {
         clientsToMap[c.id].depts.add(deptKey);
       });
 
-      // 2. Second pass: Prospectos
+      // 2. Second pass: Cross-selling Prospectos (All core departments)
+      const coreDepts = ['solar', 'water', 'home'];
       myClients.forEach(c => {
         const addr = getAddress(c);
         if (!addr) return;
-
-        let deptsList = [];
-        try { 
-            const rawDepts = getDeptArray(c); 
-            if (rawDepts && rawDepts.length > 0) deptsList = rawDepts;
-        } catch(e) {}
-        
-        let deptStr = deptsList.join(' ').toLowerCase();
-        if (!deptStr) deptStr = String(c.empresa || c.departamento || '').toLowerCase();
-        
-        let depts = [];
-        if (deptStr.includes('solar')) depts.push('solar');
-        if (deptStr.includes('water')) depts.push('water');
-        if (deptStr.includes('home')) depts.push('home');
-        if (depts.length === 0) depts.push('otro');
         
         if (!clientsToMap[c.id]) clientsToMap[c.id] = { c, address: addr, combos: new Set(), depts: new Set() };
         
-        depts.forEach(deptKey => {
+        coreDepts.forEach(deptKey => {
             clientsToMap[c.id].depts.add(deptKey);
+            // If they are not already a 'cliente' in this dept, they are automatically a 'prospecto' for cross-selling
             if (!clientsToMap[c.id].combos.has(`${deptKey}::cliente`)) {
                 clientsToMap[c.id].combos.add(`${deptKey}::prospecto`);
             }
@@ -364,9 +351,9 @@ export async function renderMiMapa() {
             const accentColor = deptCfg ? deptCfg.color : '#ef4444';
 
             const count = latLngOffsets[latLngKey]++;
-            // Offset spiral
-            const radius = count * 0.00015;
-            const angle = count * Math.PI / 4;
+            // Offset spiral (increased radius so markers are visually separated even when zoomed out)
+            const radius = count * 0.015;
+            const angle = count * Math.PI / 3;
             const latOffset = Math.sin(angle) * radius;
             const lngOffset = Math.cos(angle) * radius;
             const position = new google.maps.LatLng(baseLat + latOffset, baseLng + lngOffset);
