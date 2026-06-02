@@ -838,10 +838,11 @@ export async function renderHRHub() {
             return;
         }
 
-        // Populate workers select - filter by Oficina roles
-        const oficinaWorkers = empleadosData.filter(e => ['Manager', 'Admin', 'CEO'].includes(e.rol)).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        // Populate workers select - include Oficina, Ventas, and Técnicos
+        const allowedRoles = ['Manager', 'Admin', 'CEO', 'Representante de Ventas', 'Técnico', 'Tecnico'];
+        const allowedWorkers = empleadosData.filter(e => allowedRoles.includes(e.rol)).sort((a,b) => a.nombre.localeCompare(b.nombre));
         select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
-            oficinaWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol})</option>`).join('');
+            allowedWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol})</option>`).join('');
 
         if (window.showModal) {
             window.showModal(modal);
@@ -906,15 +907,22 @@ export async function renderHRHub() {
                 }
 
                 const worker = empleadosData.find(e => String(e.id) === String(workerId));
+                let computedTipo = 'oficina';
+                if (worker && (worker.rol === 'Técnico' || worker.rol === 'Tecnico')) {
+                    computedTipo = 'tecnico';
+                } else if (worker && worker.rol === 'Representante de Ventas') {
+                    computedTipo = 'vendedor';
+                }
+
                 const newRecibo = {
                     id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
                     trabajador_id: workerId,
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     cliente_nombre: motivo || 'Pago Manual',
-                    tipo: 'vendedor',
+                    tipo: computedTipo,
                     fecha_recibo: fecha,
                     pdf_url: docUrl,
-                    datos_json: { grand_total: parseFloat(monto), subtipo: 'oficina' },
+                    datos_json: { grand_total: parseFloat(monto), subtipo: computedTipo },
                     created_at: new Date().toISOString()
                 };
 
