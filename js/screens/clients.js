@@ -312,7 +312,7 @@ async function _renderList(user, container) {
       if (hasNoPipeline) return true; // show unassigned clients everywhere
       // Check if any of the client's departments match the active unit
       const matchesActive = clientDepts.some(d => activePipeline.includes(d) || d.includes(activePipeline.replace('renew ', '')));
-      const matchesLegacy = activePipeline.includes(legacyDept) || legacyDept.includes(activePipeline.replace('renew ', ''));
+      const matchesLegacy = legacyDept !== '' && (activePipeline.includes(legacyDept) || legacyDept.includes(activePipeline.replace('renew ', '')));
       if (!matchesActive && !matchesLegacy) return false;
     }
     return true;

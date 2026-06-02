@@ -977,23 +977,27 @@ export async function saveHistorialInventario(data) {
 export function getDeptArray(cli) {
   const depts = new Set();
   
-  if (Array.isArray(cli.departamentos_activos)) {
-    cli.departamentos_activos.forEach(d => depts.add(d));
+  // If they have active projects, those are the ONLY departments they belong to.
+  // This matches admin-app.js behavior and prevents old legacy departments from 
+  // causing them to appear in other tabs.
+  if (Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length > 0) {
+    cli.departamentos_activos.forEach(d => { if (d) depts.add(d); });
+    return Array.from(depts).filter(d => typeof d === 'string' && d.trim() !== '');
   }
   
   if (Array.isArray(cli.departamento)) {
-    cli.departamento.forEach(d => depts.add(d));
+    cli.departamento.forEach(d => { if (d) depts.add(d); });
   } else if (typeof cli.departamento === 'string') {
     const dStr = cli.departamento.toLowerCase();
     if (dStr.includes('water')) depts.add('Water');
     if (dStr.includes('solar')) depts.add('Solar');
     if (dStr.includes('home')) depts.add('Home');
-    if (depts.size === 0 && cli.departamento) depts.add(cli.departamento);
-  } else if (cli.empresa && typeof cli.empresa === 'string') {
-    depts.add(cli.empresa);
+    if (depts.size === 0 && cli.departamento.trim()) depts.add(cli.departamento.trim());
+  } else if (cli.empresa && typeof cli.empresa === 'string' && cli.empresa.trim()) {
+    depts.add(cli.empresa.trim());
   }
   
-  return Array.from(depts);
+  return Array.from(depts).filter(d => typeof d === 'string' && d.trim() !== '');
 }
 
 export function syncClientStatuses(db) {

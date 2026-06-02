@@ -3741,8 +3741,21 @@ window.renderView = async function renderView() {
         // Helper to extract all departments for a client
         const getClientDepts = (c) => {
           const depts = new Set();
-          if (Array.isArray(c.departamentos_activos)) c.departamentos_activos.forEach(d => depts.add(d));
-          if (Array.isArray(c.departamento)) c.departamento.forEach(d => depts.add(d));
+          
+          if (Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0) {
+            c.departamentos_activos.forEach(d => { if (d) depts.add(d); });
+            let parsed = [];
+            Array.from(depts).forEach(d => {
+               const lower = d.toLowerCase();
+               if (lower.includes('solar')) parsed.push('solar');
+               else if (lower.includes('water')) parsed.push('water');
+               else if (lower.includes('home')) parsed.push('home');
+               else parsed.push('otro');
+            });
+            return parsed.length ? parsed : ['otro'];
+          }
+          
+          if (Array.isArray(c.departamento)) c.departamento.forEach(d => { if (d) depts.add(d); });
           else if (typeof c.departamento === 'string') {
             const dStr = c.departamento.toLowerCase();
             if (dStr.includes('water')) depts.add('Water');
