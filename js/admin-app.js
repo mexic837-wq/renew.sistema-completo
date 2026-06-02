@@ -9338,6 +9338,8 @@ async function showClientDetail(id) {
     document.querySelectorAll('.cli-tab-content').forEach(c => c.classList.add('hidden'));
     if(document.getElementById('cli-tab-info')) document.getElementById('cli-tab-info').classList.remove('hidden');
 
+    await initClientChat(cli); // Initialize the chat tab logic
+
     window.showModal(UI.modCliDetail);
 }
 
@@ -11108,4 +11110,334 @@ window.deleteAdminRole = async function(roleId) {
     } catch(e) {
         showToast('Error al eliminar rol', 'error');
     }
+};
+
+// ── CLIENT CHAT LOGIC ────────────────────────────────
+
+let cliChatMentionList = [];
+let cliChatSelectedMentions = [];
+
+async function initClientChat(cli) {
+    const user = getCurrentUser();
+    if (!user) return;
+    
+    const role = user.rol || '';
+    const isAdminOrCEO = ['admin', 'administrador', 'ceo'].includes(role.toLowerCase());
+    const isCEO = role.toLowerCase() === 'ceo';
+    const isAllowedManager = Array.isArray(cli.chat_managers) && cli.chat_managers.includes(user.id);
+    
+    const tabBtn = document.getElementById('cli-tab-btn-chat');
+    const accessBtn = document.getElementById('btn-cli-chat-access');
+    
+    if (!tabBtn) return;
+    
+    // Admin/CEO check for the access button
+    if (isAdminOrCEO) {
+        accessBtn.classList.remove('hidden');
+        accessBtn.onclick = () => openChatAccessModal(cli.id);
+    } else {
+        accessBtn.classList.add('hidden');
+    }
+
+    // Determine basic visibility. If not admin/ceo, and not explicitly allowed,
+    // they might still be tagged. We must fetch messages to know for sure.
+    let messages = [];
+    try {
+        messages = await getInternalMessages(cli.id);
+    } catch(e) {
+        console.error(e);
+    }
+    
+    const hasMentions = messages.some(m => m.mentions && m.mentions.includes(user.id));
+    
+    if (isAdminOrCEO || isAllowedManager || hasMentions) {
+        tabBtn.classList.remove('hidden');
+        renderClientChat(cli, messages, user, isCEO, isAllowedManager, isAdminOrCEO);
+    } else {
+        tabBtn.classList.add('hidden');
+        // Hide the tab if it was active
+        if (tabBtn.classList.contains('active')) {
+            document.querySelector('.cli-tab-btn[data-tab="info"]').click();
+        }
+    }
+}
+
+async function renderClientChat(cli, messages, user, isCEO, isAllowedManager, isAdminOrCEO) {
+    const container = document.getElementById('cli-chat-messages');
+    
+    // Filter messages for privacy
+    // If you are CEO, you see EVERYTHING.
+    // If you are NOT CEO:
+    //   If message has mentions -> Only sender and tagged people can see it. (Admins cannot see private tagged messages unless tagged).
+    //   If message has NO mentions -> Everyone with access (Admins, allowed managers) can see it.
+    
+    const visibleMessages = messages.filter(msg => {
+        if (isCEO) return true;
+        
+        const hasMentions = msg.mentions && msg.mentions.length > 0;
+        
+        if (hasMentions) {
+            return msg.sender_id === user.id || msg.mentions.includes(user.id);
+        } else {
+            // No mentions: visible if you are Admin or Allowed Manager
+            return isAdminOrCEO || isAllowedManager;
+        }
+    });
+    
+    if (visibleMessages.length === 0) {
+        container.innerHTML = `
+            <div class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-60"></div>
+            <div class="flex flex-col items-center justify-center h-full text-gray-400 relative z-10">
+                <i class="fa-solid fa-message text-4xl mb-4 opacity-20"></i>
+                <p class="text-sm font-bold uppercase tracking-widest opacity-50">No hay mensajes en este chat</p>
+            </div>
+        `;
+    } else {
+        const origin = window.location.origin;
+        const normalizeImageUrl = (url) => {
+            if (!url) return null;
+            if (url.startsWith('/api/') || url.startsWith('/uploads/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+            return url.replace(/https?:\/\/[^\/]+\/storage\/v1\/object\/public\//g, '/api/storage-proxy/');
+        };
+
+        const html = visibleMessages.map(msg => {
+            const isMe = msg.sender_id === user.id;
+            const date = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const imageUrl = normalizeImageUrl(msg.image_url);
+            
+            // Mark as read if mentioned
+            if (msg.mentions && msg.mentions.includes(user.id) && !(msg.read_by || []).includes(user.id)) {
+                markMessageAsRead(msg.id);
+            }
+
+            return `
+                <div class="flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn relative z-10">
+                    <div class="max-w-[80%] ${isMe ? 'bg-tealAccent text-black' : 'bg-white border border-gray-200 text-gray-800'} rounded-[1.5rem] p-4 shadow-sm relative group">
+                        ${!isMe ? `<p class="text-[10px] font-black uppercase tracking-widest text-tealAccent mb-1">${msg.sender_name || ''}</p>` : ''}
+                        ${imageUrl ? `<img src="${imageUrl}" class="w-full max-h-60 object-cover rounded-xl mb-2 cursor-pointer" onclick="window.open('${imageUrl}')">` : ''}
+                        <p class="text-sm font-medium leading-relaxed">${formatCliChatContent(msg.content || '', isMe)}</p>
+                        <div class="flex items-center justify-end gap-2 mt-1">
+                            <span class="text-[9px] opacity-50 font-bold">${date}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        container.innerHTML = `
+            <div class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-60"></div>
+            ${html}
+        `;
+        // Scroll to bottom
+        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+    }
+    
+    // Bind Events (unbind first to prevent dupes)
+    const sendBtn = document.getElementById('cli-chat-send-btn');
+    const input = document.getElementById('cli-chat-input');
+    const fileInput = document.getElementById('cli-chat-file-input');
+    
+    if (sendBtn && input && fileInput) {
+        // Clone and replace to remove old listeners
+        const newSendBtn = sendBtn.cloneNode(true);
+        sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        
+        newInput.value = '';
+        cliChatSelectedMentions = [];
+        
+        // Load users for mentions
+        if (cliChatMentionList.length === 0) {
+            cliChatMentionList = await window.getAdminWorkers();
+        }
+        
+        newSendBtn.addEventListener('click', () => handleSendCliChat(cli.id, newInput, newFileInput));
+        newInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendCliChat(cli.id, newInput, newFileInput);
+            }
+        });
+        
+        newInput.addEventListener('input', (e) => {
+            const text = e.target.value;
+            const cursor = e.target.selectionStart;
+            const lastAt = text.lastIndexOf('@', cursor - 1);
+            if (lastAt !== -1 && !text.substring(lastAt, cursor).includes(' ')) {
+                const query = text.substring(lastAt + 1, cursor).toLowerCase();
+                showCliChatMentions(query, lastAt, newInput);
+            } else {
+                document.getElementById('cli-chat-mentions-box').classList.add('hidden');
+            }
+        });
+
+        newFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const preview = document.getElementById('cli-chat-image-preview');
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                preview.querySelector('img').src = ev.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        const rmBtn = document.getElementById('cli-chat-remove-image');
+        if (rmBtn) {
+            rmBtn.addEventListener('click', () => {
+                const preview = document.getElementById('cli-chat-image-preview');
+                preview.classList.add('hidden');
+                preview.querySelector('img').src = '';
+                newFileInput.value = '';
+            });
+        }
+    }
+}
+
+function formatCliChatContent(content, isMe) {
+    return content.replace(/@(\w+ \w+|\w+)/g, (match) => {
+        if (isMe) return `<span class="text-white bg-black/20 px-1 rounded-md font-black">${match}</span>`;
+        return `<span class="text-blue-600 font-black">${match}</span>`;
+    });
+}
+
+function showCliChatMentions(query, atIndex, inputEl) {
+    const box = document.getElementById('cli-chat-mentions-box');
+    const filtered = cliChatMentionList.filter(u => 
+        (u.nombre + ' ' + (u.apellido || '')).toLowerCase().includes(query)
+    );
+
+    if (!filtered.length) {
+        box.classList.add('hidden');
+        return;
+    }
+
+    box.innerHTML = filtered.map(u => `
+        <div class="mention-item flex items-center gap-3 p-3 hover:bg-tealAccent/10 rounded-xl cursor-pointer transition-all" data-id="${u.id}" data-name="${u.nombre} ${u.apellido || ''}">
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-black">
+                ${u.nombre[0]}${u.apellido ? u.apellido[0] : ''}
+            </div>
+            <div>
+                <p class="text-xs font-black text-gray-800">${u.nombre} ${u.apellido || ''}</p>
+                <p class="text-[9px] text-gray-400 uppercase font-bold">${u.rol || 'Miembro'}</p>
+            </div>
+        </div>
+    `).join('');
+
+    box.classList.remove('hidden');
+    
+    box.querySelectorAll('.mention-item').forEach(item => {
+        item.onclick = () => {
+            const id = item.dataset.id;
+            const name = item.dataset.name;
+            const text = inputEl.value;
+            const cursor = inputEl.selectionStart;
+            const before = text.substring(0, atIndex);
+            const after = text.substring(cursor);
+            
+            inputEl.value = before + '@' + name + ' ' + after;
+            if (!cliChatSelectedMentions.includes(id)) cliChatSelectedMentions.push(id);
+            
+            box.classList.add('hidden');
+            inputEl.focus();
+        };
+    });
+}
+
+async function handleSendCliChat(cliente_id, inputEl, fileInputEl) {
+    const content = inputEl.value.trim();
+    const file = fileInputEl.files[0];
+    
+    if (!content && !file) return;
+    
+    try {
+        let image_url = null;
+        if (file) {
+            window.showToast('Subiendo archivo...', 'info');
+            image_url = await window.uploadFile(file, 'mensajes_internos');
+        }
+        
+        await window.sendInternalMessage({
+            content,
+            mentions: cliChatSelectedMentions,
+            image_url,
+            cliente_id
+        });
+        
+        inputEl.value = '';
+        fileInputEl.value = '';
+        document.getElementById('cli-chat-image-preview').classList.add('hidden');
+        cliChatSelectedMentions = [];
+        
+        // Refresh chat
+        const db = getDB();
+        const cli = (db.Clientes_Maestro || []).find(c => c.id === cliente_id);
+        if (cli) await initClientChat(cli);
+        
+    } catch(e) {
+        console.error(e);
+        window.showToast('Error al enviar mensaje', 'error');
+    }
+}
+
+// Modal for Chat Access
+window.openChatAccessModal = function(cliente_id) {
+    const db = getDB();
+    const cli = (db.Clientes_Maestro || []).find(c => c.id === cliente_id);
+    if (!cli) return;
+    
+    const managers = (db.Admin_Workers || []).filter(w => ['manager', 'supervisor'].includes((w.rol || '').toLowerCase()));
+    const currentAllowed = cli.chat_managers || [];
+    
+    const html = `
+    <div id="modal-cli-chat-access" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative animate-scaleIn">
+            <button onclick="document.getElementById('modal-cli-chat-access').remove()" class="absolute top-6 right-6 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-xl font-black text-gray-900 mb-1">Accesos al Chat</h3>
+            <p class="text-xs text-gray-500 mb-6">Selecciona qué Managers/Supervisores pueden ver el chat de este cliente.</p>
+            
+            <div class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                ${managers.map(m => `
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" value="${m.id}" class="chat-manager-checkbox w-4 h-4 text-tealAccent rounded" ${currentAllowed.includes(m.id) ? 'checked' : ''}>
+                        <div>
+                            <p class="text-sm font-bold text-gray-800">${m.nombre} ${m.apellido || ''}</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black">${m.rol}</p>
+                        </div>
+                    </label>
+                `).join('')}
+                ${managers.length === 0 ? '<p class="text-sm text-gray-400 italic">No hay managers en el sistema.</p>' : ''}
+            </div>
+            
+            <button onclick="saveChatAccess('${cli.id}')" class="w-full mt-6 bg-tealAccent text-black font-black uppercase tracking-widest py-4 rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all">
+                Guardar Accesos
+            </button>
+        </div>
+    </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+window.saveChatAccess = async function(cliente_id) {
+    const checkboxes = document.querySelectorAll('.chat-manager-checkbox:checked');
+    const selected = Array.from(checkboxes).map(cb => cb.value);
+    
+    const db = getDB();
+    const cliIdx = db.Clientes_Maestro.findIndex(c => c.id === cliente_id);
+    if (cliIdx === -1) return;
+    
+    db.Clientes_Maestro[cliIdx].chat_managers = selected;
+    await saveDB(db);
+    
+    document.getElementById('modal-cli-chat-access').remove();
+    window.showToast('Accesos guardados', 'success');
+    
+    // Refresh chat UI if needed
+    initClientChat(db.Clientes_Maestro[cliIdx]);
 };

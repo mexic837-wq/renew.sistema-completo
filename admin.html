@@ -1990,6 +1990,7 @@
                     <button class="cli-tab-btn active border-b-2 border-tealAccent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-tealAccent transition-all" data-tab="info">General Info</button>
                     <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="evidences">Proyectos</button>
                     <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="calls">Llamadas</button>
+                    <button id="cli-tab-btn-chat" class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all hidden" data-tab="chat">Chat</button>
                 </div>
 
                 <div class="p-6 overflow-y-auto flex-1 min-h-0">
@@ -2131,6 +2132,73 @@
                             <div class="col-span-full py-10 text-center opacity-30">
                                 <i class="fa-solid fa-microphone-slash text-2xl mb-2"></i>
                                 <p class="text-[10px] font-black uppercase">Sin historial de llamadas</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tab Content: Chat -->
+                    <div id="cli-tab-chat" class="cli-tab-content hidden transition-all duration-300 flex flex-col h-full absolute inset-0 bg-gray-50 z-10">
+                        <!-- Header -->
+                        <div class="h-[70px] bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
+                            <div>
+                                <h3 class="text-lg font-black text-gray-800 flex items-center gap-2"><i class="fa-solid fa-comments text-tealAccent"></i> Chat Privado del Cliente</h3>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Comunicación exclusiva y notificaciones</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button id="btn-cli-chat-access" class="hidden px-4 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm">
+                                    <i class="fa-solid fa-shield-halved mr-1"></i> Accesos
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Messages Area -->
+                        <div id="cli-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 hide-scrollbar relative">
+                            <!-- Background pattern -->
+                            <div class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-60"></div>
+                            
+                            <!-- Initial state / Loading -->
+                            <div class="flex flex-col items-center justify-center h-full text-gray-400 relative z-10">
+                                <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 opacity-40"></i>
+                                <p class="text-xs font-bold uppercase tracking-widest opacity-40">Cargando chat...</p>
+                            </div>
+                        </div>
+
+                        <!-- Mentions Box -->
+                        <div id="cli-chat-mentions-box" class="hidden absolute bottom-24 left-6 sm:w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-[60] p-2"></div>
+
+                        <!-- Input Area -->
+                        <div class="bg-white border-t border-gray-200 p-4 flex-shrink-0 z-20">
+                            <div class="flex flex-col gap-2">
+                                <!-- Preview Image -->
+                                <div id="cli-chat-image-preview" class="hidden relative w-20 h-20 rounded-xl overflow-hidden border-2 border-tealAccent">
+                                    <img src="" class="w-full h-full object-cover">
+                                    <button id="cli-chat-remove-image" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]">
+                                        <i class="fa-solid fa-x"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex-1 bg-gray-50 border border-gray-200 rounded-full flex items-center px-4 h-12 shadow-inner focus-within:border-tealAccent focus-within:ring-2 focus-within:ring-tealAccent/20 transition-all">
+                                        <input type="file" id="cli-chat-file-input" class="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+                                        <label for="cli-chat-file-input" class="cursor-pointer text-gray-400 hover:text-tealAccent transition-colors">
+                                            <i class="fa-solid fa-paperclip"></i>
+                                        </label>
+                                        <input type="text" id="cli-chat-input" placeholder="Escribe un mensaje o usa @ para mencionar..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 px-3">
+                                        <div class="relative flex items-center">
+                                            <button id="btn-cli-chat-emoji" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                                <i class="fa-regular fa-face-smile"></i>
+                                            </button>
+                                            <!-- Emoji Picker -->
+                                            <div id="cli-chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-3 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex gap-2 z-[70]">
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg"><i class="fa-solid fa-thumbs-up"></i></button>
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg"><i class="fa-solid fa-fire"></i></button>
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg"><i class="fa-solid fa-face-smile"></i></button>
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg">✅</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button id="cli-chat-send-btn" class="w-12 h-12 rounded-full bg-tealAccent text-black flex items-center justify-center shadow-lg shadow-tealAccent/30 hover:scale-105 active:scale-95 transition-all">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

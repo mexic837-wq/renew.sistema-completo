@@ -2373,20 +2373,25 @@ export function getProjectDate(p, db) {
 // Tracks whether /api/messages exists on this server (null=unknown, true/false=confirmed)
 let _apiMessagesAvailable = null;
 
-export async function getInternalMessages() {
-    // 1. Try the lightweight /api/messages endpoint ONLY if we haven't confirmed it's unavailable
-    if (_apiMessagesAvailable !== false) {
+export async function getInternalMessages(cliente_id = null) {
+    // 1. First, try to fetch the latest from the server directly.
+    // This handles cases where the user just submitted a message on another tab 
+    // and we want it immediately without waiting for the 30s background sync.
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhost) {
         try {
-            const res = await fetch(`${API_BASE}/messages`);
+            const res = await fetch('/api/messages');
             if (res.ok) {
-                _apiMessagesAvailable = true;
                 const data = await res.json();
-                const messages = data.messages || [];
+                const messages = data.data || [];
+                const db = getDB();
+                if (!db.mensajes_internos) db.mensajes_internos = [];
+                // Simple merge: override local cache with server data
+                // In a robust system, we'd do a proper diff/merge.
+                // For now, this ensures we have the latest.
+                const cachedDB = window.rsDBInstance;
                 if (cachedDB) cachedDB.mensajes_internos = messages;
-                return messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
             } else if (res.status === 404) {
-                // Endpoint doesn't exist on this server — never try again this session
-                _apiMessagesAvailable = false;
                 console.log('[CHAT] /api/messages not found on server, relying entirely on /api/db cache.');
             }
         } catch (e) {
@@ -2399,10 +2404,12 @@ export async function getInternalMessages() {
     // initDB() already syncs the full DB periodically in the background.
     const db = getDB();
     const cached = db.mensajes_internos || [];
-    return cached.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    return cached
+        .filter(m => (cliente_id ? m.cliente_id === cliente_id : !m.cliente_id))
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
-export async function sendInternalMessage({ content, mentions = [], image_url = null }) {
+export async function sendInternalMessage({ content, mentions = [], image_url = null, cliente_id = null }) {
     const user = getCurrentUser();
     if (!user) throw new Error('No hay sesión activa');
 
@@ -2413,6 +2420,7 @@ export async function sendInternalMessage({ content, mentions = [], image_url = 
         content,
         mentions, // Array of user IDs
         image_url,
+        cliente_id, // For client-specific chat
         created_at: new Date().toISOString(),
         read_by: [user.id]
     };
