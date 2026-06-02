@@ -362,7 +362,7 @@ window.handleGlobalAdd = async () => {
             document.getElementById('inp-prec-analista').value = '';
             document.getElementById('inp-prec-oficina').value = '';
             document.getElementById('inp-prec-full').value = '';
-            document.getElementById('inp-prec-grande').value = '';
+            document.getElementById('inp-prec-iniciante').value = '';
             document.getElementById('inp-prec-min').value = '';
             document.getElementById('inp-prec-max').value = '';
             document.getElementById('inp-prec-medida').value = '';
