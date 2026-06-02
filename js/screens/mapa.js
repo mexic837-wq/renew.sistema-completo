@@ -282,10 +282,16 @@ export async function renderMiMapa() {
 
       const getAddress = (c) => {
         let addr = c.direccion || '';
-        // If address is just an email, ignore it
         if (addr.includes('@')) addr = '';
         if (!addr && c.ciudad) addr = c.ciudad;
         if (!addr && c.estado) addr = c.estado;
+        
+        if (!addr) {
+            const tel = c.telefono || '';
+            if (tel.startsWith('+58') || tel.startsWith('041') || tel.startsWith('042')) addr = 'Venezuela';
+            else if (tel.startsWith('+57') || tel.startsWith('3')) addr = 'Colombia';
+            else addr = 'Florida, Estados Unidos';
+        }
         return addr;
       };
 
@@ -307,29 +313,25 @@ export async function renderMiMapa() {
         const addr = getAddress(c);
         if (!addr) return;
 
+        let deptsList = [];
+        try { 
+            const rawDepts = getDeptArray(c); 
+            if (rawDepts && rawDepts.length > 0) deptsList = rawDepts;
+        } catch(e) {}
+        
+        let deptStr = deptsList.join(' ').toLowerCase();
+        if (!deptStr) deptStr = (c.empresa || c.departamento || '').toLowerCase();
+        
         let depts = [];
-        try { depts = getDeptArray(c); } catch(e) {}
-        if (depts.length === 0) {
-            const deptStr = (c.empresa || c.departamento || '').toLowerCase();
-            if (deptStr.includes('solar')) depts.push('solar');
-            else if (deptStr.includes('water')) depts.push('water');
-            else if (deptStr.includes('home'))  depts.push('home');
-            else depts.push('otro');
-        } else {
-            depts = depts.map(d => {
-                const ds = d.toLowerCase();
-                if (ds.includes('solar')) return 'solar';
-                if (ds.includes('water')) return 'water';
-                if (ds.includes('home')) return 'home';
-                return 'otro';
-            });
-        }
+        if (deptStr.includes('solar')) depts.push('solar');
+        if (deptStr.includes('water')) depts.push('water');
+        if (deptStr.includes('home')) depts.push('home');
+        if (depts.length === 0) depts.push('otro');
         
         if (!clientsToMap[c.id]) clientsToMap[c.id] = { c, address: addr, combos: new Set(), depts: new Set() };
         
         depts.forEach(deptKey => {
             clientsToMap[c.id].depts.add(deptKey);
-            // If they are not already a 'cliente' in this dept, they are a 'prospecto'
             if (!clientsToMap[c.id].combos.has(`${deptKey}::cliente`)) {
                 clientsToMap[c.id].combos.add(`${deptKey}::prospecto`);
             }
@@ -343,13 +345,16 @@ export async function renderMiMapa() {
         otro:  'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
       };
 
+      const latLngOffsets = {}; // To spread out markers that share the exact same location
+
       Object.values(clientsToMap).forEach(({ c, address, combos, depts }) => {
         geocoder.geocode({ address: address }, (results, status) => {
           if (status !== 'OK' || !results[0]) return;
 
-          let offsetCount = 0;
           const baseLat = results[0].geometry.location.lat();
           const baseLng = results[0].geometry.location.lng();
+          const latLngKey = `${baseLat.toFixed(4)},${baseLng.toFixed(4)}`;
+          if (!latLngOffsets[latLngKey]) latLngOffsets[latLngKey] = 0;
 
           combos.forEach(comboStr => {
             const [deptKey, statusKey] = comboStr.split('::');
@@ -358,11 +363,13 @@ export async function renderMiMapa() {
             const statusCfg = STATUSES.find(s => s.key === statusKey);
             const accentColor = deptCfg ? deptCfg.color : '#ef4444';
 
-            // Offset multiple markers for the same client slightly so they are all clickable
-            const latOffset = offsetCount * 0.0001;
-            const lngOffset = offsetCount * 0.0001;
+            const count = latLngOffsets[latLngKey]++;
+            // Offset spiral
+            const radius = count * 0.00015;
+            const angle = count * Math.PI / 4;
+            const latOffset = Math.sin(angle) * radius;
+            const lngOffset = Math.cos(angle) * radius;
             const position = new google.maps.LatLng(baseLat + latOffset, baseLng + lngOffset);
-            offsetCount++;
 
             const marker = new google.maps.Marker({
               map,
