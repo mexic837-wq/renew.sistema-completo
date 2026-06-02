@@ -8,7 +8,8 @@ import {
   getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
   getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
-  getCatalogos, saveCatalogo, deleteRecord
+  getCatalogos, saveCatalogo, deleteRecord,
+  getInternalMessages, sendInternalMessage, markMessageAsRead
 } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
@@ -11250,7 +11251,7 @@ async function renderClientChat(cli, messages, user, isCEO, isAllowedManager, is
         
         // Load users for mentions
         if (cliChatMentionList.length === 0) {
-            cliChatMentionList = await window.getAdminWorkers();
+            cliChatMentionList = await getAdminWorkers();
         }
         
         newSendBtn.addEventListener('click', () => handleSendCliChat(cli.id, newInput, newFileInput));
@@ -11356,11 +11357,11 @@ async function handleSendCliChat(cliente_id, inputEl, fileInputEl) {
     try {
         let image_url = null;
         if (file) {
-            window.showToast('Subiendo archivo...', 'info');
-            image_url = await window.uploadFile(file, 'mensajes_internos');
+            showToast('Subiendo archivo...', 'info');
+            image_url = await uploadFile(file, 'mensajes_internos');
         }
         
-        await window.sendInternalMessage({
+        await sendInternalMessage({
             content,
             mentions: cliChatSelectedMentions,
             image_url,
@@ -11379,7 +11380,7 @@ async function handleSendCliChat(cliente_id, inputEl, fileInputEl) {
         
     } catch(e) {
         console.error(e);
-        window.showToast('Error al enviar mensaje', 'error');
+        showToast('Error al enviar mensaje', 'error');
     }
 }
 
@@ -11436,7 +11437,7 @@ window.saveChatAccess = async function(cliente_id) {
     await saveDB(db);
     
     document.getElementById('modal-cli-chat-access').remove();
-    window.showToast('Accesos guardados', 'success');
+    showToast('Accesos guardados', 'success');
     
     // Refresh chat UI if needed
     initClientChat(db.Clientes_Maestro[cliIdx]);
