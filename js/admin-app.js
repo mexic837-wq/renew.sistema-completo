@@ -3738,28 +3738,42 @@ window.renderView = async function renderView() {
           }
         });
 
-        // Pass 2: prospectos (based strictly on assigned departments)
+        // Helper to extract all departments for a client
+        const getClientDepts = (c) => {
+          const depts = new Set();
+          if (Array.isArray(c.departamentos_activos)) c.departamentos_activos.forEach(d => depts.add(d));
+          if (Array.isArray(c.departamento)) c.departamento.forEach(d => depts.add(d));
+          else if (typeof c.departamento === 'string') {
+            const dStr = c.departamento.toLowerCase();
+            if (dStr.includes('water')) depts.add('Water');
+            if (dStr.includes('solar')) depts.add('Solar');
+            if (dStr.includes('home')) depts.add('Home');
+            if (depts.size === 0 && c.departamento) depts.add(c.departamento);
+          } else if (c.empresa && typeof c.empresa === 'string') {
+            depts.add(c.empresa);
+          }
+          if (c.unidades && Array.isArray(c.unidades)) {
+             c.unidades.forEach(u => depts.add(u));
+          }
+          
+          let parsed = [];
+          Array.from(depts).forEach(d => {
+             const lower = d.toLowerCase();
+             if (lower.includes('solar')) parsed.push('solar');
+             else if (lower.includes('water')) parsed.push('water');
+             else if (lower.includes('home')) parsed.push('home');
+             else parsed.push('otro');
+          });
+          return parsed.length ? parsed : ['otro'];
+        };
+
+        // Pass 2: prospectos (only for departments they actually have in their record)
         clientes.forEach(c => {
           const addr = getAddressAdmin(c);
           if (!addr) return;
-
-          let clientDepts = [];
-          try { 
-              const rawDepts = getDeptArray(c); 
-              if (rawDepts && rawDepts.length > 0) clientDepts = rawDepts.map(d => d.toLowerCase());
-          } catch(e) {}
-
-          let dptoStr = (c.departamento || c.empresa || '').toLowerCase();
-          if (c.unidades && Array.isArray(c.unidades)) dptoStr += ' ' + c.unidades.join(' ').toLowerCase();
-
-          if (clientDepts.length === 0) {
-              if (dptoStr.includes('solar')) clientDepts.push('solar');
-              if (dptoStr.includes('water')) clientDepts.push('water');
-              if (dptoStr.includes('home')) clientDepts.push('home');
-              if (clientDepts.length === 0) clientDepts.push('otro');
-          }
           
-          clientDepts.forEach(deptKey => {
+          const assignedDepts = getClientDepts(c);
+          assignedDepts.forEach(deptKey => {
             // If they are not already a cliente in this dept, they are a prospecto
             if (!seenAdminCombo.has(`${c.id}::${deptKey}::cliente`)) {
               const combo = `${c.id}::${deptKey}::prospecto`;
@@ -3792,6 +3806,10 @@ window.renderView = async function renderView() {
 
           // All depts this client has (for badges)
           const clientDepts = [...(allClientDepts[c.id] || new Set([deptKey]))];
+          // Force all 3 core depts into the badge array for consistency if they are a cross-sell prospect
+          coreDepts.forEach(d => {
+             if (!clientDepts.includes(d)) clientDepts.push(d);
+          });
           const deptBadgesHtml = clientDepts.map(dk => {
             const cfg = deptConfig[dk] || deptConfig['otro'];
             return `<span style="font-size: 10px; background:${cfg.color}20; color:${cfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${cfg.color}40;">${cfg.label}</span>`;
