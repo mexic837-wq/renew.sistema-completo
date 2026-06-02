@@ -973,15 +973,27 @@ export async function saveHistorialInventario(data) {
   await saveDB(db);
 }
 
-// ── MULTI-DEPARTMENT HELPER ──────────────────────────────────
 // Returns an array of department names regardless of old (string) or new (array) format
 export function getDeptArray(cli) {
-  if (Array.isArray(cli.departamentos_activos) && cli.departamentos_activos.length > 0) {
-    return cli.departamentos_activos;
+  const depts = new Set();
+  
+  if (Array.isArray(cli.departamentos_activos)) {
+    cli.departamentos_activos.forEach(d => depts.add(d));
   }
-  // Fallback to legacy single-value fields
-  const single = cli.departamento || cli.empresa || '';
-  return single ? [single] : [];
+  
+  if (Array.isArray(cli.departamento)) {
+    cli.departamento.forEach(d => depts.add(d));
+  } else if (typeof cli.departamento === 'string') {
+    const dStr = cli.departamento.toLowerCase();
+    if (dStr.includes('water')) depts.add('Water');
+    if (dStr.includes('solar')) depts.add('Solar');
+    if (dStr.includes('home')) depts.add('Home');
+    if (depts.size === 0 && cli.departamento) depts.add(cli.departamento);
+  } else if (cli.empresa && typeof cli.empresa === 'string') {
+    depts.add(cli.empresa);
+  }
+  
+  return Array.from(depts);
 }
 
 export function syncClientStatuses(db) {
