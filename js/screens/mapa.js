@@ -278,36 +278,62 @@ export async function renderMiMapa() {
         return 'otro';
       };
 
-      const clientDeptCombos = [];
-      const seenCombo = new Set();
+      const clientsToMap = {}; // c.id -> { c, address, combos: Set of "deptKey::statusKey", depts: Set of "deptKey" }
 
-      // First pass: clients with projects -> one entry per unique (client, dept)
+      const getAddress = (c) => {
+        let addr = c.direccion || '';
+        // If address is just an email, ignore it
+        if (addr.includes('@')) addr = '';
+        if (!addr && c.ciudad) addr = c.ciudad;
+        if (!addr && c.estado) addr = c.estado;
+        return addr;
+      };
+
+      // 1. First pass: Projects (Clientes)
       allProys.forEach(p => {
         const c = myClients.find(cl => cl.id === p.cliente_id);
-        if (!c || !c.direccion) return;
+        if (!c) return;
+        const addr = getAddress(c);
+        if (!addr) return;
+        
         const deptKey = getDeptFromProject(p);
-        const combo = `${c.id}::${deptKey}`;
-        if (!seenCombo.has(combo)) {
-          seenCombo.add(combo);
-          clientDeptCombos.push({ c, deptKey, statusKey: 'cliente' });
-        }
+        if (!clientsToMap[c.id]) clientsToMap[c.id] = { c, address: addr, combos: new Set(), depts: new Set() };
+        clientsToMap[c.id].combos.add(`${deptKey}::cliente`);
+        clientsToMap[c.id].depts.add(deptKey);
       });
 
-      // Second pass: prospectos (no projects at all)
+      // 2. Second pass: Prospectos
       myClients.forEach(c => {
-        if (!c.direccion || allClientProjectIds.has(c.id)) return;
-        let deptKey = 'otro';
+        const addr = getAddress(c);
+        if (!addr) return;
+
         let depts = [];
         try { depts = getDeptArray(c); } catch(e) {}
-        const deptStr = (depts[0] || c.empresa || c.departamento || '').toLowerCase();
-        if (deptStr.includes('solar')) deptKey = 'solar';
-        else if (deptStr.includes('water')) deptKey = 'water';
-        else if (deptStr.includes('home'))  deptKey = 'home';
-        const combo = `${c.id}::${deptKey}`;
-        if (!seenCombo.has(combo)) {
-          seenCombo.add(combo);
-          clientDeptCombos.push({ c, deptKey, statusKey: 'prospecto' });
+        if (depts.length === 0) {
+            const deptStr = (c.empresa || c.departamento || '').toLowerCase();
+            if (deptStr.includes('solar')) depts.push('solar');
+            else if (deptStr.includes('water')) depts.push('water');
+            else if (deptStr.includes('home'))  depts.push('home');
+            else depts.push('otro');
+        } else {
+            depts = depts.map(d => {
+                const ds = d.toLowerCase();
+                if (ds.includes('solar')) return 'solar';
+                if (ds.includes('water')) return 'water';
+                if (ds.includes('home')) return 'home';
+                return 'otro';
+            });
         }
+        
+        if (!clientsToMap[c.id]) clientsToMap[c.id] = { c, address: addr, combos: new Set(), depts: new Set() };
+        
+        depts.forEach(deptKey => {
+            clientsToMap[c.id].depts.add(deptKey);
+            // If they are not already a 'cliente' in this dept, they are a 'prospecto'
+            if (!clientsToMap[c.id].combos.has(`${deptKey}::cliente`)) {
+                clientsToMap[c.id].combos.add(`${deptKey}::prospecto`);
+            }
+        });
       });
 
       const deptIconMap = {
@@ -317,36 +343,40 @@ export async function renderMiMapa() {
         otro:  'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
       };
 
-      // Pre-compute all depts per client (for showing all badges in panel)
-      const allClientDeptsVendor = {};
-      allProys.forEach(p => {
-        const dk = getDeptFromProject(p);
-        if (!allClientDeptsVendor[p.cliente_id]) allClientDeptsVendor[p.cliente_id] = new Set();
-        allClientDeptsVendor[p.cliente_id].add(dk);
-      });
-
-      clientDeptCombos.forEach(({ c, deptKey, statusKey }) => {
-        const iconUrl   = deptIconMap[deptKey] || deptIconMap.otro;
-        const deptCfg   = DEPTS.find(d => d.key === deptKey);
-        const statusCfg = STATUSES.find(s => s.key === statusKey);
-        const accentColor = deptCfg ? deptCfg.color : '#ef4444';
-        const clientAllDepts = [...(allClientDeptsVendor[c.id] || new Set([deptKey]))];
-
-        geocoder.geocode({ address: c.direccion }, (results, status) => {
+      Object.values(clientsToMap).forEach(({ c, address, combos, depts }) => {
+        geocoder.geocode({ address: address }, (results, status) => {
           if (status !== 'OK' || !results[0]) return;
 
-          const marker = new google.maps.Marker({
-            map,
-            position: results[0].geometry.location,
-            title: `${c.nombre || 'Cliente'} (${deptCfg ? deptCfg.label : 'Otro'})`,
-            icon: iconUrl,
-            visible: true
-          });
+          let offsetCount = 0;
+          const baseLat = results[0].geometry.location.lat();
+          const baseLng = results[0].geometry.location.lng();
 
-          allMarkerMeta.push({ marker, deptKey, statusKey, client: c });
+          combos.forEach(comboStr => {
+            const [deptKey, statusKey] = comboStr.split('::');
+            const iconUrl   = deptIconMap[deptKey] || deptIconMap.otro;
+            const deptCfg   = DEPTS.find(d => d.key === deptKey);
+            const statusCfg = STATUSES.find(s => s.key === statusKey);
+            const accentColor = deptCfg ? deptCfg.color : '#ef4444';
 
-          marker.addListener('click', () => {
-            openNotePanel(c, clientAllDepts, DEPTS, statusCfg, accentColor);
+            // Offset multiple markers for the same client slightly so they are all clickable
+            const latOffset = offsetCount * 0.0001;
+            const lngOffset = offsetCount * 0.0001;
+            const position = new google.maps.LatLng(baseLat + latOffset, baseLng + lngOffset);
+            offsetCount++;
+
+            const marker = new google.maps.Marker({
+              map,
+              position: position,
+              title: `${c.nombre || 'Cliente'} (${deptCfg ? deptCfg.label : 'Otro'} - ${statusCfg ? statusCfg.label : ''})`,
+              icon: iconUrl,
+              visible: true
+            });
+
+            allMarkerMeta.push({ marker, deptKey, statusKey, client: c });
+
+            marker.addListener('click', () => {
+              openNotePanel(c, Array.from(depts), DEPTS, statusCfg, accentColor);
+            });
           });
 
           bounds.extend(results[0].geometry.location);
