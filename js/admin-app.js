@@ -6320,7 +6320,7 @@ window.eliminarEventoCalendarioAdmin = async function(passedEventId) {
             worker.dob = '';
             // Make sure saveGranular is available, or use saveDB
             const { saveGranular } = await import('./api.js');
-            await saveGranular('Usuarios', [worker]);
+            await saveGranular('usuarios', [worker]);
         }
         showToast('Cumpleaños eliminado (fecha de nacimiento borrada)', 'success');
     } else {
