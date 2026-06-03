@@ -824,6 +824,14 @@ export async function renderHRHub() {
 
                 import('../components/toast.js').then(m => m.showToast('Adelanto registrado correctamente.', 'success'));
                 
+                // Clear fields
+                document.getElementById('adel-monto').value = '';
+                document.getElementById('adel-fecha').value = '';
+                document.getElementById('adel-motivo').value = '';
+                select.value = '';
+                fileInp.value = '';
+                label.textContent = 'Haga clic para subir archivo';
+
                 // Hide modal correctly
                 if (window.hideModal) {
                     window.hideModal(modal);
@@ -932,6 +940,8 @@ export async function renderHRHub() {
             const monto = document.getElementById('recibo-monto').value;
             const fecha = document.getElementById('recibo-fecha').value;
             const motivo = document.getElementById('recibo-motivo').value;
+            const deptoEl = document.getElementById('recibo-departamento');
+            const depto = deptoEl ? deptoEl.value : 'otro';
             const file = fileInp.files[0];
 
             if (!workerId || !monto || !fecha) {
@@ -965,10 +975,10 @@ export async function renderHRHub() {
                     trabajador_id: workerId,
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     cliente_nombre: motivo || 'Pago Manual',
-                    tipo: computedTipo,
+                    tipo: computedTipo === 'oficina' ? 'vendedor' : computedTipo,
                     fecha_recibo: fecha,
                     pdf_url: docUrl,
-                    datos_json: { grand_total: parseFloat(monto.replace(/,/g, '')), subtipo: computedTipo },
+                    datos_json: { grand_total: parseFloat(monto.replace(/,/g, '')), subtipo: computedTipo, dpto: depto },
                     created_at: new Date().toISOString()
                 };
 
@@ -982,6 +992,17 @@ export async function renderHRHub() {
 
                 import('../components/toast.js').then(m => m.showToast('Recibo registrado correctamente.', 'success'));
                 
+                // Clear fields
+                document.getElementById('recibo-monto').value = '';
+                document.getElementById('recibo-fecha').value = '';
+                document.getElementById('recibo-motivo').value = '';
+                if(deptoEl) deptoEl.value = 'otro';
+                select.value = '';
+                fileInp.value = '';
+                label.textContent = 'Haga clic para subir archivo';
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar y Notificar';
+
                 if (window.hideModal) {
                     window.hideModal(modal);
                 } else {
@@ -997,10 +1018,9 @@ export async function renderHRHub() {
 
             } catch (err) {
                 console.error("Error saving recibo:", err);
-                import('../components/toast.js').then(m => m.showToast('Error al guardar.', 'error'));
-            } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Guardar y Notificar';
+                import('../components/toast.js').then(m => m.showToast('Error al guardar.', 'error'));
             }
         };
     }
