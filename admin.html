@@ -2832,7 +2832,17 @@
 
                 <div>
                     <label class="aqua-label mb-1">Motivo / Descripción</label>
-                    <textarea id="adel-motivo" rows="2" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all resize-none" placeholder="Escriba el motivo..."></textarea>
+                    <textarea id="adel-motivo" rows="2" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all resize-none mb-4" placeholder="Escriba el motivo..."></textarea>
+                </div>
+
+                <div>
+                    <label class="aqua-label mb-1">Departamento</label>
+                    <select id="adel-departamento" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all appearance-none" style="background-image: url('data:image/svg+xml;utf8,<svg fill=%22%239ca3af%22 height=%2224%22 viewBox=%220 0 24 24%22 width=%2224%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 10px center;">
+                        <option value="otro">Otro / Oficina</option>
+                        <option value="water">Water</option>
+                        <option value="solar">Solar</option>
+                        <option value="home">Home</option>
+                    </select>
                 </div>
 
                 <div>
@@ -2992,64 +3002,7 @@
     <!-- Init error banner (shown on fatal init failure) -->
     <div id="init-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999999;background:linear-gradient(90deg,#ef4444,#dc2626);color:#fff;font-weight:700;font-size:13px;padding:12px 20px;text-align:center;"></div>
 
-    <!-- MODAL: NUEVO ADELANTO / PRESTAMO -->
-    <div id="modal-adelanto" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[200] p-6">
-        <div class="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 w-full max-w-[500px] rounded-[2.5rem] shadow-2xl p-8 max-h-[95vh] overflow-y-auto hide-scrollbar animate-scaleIn relative overflow-hidden group">
-            <div class="absolute -top-24 -right-24 w-48 h-48 bg-tealAccent/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="flex items-center justify-between mb-6 relative z-10">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-tealAccent/10 rounded-2xl flex items-center justify-center border border-tealAccent/20">
-                        <i class="fa-solid fa-hand-holding-dollar text-xl text-tealAccent"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Nuevo Adelanto</h3>
-                    </div>
-                </div>
-                <button onclick="closeModals()" class="btn-cancel text-gray-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5">
-                    <i class="fa-solid fa-xmark text-sm"></i>
-                </button>
-            </div>
 
-            <div class="space-y-4 relative z-10">
-                <div>
-                    <label class="aqua-label mb-1">Seleccionar Trabajador</label>
-                    <select id="adel-trabajador-id" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
-                        <option value="">Seleccione un trabajador...</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="aqua-label mb-1">Monto ($)</label>
-                        <input type="text" id="adel-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00" oninput="let v = this.value.replace(/[^0-9.]/g, ''); const p = v.split('.'); if (p.length > 2) v = p[0] + '.' + p.slice(1).join(''); const p2 = v.split('.'); p2[0] = p2[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); this.value = p2.join('.');">
-                    </div>
-                    <div>
-                        <label class="aqua-label mb-1">Fecha</label>
-                        <input type="date" id="adel-fecha" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="aqua-label mb-1">Motivo / Descripción</label>
-                    <textarea id="adel-motivo" rows="2" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all resize-none" placeholder="Escriba el motivo..."></textarea>
-                </div>
-
-                <div>
-                    <label class="aqua-label mb-1">Documento Respaldo (PDF/Imagen)</label>
-                    <div id="drop-adelanto-doc" class="border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-tealAccent/40 hover:bg-tealAccent/5 transition-all" onclick="document.getElementById('inp-adelanto-doc').click()">
-                        <input type="file" id="inp-adelanto-doc" class="hidden" accept="image/*,.pdf">
-                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-tealAccent mb-2"></i>
-                        <span id="lbl-adelanto-doc" class="text-[10px] text-gray-400 font-black uppercase tracking-widest text-center">Haga clic para subir archivo</span>
-                    </div>
-                </div>
-
-                <button id="btn-save-adelanto" class="w-full py-4 bg-tealAccent text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-tealAccent/20 hover:scale-[1.01] active:scale-95 transition-all mt-4">
-                    Guardar y Notificar
-                </button>
-            </div>
-        </div>
- 
 
     <!-- MODAL: DETALLES HISTORIAL INVENTARIO -->
     <div id="modal-inv-history-details" class="fixed inset-0 bg-black/60 backdrop-blur-sm nuclear-hidden flex items-center justify-center z-[300] p-6">

@@ -784,6 +784,8 @@ export async function renderHRHub() {
             const monto = document.getElementById('adel-monto').value;
             const fecha = document.getElementById('adel-fecha').value;
             const motivo = document.getElementById('adel-motivo').value;
+            const deptoEl = document.getElementById('adel-departamento');
+            const depto = deptoEl ? deptoEl.value : 'otro';
             const file = fileInp.files[0];
 
             if (!workerId || !monto || !fecha) {
@@ -809,6 +811,7 @@ export async function renderHRHub() {
                     monto: parseFloat(monto.replace(/,/g, '')),
                     fecha: fecha,
                     motivo: motivo,
+                    departamento: depto,
                     document_url: docUrl,
                     created_at: new Date().toISOString()
                 };
@@ -828,6 +831,7 @@ export async function renderHRHub() {
                 document.getElementById('adel-monto').value = '';
                 document.getElementById('adel-fecha').value = '';
                 document.getElementById('adel-motivo').value = '';
+                if (deptoEl) deptoEl.value = 'otro';
                 select.value = '';
                 fileInp.value = '';
                 label.textContent = 'Haga clic para subir archivo';
