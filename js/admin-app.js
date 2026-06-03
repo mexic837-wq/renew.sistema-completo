@@ -10496,7 +10496,7 @@ window.updateWorkerRankVisibility = function() {
         } else {
             rankContainer.classList.add('hidden');
             const rankSelect = document.getElementById('inp-usr-rank');
-            if (rankSelect) rankSelect.value = 'novato';
+            if (rankSelect) rankSelect.value = 'no_aplica';
         }
     }
 
@@ -10590,13 +10590,14 @@ window.updateEditWorkerRankVisibility = function() {
     const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
     const isProjectManager = rolVal === 'project manager';
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión';
+    const isManager = rolVal === 'manager';
 
-    if ((isVendedor || isProjectManager || isSupervisor) && waterChecked) {
+    if ((isVendedor || isProjectManager || isSupervisor || isManager) && waterChecked) {
         rankContainer.style.display = 'block';
     } else {
         rankContainer.style.display = 'none';
         const rankSelect = document.getElementById('det-edit-rank');
-        if (rankSelect) rankSelect.value = 'novato'; 
+        if (rankSelect) rankSelect.value = 'no_aplica'; 
     }
 };
 
