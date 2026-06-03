@@ -7589,7 +7589,6 @@ async function toggleDetailEditMode(id) {
             const telefono = ccValDet && telValDet ? `${ccValDet} ${telValDet}` : telValDet;
             
             const rolEl = document.getElementById('det-edit-rol');
-            const rankEl = document.getElementById('det-edit-rank');
             const deptEl = document.getElementById('det-edit-dept');
             const passEl = document.getElementById('det-edit-pass');
             const dobEl = document.getElementById('det-edit-dob');
