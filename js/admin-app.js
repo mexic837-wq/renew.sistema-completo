@@ -6044,7 +6044,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
         if (btnEliminar) {
             const u = getCurrentUser();
-            if (u && ['Admin', 'Súper Admin', 'Gerente', 'Administrador'].includes(u.rango || u.rol)) {
+            if (u && ['admin', 'administrador', 'ceo', 'súper admin', 'gerente'].includes((u.rango || u.rol || '').toLowerCase())) {
                 btnEliminar.classList.remove('hidden');
             } else {
                 btnEliminar.classList.add('hidden');
