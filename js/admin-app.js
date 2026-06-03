@@ -10502,11 +10502,23 @@ window.updateWorkerRankVisibility = function() {
     
     const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter || isManager;
 
-    // Rango: Vendedores, PM, Supervisor con Water
+    // Rango: Vendedores, PM, Supervisor, Manager con Water
     const waterChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
         const pipName = chk.dataset.pip || '';
         return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
     });
+
+    const rankSelect = document.getElementById('inp-usr-rank');
+    if (rankSelect) {
+        Array.from(rankSelect.options).forEach(opt => {
+            if (opt.value === 'oficina') {
+                opt.style.display = isManager ? 'block' : 'none';
+                opt.disabled = !isManager;
+                if (!isManager && rankSelect.value === 'oficina') rankSelect.value = 'no_aplica';
+            }
+        });
+    }
+
     if (rankContainer) {
         if (hasPipelines && waterChecked) {
             rankContainer.classList.remove('hidden');
@@ -10625,13 +10637,23 @@ window.updateEditWorkerRankVisibility = function() {
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión';
     const isManager = rolVal === 'manager';
 
+    const rankSelect = document.getElementById('det-edit-rank');
+    if (rankSelect) {
+        Array.from(rankSelect.options).forEach(opt => {
+            if (opt.value === 'oficina') {
+                opt.style.display = isManager ? 'block' : 'none';
+                opt.disabled = !isManager;
+                if (!isManager && rankSelect.value === 'oficina') rankSelect.value = 'no_aplica';
+            }
+        });
+    }
+
     const editRankSolarContainer = document.getElementById('det-edit-rank-solar-container');
 
     if ((isVendedor || isProjectManager || isSupervisor || isManager) && waterChecked) {
         rankContainer.style.display = 'block';
     } else {
         rankContainer.style.display = 'none';
-        const rankSelect = document.getElementById('det-edit-rank');
         if (rankSelect) rankSelect.value = 'no_aplica'; 
     }
 
