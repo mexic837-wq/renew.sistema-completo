@@ -3953,6 +3953,9 @@ window.renderView = async function renderView() {
     
     let items = await getAdminWorkers();
     
+    // Sort items alphabetically by nombre
+    items.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
     if (window.globalSearchQuery) {
         items = items.filter(u => {
             const searchStr = window.normalizeSearchString(`${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${u.rol || ''} ${u.email || ''} ${u.telefono || ''}`);

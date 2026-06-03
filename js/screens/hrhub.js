@@ -314,6 +314,7 @@ export async function renderHRHub() {
                     fecha_nacimiento: u.fecha_nacimiento || null
                 };
             });
+            empleadosData.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
         } catch (err) {
             console.error("Error fetching empleados:", err);
             empleadosData = [];
