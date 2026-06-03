@@ -748,13 +748,34 @@ export async function renderHRHub() {
             console.log("------------------------");
         }, 100);
 
-        // Handle file change
+        // Handle file change and drag/drop
+        const dropZone = document.getElementById('drop-adelanto-doc');
         const fileInp = document.getElementById('inp-adelanto-doc');
         const label = document.getElementById('lbl-adelanto-doc');
+        
         fileInp.onchange = (e) => {
             const file = e.target.files[0];
             if (file) label.textContent = file.name;
         };
+        
+        if (dropZone) {
+            dropZone.ondragover = (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-tealAccent', 'bg-tealAccent/10');
+            };
+            dropZone.ondragleave = (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-tealAccent', 'bg-tealAccent/10');
+            };
+            dropZone.ondrop = (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-tealAccent', 'bg-tealAccent/10');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    fileInp.files = e.dataTransfer.files;
+                    label.textContent = e.dataTransfer.files[0].name;
+                }
+            };
+        }
 
         // Handle save
         document.getElementById('btn-save-adelanto').onclick = async () => {
@@ -876,12 +897,34 @@ export async function renderHRHub() {
             }
         }
 
+        // Handle file change and drag/drop
+        const dropZoneR = document.getElementById('drop-recibo-doc');
         const fileInp = document.getElementById('inp-recibo-doc');
         const label = document.getElementById('lbl-recibo-doc');
+        
         fileInp.onchange = (e) => {
             const file = e.target.files[0];
             if (file) label.textContent = file.name;
         };
+        
+        if (dropZoneR) {
+            dropZoneR.ondragover = (e) => {
+                e.preventDefault();
+                dropZoneR.classList.add('border-tealAccent', 'bg-tealAccent/10');
+            };
+            dropZoneR.ondragleave = (e) => {
+                e.preventDefault();
+                dropZoneR.classList.remove('border-tealAccent', 'bg-tealAccent/10');
+            };
+            dropZoneR.ondrop = (e) => {
+                e.preventDefault();
+                dropZoneR.classList.remove('border-tealAccent', 'bg-tealAccent/10');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    fileInp.files = e.dataTransfer.files;
+                    label.textContent = e.dataTransfer.files[0].name;
+                }
+            };
+        }
 
         document.getElementById('btn-save-recibo-manual').onclick = async () => {
             const workerId = select.value;
