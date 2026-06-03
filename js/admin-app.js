@@ -7361,6 +7361,10 @@ async function toggleDetailEditMode(id) {
             if (rv === 'novato') rv = 'auto'; // legacy migration
             document.getElementById('det-edit-rank').value = rv;
         }
+        if (document.getElementById('det-edit-rank-solar')) {
+            const rsv = usr.rango_solar || 'no_aplica';
+            document.getElementById('det-edit-rank-solar').value = rsv;
+        }
         if (document.getElementById('det-edit-pass')) document.getElementById('det-edit-pass').value = usr.password || usr.pass || 'renew123';
         
         // Populate new fields
