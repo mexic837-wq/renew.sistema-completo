@@ -683,6 +683,13 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
         action: () => window.appNavigate('clients'), delay: '0s', screen: 'clients'
       } : null,
+      ((user.permisos && 'app_partners' in user.permisos) ? user.permisos.app_partners : (isAdmin || isVentas)) ? {
+        name: 'Partners', tag: null,
+        gradient: 'linear-gradient(90deg,#10b981,#059669)',
+        iconBg: 'rgba(16,185,129,0.1)', iconColor: '#10b981',
+        icon: `<i class="fa-solid fa-handshake"></i>`,
+        action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
+      } : null,
     ],
   };
 
@@ -709,13 +716,6 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
       action: () => window.appNavigate('mi-equipo'), delay: '0.22s', screen: 'mi-equipo'
     },
-    ((user.permisos && 'app_partners' in user.permisos) ? user.permisos.app_partners : (isAdmin || isVentas)) ? {
-      name: 'Partners', tag: null,
-      gradient: 'linear-gradient(90deg,#10b981,#059669)',
-      iconBg: 'rgba(16,185,129,0.1)', iconColor: '#10b981',
-      icon: `<i class="fa-solid fa-handshake"></i>`,
-      action: () => window.appNavigate('partners'), delay: '0.23s', screen: 'partners'
-    } : null,
     ((user.permisos && 'app_os' in user.permisos) ? user.permisos.app_os : (isAdmin || userRole === 'manager' || userRole === 'partner')) ? {
       name: 'Renew OS (Admin)', tag: null,
       gradient: 'linear-gradient(90deg,#f59e0b,#ef4444)',
