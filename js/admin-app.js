@@ -9,7 +9,7 @@ import {
   getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
-  getInternalMessages, sendInternalMessage, markMessageAsRead
+  getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
 } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
@@ -7777,7 +7777,7 @@ function updateSidebarUser() {
 // â¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Â
 //  KANBAN PROJECT DETAIL DRAWER
 // â¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Ââ¢Â
-function renderDiscussionHTML(discusion, pipelineColor) {
+function renderDiscussionHTML(discusion, pipelineColor, projectId = null) {
     if (!discusion) return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-style:italic;font-size:0.85rem;">No hay mensajes aún.</div>';
     let arr = discusion;
     if (typeof arr === 'string') {
@@ -7799,7 +7799,9 @@ function renderDiscussionHTML(discusion, pipelineColor) {
             dateSeparator = `<div style="text-align:center;margin:12px 0 8px;"><span style="display:inline-block;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.05);color:#64748b;font-size:0.65rem;font-weight:800;padding:3px 12px;border-radius:99px;text-transform:capitalize;">${dateLabel}</span></div>`;
         }
         
-        const isMe = getCurrentUser()?.id === c.user_id;
+        const currentUser = getCurrentUser();
+        const isMe = currentUser?.id === c.user_id;
+        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes((currentUser?.rol || '').toLowerCase());
         const initials = ((c.user || '?')[0]).toUpperCase();
         const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
@@ -7824,6 +7826,10 @@ function renderDiscussionHTML(discusion, pipelineColor) {
                 <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;${isMe ? 'flex-direction:row-reverse;' : ''}">
                     <span style="font-size:0.7rem;font-weight:800;color:#0f172a;">${isMe ? 'Tú' : c.user}</span>
                     <span style="font-size:0.6rem;color:#64748b;">${time}</span>
+                    ${isAdminOrCEO && projectId ? `
+                    <button onclick="window.editProjectMsg('${projectId}', '${c.date}', '${encodeURIComponent(c.text || '')}')" title="Editar" class="ml-1 opacity-50 hover:opacity-100 transition-opacity"><i class="fa-solid fa-pencil text-[9px]"></i></button>
+                    <button onclick="window.deleteProjectMsg('${projectId}', '${c.date}')" title="Eliminar" class="ml-1 opacity-50 hover:opacity-100 transition-opacity hover:text-red-600"><i class="fa-solid fa-trash text-[9px]"></i></button>
+                    ` : ''}
                 </div>
                 <div style="background:${isMe ? pipelineColor : 'white'};color:${isMe ? 'white' : '#0f172a'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1);${!isMe ? 'border:1px solid #e2e8f0;' : ''}">${c.text || ''}${attachmentHtml}</div>
             </div>
@@ -8079,7 +8085,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         
         <!-- Messages Area -->
         <div id="discussion-list" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;">
-            ${renderDiscussionHTML(p.discusion, pipeline.color)}
+            ${renderDiscussionHTML(p.discusion, pipeline.color, p.id)}
         </div>
         
         <!-- Chat Input -->
@@ -8403,7 +8409,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           }
           const list = document.getElementById('discussion-list');
           if (list) {
-              list.innerHTML = renderDiscussionHTML(filtered, pipeline.color);
+              list.innerHTML = renderDiscussionHTML(filtered, pipeline.color, p.id);
           }
       });
   }
@@ -8507,7 +8513,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               if (chatFileInput) chatFileInput.value = '';
               if (chatFilePreview) chatFilePreview.style.display = 'none';
               const list = document.getElementById('discussion-list');
-              list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color);
+              list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color, p.id);
               list.scrollTop = list.scrollHeight;
           } catch(e) {
               console.error("Save discussion error:", e);
@@ -11163,6 +11169,95 @@ async function initClientChat(cli) {
     }
 }
 
+window.editCliChatMsg = async (msgId, clientId, content) => {
+    const dec = decodeURIComponent(content);
+    const newContent = window.prompt("Editar mensaje:", dec);
+    if (newContent !== null && newContent.trim() !== "" && newContent.trim() !== dec) {
+        try {
+            await updateInternalMessage(msgId, newContent.trim());
+            showToast('Mensaje actualizado', 'success');
+            // Recargar chat
+            const user = getCurrentUser();
+            const db = getDB();
+            const cli = (db.Clientes_Maestro || []).find(c => c.id === clientId);
+            const messages = await getInternalMessages(clientId);
+            const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes((user.rol || '').toLowerCase());
+            renderClientChat(cli, messages, user, (user.rol||'').toLowerCase()==='ceo', isAdminOrCEO, isAdminOrCEO);
+        } catch (e) {
+            console.error(e);
+            showToast('Error al editar', 'error');
+        }
+    }
+};
+
+window.deleteCliChatMsg = async (msgId, clientId) => {
+    if (!confirm("¿Seguro que deseas eliminar este mensaje?")) return;
+    try {
+        await deleteInternalMessage(msgId);
+        showToast('Mensaje eliminado', 'success');
+        // Recargar chat
+        const user = getCurrentUser();
+        const db = getDB();
+        const cli = (db.Clientes_Maestro || []).find(c => c.id === clientId);
+        const messages = await getInternalMessages(clientId);
+        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes((user.rol || '').toLowerCase());
+        renderClientChat(cli, messages, user, (user.rol||'').toLowerCase()==='ceo', isAdminOrCEO, isAdminOrCEO);
+    } catch (e) {
+        console.error(e);
+        showToast('Error al eliminar', 'error');
+    }
+};
+
+window.editProjectMsg = async (projectId, msgDate, content) => {
+    const dec = decodeURIComponent(content);
+    const newContent = window.prompt("Editar mensaje:", dec);
+    if (newContent !== null && newContent.trim() !== "" && newContent.trim() !== dec) {
+        try {
+            const db = getDB();
+            const p = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
+            if (!p) throw new Error("Proyecto no encontrado");
+            if (typeof p.discusion === 'string') {
+                try { p.discusion = JSON.parse(p.discusion); } catch(e) { p.discusion = []; }
+            }
+            if (!p.discusion) p.discusion = [];
+            const msg = p.discusion.find(m => m.date === msgDate);
+            if (msg) {
+                msg.text = newContent.trim();
+                await saveGranular('proyectos_dinamicos', [p]);
+                showToast('Mensaje de proyecto actualizado', 'success');
+                const list = document.getElementById('discussion-list');
+                const pipeline = (db.Admin_Pipelines || []).find(pip => pip.id === p.pipeline_id) || { color: '#0d9488' };
+                if (list) list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color, p.id);
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al editar: ' + e.message, 'error');
+        }
+    }
+};
+
+window.deleteProjectMsg = async (projectId, msgDate) => {
+    if (!confirm("¿Seguro que deseas eliminar este mensaje del proyecto?")) return;
+    try {
+        const db = getDB();
+        const p = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
+        if (!p) throw new Error("Proyecto no encontrado");
+        if (typeof p.discusion === 'string') {
+            try { p.discusion = JSON.parse(p.discusion); } catch(e) { p.discusion = []; }
+        }
+        if (!p.discusion) p.discusion = [];
+        p.discusion = p.discusion.filter(m => m.date !== msgDate);
+        await saveGranular('proyectos_dinamicos', [p]);
+        showToast('Mensaje de proyecto eliminado', 'success');
+        const list = document.getElementById('discussion-list');
+        const pipeline = (db.Admin_Pipelines || []).find(pip => pip.id === p.pipeline_id) || { color: '#0d9488' };
+        if (list) list.innerHTML = renderDiscussionHTML(p.discusion, pipeline.color, p.id);
+    } catch (e) {
+        console.error(e);
+        showToast('Error al eliminar: ' + e.message, 'error');
+    }
+};
+
 async function renderClientChat(cli, messages, user, isCEO, isAllowedManager, isAdminOrCEO) {
     const container = document.getElementById('cli-chat-messages');
     
@@ -11218,6 +11313,10 @@ async function renderClientChat(cli, messages, user, isCEO, isAllowedManager, is
                         ${imageUrl ? `<img src="${imageUrl}" class="w-full max-h-60 object-cover rounded-xl mb-2 cursor-pointer" onclick="window.open('${imageUrl}')">` : ''}
                         <p class="text-sm font-medium leading-relaxed">${formatCliChatContent(msg.content || '', isMe)}</p>
                         <div class="flex items-center justify-end gap-2 mt-1">
+                            ${isAdminOrCEO ? `
+                            <button onclick="window.editCliChatMsg('${msg.id}', '${cli.id}', '${encodeURIComponent(msg.content || '')}')" title="Editar"><i class="fa-solid fa-pencil text-[9px] opacity-50 hover:opacity-100 transition-opacity"></i></button>
+                            <button onclick="window.deleteCliChatMsg('${msg.id}', '${cli.id}')" title="Eliminar"><i class="fa-solid fa-trash text-[9px] opacity-50 hover:opacity-100 transition-opacity hover:text-red-600"></i></button>
+                            ` : ''}
                             <span class="text-[9px] opacity-50 font-bold">${date}</span>
                         </div>
                     </div>
