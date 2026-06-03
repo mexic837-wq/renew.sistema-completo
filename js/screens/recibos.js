@@ -260,6 +260,9 @@ function _showReciboModal(r) {
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
         ${field('Colaborador', r.trabajador_nombre)}
         ${field('Motivo / Cliente', r.cliente_nombre)}
+        ${field('Fecha', r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—'))}
+      </div>
+      <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">
         ${field('Monto Total', d.grand_total ? `$${Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—', true)}
       </div>
     `;
@@ -267,40 +270,24 @@ function _showReciboModal(r) {
     html = `
       <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
-        ${field('Representante', d.sales_representative)}
+        ${field('Representante', d.sales_representative || r.trabajador_nombre)}
         ${field('Cliente', r.cliente_nombre || d.customer_name)}
-        ${field('Empresa Financiera', d.finance_company)}
-        ${field('Check #', d.check_number)}
-        ${field('Fecha Transferencia', d.transfer_date)}
-        ${field('Monto de Venta', d.sales_amount ? `$${Number(d.sales_amount).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')}
-        ${field('Aprobación', d.aprobacion_pct ? `${d.aprobacion_pct}%` : '—')}
-        ${field('Monto Aprobación', d.monto_aprobacion ? `$${Number(d.monto_aprobacion).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')}
+        ${field('Fecha', r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—'))}
       </div>
-      <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
-        <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Costos</p>
-        ${field('Cost', d.cost ? `$${Number(d.cost).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')}
-        ${field('Costo Plan %', d.costo_plan_pct ? `${d.costo_plan_pct}%` : '—')}
-        ${field('Total Costo', d.total_costo ? `$${Number(d.total_costo).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')}
-        ${field('Total Analista', d.total_analista ? `$${Number(d.total_analista).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')}
-      </div>
-      ${(d.extra_charges || []).length ? `
-      <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
-        <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Extra Charges</p>
-        ${(d.extra_charges||[]).map(e => field(e.concepto, e.monto ? `$${Number(e.monto).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—')).join('')}
-      </div>` : ''}
       <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">
-        ${field('Instalador', d.instalador)}
-        ${field('GRAND TOTAL', d.grand_total ? `$${Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—', true)}
+        ${field('Monto Total', d.grand_total ? `$${Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—', true)}
       </div>
     `;
   } else {
     html = `
       <div style="background:var(--surface-alt);border-radius:14px;padding:16px;margin-bottom:16px;">
-        <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información</p>
-        ${field('Instalador', d.installer_name)}
+        <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
+        ${field('Instalador', d.installer_name || r.trabajador_nombre)}
         ${field('Cliente', r.cliente_nombre || d.customer_name)}
-        ${field('Dirección', d.address || r.direccion)}
-        ${field('Fecha', d.date)}
+        ${field('Fecha', d.date || r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—'))}
+      </div>
+      <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">
+        ${field('Monto Total', d.total_price || d.grand_total ? `$${Number(d.total_price || d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—', true)}
       </div>
     `;
   }
