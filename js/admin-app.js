@@ -6044,8 +6044,15 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         const btnEliminar = document.getElementById('btn-eliminar-evento-admin');
         if (btnEliminar) {
             const u = getCurrentUser();
-            if (u && ['admin', 'administrador', 'ceo', 'súper admin', 'gerente'].includes((u.rango || u.rol || '').toLowerCase())) {
-                btnEliminar.classList.remove('hidden');
+            if (u) {
+                const r1 = (u.rol || '').toLowerCase().trim();
+                const r2 = (u.rango || '').toLowerCase().trim();
+                const allowedRoles = ['admin', 'administrador', 'ceo', 'ceo-renew', 'súper admin', 'gerente'];
+                if (allowedRoles.includes(r1) || allowedRoles.includes(r2)) {
+                    btnEliminar.classList.remove('hidden');
+                } else {
+                    btnEliminar.classList.add('hidden');
+                }
             } else {
                 btnEliminar.classList.add('hidden');
             }
