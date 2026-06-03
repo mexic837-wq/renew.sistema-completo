@@ -16,6 +16,11 @@ export function renderMisRecibos() {
 
   // Admins see ALL, others see only their own
   const allRecibos = isAdmin ? getRecibos() : getRecibos(user.id);
+  allRecibos.sort((a, b) => {
+    const dateA = new Date(a.fecha_recibo || a.created_at || 0);
+    const dateB = new Date(b.fecha_recibo || b.created_at || 0);
+    return dateB - dateA;
+  });
 
   screen.innerHTML = `
     <div class="screen-header slide-in-left" style="background:linear-gradient(135deg,#0f172a,#1e293b);border:none;">
@@ -120,6 +125,14 @@ export function renderMisRecibos() {
         (r.trabajador_nombre || '').toLowerCase().includes(query)
       );
     }
+    
+    // Sort by date descending (newest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.fecha_recibo || a.created_at || 0);
+      const dateB = new Date(b.fecha_recibo || b.created_at || 0);
+      return dateB - dateA;
+    });
+
     document.getElementById('recibos-list').innerHTML = _renderRecibosList(filtered, isAdmin);
     _attachReciboCardListeners();
   }
@@ -260,6 +273,7 @@ function _showReciboModal(r) {
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
         ${field('Colaborador', r.trabajador_nombre)}
         ${field('Motivo / Cliente', r.cliente_nombre)}
+        ${field('Departamento', d.dpto || d.departamento || r.departamento || 'Oficina')}
         ${field('Fecha', r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—'))}
       </div>
       <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">
@@ -272,6 +286,7 @@ function _showReciboModal(r) {
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
         ${field('Representante', d.sales_representative || r.trabajador_nombre)}
         ${field('Cliente', r.cliente_nombre || d.customer_name)}
+        ${field('Departamento', d.dpto || d.departamento || r.departamento || 'Ventas')}
         ${field('Fecha', r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—'))}
       </div>
       <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">
@@ -284,6 +299,7 @@ function _showReciboModal(r) {
         <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;">Información Principal</p>
         ${field('Instalador', d.installer_name || r.trabajador_nombre)}
         ${field('Cliente', r.cliente_nombre || d.customer_name)}
+        ${field('Departamento', d.dpto || d.departamento || r.departamento || 'Técnico')}
         ${field('Fecha', d.date || r.fecha_recibo || (r.created_at ? r.created_at.split('T')[0] : '—'))}
       </div>
       <div style="background:linear-gradient(135deg,${color}15,${color}05);border:1.5px solid ${color}30;border-radius:14px;padding:16px;">

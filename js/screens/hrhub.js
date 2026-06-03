@@ -532,6 +532,11 @@ export async function renderHRHub() {
     function renderRecibos(roleFilter = 'vendedor', deptFilter = 'all', searchQuery = '') {
         const db = getDB();
         const allRecibos   = db.Recibos_Pagos     || [];
+        allRecibos.sort((a, b) => {
+            const dateA = new Date(a.fecha_recibo || a.created_at || 0);
+            const dateB = new Date(b.fecha_recibo || b.created_at || 0);
+            return dateB - dateA;
+        });
         const usuarios     = db.Usuarios           || [];
         const proyectos    = db.Proyectos_Dinamicos|| [];
         const pipelines    = db.Admin_Pipelines    || [];
