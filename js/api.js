@@ -1339,6 +1339,7 @@ export async function saveAdminWorker(worker) {
     password:                   src.password                   || src.pass || null,
     rol:                        src.rol                        || null,
     rango:                      src.rango                      || null,
+    rango_solar:                src.rango_solar                || null,
     department:                 src.department                 || null,
     dob:                        src.dob                        || null,
     foto:                       src.foto                       || null,
