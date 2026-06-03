@@ -2822,7 +2822,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="aqua-label mb-1">Monto ($)</label>
-                        <input type="number" id="adel-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00">
+                        <input type="text" id="adel-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00" oninput="let v = this.value.replace(/[^0-9.]/g, ''); const p = v.split('.'); if (p.length > 2) v = p[0] + '.' + p.slice(1).join(''); const p2 = v.split('.'); p2[0] = p2[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); this.value = p2.join('.');">
                     </div>
                     <div>
                         <label class="aqua-label mb-1">Fecha</label>
@@ -2881,7 +2881,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="aqua-label mb-1">Monto ($)</label>
-                        <input type="number" id="recibo-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00">
+                        <input type="text" id="recibo-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00" oninput="let v = this.value.replace(/[^0-9.]/g, ''); const p = v.split('.'); if (p.length > 2) v = p[0] + '.' + p.slice(1).join(''); const p2 = v.split('.'); p2[0] = p2[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); this.value = p2.join('.');">
                     </div>
                     <div>
                         <label class="aqua-label mb-1">Fecha</label>
@@ -3012,7 +3012,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="aqua-label mb-1">Monto ($)</label>
-                        <input type="number" id="adel-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00">
+                        <input type="text" id="adel-monto" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all" placeholder="0.00" oninput="let v = this.value.replace(/[^0-9.]/g, ''); const p = v.split('.'); if (p.length > 2) v = p[0] + '.' + p.slice(1).join(''); const p2 = v.split('.'); p2[0] = p2[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); this.value = p2.join('.');">
                     </div>
                     <div>
                         <label class="aqua-label mb-1">Fecha</label>

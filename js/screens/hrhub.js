@@ -806,7 +806,7 @@ export async function renderHRHub() {
                     id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
                     trabajador_id: workerId,
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
-                    monto: parseFloat(monto),
+                    monto: parseFloat(monto.replace(/,/g, '')),
                     fecha: fecha,
                     motivo: motivo,
                     document_url: docUrl,
@@ -951,10 +951,13 @@ export async function renderHRHub() {
 
                 const worker = empleadosData.find(e => String(e.id) === String(workerId));
                 let computedTipo = 'oficina';
-                if (worker && (worker.rol === 'Técnico' || worker.rol === 'Tecnico')) {
-                    computedTipo = 'tecnico';
-                } else if (worker && worker.rol === 'Representante de Ventas') {
-                    computedTipo = 'vendedor';
+                if (worker) {
+                    const r = (worker.rol || '').toLowerCase();
+                    if (r.includes('técnico') || r.includes('tecnico')) {
+                        computedTipo = 'tecnico';
+                    } else if (r.includes('ventas') || r.includes('vendedor')) {
+                        computedTipo = 'vendedor';
+                    }
                 }
 
                 const newRecibo = {
@@ -965,7 +968,7 @@ export async function renderHRHub() {
                     tipo: computedTipo,
                     fecha_recibo: fecha,
                     pdf_url: docUrl,
-                    datos_json: { grand_total: parseFloat(monto), subtipo: computedTipo },
+                    datos_json: { grand_total: parseFloat(monto.replace(/,/g, '')), subtipo: computedTipo },
                     created_at: new Date().toISOString()
                 };
 
