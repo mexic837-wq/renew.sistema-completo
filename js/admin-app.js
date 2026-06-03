@@ -1642,6 +1642,7 @@ function bindGlobalEvents() {
         initials: initials,
         rol: UI.inpUsrRol.value,
         rango: document.getElementById('inp-usr-rank').value,
+        rango_solar: document.getElementById('inp-usr-rank-solar') ? document.getElementById('inp-usr-rank-solar').value : 'no_aplica',
         department: UI.inpUsrDept ? UI.inpUsrDept.value.trim() : '',
         sede: UI.inpUsrSede ? UI.inpUsrSede.value : 'orlando',
         password: UI.inpUsrPass.value.trim(),
@@ -7016,10 +7017,23 @@ async function showWorkerDetail(id) {
     // Hide rank if not (Vendedor/Representante de Ventas/Supervisor/Call Center)
     const viewRankContainer = document.getElementById('det-view-rank-container');
     const editRankContainer = document.getElementById('det-edit-rank-container');
+    const editRankSolarContainer = document.getElementById('det-edit-rank-solar-container');
+
     const rolLower = (usr.rol || '').toLowerCase();
-    const hasRank = rolLower.includes('vendedor') || rolLower.includes('representante') || rolLower.includes('supervisor') || rolLower.includes('call center');
+    const hasRank = rolLower.includes('vendedor') || rolLower.includes('representante') || rolLower.includes('supervisor') || rolLower.includes('manager') || rolLower.includes('project manager') || rolLower.includes('call center');
     if (viewRankContainer) {
         viewRankContainer.style.display = hasRank ? 'block' : 'none';
+        
+        // Let's also show the Solar Rank manually if it exists
+        if (hasRank && usr.rango_solar && usr.rango_solar !== 'no_aplica') {
+            let sRango = usr.rango_solar;
+            const rankSolarMap = { 'novato': 'Novato', 'iniciante': 'Iniciante', 'junior': 'Junior', 'vendedor': 'Vendedor', 'asesor': 'Asesor' };
+            sRango = rankSolarMap[sRango] || sRango;
+            // Append Solar rank display if we are viewing rank
+            if (document.getElementById('det-usr-rank') && !document.getElementById('det-usr-rank').innerHTML.includes('Solar:')) {
+                document.getElementById('det-usr-rank').innerHTML += `<br><span class="text-[9px] text-gray-500 uppercase mt-1">Solar: ${sRango} (Manual)</span>`;
+            }
+        }
     }
     if (editRankContainer) {
         editRankContainer.style.display = hasRank ? 'block' : 'none';
@@ -7078,7 +7092,7 @@ async function showWorkerDetail(id) {
         }
     }
 
-    // ââ‚¬ââ‚¬ Interactive Documentation Zones ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
+    // -------------------------------- Interactive Documentation Zones --------------------------------
     const docsZone = document.getElementById('det-usr-docs-interactive');
     if (docsZone) {
         const renderDocBtn = (type, label, url, icon) => {
@@ -7120,7 +7134,7 @@ async function showWorkerDetail(id) {
             ` : ''}
         `;
     }
-    // ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
+    // ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     // Toggle RRHH-only sections based on current view
     const isRRHHView = window.location.hash.includes('rrhh') || window.location.hash.includes('hrhub') || window.location.hash.includes('equipo') || window.location.hash.includes('usuarios') || ['rrhh', 'hrhub', 'equipo', 'usuarios'].includes(state.activeView);
@@ -7192,7 +7206,7 @@ async function toggleDetailEditMode(id) {
     const isEditing = editPanel && !editPanel.classList.contains('hidden');
 
     if (isEditing) {
-        // Cancel â ™ return to view mode
+        // Cancel ↰ return to view mode
         exitDetailEditMode();
         // Restore view data
         document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
@@ -7581,7 +7595,10 @@ async function toggleDetailEditMode(id) {
             const dobEl = document.getElementById('det-edit-dob');
             
             const rol = rolEl ? rolEl.value : (usr.rol || 'Vendedor');
+            const rankEl = document.getElementById('det-edit-rank');
+            const rankSolarEl = document.getElementById('det-edit-rank-solar');
             const rango = rankEl ? rankEl.value : (usr.rango || 'auto');
+            const rango_solar = rankSolarEl ? rankSolarEl.value : (usr.rango_solar || 'no_aplica');
             const department = deptEl ? deptEl.value.trim() : (usr.department || '');
             const sede = document.getElementById('det-edit-sede')?.value || (usr.sede || 'orlando');
             const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');
@@ -7629,7 +7646,7 @@ async function toggleDetailEditMode(id) {
                 
                 const updatedUsr = {
                     ...usr,
-                    nombre, apellido, email, telefono, rol, rango, department, password, initials, dob, sede,
+                    nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
@@ -10500,6 +10517,22 @@ window.updateWorkerRankVisibility = function() {
         }
     }
 
+    const rankContainerSolar = document.getElementById('container-usr-rank-solar');
+    const solarChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
+        const pipName = chk.dataset.pip || '';
+        return pipName.toLowerCase().includes('solar');
+    });
+
+    if (rankContainerSolar) {
+        if (hasPipelines && solarChecked) {
+            rankContainerSolar.classList.remove('hidden');
+        } else {
+            rankContainerSolar.classList.add('hidden');
+            const rankSelectSolar = document.getElementById('inp-usr-rank-solar');
+            if (rankSelectSolar) rankSelectSolar.value = 'no_aplica';
+        }
+    }
+
     // Pipelines Permitidos
     if (pipelinesContainer) {
         pipelinesContainer.classList.toggle('hidden', !hasPipelines);
@@ -10592,12 +10625,29 @@ window.updateEditWorkerRankVisibility = function() {
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión';
     const isManager = rolVal === 'manager';
 
+    const editRankSolarContainer = document.getElementById('det-edit-rank-solar-container');
+
     if ((isVendedor || isProjectManager || isSupervisor || isManager) && waterChecked) {
         rankContainer.style.display = 'block';
     } else {
         rankContainer.style.display = 'none';
         const rankSelect = document.getElementById('det-edit-rank');
         if (rankSelect) rankSelect.value = 'no_aplica'; 
+    }
+
+    const solarChecked = Array.from(document.querySelectorAll('.pip-perm-chk:checked')).some(chk => {
+        const pipName = chk.dataset.pip || chk.value || '';
+        return pipName.toLowerCase().includes('solar');
+    });
+
+    if (editRankSolarContainer) {
+        if ((isVendedor || isProjectManager || isSupervisor || isManager) && solarChecked) {
+            editRankSolarContainer.style.display = 'block';
+        } else {
+            editRankSolarContainer.style.display = 'none';
+            const rankSelectSolar = document.getElementById('det-edit-rank-solar');
+            if (rankSelectSolar) rankSelectSolar.value = 'no_aplica'; 
+        }
     }
 };
 
