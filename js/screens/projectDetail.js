@@ -1330,7 +1330,7 @@ async function submitPhase(dealId, resp, faseNombre) {
 //  RECIBO MODAL – Representante & Técnico
 // --------------------------------------------------------------
 window._abrirReciboModal = async function(campoId, tipo, dealId) {
-  const isRepresentante = tipo === 'Recibo Representante';
+  const isVendedor = tipo === 'Recibo Vendedor' || tipo === 'Recibo Representante';
   const existingModal = document.getElementById('modal-recibo-dinamico');
   if (existingModal) existingModal.remove();
 
@@ -1359,10 +1359,16 @@ window._abrirReciboModal = async function(campoId, tipo, dealId) {
         <button id="btn-close-recibo" style="background:var(--surface-alt);border:none;border-radius:12px;width:40px;height:40px;color:var(--text-primary);cursor:pointer;"><i class="fa-solid fa-xmark text-red-500"></i></button>
       </div>
       <div id="recibo-form-fields" style="flex:1;overflow-y:auto;padding:24px;background:var(--bg-main);">
-        ${isVendedor ? _buildFormVendedor(vendedorNom, tecnicoNom, clienteNom) : _buildFormTecnico(tecnicoNom, clienteNom)}
+        ${isVendedor ? _buildFormVendedor(vendedorNom, tecnicoNom, clienteNom) : (!tecnicoAsignado ? 
+            `<div style="text-align:center;padding:40px 20px;">
+              <i class="fa-solid fa-user-xmark text-red-500" style="font-size:3rem;margin-bottom:16px;"></i>
+              <h4 style="font-size:1.2rem;font-weight:800;color:var(--text-primary);margin-bottom:8px;">No hay técnico asignado</h4>
+              <p style="font-size:0.9rem;color:var(--text-muted);">El proyecto no tiene un técnico asignado. Por favor, asigna uno antes de llenar el recibo de instalación.</p>
+            </div>` 
+          : _buildFormTecnico(tecnicoNom, clienteNom))}
       </div>
       <div style="padding:24px;border-top:1px solid var(--border);display:flex;gap:12px;">
-        <button id="btn-guardar-recibo" style="flex:1;background:var(--accent);color:white;border:none;border-radius:14px;padding:16px;font-weight:800;font-size:0.95rem;cursor:pointer;box-shadow:0 8px 16px var(--accent-alpha);">
+        <button id="btn-guardar-recibo" style="flex:1;background:var(--accent);color:white;border:none;border-radius:14px;padding:16px;font-weight:800;font-size:0.95rem;cursor:pointer;box-shadow:0 8px 16px var(--accent-alpha);" ${!isVendedor && !tecnicoAsignado ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
           Guardar Recibo
         </button>
       </div>
@@ -1527,7 +1533,7 @@ function _buildFormVendedor(vendedorNom = "", tecnicoNom = "", clienteNom = "") 
       <div class="credit-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;"><input type="text" placeholder="Adicional" style="${st}" value="Adicional"/><input type="number" placeholder="0" style="${st}" value="0"/></div>
     </div>
     ${sep('Total')}
-    ${field('GRAND TOTAL ($)','rec-grand-total','number','0.00')}
+    ${field('Monto Total ($)','rec-grand-total','number','0.00')}
   `;
 }
 
