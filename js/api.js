@@ -516,6 +516,16 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     const clienteNom = cli.nombre || cli.nombre_completo || `Cliente ${cli.id}`;
 
     const reciboId = `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`;
+    const datosJson = { source: 'upload', label: label };
+    if (window._tempReciboMonto !== undefined && window._tempReciboMonto !== null) {
+        if (isVendedor) {
+            datosJson.grand_total = window._tempReciboMonto;
+        } else {
+            datosJson.total_price = window._tempReciboMonto;
+            datosJson.grand_total = window._tempReciboMonto;
+        }
+    }
+
     const newRecibo = {
       id: reciboId,
       proyecto_id: projectId,
@@ -526,7 +536,7 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
       direccion: cli.direccion || null,
       fecha_recibo: new Date().toISOString().split('T')[0],
       pdf_url: url,
-      datos_json: { source: 'upload', label: label }
+      datos_json: datosJson
     };
 
     // Optimistic local update

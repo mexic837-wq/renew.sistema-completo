@@ -8276,6 +8276,29 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     </select>
                   </div>
                 `;
+              } else if (c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante' || c.tipo === 'Recibo Tecnico') {
+                const isRepresentante = c.tipo === 'Recibo Vendedor' || c.tipo === 'Recibo Representante';
+                const recColor   = isRepresentante ? '#3b82f6' : '#10b981';
+                const isDone = !!(val && val !== 'No subido' && val !== 'No provisto' && val !== '');
+                fieldHtml = `
+                  <div style="margin-bottom:8px;" id="drawer-recibo-wrap-${c.id}">
+                    <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
+                      ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+                    </label>
+                    ${isDone ? `
+                      <div style="background:${recColor}15;border:1px solid ${recColor}40;border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;">
+                        <span style="color:${recColor};font-size:10px;font-weight:700;"><i class="fa-solid fa-check"></i> Recibo Listo</span>
+                        <button onclick="${val && (val.startsWith('http') || val.startsWith('/api/')) ? `window.open('${val}','_blank')` : `window._abrirReciboModal('${c.id}','${c.tipo}','${p.id}')`}" style="margin-left:auto;background:${recColor};color:white;border:none;padding:4px 8px;border-radius:4px;font-size:9px;font-weight:bold;cursor:pointer;">${val && (val.startsWith('http') || val.startsWith('/api/')) ? 'Ver PDF' : 'Generar'}</button>
+                      </div>
+                    ` : `
+                      <button type="button" onclick="window._abrirReciboModal('${c.id}','${c.tipo}','${p.id}')"
+                        style="width:100%;background:${recColor};color:white;border:none;padding:8px;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer;">
+                        ${isRepresentante ? '<i class="fa-solid fa-money-bill"></i> Generar Recibo de Comisión' : '<i class="fa-solid fa-wrench"></i> Generar Recibo de Instalación'}
+                      </button>
+                    `}
+                    <input type="hidden" id="dfd_${c.id}" value="${val || ''}"/>
+                  </div>
+                `;
               } else {
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
@@ -10787,6 +10810,23 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
     const label = inputEl.nextElementSibling;
     const originalText = label.innerText;
     
+    let montoManual = null;
+    const db = typeof getDB === 'function' ? getDB() : window.state.db || {};
+    const campos = db.Admin_Campos_Formulario || [];
+    const campoObj = campos.find(c => String(c.id) === String(campoId));
+    
+    if (campoObj && campoObj.etiqueta && campoObj.etiqueta.toLowerCase().includes('recibo')) {
+        const val = prompt(`Al subir este recibo (${campoObj.etiqueta}), ¿deseas asignarle un Monto Total para que el representante/técnico lo vea?\nIngresa solo el número (ej. 1500) o déjalo en blanco si no aplica:`);
+        if (val !== null && val.trim() !== '') {
+            if (isNaN(parseFloat(val))) {
+                alert('El monto debe ser un número válido.');
+                inputEl.value = '';
+                return;
+            }
+            montoManual = parseFloat(val);
+        }
+    }
+    
     try {
         label.innerText = 'Subiendo...';
         label.style.opacity = '0.7';
@@ -10811,12 +10851,19 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
         if (fileUrls.length === 0) throw new Error("No URL generated");
         
         // Fetch existing val to append
-        const db = typeof getDB === 'function' ? getDB() : window.state.db || {};
-        const resp = (db.Respuestas_Dinamicas || []).find(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
+        const dbLocal = typeof getDB === 'function' ? getDB() : window.state.db || {};
+        const resp = (dbLocal.Respuestas_Dinamicas || []).find(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
         let existingVals = resp && resp.valor ? resp.valor.split(',').map(s=>s.trim()).filter(s=>s) : [];
         const finalUrlStr = [...existingVals, ...fileUrls].join(',');
 
+        if (montoManual !== null) {
+            window._tempReciboMonto = montoManual;
+        }
+
         await window.saveDynamicFields(projectId, { [campoId]: finalUrlStr });
+        
+        window._tempReciboMonto = null;
+        
         showToast('Archivo(s) subido(s) con éxito', 'success');
         
         if (window.openKanbanDrawer && window._currentDrawerPhaseId !== undefined) {
