@@ -928,8 +928,13 @@ function _showPipelineSelector(client, user) {
   mockUsers.forEach(u => allWorkersMap.set(u.id, u));
   dynamicUsers.forEach(u => allWorkersMap.set(u.id, u));
   const deletedIds = db.Deleted_Workers || [];
-  const activeWorkers = Array.from(allWorkersMap.values()).filter(u => !deletedIds.includes(u.id));
-
+  const activeWorkers = Array.from(allWorkersMap.values())
+    .filter(u => !deletedIds.includes(u.id))
+    .sort((a, b) => {
+      const nameA = `${a.nombre || ''} ${a.apellido || ''}`.trim().toLowerCase();
+      const nameB = `${b.nombre || ''} ${b.apellido || ''}`.trim().toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
   const userRoleNorm = (user.rol || '').toLowerCase();
   const isActuallyAdmin = ['admin', 'administrador', 'ceo'].includes(userRoleNorm);
 
