@@ -480,6 +480,9 @@ export async function saveGranular(table, records) {
  */
 async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
   try {
+    // Read the global var immediately before any async delays clear it
+    const tempMonto = window._tempReciboMonto !== undefined ? window._tempReciboMonto : null;
+
     const db = getDB();
     const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(projectId));
     if (!proy) { console.warn('[API-SYNC] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Proyecto no encontrado:', projectId); return; }
@@ -517,12 +520,12 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
 
     const reciboId = `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`;
     const datosJson = { source: 'upload', label: label };
-    if (window._tempReciboMonto !== undefined && window._tempReciboMonto !== null) {
+    if (tempMonto !== undefined && tempMonto !== null) {
         if (isVendedor) {
-            datosJson.grand_total = window._tempReciboMonto;
+            datosJson.grand_total = tempMonto;
         } else {
-            datosJson.total_price = window._tempReciboMonto;
-            datosJson.grand_total = window._tempReciboMonto;
+            datosJson.total_price = tempMonto;
+            datosJson.grand_total = tempMonto;
         }
     }
 
