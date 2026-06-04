@@ -3190,6 +3190,13 @@ window.renderView = async function renderView() {
             return searchStr.includes(window.globalSearchQuery);
         });
     }
+    
+    // Sort alphabetically by name
+    clientesFiltrados.sort((a, b) => {
+        const nameA = (a.nombre || '').toLowerCase();
+        const nameB = (b.nombre || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
 
     const rows = clientesFiltrados.map(c => {
       const repName = getRepName(c);
