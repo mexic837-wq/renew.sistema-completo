@@ -38,14 +38,15 @@ export function computeUserRank(userId, activeUnit, db) {
   const user = getCurrentUser();
   const dbUser = (db.Usuarios || []).find(u => String(u.id) === String(userId)) || user;
   
-  if (dbUser && dbUser.rango && dbUser.rango !== 'auto' && dbUser.rango !== 'novato') {
+  if (dbUser && dbUser.rango && dbUser.rango !== 'auto') {
     let targetRankName = '';
     if (dbUser.rango === 'referidos') targetRankName = 'Nuevo';
-    else if (dbUser.rango === 'subvendedor') targetRankName = 'Novato';
+    else if (dbUser.rango === 'subvendedor' || dbUser.rango === 'novato') targetRankName = 'Novato';
     else if (dbUser.rango === 'iniciante') targetRankName = 'Iniciante';
     else if (dbUser.rango === 'junior') targetRankName = 'Junior';
-    else if (dbUser.rango === 'representante') targetRankName = 'Representante de Ventas';
-    else if (dbUser.rango === 'analista') targetRankName = 'Distribuidor (Analista)';
+    else if (dbUser.rango === 'vendedor' || dbUser.rango === 'representante') targetRankName = 'Vendedor';
+    else if (dbUser.rango === 'analista') targetRankName = 'Analista';
+    else if (dbUser.rango === 'oficina') targetRankName = 'Distribuidor Mensual';
     else if (dbUser.rango === 'no_aplica') targetRankName = 'No Aplica';
 
     if (targetRankName === 'No Aplica') {

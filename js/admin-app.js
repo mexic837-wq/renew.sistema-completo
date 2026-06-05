@@ -7013,10 +7013,13 @@ async function showWorkerDetail(id) {
         const rankMap = {
             'referidos': 'Nuevo',
             'subvendedor': 'Novato',
+            'novato': 'Novato',
             'iniciante': 'Iniciante',
             'junior': 'Junior',
             'representante': 'Representante de Ventas',
-            'analista': 'Analista'
+            'vendedor': 'Vendedor',
+            'analista': 'Analista',
+            'oficina': 'Oficina/Admin'
         };
         displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
     }
@@ -7240,10 +7243,13 @@ async function toggleDetailEditMode(id) {
             const rankMap = {
                 'referidos': 'Nuevo',
                 'subvendedor': 'Novato',
+                'novato': 'Novato',
                 'iniciante': 'Iniciante',
                 'junior': 'Junior',
                 'representante': 'Representante de Ventas',
-                'analista': 'Analista'
+                'vendedor': 'Vendedor',
+                'analista': 'Analista',
+                'oficina': 'Oficina/Admin'
             };
             displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
         }
@@ -7365,7 +7371,6 @@ async function toggleDetailEditMode(id) {
         }
         if (document.getElementById('det-edit-rank')) {
             let rv = usr.rango || 'auto';
-            if (rv === 'novato') rv = 'auto'; // legacy migration
             document.getElementById('det-edit-rank').value = rv;
         }
         if (document.getElementById('det-edit-rank-solar')) {
