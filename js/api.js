@@ -1495,7 +1495,7 @@ export async function getDealsByUser(userId, pipelineName) {
       if (!targetPipelineIds.includes(p.pipeline_id)) return false;
       
       const userRolNorm = (u && u.rol) ? u.rol.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim() : '';
-      const isAdminUser = ['admin', 'administrador', 'ceo'].includes(userRolNorm);
+      const isAdminUser = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
 
       // Admin sees everything
       if (isAdminUser) return true; 
@@ -1530,7 +1530,7 @@ export async function getDealsByUser(userId, pipelineName) {
     return myProyectos.map(p => {
       const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
       const userRolNorm = (u && u.rol) ? u.rol.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim() : '';
-      const isAdminUser = ['admin', 'administrador', 'ceo'].includes(userRolNorm);
+      const isAdminUser = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
       
       const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id) || {};
       const faseRolNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1752,10 +1752,12 @@ export async function getDealById(dealId) {
   const cli = db.Clientes_Maestro.find(c => c.id === p.cliente_id) || {};
   const fase = db.Admin_Fases.find(f => f.id === p.fase_id) || {};
   const user = JSON.parse(localStorage.getItem('rs_user') || '{}');
-  const isAdmin = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+  const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  const isAdmin = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
   
   const specificUsers = fase.usuarios_especificos || [];
-  const isMyTurn = (fase && fase.rol_encargado === user.rol) || specificUsers.includes(user.id);
+  const rolEncargadoNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  const isMyTurn = userRolNorm === rolEncargadoNorm || (userRolNorm.includes('call') && rolEncargadoNorm.includes('call')) || specificUsers.includes(user.id);
   const isLocked = !isAdmin && !isMyTurn;
 
   return { 
