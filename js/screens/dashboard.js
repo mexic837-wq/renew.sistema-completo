@@ -26,7 +26,7 @@ export const RANK_CONFIG = {
     { name: 'Iniciante',           emoji: '<i class="fa-solid fa-medal" style="color:#c0c0c0"></i>', color: '#0d9488', bg: 'rgba(13,148,136,0.1)', border: 'rgba(13,148,136,0.25)', minSales: 25, type: 'total', priceKey: 'precio_iniciante' },
     { name: 'Junior',              emoji: '<i class="fa-solid fa-medal" style="color:#ffd700"></i>', color: '#0284c7', bg: 'rgba(2,132,199,0.1)',  border: 'rgba(2,132,199,0.25)', minSales: 33, type: 'total', priceKey: 'precio_junior' },
     { name: 'Representante de Ventas',            emoji: '<i class="fa-solid fa-bolt"></i>',      color: '#1e40af', bg: 'rgba(30,64,175,0.1)',  border: 'rgba(30,64,175,0.25)', minSales: 53, type: 'total', priceKey: 'precio_vendedor' },
-    { name: 'Distribuidor (Analista)', emoji: '<i class="fa-solid fa-crown"></i>', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total', priceKey: 'precio_analista' },
+    { name: 'Analista', emoji: '<i class="fa-solid fa-crown"></i>', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', minSales: 73, type: 'total', priceKey: 'precio_analista' },
     { name: 'Distribuidor Mensual', emoji: '<i class="fa-solid fa-star"></i>',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', minSales: 15, type: 'monthly', priceKey: 'precio_oficina' },
   ]
 };

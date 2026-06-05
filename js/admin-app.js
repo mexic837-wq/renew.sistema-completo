@@ -7016,7 +7016,7 @@ async function showWorkerDetail(id) {
             'iniciante': 'Iniciante',
             'junior': 'Junior',
             'representante': 'Representante de Ventas',
-            'analista': 'Distribuidor (Analista)'
+            'analista': 'Analista'
         };
         displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
     }
@@ -7243,7 +7243,7 @@ async function toggleDetailEditMode(id) {
                 'iniciante': 'Iniciante',
                 'junior': 'Junior',
                 'representante': 'Representante de Ventas',
-                'analista': 'Distribuidor (Analista)'
+                'analista': 'Analista'
             };
             displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
         }
