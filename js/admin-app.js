@@ -10140,8 +10140,8 @@ async function renderListaPreciosAdmin() {
   
   const currentUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
   const rolName = (currentUsr.rol || '').toLowerCase();
-  const isAdminPriceList = ['admin', 'administrador', 'ceo'].includes(rolName);
-  const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rolName);
+  const isAdminPriceList = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(rolName);
+  const isRestrictedManager = !isAdminPriceList;
 
   let rankLabels = {
     'iniciante': 'Iniciante',
