@@ -20,6 +20,15 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 // Alias para no romper las funciones que ya actualicé
 const supabaseStorage = supabase;
 
+const cron = require('node-cron');
+const { syncPreciosFromSheets } = require('./google-sheets-sync.js');
+
+// Sincronización Automática de Precios a las 10:00 AM todos los días
+cron.schedule('0 10 * * *', async () => {
+    console.log('[CRON] Iniciando sincronización de precios desde Google Sheets (10:00 AM)...');
+    await syncPreciosFromSheets(supabase);
+});
+
 const app = express();
 const port = 3010;
 
@@ -754,6 +763,22 @@ app.post('/api/calendar/sync', async (req, res) => {
     } catch (error) {
         console.error('[CALENDAR] Sync Error:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// POST: Sincronización manual de la Lista de Precios desde Google Sheets
+app.post('/api/sync-google-sheets', async (req, res) => {
+    try {
+        console.log('[API/SYNC] Petición manual de sincronización recibida.');
+        const result = await syncPreciosFromSheets(supabase);
+        if (result.success) {
+            res.json({ success: true, count: result.count, message: result.message || 'Sincronizado' });
+        } else {
+            res.status(500).json({ success: false, error: result.error });
+        }
+    } catch (e) {
+        console.error('[API/SYNC] Error:', e);
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 

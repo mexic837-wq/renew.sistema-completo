@@ -10108,6 +10108,28 @@ window._verAdelantosWorker = async function(workerId, workerName) {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
 
+window.syncGoogleSheets = async () => {
+    if (!confirm('¿Seguro que deseas sincronizar la lista de precios con Google Sheets? Esto actualizará todos los precios en la base de datos.')) return;
+    const btn = document.getElementById('btn-sync-sheets');
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sincronizando...';
+    try {
+        const res = await fetch('/api/sync-google-sheets', { method: 'POST' });
+        const json = await res.json();
+        if (json.success) {
+            alert(`¡Sincronización exitosa! Se actualizaron ${json.count} productos.`);
+            renderListaPreciosAdmin(); // Recargar la vista localmente si ya se bajaron los datos o si podemos pedir fresh fetch
+            // Idealmente forzar refetch
+            fetchDB().then(() => renderListaPreciosAdmin());
+        } else {
+            alert('Error al sincronizar: ' + json.error);
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-sync"></i> Sincronizar Sheets';
+        }
+    } catch (e) {
+        alert('Error de conexión.');
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-sync"></i> Sincronizar Sheets';
+    }
+};
+
 // ââ‚¬ââ‚¬ââ‚¬ LISTA DE PRECIOS RENEW WATER ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 async function renderListaPreciosAdmin() {
   const db = getDB();
@@ -10217,7 +10239,12 @@ async function renderListaPreciosAdmin() {
               </div>
           </div>
           
-          <div class="flex items-center gap-3">
+          <div class="flex flex-col md:flex-row items-center gap-3">
+              ${isAdminPriceList ? `
+              <button onclick="window.syncGoogleSheets()" id="btn-sync-sheets" class="flex items-center gap-2 px-6 py-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-600 text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all">
+                  <i class="fa-solid fa-sync"></i> Sincronizar Sheets
+              </button>
+              ` : ''}
               <div class="flex items-center">
                   <button onclick="window.open('${activePdf}', '_blank')" class="flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-l-xl text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">
                     <i class="fa-solid fa-file-pdf"></i> Lista ${rankLabels[activeRank].toUpperCase()} (PDF)
