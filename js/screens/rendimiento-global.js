@@ -347,7 +347,7 @@ export async function renderRendimientoGlobal() {
         const vendors = allWorkers.filter(u => {
             const role = (u.rol || '').toLowerCase();
             return role.includes('vendedor') || role.includes('representante') || role.includes('admin') || role.includes('ceo');
-        });
+        }).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
         const list = document.getElementById('vendor-cb-list');
         if (!list) return;
         list.innerHTML = vendors.map(v => `
@@ -550,7 +550,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             closeRate:   vCloseRate,
             commissions: vCommissions
         };
-    }).sort((a, b) => b.sales - a.sales);
+    }).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
 
     const tbody = document.getElementById('global-leaderboard-body');
     if (tbody) {
