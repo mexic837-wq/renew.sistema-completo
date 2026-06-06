@@ -127,10 +127,15 @@ export async function renderHRHub() {
                 </div>
 
                 <!-- Search bar -->
-                <div class="relative mb-4">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[11px] pointer-events-none"></i>
-                    <input id="rrhh-recibos-search" type="text" placeholder="Buscar por nombre de representante o cliente..."
-                        class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.03] text-xs font-semibold text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-tealAccent transition-all">
+                <div class="relative mb-4 group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-tealAccent/20 to-blue-500/20 rounded-xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                    <div class="relative flex items-center bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden">
+                        <div class="pl-4 pr-2 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                          <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+                        </div>
+                        <input id="rrhh-recibos-search" type="text" placeholder="Buscar por nombre de representante o cliente..."
+                            class="w-full bg-transparent border-none focus:ring-0 py-3 px-2 text-xs font-semibold text-gray-800 dark:text-white placeholder:text-gray-400 outline-none">
+                    </div>
                 </div>
 
                 <!-- Table -->

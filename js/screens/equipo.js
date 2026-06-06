@@ -40,11 +40,15 @@ export async function renderMiEquipo() {
       <!-- Fila 2: Buscador y Filtro de Sede -->
       <div style="padding:0 20px; margin-top:8px;">
           <div style="display:flex; gap:8px; width:100%;">
-            <div style="position:relative; flex:1;">
-              <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
-              <input id="team-search" type="text" placeholder="Buscar compañero..." autocomplete="off" value="${teamSearchQuery}"
-                style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
-                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+            <div class="relative flex-1 group">
+              <div class="absolute inset-0 bg-gradient-to-r from-tealAccent/20 to-blue-500/20 rounded-2xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+              <div class="relative flex items-center bg-white dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden" style="height: 100%;">
+                  <div class="pl-4 pr-2 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                  </div>
+                  <input id="team-search" type="text" placeholder="Buscar compañero..." autocomplete="off" value="${teamSearchQuery}"
+                    class="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-600 text-gray-900 dark:text-white outline-none">
+              </div>
             </div>
             <select id="team-sede-filter" style="border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;padding:0 12px;outline:none; cursor:pointer;">
                <option value="Todas" ${activeTeamSede === 'Todas' ? 'selected' : ''}>Todas las sedes</option>

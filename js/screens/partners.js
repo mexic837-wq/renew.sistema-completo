@@ -27,10 +27,15 @@ export async function renderPartners() {
     </div>
 
     <div class="partners-search-container" style="padding: 0 24px; margin-top: 16px;">
-        <div class="search-box-wrapper" style="position: relative;">
-            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem;"></i>
-            <input type="text" id="partners-search-input" placeholder="Buscar empresa, contacto o servicio..." 
-                style="width: 100%; padding: 14px 16px 14px 44px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text-primary); font-size: 0.9rem; outline: none; transition: border-color 0.2s;">
+        <div class="relative group">
+            <div class="absolute inset-0 bg-gradient-to-r from-tealAccent/20 to-blue-500/20 rounded-2xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+            <div class="relative flex items-center bg-white dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden">
+                <div class="pl-4 pr-2 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                  <i class="fas fa-search text-sm"></i>
+                </div>
+                <input type="text" id="partners-search-input" placeholder="Buscar empresa, contacto o servicio..." 
+                    class="w-full bg-transparent border-none focus:ring-0 py-3 px-2 text-sm text-gray-900 dark:text-white outline-none placeholder-gray-400">
+            </div>
         </div>
     </div>
 
@@ -203,11 +208,6 @@ export async function renderPartners() {
           font-size: 0.65rem;
       }
       
-      #partners-search-input:focus {
-          border-color: var(--primary);
-          background: var(--surface);
-          box-shadow: 0 0 0 4px rgba(0, 245, 212, 0.1);
-      }
     </style>
   `;
 
