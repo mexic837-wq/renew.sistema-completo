@@ -348,10 +348,6 @@ async function _renderList(user, container) {
     // CC sees only clients whose project is in their phase — already filtered above
     filtered = misClientes;
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  } else if (currentClientsTab === 'kanban') {
-    // Kanban shows ALL user's clients/prospects regardless of project status
-    filtered = misClientes;
-    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else {
     filtered = misClientes.filter(c => {
       const clientProjects = projectsByClient.get(c.id) || [];
@@ -371,15 +367,9 @@ async function _renderList(user, container) {
   console.log('Rendering list for technician:', isTecnico, 'Found:', filtered.length, 'records');
 
   if (currentClientsTab === 'kanban') {
-      // Hide the search bar in kanban mode — not needed
-      const searchCont = document.getElementById('clients-app-search-container');
-      if (searchCont) searchCont.style.display = 'none';
       _renderKanban(user, container, filtered, db);
       return;
   }
-  // Show search bar for non-kanban tabs
-  const searchCont2 = document.getElementById('clients-app-search-container');
-  if (searchCont2) searchCont2.style.display = '';
 
   if (!filtered || filtered.length === 0) {
     const msg = isTecnico
@@ -1819,26 +1809,26 @@ function _renderKanban(user, container, filteredClients, db) {
                 const projectId = projectByClient[c.id] || null;
                 return `
                 <div class="kanban-app-card" data-project-id="${projectId}" data-client-id="${c.id}" style="
-                    background:var(--surface);border-radius:16px;
-                    border:1px solid var(--border);padding:16px;
+                    background:var(--surface);border-radius:14px;
+                    border:1px solid var(--border);padding:12px 14px;
                     cursor:pointer;
                     border-left:3px solid ${col.color};
                     transition:transform 0.15s ease,box-shadow 0.15s ease;
                 ">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <span style="font-weight:800;font-size:0.95rem;color:var(--text-primary);">${c.nombre || 'Sin nombre'}</span>
-                        <span style="background:${col.bg};color:${col.color};padding:3px 10px;border-radius:99px;font-size:0.6rem;font-weight:900;text-transform:uppercase;flex-shrink:0;margin-left:8px;">${col.key}</span>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:8px;">
+                        <span style="font-weight:800;font-size:0.88rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre || 'Sin nombre'}</span>
+                        <span style="background:${col.bg};color:${col.color};padding:2px 8px;border-radius:99px;font-size:0.58rem;font-weight:900;text-transform:uppercase;flex-shrink:0;">${col.key}</span>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                        <i class="fa-solid fa-phone" style="color:var(--text-muted);font-size:0.7rem;flex-shrink:0;"></i>
-                        <span style="font-size:0.8rem;color:var(--text-secondary);">${c.telefono || '\u2014'}</span>
+                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
+                        <i class="fa-solid fa-phone" style="color:var(--text-muted);font-size:0.65rem;flex-shrink:0;"></i>
+                        <span style="font-size:0.78rem;color:var(--text-secondary);">${c.telefono || '\u2014'}</span>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <i class="fa-solid fa-user-tie" style="color:var(--primary);font-size:0.65rem;"></i>
-                            <span style="font-size:0.72rem;color:var(--text-muted);font-weight:700;">${repName}</span>
+                        <div style="display:flex;align-items:center;gap:5px;min-width:0;">
+                            <i class="fa-solid fa-user-tie" style="color:var(--primary);font-size:0.6rem;flex-shrink:0;"></i>
+                            <span style="font-size:0.68rem;color:var(--text-muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${repName}</span>
                         </div>
-                        <div style="display:flex;gap:4px;">${deptBadges}</div>
+                        <div style="display:flex;gap:3px;flex-shrink:0;margin-left:6px;">${deptBadges}</div>
                     </div>
                 </div>
                 `;
@@ -1846,7 +1836,7 @@ function _renderKanban(user, container, filteredClients, db) {
 
             if (cards.length === 0) return `
             <div style="margin-bottom:8px;">
-                <div class="kanban-section-header">
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 0 8px;">
                     <i class="fa-solid ${col.icon}" style="color:${col.color};font-size:0.75rem;"></i>
                     <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
                     <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">0</span>
@@ -1858,7 +1848,7 @@ function _renderKanban(user, container, filteredClients, db) {
 
             return `
             <div style="margin-bottom:16px;">
-                <div class="kanban-section-header">
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 0 8px;">
                     <i class="fa-solid ${col.icon}" style="color:${col.color};font-size:0.75rem;"></i>
                     <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
                     <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">${cards.length}</span>
@@ -1876,7 +1866,7 @@ function _renderKanban(user, container, filteredClients, db) {
           .kanban-app-wrapper {
             max-width: 860px;
             margin: 0 auto;
-            padding: 0 16px 80px;
+            padding: 0 0 80px;
           }
           .kanban-chips-row {
             display: flex;
@@ -1884,31 +1874,31 @@ function _renderKanban(user, container, filteredClients, db) {
             overflow-x: auto;
             padding: 4px 0 14px;
             -webkit-overflow-scrolling: touch;
-            flex-wrap: wrap;
             scrollbar-width: none;
           }
           .kanban-chips-row::-webkit-scrollbar { display: none; }
-          @media (max-width: 700px) {
-            .kanban-app-wrapper { padding: 0 12px 100px; }
-            .kanban-chips-row { flex-wrap: nowrap; }
-          }
           .kanban-card-row {
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
           }
-          @media (min-width: 700px) {
+          @media (min-width: 900px) {
+            .kanban-app-wrapper { padding: 0 0 40px; }
             .kanban-card-row { grid-template-columns: 1fr 1fr; }
+          }
+          .kanban-app-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
           }
         </style>
         <div class="kanban-app-wrapper">
             <!-- Filter chips -->
-            <div class="kanban-chips-row hide-scrollbar">
+            <div class="kanban-chips-row">
                 <button class="kanban-filter-chip" data-filter="all" style="
                     display:inline-flex;align-items:center;gap:6px;
-                    padding:8px 14px;border-radius:50px;
+                    padding:7px 13px;border-radius:50px;
                     background:rgba(0,245,212,0.1);border:1.5px solid rgba(0,245,212,0.3);
-                    color:var(--primary);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
+                    color:var(--primary);font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
                     cursor:pointer;white-space:nowrap;flex-shrink:0;
                 ">Todos <span style="background:rgba(0,245,212,0.2);color:var(--primary);padding:1px 7px;border-radius:99px;font-size:10px;font-weight:900;">${filteredClients.length}</span></button>
                 ${summaryHtml}
