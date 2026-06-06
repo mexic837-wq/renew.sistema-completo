@@ -2386,11 +2386,15 @@ export function getProjectDate(p, db) {
   }
 
   // If we don't have a specific project date (like fecha_cierre) and we are defaulting to created_at,
-  // we should check if the client has an older/more accurate fecha_registro
+  // we should check if the client has an older/more accurate fecha_registro or explicit fecha_cierre
   if (!p.fecha_cierre && db && db.Clientes_Maestro && p.cliente_id) {
     const cli = db.Clientes_Maestro.find(c => String(c.id) === String(p.cliente_id));
-    if (cli && (cli.fecha_registro || cli.fecha || cli.created_at)) {
-      date = cli.fecha_registro || cli.fecha || cli.created_at;
+    if (cli) {
+      if (cli.fecha_cierre) {
+        date = cli.fecha_cierre;
+      } else if (cli.fecha_registro || cli.fecha || cli.created_at) {
+        date = cli.fecha_registro || cli.fecha || cli.created_at;
+      }
     }
   }
 
