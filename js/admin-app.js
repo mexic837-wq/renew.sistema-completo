@@ -2038,7 +2038,7 @@ function bindGlobalEvents() {
         const { isProjectFinished } = await import('./api.js');
         const isNowFinished = isProjectFinished(p, db);
         if (isNowFinished) {
-            p.fecha_cierre = new Date().toISOString().split('T')[0];
+            p.fecha_cierre = p.fecha_cierre || new Date().toISOString().split('T')[0];
             p.estado = 'Completado';
             console.log(`[KANBAN] Project ${projectId} marked as closed today.`);
         } else if (p.estado === 'Completado' || oldFaseId === 'Completado' || oldFaseId === null) {

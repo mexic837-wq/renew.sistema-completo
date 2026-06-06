@@ -1918,7 +1918,7 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
       }
       p.estado = 'Completado';
       p.fase_id = 'Completado';
-      p.fecha_cierre = new Date().toISOString().split('T')[0];
+      p.fecha_cierre = p.fecha_cierre || new Date().toISOString().split('T')[0];
       await saveGranular('proyectos_dinamicos', [p]);
       didAdvance = true;
     }
