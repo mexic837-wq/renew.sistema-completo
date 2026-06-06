@@ -657,7 +657,8 @@ export async function renderHRHub() {
                                <i class="fa-solid fa-file-pdf"></i> Ver PDF</a>`
                         : `<span class="text-[9px] text-gray-300 italic">Sin PDF</span>`
                     }
-                    <button onclick="event.stopPropagation(); window.deleteRecibo('${r.id}')" class="ml-2 text-red-400 hover:text-red-600 transition-colors p-2" title="Eliminar Recibo"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    <button onclick="event.stopPropagation(); window.openReciboModal && window.openReciboModal('${r.id}')" class="ml-2 text-tealAccent hover:text-teal-400 transition-colors p-2" title="Editar Recibo"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                    <button onclick="event.stopPropagation(); window.deleteRecibo('${r.id}')" class="text-red-400 hover:text-red-600 transition-colors p-2" title="Eliminar Recibo"><i class="fa-solid fa-trash text-[10px]"></i></button>
                 </td>
             </tr>`;
         }).join('');
@@ -892,14 +893,19 @@ export async function renderHRHub() {
     }
     window.openAdelantoModal = openAdelantoModal;
 
-    function openReciboModal() {
-        console.log("Opening Recibo Modal...");
+    function openReciboModal(editId = null) {
+        console.log("Opening Recibo Modal...", editId);
         const modal = document.getElementById('modal-recibo-manual');
         const select = document.getElementById('recibo-trabajador-id');
         if (!modal || !select) {
             console.error("Modal elements not found!", { modal, select });
             return;
         }
+
+        // Check if editing
+        const db = getDB();
+        const allRecibos = db.Recibos_Pagos || [];
+        const editRecibo = editId ? allRecibos.find(r => r.id === editId) : null;
 
         // Populate workers select - include all workers
         const allowedWorkers = empleadosData.sort((a,b) => a.nombre.localeCompare(b.nombre));
@@ -943,6 +949,39 @@ export async function renderHRHub() {
         const dropZoneR = document.getElementById('drop-recibo-doc');
         const fileInp = document.getElementById('inp-recibo-doc');
         const label = document.getElementById('lbl-recibo-doc');
+        
+        // Reset or populate fields
+        const btnSave = document.getElementById('btn-save-recibo-manual');
+        btnSave.removeAttribute('data-edit-id');
+        if (editRecibo) {
+            select.value = editRecibo.trabajador_id || '';
+            const d = editRecibo.datos_json || {};
+            const amt = d.grand_total || d.total_price || editRecibo.monto || '';
+            document.getElementById('recibo-monto').value = amt;
+            if (document.getElementById('recibo-fecha')._flatpickr) {
+                document.getElementById('recibo-fecha')._flatpickr.setDate(editRecibo.fecha_recibo || editRecibo.created_at);
+            } else {
+                document.getElementById('recibo-fecha').value = editRecibo.fecha_recibo || '';
+            }
+            document.getElementById('recibo-motivo').value = editRecibo.cliente_nombre || '';
+            const deptoEl = document.getElementById('recibo-departamento');
+            if (deptoEl) deptoEl.value = editRecibo.departamento || d.dpto || 'otro';
+            label.textContent = editRecibo.pdf_url ? 'PDF Actual (Reemplazar opcional)' : 'Selecciona un documento PDF';
+            btnSave.setAttribute('data-edit-id', editRecibo.id);
+        } else {
+            select.value = '';
+            document.getElementById('recibo-monto').value = '';
+            if (document.getElementById('recibo-fecha')._flatpickr) {
+                document.getElementById('recibo-fecha')._flatpickr.clear();
+            } else {
+                document.getElementById('recibo-fecha').value = '';
+            }
+            document.getElementById('recibo-motivo').value = '';
+            const deptoEl = document.getElementById('recibo-departamento');
+            if (deptoEl) deptoEl.value = 'otro';
+            label.textContent = 'Selecciona un documento PDF';
+            fileInp.value = '';
+        }
         
         fileInp.onchange = (e) => {
             const file = e.target.files[0];
@@ -1003,27 +1042,45 @@ export async function renderHRHub() {
                     }
                 }
 
-                const newRecibo = {
-                    id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
+                const editIdAttr = btn.getAttribute('data-edit-id');
+                const db = getDB();
+                if (!db.Recibos_Pagos) db.Recibos_Pagos = [];
+
+                const payload = {
                     trabajador_id: workerId,
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     cliente_nombre: motivo || 'Pago Manual',
                     tipo: computedTipo === 'oficina' ? 'vendedor' : computedTipo,
+                    departamento: depto,
                     fecha_recibo: fecha,
-                    pdf_url: docUrl,
-                    datos_json: { grand_total: parseFloat(monto.replace(/,/g, '')), subtipo: computedTipo, dpto: depto },
-                    created_at: new Date().toISOString()
+                    datos_json: { grand_total: parseFloat(monto.toString().replace(/,/g, '')), subtipo: computedTipo, dpto: depto }
                 };
+                if (docUrl) payload.pdf_url = docUrl;
 
-                const db = getDB();
-                if (!db.Recibos_Pagos) db.Recibos_Pagos = [];
-                db.Recibos_Pagos.push(newRecibo);
+                let finalRecibo;
+                if (editIdAttr) {
+                    const idx = db.Recibos_Pagos.findIndex(r => String(r.id) === String(editIdAttr));
+                    if (idx > -1) {
+                        db.Recibos_Pagos[idx] = { ...db.Recibos_Pagos[idx], ...payload, actualizado_en: new Date().toISOString() };
+                        finalRecibo = db.Recibos_Pagos[idx];
+                    }
+                } else {
+                    finalRecibo = {
+                        ...payload,
+                        id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
+                        created_at: new Date().toISOString()
+                    };
+                    db.Recibos_Pagos.push(finalRecibo);
+                }
+
                 try { localStorage.setItem('rs_admin_db', JSON.stringify(db)); } catch(e) {}
 
                 const { saveGranular } = await import('../api.js');
-                await saveGranular('recibos_pagos', [newRecibo]);
+                if (finalRecibo) {
+                    await saveGranular('recibos_pagos', [finalRecibo]);
+                }
 
-                import('../components/toast.js').then(m => m.showToast('Recibo registrado correctamente.', 'success'));
+                import('../components/toast.js').then(m => m.showToast(editIdAttr ? 'Recibo actualizado correctamente.' : 'Recibo registrado correctamente.', 'success'));
                 
                 // Clear fields
                 document.getElementById('recibo-monto').value = '';
