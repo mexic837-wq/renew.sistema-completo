@@ -206,6 +206,9 @@ app.get('/api/db', async (req, res) => {
                 category:    item.category     || null,
                 locacion:    item.locacion     || null,
                 storage:     item.storage      || null,
+                medida:      item.medida       || null,
+                boton:       item.boton        || null,
+                color:       item.color        || null,
                 stockActual: item.stock_actual || item.stockActual || 0
             })),
             historialInventario:     results[9].data || [],
