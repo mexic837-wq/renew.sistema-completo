@@ -7016,7 +7016,7 @@ async function showWorkerDetail(id) {
             'novato': 'Novato',
             'iniciante': 'Iniciante',
             'junior': 'Junior',
-            'representante': 'Representante de Ventas',
+            'representante': 'Vendedor',
             'vendedor': 'Vendedor',
             'analista': 'Analista',
             'oficina': 'Oficina/Admin'
@@ -7246,7 +7246,7 @@ async function toggleDetailEditMode(id) {
                 'novato': 'Novato',
                 'iniciante': 'Iniciante',
                 'junior': 'Junior',
-                'representante': 'Representante de Ventas',
+                'representante': 'Vendedor',
                 'vendedor': 'Vendedor',
                 'analista': 'Analista',
                 'oficina': 'Oficina/Admin'
