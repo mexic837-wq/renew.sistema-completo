@@ -1757,55 +1757,55 @@ function _renderKanban(user, container, filteredClients, db) {
             const deptBadges = depts.map(d => {
                 const _nm = d.replace('Renew ','');
                 const dc = _nm.toLowerCase().includes('water') ? '#0ea5e9' : _nm.toLowerCase().includes('solar') ? '#f59e0b' : '#84cc16';
-                return \`<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;background:\${dc}15;color:\${dc};border:1px solid \${dc}30;">\${_nm}</span>\`;
+                return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;background:${dc}15;color:${dc};border:1px solid ${dc}30;">${_nm}</span>`;
             }).join(' ');
-            return \`
-            <div class="kanban-card" data-client-id="\${c.id}" style="
+            return `
+            <div class="kanban-card" data-client-id="${c.id}" style="
                 background:var(--kanban-card-bg, #fff);border:1px solid var(--kanban-card-border, rgba(0,0,0,0.06));
                 border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;
                 transition:transform 0.15s ease, box-shadow 0.15s ease;
-            " onclick="if(window.appNavigate){window.appNavigate('detail', '\${c.id}')}else{window.location.hash='#detail/' + '\${c.id}'}">
+            " onclick="if(window.appNavigate){window.appNavigate('detail', '${c.id}')}else{window.location.hash='#detail/' + '${c.id}'}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">\${c.nombre || 'Sin nombre'}</span>
-                <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">\${c.state_id || ''}</span>
+                <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">${c.nombre || 'Sin nombre'}</span>
+                <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">${c.state_id || ''}</span>
                 </div>
-                <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">\${c.telefono || ''} \${c.email && c.email !== 'Sin Email' ? 'Â· ' + c.email : ''}</div>
+                <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? 'Â· ' + c.email : ''}</div>
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                 <i class="fa-solid fa-user-tie text-[10px] text-tealAccent"></i>
-                <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">\${getRepNameForKanban(c, db)}</span>
+                <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">${getRepNameForKanban(c, db)}</span>
                 </div>
-                <div style="display:flex;gap:4px;flex-wrap:wrap;">\${deptBadges || '<span style="font-size:9px;color:#aaa;font-style:italic;">Sin departamento</span>'}</div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">${deptBadges || '<span style="font-size:9px;color:#aaa;font-style:italic;">Sin departamento</span>'}</div>
             </div>
-            \`;
+            `;
         }).join('');
 
-        return \`
-        <div class="kanban-column" data-macro="\${col.key}" style="
+        return `
+        <div class="kanban-column" data-macro="${col.key}" style="
             flex:1;min-width:260px;max-width:340px;
-            background:\${col.bg};border:1.5px solid \${col.border};border-radius:20px;
+            background:${col.bg};border:1.5px solid ${col.border};border-radius:20px;
             padding:0;display:flex;flex-direction:column;
             scroll-snap-align: center;
         ">
-            <div style="padding:16px 18px 12px;border-bottom:1px solid \${col.border};flex-shrink:0;">
+            <div style="padding:16px 18px 12px;border-bottom:1px solid ${col.border};flex-shrink:0;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:1.1rem;">\${col.emoji}</span>
-                <span style="font-size:0.8rem;font-weight:900;color:\${col.color};text-transform:uppercase;letter-spacing:1px;">\${col.key}</span>
+                <span style="font-size:1.1rem;">${col.emoji}</span>
+                <span style="font-size:0.8rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
                 </div>
-                <span style="background:\${col.color}18;color:\${col.color};padding:2px 10px;border-radius:99px;font-size:11px;font-weight:900;">\${cardsInCol.length}</span>
+                <span style="background:${col.color}18;color:${col.color};padding:2px 10px;border-radius:99px;font-size:11px;font-weight:900;">${cardsInCol.length}</span>
             </div>
             </div>
-            <div class="kanban-drop-zone" data-macro="\${col.key}" style="
+            <div class="kanban-drop-zone" data-macro="${col.key}" style="
             flex:1;overflow-y:auto;padding:20px 14px;min-height:300px; max-height: 55vh;
             border-radius:0 0 20px 20px;
             ">
-            \${cardsHtml || \`<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Sin clientes</div>\`}
+            ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Sin clientes</div>`}
             </div>
         </div>
-        \`;
+        `;
     }).join('');
 
-    container.innerHTML = \`
+    container.innerHTML = `
         <style>
           .app-kanban-wrapper {
             display: flex;
@@ -1832,7 +1832,7 @@ function _renderKanban(user, container, filteredClients, db) {
           .dark .kanban-card { background: #1e293b !important; border: 1px solid rgba(255,255,255,0.08) !important; }
         </style>
         <div class="app-kanban-wrapper hide-scrollbar mt-4">
-            \${columnsHtml}
+            ${columnsHtml}
         </div>
-    \`;
+    `;
 }
