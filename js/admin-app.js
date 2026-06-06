@@ -10963,7 +10963,7 @@ window.deleteDrawerFile = async function(projectId, campoId, urlToDelete) {
             if (isReceiptLabel) {
                 const isVendedor = label.includes('vendedor') || label.includes('representante') || label.includes('comision vendedor') || label.includes('comisión vendedor');
                 const reciboId = `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`;
-                const { deleteRecord } = await import('../api.js');
+                const { deleteRecord } = await import('./api.js');
                 if (deleteRecord) {
                     try { await deleteRecord('recibos_pagos', reciboId); } catch(e){}
                 }
