@@ -8849,7 +8849,6 @@ async function showClientDetail(id) {
       detMacroEl.textContent = _me;
     }
     if(document.getElementById('det-cli-fecha-inicio')) document.getElementById('det-cli-fecha-inicio').textContent = cli.fecha_inicio || cli.created_at || 'No establecida';
-    if(document.getElementById('det-cli-fecha-cierre')) document.getElementById('det-cli-fecha-cierre').textContent = cli.fecha_conversion || cli.fecha_cierre || 'No establecida';
     if(document.getElementById('det-cli-direccion')) document.getElementById('det-cli-direccion').textContent = cli.direccion || '-';
     if(document.getElementById('det-cli-state-id')) document.getElementById('det-cli-state-id').textContent = cli.state_id || '-';
     if(document.getElementById('det-cli-dob')) document.getElementById('det-cli-dob').textContent = cli.dob || '-';
@@ -9535,7 +9534,6 @@ function toggleClientEditMode(id) {
         // ââ‚¬ââ‚¬ Populate macro_estado ââ‚¬ââ‚¬
         if(document.getElementById('det-cli-edit-macro-estado')) document.getElementById('det-cli-edit-macro-estado').value = cli.macro_estado || 'Prospecto';
         if(document.getElementById('det-cli-edit-fecha-inicio')) document.getElementById('det-cli-edit-fecha-inicio').value = cli.fecha_inicio || '';
-        if(document.getElementById('det-cli-edit-fecha-cierre')) document.getElementById('det-cli-edit-fecha-cierre').value = cli.fecha_conversion || cli.fecha_cierre || '';
         if(document.getElementById('det-cli-edit-direccion')) {
             const dirInput = document.getElementById('det-cli-edit-direccion');
             dirInput.value = cli.direccion || '';
@@ -9602,8 +9600,7 @@ async function saveClientChanges() {
     const currentMacroEstado = db.Clientes_Maestro[cliIdx].macro_estado;
     const newMacroEstado = document.getElementById('det-cli-edit-macro-estado') ? document.getElementById('det-cli-edit-macro-estado').value : 'Prospecto';
 
-    let inputFechaCierre = document.getElementById('det-cli-edit-fecha-cierre') ? document.getElementById('det-cli-edit-fecha-cierre').value : null;
-    let newFechaConversion = inputFechaCierre || db.Clientes_Maestro[cliIdx].fecha_conversion || db.Clientes_Maestro[cliIdx].fecha_cierre || null;
+    let newFechaConversion = db.Clientes_Maestro[cliIdx].fecha_conversion || db.Clientes_Maestro[cliIdx].fecha_cierre || null;
     if (newMacroEstado === 'Cliente' && currentMacroEstado !== 'Cliente' && !newFechaConversion) {
         newFechaConversion = new Date().toISOString();
     }
@@ -9625,7 +9622,6 @@ async function saveClientChanges() {
         macro_estado: newMacroEstado,
         fecha_inicio: inputFechaInicio,
         fecha_conversion: newFechaConversion,
-        fecha_cierre: inputFechaCierre || newFechaConversion,
         direccion: document.getElementById('det-cli-edit-direccion').value.trim(),
         state_id: document.getElementById('det-cli-edit-state-id').value.trim(),
         dob: document.getElementById('det-cli-edit-dob').value,
