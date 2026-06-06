@@ -1017,7 +1017,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
          // LOCKED: field already has a value — show as completed, no re-upload allowed
          html = `
           <div class="upload-area has-file" id="ubox_${c.id}"
-               style="margin-bottom:16px;cursor:default;display:block;border-color:${pipeline.color};background:${pipeline.color}15;padding:12px 16px;pointer-events:none;">
+               style="margin-bottom:16px;cursor:default;display:block;border-color:${pipeline.color};background:${pipeline.color}15;padding:12px 16px;position:relative;">
             <div style="display:flex;align-items:center;gap:12px;">
               ${donePhotoSrc
                 ? `<img src="${donePhotoSrc}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${pipeline.color}40;flex-shrink:0;">`
@@ -1032,6 +1032,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
               <div style="background:${pipeline.color}20;border-radius:50%;width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
+              ${val ? `<button onclick="event.preventDefault(); event.stopPropagation(); window.deleteProjectDetailFile('${deal.id}', '${c.id}', '${val}');" style="position:absolute; top:-6px; right:-6px; background:#ef4444; color:white; border:none; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2);"><i class="fas fa-times" style="font-size:10px;"></i></button>` : ''}
             </div>
           </div>
          `;
@@ -1325,6 +1326,52 @@ async function submitPhase(dealId, resp, faseNombre) {
     showToast(e.message, 'error');
   }
 }
+
+window.deleteProjectDetailFile = async function(projectId, campoId, urlToDelete) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este archivo?')) return;
+    
+    try {
+        const { getDB } = await import('../api.js');
+        const dbLocal = getDB() || {};
+        const resp = (dbLocal.Respuestas_Dinamicas || []).find(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
+        if (!resp || !resp.valor) return;
+
+        let existingVals = resp.valor.split(',').map(s=>s.trim()).filter(s=>s);
+        const newVals = existingVals.filter(url => url !== urlToDelete);
+        const finalUrlStr = newVals.join(',');
+
+        const { getSupabaseClient } = await import('../api.js');
+        const supabase = getSupabaseClient();
+        
+        if (supabase) {
+            if (finalUrlStr === '') {
+                await supabase.from('Respuestas_Dinamicas').delete().match({ proyecto_id: projectId, campo_id: campoId });
+            } else {
+                await supabase.from('Respuestas_Dinamicas').upsert({
+                    proyecto_id: projectId,
+                    campo_id: campoId,
+                    valor: finalUrlStr,
+                    actualizado_en: new Date().toISOString()
+                }, { onConflict: 'proyecto_id, campo_id' });
+            }
+        }
+        
+        // Update local cache
+        if (finalUrlStr === '') {
+            const idx = dbLocal.Respuestas_Dinamicas.findIndex(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
+            if (idx > -1) dbLocal.Respuestas_Dinamicas.splice(idx, 1);
+        } else {
+            resp.valor = finalUrlStr;
+            resp.actualizado_en = new Date().toISOString();
+        }
+
+        showToast('Archivo eliminado', 'success');
+        renderDetail(projectId);
+    } catch (e) {
+        console.error(e);
+        alert('Error al eliminar el archivo: ' + e.message);
+    }
+};
 
 // --------------------------------------------------------------
 //  RECIBO MODAL – Representante & Técnico

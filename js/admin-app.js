@@ -8236,6 +8236,9 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                          <button onclick="window.openFilePreview('${c.id}', '${safeLabel}', '${fUrl}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                            <i class="fas ${isImg ? 'fa-eye' : 'fa-download'} text-white text-lg"></i>
                          </button>
+                         <button onclick="event.stopPropagation(); window.deleteDrawerFile('${p.id}', '${c.id}', '${fUrl}')" title="Borrar archivo" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10" style="font-size: 10px;">
+                            <i class="fas fa-times"></i>
+                         </button>
                        </div>
                        `;
                     }).join('')}
