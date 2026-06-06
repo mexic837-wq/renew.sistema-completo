@@ -473,11 +473,27 @@ export async function renderMiCalendario() {
                         const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
                         
                         let isChecked = false;
-                        if (props && props.attendees && Array.isArray(props.attendees)) {
-                            isChecked = isChecked || props.attendees.some(a => String(a.id) === String(w.id) || a.email === email);
+                        
+                        let arrAtt = [];
+                        if (props && props.attendees) {
+                            try { arrAtt = typeof props.attendees === 'string' ? JSON.parse(props.attendees) : props.attendees; } catch(e){}
                         }
-                        if (!isChecked && props && props.colaboradores && Array.isArray(props.colaboradores)) {
-                            isChecked = isChecked || props.colaboradores.some(c => String(c.id) === String(w.id));
+                        if (Array.isArray(arrAtt)) {
+                            isChecked = isChecked || arrAtt.some(a => {
+                                let obj = typeof a === 'string' ? (JSON.parse(a) || {}) : a;
+                                return String(obj.id) === String(w.id) || (obj.email && obj.email === email);
+                            });
+                        }
+                        
+                        let arrCol = [];
+                        if (!isChecked && props && props.colaboradores) {
+                            try { arrCol = typeof props.colaboradores === 'string' ? JSON.parse(props.colaboradores) : props.colaboradores; } catch(e){}
+                        }
+                        if (!isChecked && Array.isArray(arrCol)) {
+                            isChecked = isChecked || arrCol.some(c => {
+                                let obj = typeof c === 'string' ? (JSON.parse(c) || {}) : c;
+                                return String(obj.id) === String(w.id) || (obj.email && obj.email === email);
+                            });
                         }
                         
                         return `
