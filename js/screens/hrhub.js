@@ -129,12 +129,10 @@ export async function renderHRHub() {
                 <!-- Search bar -->
                 <div class="relative mb-4 group">
                     <div class="absolute inset-0 bg-gradient-to-r from-tealAccent/20 to-blue-500/20 rounded-xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                    <div class="relative flex items-center bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden">
-                        <div class="pl-4 pr-2 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                          <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
-                        </div>
+                    <div class="relative bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-[11px] pointer-events-none"></i>
                         <input id="rrhh-recibos-search" type="text" placeholder="Buscar por nombre de representante o cliente..."
-                            class="w-full bg-transparent border-none focus:ring-0 py-3 px-2 text-xs font-semibold text-gray-800 dark:text-white placeholder:text-gray-400 outline-none">
+                            class="w-full bg-transparent border-none focus:ring-0 py-3 pl-10 pr-4 text-xs font-semibold text-gray-800 dark:text-white placeholder:text-gray-400 outline-none">
                     </div>
                 </div>
 
