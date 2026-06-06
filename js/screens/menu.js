@@ -291,6 +291,19 @@ function mostrarModalCuenta(user) {
           </div>
         </div>
 
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <div style="flex:1;">
+            <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Cambiar Contraseña</p>
+            <div style="display:flex; gap:8px; margin-top:4px;">
+              <input type="password" id="input-account-password" value="${user.password || user.pass || ''}" placeholder="Nueva contraseña" style="flex:1; width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text-primary); font-size:0.85rem; outline:none;">
+              <button id="btn-save-password" style="background:rgba(0, 245, 212, 0.1); color:var(--tealAccent); border:1px solid var(--tealAccent); border-radius:8px; padding:0 16px; font-weight:800; cursor:pointer; transition:0.2s;"><i class="fa-solid fa-check"></i></button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div style="padding:0 32px 32px;">
@@ -333,6 +346,32 @@ function mostrarModalCuenta(user) {
       } catch (err) {
         console.error('Error actualizando foto de perfil:', err);
         showToast('Fallo al actualizar la foto', 'error');
+      }
+    });
+  }
+
+  // Handle Password Change
+  const btnSavePassword = modal.querySelector('#btn-save-password');
+  const inputPassword = modal.querySelector('#input-account-password');
+  if (btnSavePassword && inputPassword) {
+    btnSavePassword.addEventListener('click', async () => {
+      const newPass = inputPassword.value.trim();
+      if (!newPass) return showToast('La contraseña no puede estar vacía', 'warning');
+      
+      try {
+        const updatedUser = { ...user, password: newPass, pass: newPass };
+        await saveGranular('usuarios', [updatedUser]);
+        localStorage.setItem('rs_user', JSON.stringify(updatedUser));
+        window.dispatchEvent(new CustomEvent('user_updated', { detail: updatedUser }));
+        
+        // Efecto visual en el botón
+        btnSavePassword.innerHTML = '<i class="fa-solid fa-check-double"></i>';
+        setTimeout(() => btnSavePassword.innerHTML = '<i class="fa-solid fa-check"></i>', 2000);
+        
+        showToast('Contraseña actualizada con éxito', 'success');
+      } catch (err) {
+        console.error('Error actualizando contraseña:', err);
+        showToast('Error al actualizar contraseña', 'error');
       }
     });
   }
