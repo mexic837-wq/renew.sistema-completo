@@ -964,7 +964,7 @@ function _showPipelineSelector(client, user) {
       return nameA.localeCompare(nameB);
     });
   const userRoleNorm = (user.rol || '').toLowerCase();
-  const isActuallyAdmin = ['admin', 'administrador', 'ceo'].includes(userRoleNorm);
+  const isActuallyAdmin = ['admin', 'administrador', 'ceo', 'manager'].includes(userRoleNorm);
 
   const repsHTML = `
     <div style="margin-bottom: 20px;">
