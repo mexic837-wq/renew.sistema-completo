@@ -7,8 +7,6 @@ import { getCurrentUser, navigate } from '../app.js';
 import { t } from '../i18n.js';
 
 let activeTeamDept = 'Todos';
-let activeTeamRole = 'Todos';
-let activeTeamSede = 'Todas';
 let teamSearchQuery = '';
 let allTeamWorkers = [];
 
@@ -38,28 +36,13 @@ export async function renderMiEquipo() {
       <div id="team-dept-filter" style="display:flex; justify-content: center; overflow-x:auto; gap:8px; padding:16px 20px 8px; margin-top:4px; scrollbar-width:none;">
       </div>
       
-      <!-- Fila 2: Buscador y Filtro de rol y Sede -->
-      <div style="display:flex; flex-direction:column; gap:8px; padding:0 20px; margin-top:8px;">
+      <!-- Fila 2: Buscador -->
+      <div style="padding:0 20px; margin-top:8px;">
           <div style="position:relative; width:100%;">
             <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
             <input id="team-search" type="text" placeholder="Buscar compañero..." autocomplete="off" value="${teamSearchQuery}"
               style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
               onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
-          </div>
-          <div style="display:flex; gap:8px; width:100%;">
-              <select id="team-role-filter" style="flex:1; border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;padding:10px 12px;outline:none; cursor:pointer;">
-                 <option value="Todos" ${activeTeamRole === 'Todos' ? 'selected' : ''}>Todos los roles</option>
-                 <option value="admin" ${activeTeamRole === 'admin' ? 'selected' : ''}>Administración</option>
-                 <option value="manager" ${activeTeamRole === 'manager' ? 'selected' : ''}>Managers / Sup</option>
-                 <option value="vendedor" ${activeTeamRole === 'vendedor' ? 'selected' : ''}>Representantes</option>
-                 <option value="call" ${activeTeamRole === 'call' ? 'selected' : ''}>Call Center</option>
-              </select>
-              <select id="team-sede-filter" style="flex:1; border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;padding:10px 12px;outline:none; cursor:pointer;">
-                 <option value="Todas" ${activeTeamSede === 'Todas' ? 'selected' : ''}>Todas las sedes</option>
-                 <option value="Miami" ${activeTeamSede === 'Miami' ? 'selected' : ''}>Miami</option>
-                 <option value="Orlando" ${activeTeamSede === 'Orlando' ? 'selected' : ''}>Orlando</option>
-                 <option value="Venezuela" ${activeTeamSede === 'Venezuela' ? 'selected' : ''}>Venezuela</option>
-              </select>
           </div>
       </div>
     </div>
@@ -213,20 +196,6 @@ export async function renderMiEquipo() {
         _renderTeamGrid();
       });
     }
-    const roleSelect = document.getElementById('team-role-filter');
-    if (roleSelect) {
-      roleSelect.addEventListener('change', (e) => {
-        activeTeamRole = e.target.value;
-        _renderTeamGrid();
-      });
-    }
-    const sedeSelect = document.getElementById('team-sede-filter');
-    if (sedeSelect) {
-      sedeSelect.addEventListener('change', (e) => {
-        activeTeamSede = e.target.value;
-        _renderTeamGrid();
-      });
-    }
   }, 100);
 
   try {
@@ -255,26 +224,6 @@ function _renderTeamGrid() {
          const unitsStr = units.join(' ').toLowerCase();
          return unitsStr.includes(activeTeamDept.toLowerCase());
       });
-    }
-
-    // Filter by Role
-    if (activeTeamRole !== 'Todos') {
-       filtered = filtered.filter(w => {
-           const rol = (w.rol || '').toLowerCase();
-           if (activeTeamRole === 'admin') return ['admin', 'administrador', 'ceo', 'desarrollador'].some(r => rol.includes(r));
-           if (activeTeamRole === 'manager') return ['manager', 'supervisión', 'supervisor', 'account'].some(r => rol.includes(r));
-           if (activeTeamRole === 'vendedor') return ['vendedor', 'representante', 'junior', 'iniciante', 'novato'].some(r => rol.includes(r));
-           if (activeTeamRole === 'call') return rol.includes('call');
-           return true;
-       });
-    }
-
-    // Filter by Sede
-    if (activeTeamSede !== 'Todas') {
-       filtered = filtered.filter(w => {
-           const sede = (w.sede || '').toLowerCase();
-           return sede.includes(activeTeamSede.toLowerCase());
-       });
     }
 
     // Filter by Search
