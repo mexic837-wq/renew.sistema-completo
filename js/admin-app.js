@@ -10170,7 +10170,17 @@ async function renderListaPreciosAdmin() {
 
   const activePdf = pdfMap[activeRank] || '#';
 
-  const rowsHtml = allProducts.map(p => {
+  let filteredProducts = allProducts;
+  if (state.preciosSearchQuery) {
+      const q = state.preciosSearchQuery.toLowerCase();
+      filteredProducts = filteredProducts.filter(p => 
+          (p.nombre || '').toLowerCase().includes(q) ||
+          (p.codigo || '').toLowerCase().includes(q) ||
+          (p.categoria || '').toLowerCase().includes(q)
+      );
+  }
+
+  const rowsHtml = filteredProducts.map(p => {
     const fotoHtml = p.foto_url
       ? `<img src="${p.foto_url}" class="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-white/5 group-hover/img:border-tealAccent transition-all">`
       : `<div class="w-10 h-10 rounded-lg bg-tealAccent/10 flex items-center justify-center border border-tealAccent/20"><i class="fa-solid fa-image text-tealAccent text-sm"></i></div>`;
@@ -10239,7 +10249,11 @@ async function renderListaPreciosAdmin() {
               </div>
           </div>
           
-          <div class="flex flex-col md:flex-row items-center gap-3">
+          <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+              <div class="relative w-full md:w-64 mr-auto">
+                  <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                  <input type="text" placeholder="Buscar producto o código..." value="${state.preciosSearchQuery || ''}" class="w-full bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-[10px] uppercase font-black text-gray-900 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent transition-colors outline-none" oninput="window.setPreciosSearch(this.value)">
+              </div>
               ${isAdminPriceList ? `
               <button onclick="window.syncGoogleSheets()" id="btn-sync-sheets" class="flex items-center gap-2 px-6 py-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-600 text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all">
                   <i class="fa-solid fa-sync"></i> Sincronizar Sheets
@@ -10286,6 +10300,11 @@ async function renderListaPreciosAdmin() {
 
 window.setPreciosRank = function(rk) {
     state.activePreciosRank = rk;
+    renderListaPreciosAdmin();
+};
+
+window.setPreciosSearch = function(query) {
+    state.preciosSearchQuery = query;
     renderListaPreciosAdmin();
 };
 
