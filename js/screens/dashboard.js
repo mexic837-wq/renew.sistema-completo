@@ -400,7 +400,14 @@ export async function renderDashboard() {
 
     <div class="desktop-dashboard-wrapper" style="padding:0 20px;">
       <div id="tab-rendimiento" class="dash-tab-content" style="display:none; padding:0 0 24px;">
-        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:16px; margin-top:8px;">${t('dash_month_perf')}</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; margin-top:8px;">
+          <h3 style="font-size:1.1rem; color:var(--text-primary); margin:0;">Mi Rendimiento</h3>
+          <select id="rendimiento-time-filter" style="background:var(--surface-alt); color:var(--text-primary); border:1px solid var(--border); padding:6px 12px; border-radius:12px; font-size:0.8rem; font-weight:700; outline:none; cursor:pointer;">
+            <option value="mes">Mensual</option>
+            <option value="anio">Anual</option>
+            <option value="global">Global</option>
+          </select>
+        </div>
         <div style="background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); padding:20px; border-radius:24px; border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow-lg);">
           <canvas id="rendimientoChart" height="220"></canvas>
         </div>
@@ -936,6 +943,19 @@ async function initRendimientoChart(user) {
   const currentYear = now.getFullYear();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   
+  const filterEl = document.getElementById('rendimiento-time-filter');
+  if (filterEl && !filterEl.dataset.bound) {
+    filterEl.dataset.bound = 'true';
+    filterEl.addEventListener('change', () => {
+      if (window.rendimientoChartInstance) {
+        window.rendimientoChartInstance.destroy();
+        window.rendimientoChartInstance = null;
+      }
+      initRendimientoChart(user);
+    });
+  }
+  const timeFilter = filterEl ? filterEl.value : 'mes';
+  
   const labels = [];
   const ventasMap = new Array(daysInMonth).fill(0);
 
@@ -958,10 +978,21 @@ async function initRendimientoChart(user) {
       if (!isNaN(parsed.getTime())) pDate = parsed;
     }
     
-    if (pDate && pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
-      totalVentasMonth += 1;
-      if (isCompleted) {
-        closedMonth++;
+    if (pDate) {
+      let isMatch = false;
+      if (timeFilter === 'mes') {
+        isMatch = (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear);
+      } else if (timeFilter === 'anio') {
+        isMatch = (pDate.getFullYear() === currentYear);
+      } else if (timeFilter === 'global') {
+        isMatch = true;
+      }
+
+      if (isMatch) {
+        totalVentasMonth += 1;
+        if (isCompleted) {
+          closedMonth++;
+        }
       }
     }
   });
@@ -974,31 +1005,33 @@ async function initRendimientoChart(user) {
     const currentMonthProjects = totalVentasMonth;
     const tasaDeCierre = currentMonthProjects > 0 ? Math.round((closedMonth / currentMonthProjects) * 100) : 0;
     const comisionesEstimadas = totalVentasMonth * 1000;
+    const timeLabel = timeFilter === 'mes' ? 'Este Mes' : (timeFilter === 'anio' ? 'Este Año' : 'Total');
+    const titleLabel = timeFilter === 'mes' ? 'DEL MES' : (timeFilter === 'anio' ? 'DEL AÑO' : 'GLOBALES');
     
     if (isTecnico) {
       quickStatsEl.innerHTML = `
-        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÍSTICAS RÁPIDAS DEL MES</label>
+        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÍSTICAS RÁPIDAS ${titleLabel}</label>
         <div style="display:flex; gap:12px">
           <div style="flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Citas Asignadas</p>
             <p style="font-size:1.8rem; font-weight:800; color:var(--text-primary); margin:0">${totalVentasMonth}</p>
-            <span style="font-size:0.65rem; color:var(--primary); font-weight:700; text-transform: uppercase;">Este Mes</span>
+            <span style="font-size:0.65rem; color:var(--primary); font-weight:700; text-transform: uppercase;">${timeLabel}</span>
           </div>
           <div style="flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Citas Completadas</p>
             <p style="font-size:1.8rem; font-weight:800; color:#05d564; margin:0">${closedMonth}</p>
-            <span style="font-size:0.65rem; color:var(--text-muted); font-weight:700; text-transform: uppercase;">Este Mes</span>
+            <span style="font-size:0.65rem; color:var(--text-muted); font-weight:700; text-transform: uppercase;">${timeLabel}</span>
           </div>
         </div>
       `;
     } else {
       quickStatsEl.innerHTML = `
-        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÍSTICAS RÁPIDAS DEL MES</label>
+        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÍSTICAS RÁPIDAS ${titleLabel}</label>
         <div style="display:flex; gap:12px">
           <div style="flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Tasa de Cierre</p>
             <p style="font-size:1.8rem; font-weight:800; color:var(--text-primary); margin:0">${tasaDeCierre}%</p>
-            <span style="font-size:0.65rem; color:var(--primary); font-weight:700; text-transform: uppercase;">Este Mes</span>
+            <span style="font-size:0.65rem; color:var(--primary); font-weight:700; text-transform: uppercase;">${timeLabel}</span>
           </div>
           <div style="display:none; flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Comisiones Est.</p>
