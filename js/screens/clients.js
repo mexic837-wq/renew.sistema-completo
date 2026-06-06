@@ -348,6 +348,10 @@ async function _renderList(user, container) {
     // CC sees only clients whose project is in their phase — already filtered above
     filtered = misClientes;
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  } else if (currentClientsTab === 'kanban') {
+    // Kanban shows ALL user's clients/prospects regardless of project status
+    filtered = misClientes;
+    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else {
     filtered = misClientes.filter(c => {
       const clientProjects = projectsByClient.get(c.id) || [];
@@ -367,9 +371,15 @@ async function _renderList(user, container) {
   console.log('Rendering list for technician:', isTecnico, 'Found:', filtered.length, 'records');
 
   if (currentClientsTab === 'kanban') {
+      // Hide the search bar in kanban mode — not needed
+      const searchCont = document.getElementById('clients-app-search-container');
+      if (searchCont) searchCont.style.display = 'none';
       _renderKanban(user, container, filtered, db);
       return;
   }
+  // Show search bar for non-kanban tabs
+  const searchCont2 = document.getElementById('clients-app-search-container');
+  if (searchCont2) searchCont2.style.display = '';
 
   if (!filtered || filtered.length === 0) {
     const msg = isTecnico
@@ -1836,7 +1846,7 @@ function _renderKanban(user, container, filteredClients, db) {
 
             if (cards.length === 0) return `
             <div style="margin-bottom:8px;">
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 0 8px;">
+                <div class="kanban-section-header">
                     <i class="fa-solid ${col.icon}" style="color:${col.color};font-size:0.75rem;"></i>
                     <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
                     <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">0</span>
@@ -1848,7 +1858,7 @@ function _renderKanban(user, container, filteredClients, db) {
 
             return `
             <div style="margin-bottom:16px;">
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 0 8px;">
+                <div class="kanban-section-header">
                     <i class="fa-solid ${col.icon}" style="color:${col.color};font-size:0.75rem;"></i>
                     <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
                     <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">${cards.length}</span>
@@ -1872,12 +1882,14 @@ function _renderKanban(user, container, filteredClients, db) {
             display: flex;
             gap: 8px;
             overflow-x: auto;
-            padding: 4px 0 16px;
+            padding: 4px 0 14px;
             -webkit-overflow-scrolling: touch;
             flex-wrap: wrap;
+            scrollbar-width: none;
           }
-          @media (max-width: 640px) {
-            .kanban-app-wrapper { padding: 0 4px 80px; }
+          .kanban-chips-row::-webkit-scrollbar { display: none; }
+          @media (max-width: 700px) {
+            .kanban-app-wrapper { padding: 0 12px 100px; }
             .kanban-chips-row { flex-wrap: nowrap; }
           }
           .kanban-card-row {
