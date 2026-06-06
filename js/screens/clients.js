@@ -141,13 +141,16 @@ export async function renderClients() {
       // Update tab labels
       if (isTecnico) {
         const tabKey = btn.dataset.clientsTab;
-        btn.textContent = tabKey === 'prospectos' ? t('clients_tab_prospects_tech') : t('clients_tab_clients_tech');
+        if (tabKey === 'kanban') btn.innerHTML = '<i class="fa-solid fa-grip-vertical" style="margin-right:4px"></i>Vista Kanban';
+        else btn.textContent = tabKey === 'prospectos' ? t('clients_tab_prospects_tech') : t('clients_tab_clients_tech');
       } else if (isCallCenter) {
         const tabKey = btn.dataset.clientsTab;
-        btn.textContent = tabKey === 'prospectos' ? 'Leads Pendientes' : 'Mis Llamadas';
+        if (tabKey === 'kanban') btn.innerHTML = '<i class="fa-solid fa-grip-vertical" style="margin-right:4px"></i>Vista Kanban';
+        else btn.textContent = tabKey === 'prospectos' ? 'Leads Pendientes' : 'Mis Llamadas';
       } else {
         const tabKey = btn.dataset.clientsTab;
-        btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
+        if (tabKey === 'kanban') btn.innerHTML = '<i class="fa-solid fa-grip-vertical" style="margin-right:4px"></i>Vista Kanban';
+        else btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
       }
 
       // Remove old listeners by cloning
@@ -1735,8 +1738,8 @@ function _renderKanban(user, container, filteredClients, db) {
     if (!filteredClients || filteredClients.length === 0) {
         container.innerHTML = `
           <div class="empty-state" style="text-align:center; padding:60px 20px; color:#94a3b8">
-            <i class="fa-solid fa-kanban" style="font-size:4rem; margin-bottom:20px; opacity:0.4; color:#64748b"></i>
-            <h3 style="color:#f1f5f9; margin-bottom:8px; font-size:1.2rem;">Sin prospectos</h3>
+            <i class="fa-solid fa-grip-vertical" style="font-size:3rem; margin-bottom:20px; opacity:0.4; color:#64748b"></i>
+            <h3 style="color:#f1f5f9; margin-bottom:8px; font-size:1.2rem;">Sin registros</h3>
             <p style="font-size:0.9rem; max-width:240px; margin:0 auto; opacity:0.8;">No tienes prospectos para mostrar en el Kanban.</p>
           </div>
         `;
@@ -1744,95 +1747,154 @@ function _renderKanban(user, container, filteredClients, db) {
     }
 
     const MACRO_COLS = [
-        { key: 'Prospecto',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
-        { key: 'En Proceso',    emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
-        { key: 'Cliente',        emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
-        { key: 'Declinado',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+        { key: 'Prospecto',  color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: 'fa-user-clock' },
+        { key: 'En Proceso', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  icon: 'fa-spinner' },
+        { key: 'Cliente',   color: '#00f5d4', bg: 'rgba(0,245,212,0.12)',   icon: 'fa-circle-check' },
+        { key: 'Declinado', color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   icon: 'fa-circle-xmark' },
     ];
 
-    const columnsHtml = MACRO_COLS.map(col => {
-        const cardsInCol = filteredClients.filter(c => (c.macro_estado || 'Prospecto') === col.key);
-        const cardsHtml = cardsInCol.map(c => {
-            const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length ? c.departamentos_activos : (c.departamento ? [c.departamento] : []);
-            const deptBadges = depts.map(d => {
-                const _nm = d.replace('Renew ','');
-                const dc = _nm.toLowerCase().includes('water') ? '#0ea5e9' : _nm.toLowerCase().includes('solar') ? '#f59e0b' : '#84cc16';
-                return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;background:${dc}15;color:${dc};border:1px solid ${dc}30;">${_nm}</span>`;
-            }).join(' ');
-            return `
-            <div class="kanban-card" data-client-id="${c.id}" style="
-                background:var(--kanban-card-bg, #fff);border:1px solid var(--kanban-card-border, rgba(0,0,0,0.06));
-                border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;
-                transition:transform 0.15s ease, box-shadow 0.15s ease;
-            " onclick="if(window.appNavigate){window.appNavigate('detail', '${c.id}')}else{window.location.hash='#detail/' + '${c.id}'}">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">${c.nombre || 'Sin nombre'}</span>
-                <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">${c.state_id || ''}</span>
-                </div>
-                <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">${c.telefono || ''} ${c.email && c.email !== 'Sin Email' ? 'Â· ' + c.email : ''}</div>
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <i class="fa-solid fa-user-tie text-[10px] text-tealAccent"></i>
-                <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">${getRepNameForKanban(c, db)}</span>
-                </div>
-                <div style="display:flex;gap:4px;flex-wrap:wrap;">${deptBadges || '<span style="font-size:9px;color:#aaa;font-style:italic;">Sin departamento</span>'}</div>
-            </div>
-            `;
-        }).join('');
+    // Group clients by macro_estado
+    const grouped = {};
+    MACRO_COLS.forEach(col => grouped[col.key] = []);
+    filteredClients.forEach(c => {
+        const estado = c.macro_estado || 'Prospecto';
+        if (grouped[estado]) grouped[estado].push(c);
+        else grouped['Prospecto'].push(c);
+    });
 
+    // Summary chips row
+    const summaryHtml = MACRO_COLS.map(col => {
+        const count = (grouped[col.key] || []).length;
         return `
-        <div class="kanban-column" data-macro="${col.key}" style="
-            flex:1;min-width:260px;max-width:340px;
-            background:${col.bg};border:1.5px solid ${col.border};border-radius:20px;
-            padding:0;display:flex;flex-direction:column;
-            scroll-snap-align: center;
+        <button class="kanban-filter-chip" data-filter="${col.key}" style="
+            display:inline-flex;align-items:center;gap:6px;
+            padding:8px 14px;border-radius:50px;
+            background:${count > 0 ? col.bg : 'rgba(255,255,255,0.04)'};
+            border:1.5px solid ${count > 0 ? col.color + '50' : 'rgba(255,255,255,0.08)'};
+            color:${count > 0 ? col.color : '#64748b'};
+            font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
+            cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;
         ">
-            <div style="padding:16px 18px 12px;border-bottom:1px solid ${col.border};flex-shrink:0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:1.1rem;">${col.emoji}</span>
-                <span style="font-size:0.8rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
-                </div>
-                <span style="background:${col.color}18;color:${col.color};padding:2px 10px;border-radius:99px;font-size:11px;font-weight:900;">${cardsInCol.length}</span>
-            </div>
-            </div>
-            <div class="kanban-drop-zone" data-macro="${col.key}" style="
-            flex:1;overflow-y:auto;padding:20px 14px;min-height:300px; max-height: 55vh;
-            border-radius:0 0 20px 20px;
-            ">
-            ${cardsHtml || `<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Sin clientes</div>`}
-            </div>
-        </div>
+            <i class="fa-solid ${col.icon}" style="font-size:0.7rem;"></i>
+            ${col.key}
+            <span style="background:${col.color}25;color:${col.color};padding:1px 7px;border-radius:99px;font-size:10px;font-weight:900;">${count}</span>
+        </button>
         `;
     }).join('');
 
+    // Build all cards across all groups (sorted by status)
+    let activeFilter = null;
+
+    const renderCards = (filter) => {
+        const colsToShow = filter ? MACRO_COLS.filter(c => c.key === filter) : MACRO_COLS;
+        return colsToShow.map(col => {
+            const cards = grouped[col.key] || [];
+            if (cards.length === 0 && filter) return '';
+            const cardsHtml = cards.map(c => {
+                const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length
+                    ? c.departamentos_activos : (c.departamento ? [c.departamento] : []);
+                const deptBadges = depts.map(d => {
+                    const _nm = d.replace('Renew ', '');
+                    const dc = _nm.toLowerCase().includes('water') ? '#0ea5e9' : _nm.toLowerCase().includes('solar') ? '#f59e0b' : '#84cc16';
+                    return `<span style="padding:2px 8px;border-radius:99px;font-size:0.6rem;font-weight:900;text-transform:uppercase;background:${dc}18;color:${dc};border:1px solid ${dc}30;">${_nm}</span>`;
+                }).join('');
+                const repName = getRepNameForKanban(c, db);
+                return `
+                <div style="
+                    background:var(--surface);border-radius:16px;
+                    border:1px solid var(--border);padding:16px;
+                    margin-bottom:10px;cursor:pointer;
+                    border-left:3px solid ${col.color};
+                    transition:transform 0.15s ease,box-shadow 0.15s ease;
+                    active:transform:scale(0.98);
+                " onclick="if(window.appNavigate){window.appNavigate('detail','${c.id}')}else{window.location.hash='#detail/${c.id}'}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <span style="font-weight:800;font-size:0.95rem;color:var(--text-primary);">${c.nombre || 'Sin nombre'}</span>
+                        <span style="background:${col.bg};color:${col.color};padding:3px 10px;border-radius:99px;font-size:0.6rem;font-weight:900;text-transform:uppercase;flex-shrink:0;margin-left:8px;">${col.key}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <i class="fa-solid fa-phone" style="color:var(--text-muted);font-size:0.7rem;flex-shrink:0;"></i>
+                        <span style="font-size:0.8rem;color:var(--text-secondary);">${c.telefono || '—'}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <i class="fa-solid fa-user-tie" style="color:var(--primary);font-size:0.65rem;"></i>
+                            <span style="font-size:0.72rem;color:var(--text-muted);font-weight:700;">${repName}</span>
+                        </div>
+                        <div style="display:flex;gap:4px;">${deptBadges}</div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            if (cards.length === 0) return `
+            <div style="margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 0 8px;">
+                    <i class="fa-solid ${col.icon}" style="color:${col.color};font-size:0.75rem;"></i>
+                    <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
+                    <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">0</span>
+                </div>
+                <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.02);border-radius:12px;border:1px dashed rgba(255,255,255,0.06);">
+                    <span style="font-size:0.75rem;color:#475569;font-style:italic;">Sin clientes en esta etapa</span>
+                </div>
+            </div>`;
+
+            return `
+            <div style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 0 8px;">
+                    <i class="fa-solid ${col.icon}" style="color:${col.color};font-size:0.75rem;"></i>
+                    <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
+                    <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">${cards.length}</span>
+                </div>
+                ${cardsHtml}
+            </div>`;
+        }).join('');
+    };
+
     container.innerHTML = `
-        <style>
-          .app-kanban-wrapper {
-            display: flex;
-            gap: 16px;
-            overflow-x: auto;
-            padding-bottom: 20px;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-          }
-          .app-kanban-wrapper::-webkit-scrollbar {
-            height: 8px;
-          }
-          .app-kanban-wrapper::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.05);
-            border-radius: 10px;
-          }
-          .app-kanban-wrapper::-webkit-scrollbar-thumb {
-            background: rgba(0,245,212,0.5);
-            border-radius: 10px;
-          }
-          .dark .app-kanban-wrapper::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-          }
-          .dark .kanban-card { background: #1e293b !important; border: 1px solid rgba(255,255,255,0.08) !important; }
-        </style>
-        <div class="app-kanban-wrapper hide-scrollbar mt-4">
-            ${columnsHtml}
+        <div style="padding:0 4px 80px;">
+            <!-- Filter chips -->
+            <div style="display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;" class="hide-scrollbar">
+                <button class="kanban-filter-chip" data-filter="all" style="
+                    display:inline-flex;align-items:center;gap:6px;
+                    padding:8px 14px;border-radius:50px;
+                    background:rgba(0,245,212,0.1);border:1.5px solid rgba(0,245,212,0.3);
+                    color:var(--primary);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
+                    cursor:pointer;white-space:nowrap;flex-shrink:0;
+                ">Todos <span style="background:rgba(0,245,212,0.2);color:var(--primary);padding:1px 7px;border-radius:99px;font-size:10px;font-weight:900;">${filteredClients.length}</span></button>
+                ${summaryHtml}
+            </div>
+            <!-- Cards -->
+            <div id="kanban-cards-body">
+                ${renderCards(null)}
+            </div>
         </div>
     `;
+
+    // Wire filter chip clicks
+    container.querySelectorAll('.kanban-filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            container.querySelectorAll('.kanban-filter-chip').forEach(c => {
+                c.style.background = 'rgba(255,255,255,0.04)';
+                c.style.borderColor = 'rgba(255,255,255,0.08)';
+                c.style.color = '#64748b';
+            });
+            const filterVal = chip.dataset.filter;
+            if (filterVal === 'all') {
+                chip.style.background = 'rgba(0,245,212,0.1)';
+                chip.style.borderColor = 'rgba(0,245,212,0.3)';
+                chip.style.color = 'var(--primary)';
+            } else {
+                const col = MACRO_COLS.find(c => c.key === filterVal);
+                if (col) {
+                    chip.style.background = col.bg;
+                    chip.style.borderColor = col.color + '50';
+                    chip.style.color = col.color;
+                }
+            }
+            const body = container.querySelector('#kanban-cards-body');
+            if (body) body.innerHTML = renderCards(filterVal === 'all' ? null : filterVal);
+        });
+    });
 }
+
