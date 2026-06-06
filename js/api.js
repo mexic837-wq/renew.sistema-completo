@@ -2380,9 +2380,9 @@ export function getProjectDate(p, db) {
   if (!p) return null;
   // Use fecha_cierre if finished, fallback to creation fecha
   if (isProjectFinished(p, db)) {
-    return p.fecha_cierre || p.fecha;
+    return p.fecha_cierre || p.fecha || p.created_at || p.fecha_registro;
   }
-  return p.fecha;
+  return p.fecha || p.created_at || p.fecha_registro;
 }
 
 // ── INTERNAL MESSAGING (CHAT) ────────────────────────────────
