@@ -1004,8 +1004,38 @@ async function initRendimientoChart(user) {
   if (quickStatsEl) {
     const currentMonthProjects = totalVentasMonth;
     const tasaDeCierre = currentMonthProjects > 0 ? Math.round((closedMonth / currentMonthProjects) * 100) : 0;
-    const comisionesEstimadas = totalVentasMonth * 1000;
-    const timeLabel = timeFilter === 'mes' ? 'Este Mes' : (timeFilter === 'anio' ? 'Este Año' : 'Total');
+  // Calcular comisiones reales
+  let comisionesEstimadas = 0;
+  const recibos = db.Recibos_Pagos || [];
+  recibos.forEach(r => {
+    if (String(r.trabajador_id) !== String(user.id)) return;
+    let pDate = null;
+    let rawDate = r.fecha_recibo || r.created_at;
+    if (rawDate) {
+        let dStr = String(rawDate).trim();
+        if (dStr.includes(' ') && !dStr.includes('T')) dStr = dStr.replace(' ', 'T');
+        if (!dStr.includes('T')) dStr += 'T12:00:00';
+        const parsed = new Date(dStr);
+        if (!isNaN(parsed.getTime())) pDate = parsed;
+    }
+    if (pDate) {
+      let isMatch = false;
+      if (timeFilter === 'mes') {
+        isMatch = (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear);
+      } else if (timeFilter === 'anio') {
+        isMatch = (pDate.getFullYear() === currentYear);
+      } else if (timeFilter === 'global') {
+        isMatch = true;
+      }
+      if (isMatch) {
+          const json = r.datos_json || {};
+          const amt = parseFloat(json.grand_total) || parseFloat(json.total_price) || 0;
+          comisionesEstimadas += amt;
+      }
+    }
+  });
+
+  const timeLabel = timeFilter === 'mes' ? 'Este Mes' : (timeFilter === 'anio' ? 'Este Año' : 'Total');
     const titleLabel = timeFilter === 'mes' ? 'DEL MES' : (timeFilter === 'anio' ? 'DEL AÑO' : 'GLOBALES');
     
     if (isTecnico) {
@@ -1033,9 +1063,9 @@ async function initRendimientoChart(user) {
             <p style="font-size:1.8rem; font-weight:800; color:var(--text-primary); margin:0">${tasaDeCierre}%</p>
             <span style="font-size:0.65rem; color:var(--primary); font-weight:700; text-transform: uppercase;">${timeLabel}</span>
           </div>
-          <div style="display:none; flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+          <div style="flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Comisiones Est.</p>
-            <p style="font-size:1.8rem; font-weight:800; color:#3b82f6; margin:0">$${comisionesEstimadas.toLocaleString('en-US')}</p>
+            <p style="font-size:1.8rem; font-weight:800; color:#3b82f6; margin:0">$${comisionesEstimadas.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             <span style="font-size:0.65rem; color:var(--text-muted); font-weight:700; text-transform: uppercase;">Proyectadas</span>
           </div>
         </div>

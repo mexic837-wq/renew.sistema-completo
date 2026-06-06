@@ -167,7 +167,7 @@ export async function renderRendimientoGlobal() {
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Representante</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas</th>
                                 <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tasa Cierre</th>
-                                <th class="hidden px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Comisiones Proy.</th>
+                                <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Comisiones</th>
                             </tr>
                         </thead>
                         <tbody id="global-leaderboard-body"></tbody>
@@ -478,7 +478,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const totalVentas         = closedProjects.length;
 
     // Tasa de Rendimiento
-    const totalActivos  = totalProspectos;
+    const totalActivos  = totalPresentaciones + totalVentas;
     const closeRate     = totalActivos > 0 ? Math.round((totalVentas / totalActivos) * 100) : 0;
 
     // ── Percentages ───────────────────────────────────────────────────────────
@@ -498,9 +498,9 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const elPPct = document.getElementById('kpi-prospectos-pct');
     const elPresPct = document.getElementById('kpi-presentaciones-pct');
     const elVPct = document.getElementById('kpi-ventas-pct');
-    if (elPPct)    elPPct.textContent    = prospectosPct > 0    ? `${prospectosPct}% con proyecto`    : '';
-    if (elPresPct) elPresPct.textContent = totalPresentaciones > 0       ? `${presentacionesPct}% en curso`    : '';
-    if (elVPct)    elVPct.textContent    = ventasPct > 0        ? `${ventasPct}% tasa de cierre`      : '';
+    if (elPPct)    elPPct.textContent    = '';
+    if (elPresPct) elPresPct.textContent = '';
+    if (elVPct)    elVPct.textContent    = '';
 
     // Progress bar + icon
     const bar   = document.getElementById('kpi-tasa-bar');
@@ -521,7 +521,9 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     }
 
     // ── 5. Leaderboard ────────────────────────────────────────────────────────
-    const leaderboardData = relevantVendors.map(v => {
+    let filteredVendors = filterByVendors ? relevantVendors.filter(v => vendorIds.includes(String(v.id))) : relevantVendors;
+
+    const leaderboardData = filteredVendors.map(v => {
         const vProjects = ecoProjects.filter(p => {
             if (!inRange(getProjectDate(p, db))) return false;
             if (String(p.responsable_id) === String(v.id)) return true;
@@ -531,11 +533,22 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const vTotal   = vProjects.length;
         const vClosed  = vProjects.filter(p => isProjectFinished(p, db)).length;
         const vCloseRate = vTotal > 0 ? Math.round((vClosed / vTotal) * 100) : 0;
+        
+        let vCommissions = 0;
+        const vRecibos = db.Recibos_Pagos || [];
+        vRecibos.forEach(r => {
+            if (String(r.trabajador_id) !== String(v.id)) return;
+            if (inRange(r.fecha_recibo || r.created_at)) {
+                const json = r.datos_json || {};
+                vCommissions += (parseFloat(json.grand_total) || parseFloat(json.total_price) || 0);
+            }
+        });
+
         return {
             ...v,
             sales:       vClosed,
             closeRate:   vCloseRate,
-            commissions: vClosed * 1000
+            commissions: vCommissions
         };
     }).sort((a, b) => b.sales - a.sales);
 
@@ -565,8 +578,8 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                         <span class="text-[10px] font-black text-gray-500">${v.closeRate}%</span>
                     </div>
                 </td>
-                <td class="hidden px-8 py-6 text-right">
-                    <span class="text-sm font-black text-tealAccent">$${v.commissions.toLocaleString()}</span>
+                <td class="px-8 py-6 text-right">
+                    <span class="text-sm font-black text-tealAccent">$${v.commissions.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </td>
             </tr>
         `).join('');
