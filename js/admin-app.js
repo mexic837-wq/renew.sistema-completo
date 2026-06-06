@@ -6428,6 +6428,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
           evMapPreview.classList.add('hidden');
       }
   }
+  } // <--- This closes the `else { // ADD NEW EVENT MODE`
 
   window.showModal(modal);
 };
