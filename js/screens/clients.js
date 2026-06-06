@@ -659,7 +659,7 @@ async function _renderList(user, container) {
         }
         
         const { saveGranular, deleteRecord } = await import('../api.js');
-        await deleteRecord('Clientes_Maestro', clientId);
+        await deleteRecord('clientes_maestro', clientId);
         
         import('../components/toast.js').then(m => m.showToast('Cliente eliminado', 'success'));
         _renderList(user, container);
