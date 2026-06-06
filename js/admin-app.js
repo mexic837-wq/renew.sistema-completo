@@ -10119,7 +10119,7 @@ window.syncGoogleSheets = async () => {
             alert(`¡Sincronización exitosa! Se actualizaron ${json.count} productos.`);
             renderListaPreciosAdmin(); // Recargar la vista localmente si ya se bajaron los datos o si podemos pedir fresh fetch
             // Idealmente forzar refetch
-            fetchDB().then(() => renderListaPreciosAdmin());
+            initDB().then(() => renderListaPreciosAdmin());
         } else {
             alert('Error al sincronizar: ' + json.error);
             if (btn) btn.innerHTML = '<i class="fa-solid fa-sync"></i> Sincronizar Sheets';
