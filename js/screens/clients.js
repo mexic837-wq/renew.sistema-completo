@@ -141,16 +141,22 @@ export async function renderClients() {
       // Update tab labels
       if (isTecnico) {
         const tabKey = btn.dataset.clientsTab;
-        if (tabKey === 'kanban') btn.innerHTML = '<i class="fa-solid fa-grip-vertical" style="margin-right:4px"></i>Vista Kanban';
-        else btn.textContent = tabKey === 'prospectos' ? t('clients_tab_prospects_tech') : t('clients_tab_clients_tech');
+        if (tabKey === 'kanban') {
+          btn.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>Vista Kanban';
+          btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
+        } else btn.textContent = tabKey === 'prospectos' ? t('clients_tab_prospects_tech') : t('clients_tab_clients_tech');
       } else if (isCallCenter) {
         const tabKey = btn.dataset.clientsTab;
-        if (tabKey === 'kanban') btn.innerHTML = '<i class="fa-solid fa-grip-vertical" style="margin-right:4px"></i>Vista Kanban';
-        else btn.textContent = tabKey === 'prospectos' ? 'Leads Pendientes' : 'Mis Llamadas';
+        if (tabKey === 'kanban') {
+          btn.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>Vista Kanban';
+          btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
+        } else btn.textContent = tabKey === 'prospectos' ? 'Leads Pendientes' : 'Mis Llamadas';
       } else {
         const tabKey = btn.dataset.clientsTab;
-        if (tabKey === 'kanban') btn.innerHTML = '<i class="fa-solid fa-grip-vertical" style="margin-right:4px"></i>Vista Kanban';
-        else btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
+        if (tabKey === 'kanban') {
+          btn.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>Vista Kanban';
+          btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
+        } else btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
       }
 
       // Remove old listeners by cloning
