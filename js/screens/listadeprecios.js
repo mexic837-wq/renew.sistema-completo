@@ -368,8 +368,8 @@ function _showProductDetail(prod, priceKey, isAdmin) {
     </div>
   ` : `
     <div style="margin-top:20px; background:linear-gradient(135deg,#0ea5e915,#0284c705); border:1.5px solid #0ea5e930; border-radius:18px; padding:24px; text-align:center;">
-      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 4px;">Precio Full</p>
-      <p style="font-size:2.2rem; font-weight:900; color:#0ea5e9; margin:0; letter-spacing:-1px;">${formatPrice(prod.precio_full)}</p>
+      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 4px;">Tu Precio</p>
+      <p style="font-size:2.2rem; font-weight:900; color:#0ea5e9; margin:0; letter-spacing:-1px;">${formatPrice(price || prod.precio_full)}</p>
       ${prod.unidad ? `<p style="font-size:0.75rem; color:var(--text-muted); margin:6px 0 0; font-weight:600;">precio por ${prod.unidad}</p>` : ''}
     </div>
   `;
