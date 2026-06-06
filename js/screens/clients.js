@@ -123,7 +123,7 @@ export async function renderClients() {
     // ── Search Bar ───────────────────────────────────────────
     let searchHTML = '';
     searchHTML = `
-      <div style="padding:0 16px; margin-top:16px; margin-bottom:12px;">
+      <div style="margin-bottom:12px;">
         <div style="position:relative;">
           <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
           <input id="clients-app-search" type="text" placeholder="Buscar por nombre de cliente..." autocomplete="off"
@@ -180,18 +180,22 @@ export async function renderClients() {
       });
     });
 
-    // Insert Search Bar after tabs (find parent of tabs)
-    const tabsContainer = document.querySelector('.clients-tabs-container') || document.querySelector('[data-clients-tab]')?.parentElement;
-    if (tabsContainer && !document.getElementById('clients-app-search-container')) {
-      const searchDiv = document.createElement('div');
-      searchDiv.id = 'clients-app-search-container';
-      searchDiv.innerHTML = searchHTML;
-      tabsContainer.parentNode.insertBefore(searchDiv, tabsContainer.nextSibling);
-
+    // Insert Search Bar between tabs wrapper and list container
+    let searchEl = document.getElementById('clients-app-search-container');
+    if (!searchEl) {
+      searchEl = document.createElement('div');
+      searchEl.id = 'clients-app-search-container';
+      searchEl.style.padding = '0 20px';
+      searchEl.style.marginBottom = '4px';
+      searchEl.innerHTML = searchHTML;
+      // Insert just before the list container
+      container.parentNode.insertBefore(searchEl, container);
       document.getElementById('clients-app-search')?.addEventListener('input', () => {
         _renderList(user, container);
       });
     }
+    // Show/hide search based on active tab (kanban has its own chip filters)
+    searchEl.style.display = currentClientsTab === 'kanban' ? 'none' : 'block';
 
     // ── Wire "+" nav button → open new prospect modal ────────
     const navPlus = document.getElementById('nav-btn-nuevo-cliente');
