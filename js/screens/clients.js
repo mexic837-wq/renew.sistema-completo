@@ -1753,6 +1753,13 @@ function _renderKanban(user, container, filteredClients, db) {
         { key: 'Declinado', color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   icon: 'fa-circle-xmark' },
     ];
 
+    // Build clientId → first projectId map (so we navigate to the project, not the client)
+    const allProys = db.Proyectos_Dinamicos || [];
+    const projectByClient = {};
+    allProys.forEach(p => {
+        if (!projectByClient[p.cliente_id]) projectByClient[p.cliente_id] = p.id;
+    });
+
     // Group clients by macro_estado
     const grouped = {};
     MACRO_COLS.forEach(col => grouped[col.key] = []);
@@ -1799,14 +1806,15 @@ function _renderKanban(user, container, filteredClients, db) {
                     return `<span style="padding:2px 8px;border-radius:99px;font-size:0.6rem;font-weight:900;text-transform:uppercase;background:${dc}18;color:${dc};border:1px solid ${dc}30;">${_nm}</span>`;
                 }).join('');
                 const repName = getRepNameForKanban(c, db);
+                const projectId = projectByClient[c.id] || null;
                 return `
-                <div style="
+                <div class="kanban-app-card" data-project-id="${projectId}" data-client-id="${c.id}" style="
                     background:var(--surface);border-radius:16px;
                     border:1px solid var(--border);padding:16px;
                     cursor:pointer;
                     border-left:3px solid ${col.color};
                     transition:transform 0.15s ease,box-shadow 0.15s ease;
-                " onclick="if(window.appNavigate){window.appNavigate('detail','${c.id}')}else{window.location.hash='#detail/${c.id}'}">
+                ">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                         <span style="font-weight:800;font-size:0.95rem;color:var(--text-primary);">${c.nombre || 'Sin nombre'}</span>
                         <span style="background:${col.bg};color:${col.color};padding:3px 10px;border-radius:99px;font-size:0.6rem;font-weight:900;text-transform:uppercase;flex-shrink:0;margin-left:8px;">${col.key}</span>
@@ -1923,8 +1931,32 @@ function _renderKanban(user, container, filteredClients, db) {
                 }
             }
             const body = container.querySelector('#kanban-cards-body');
-            if (body) body.innerHTML = renderCards(filterVal === 'all' ? null : filterVal);
+            if (body) {
+                body.innerHTML = renderCards(filterVal === 'all' ? null : filterVal);
+                wireKanbanCards(body);
+            }
         });
     });
+
+    // Wire card clicks (use project ID if available, else pipeline selector)
+    function wireKanbanCards(root) {
+        root.querySelectorAll('.kanban-app-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const projectId = card.dataset.projectId;
+                const clientId = card.dataset.clientId;
+                if (projectId && projectId !== 'null') {
+                    if (window.appNavigate) window.appNavigate('detail', projectId);
+                    else window.location.hash = '#detail/' + projectId;
+                } else {
+                    // No project yet — open pipeline selector if possible
+                    const client = filteredClients.find(c => c.id === clientId);
+                    if (client && typeof _showPipelineSelector === 'function') {
+                        _showPipelineSelector(client, user);
+                    }
+                }
+            });
+        });
+    }
+    wireKanbanCards(container);
 }
 
