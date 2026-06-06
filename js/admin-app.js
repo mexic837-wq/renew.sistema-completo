@@ -5914,6 +5914,7 @@ function renderCalendario() {
                         adjunto_url: ev.adjunto_url,
                         color: ev.color,
                         colaboradores: normalizedColab,
+                        attendees: ev.attendees || [],
                         departamentos: ev.departamentos || []
                     }
                 };
@@ -6107,7 +6108,10 @@ window.mostrarDetalleEventoCalendario = async function(event) {
                   
                   let isChecked = false;
                   if (props.attendees && Array.isArray(props.attendees)) {
-                      isChecked = props.attendees.some(a => String(a.id) === String(w.id) || a.email === email);
+                      isChecked = isChecked || props.attendees.some(a => String(a.id) === String(w.id) || a.email === email);
+                  }
+                  if (!isChecked && props.colaboradores && Array.isArray(props.colaboradores)) {
+                      isChecked = isChecked || props.colaboradores.some(c => String(c.id) === String(w.id));
                   }
 
                   return `
