@@ -543,7 +543,8 @@ export async function renderHRHub() {
 
         // Helper: resolve department key (water/solar/home/otro) from recibo
         function getDeptKey(r) {
-            if (r.departamento) return r.departamento.toLowerCase();
+            const dpto = r.departamento || (r.datos_json && r.datos_json.dpto);
+            if (dpto) return dpto.toLowerCase();
             if (r.proyecto_id) {
                 const proy = proyectos.find(p => String(p.id) === String(r.proyecto_id));
                 if (proy) {
@@ -1051,7 +1052,6 @@ export async function renderHRHub() {
                     trabajador_nombre: worker ? `${worker.nombre} ${worker.apellido || ''}` : 'Staff',
                     cliente_nombre: motivo || 'Pago Manual',
                     tipo: computedTipo === 'oficina' ? 'vendedor' : computedTipo,
-                    departamento: depto,
                     fecha_recibo: fecha,
                     datos_json: { grand_total: parseFloat(monto.toString().replace(/,/g, '')), subtipo: computedTipo, dpto: depto }
                 };
