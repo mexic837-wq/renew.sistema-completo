@@ -38,17 +38,19 @@ export function computeUserRank(userId, activeUnit, db) {
   const user = getCurrentUser();
   const dbUser = (db.Usuarios || []).find(u => String(u.id) === String(userId)) || user;
   
-  if (dbUser && dbUser.rango && dbUser.rango !== 'auto') {
+  let targetRankVal = activeUnit === 'Renew Solar' && dbUser.rango_solar ? dbUser.rango_solar : dbUser.rango;
+
+  if (targetRankVal && targetRankVal !== 'auto') {
     let targetRankName = '';
-    if (dbUser.rango === 'referidos') targetRankName = 'Nuevo';
-    else if (dbUser.rango === 'subvendedor' || dbUser.rango === 'novato') targetRankName = 'Novato';
-    else if (dbUser.rango === 'iniciante') targetRankName = 'Iniciante';
-    else if (dbUser.rango === 'junior') targetRankName = 'Junior';
-    else if (dbUser.rango === 'vendedor') targetRankName = 'Vendedor';
-    else if (dbUser.rango === 'representante') targetRankName = 'Vendedor';
-    else if (dbUser.rango === 'analista') targetRankName = 'Analista';
-    else if (dbUser.rango === 'oficina') targetRankName = 'Oficina';
-    else if (dbUser.rango === 'no_aplica') targetRankName = 'No Aplica';
+    if (targetRankVal === 'referidos') targetRankName = 'Nuevo';
+    else if (targetRankVal === 'subvendedor' || targetRankVal === 'novato') targetRankName = 'Novato';
+    else if (targetRankVal === 'iniciante') targetRankName = 'Iniciante';
+    else if (targetRankVal === 'junior') targetRankName = 'Junior';
+    else if (targetRankVal === 'vendedor' || targetRankVal === 'representante') targetRankName = 'Vendedor';
+    else if (targetRankVal === 'asesor') targetRankName = 'Asesor';
+    else if (targetRankVal === 'analista') targetRankName = 'Analista';
+    else if (targetRankVal === 'oficina') targetRankName = 'Oficina';
+    else if (targetRankVal === 'no_aplica') targetRankName = 'No Aplica';
 
     if (targetRankName === 'No Aplica') {
       return {
