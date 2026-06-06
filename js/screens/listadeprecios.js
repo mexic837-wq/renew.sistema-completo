@@ -27,6 +27,8 @@ export async function renderListaPrecios() {
   if (!isAdmin) {
     const rankInfo = computeUserRank(user.id, activeUnit, db);
     if (rankInfo && rankInfo.isNoAplica) {
+      // Comentado para habilitar la vista a todos, usarán el fallback
+      /*
       screen.innerHTML = `
         <div class="dash-header" style="padding-bottom:12px;">
           <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
@@ -46,6 +48,7 @@ export async function renderListaPrecios() {
       `;
       document.getElementById('btn-precios-back')?.addEventListener('click', () => navigate('menu'));
       return;
+      */
     }
 
     if (rankInfo && rankInfo.cur && rankInfo.cur.priceKey) {

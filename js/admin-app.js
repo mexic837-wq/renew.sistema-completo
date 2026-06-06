@@ -802,11 +802,14 @@ const updateAdminNavLabels = () => {
     const hasWaterAccess = (usr.unidades || []).some(u => u.toLowerCase().includes('water'));
     const rango = usr.rango_precios || 'no_aplica';
     
+    // Comentado para habilitar la lista de precios a todos como fue solicitado
+    /*
     if (!hasWaterAccess || (!isSpecialRole && rango === 'no_aplica')) {
         document.querySelectorAll('#admin-nav a[data-view="lista-precios"]').forEach(el => {
             el.style.display = 'none';
         });
     }
+    */
 
     if (!['admin', 'administrador', 'ceo'].includes(rol)) {
         document.querySelectorAll('#admin-nav a[data-view="callcenter"], #admin-nav a[data-view="call_center"], #admin-nav a[data-view="call-center"]').forEach(el => {
