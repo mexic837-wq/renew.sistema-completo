@@ -7,6 +7,7 @@ import { getCurrentUser, navigate } from '../app.js';
 import { t } from '../i18n.js';
 
 let activeTeamDept = 'Todos';
+let activeTeamSede = 'Todas';
 let teamSearchQuery = '';
 let allTeamWorkers = [];
 
@@ -36,13 +37,27 @@ export async function renderMiEquipo() {
       <div id="team-dept-filter" style="display:flex; justify-content: center; overflow-x:auto; gap:8px; padding:16px 20px 8px; margin-top:4px; scrollbar-width:none;">
       </div>
       
-      <!-- Fila 2: Buscador -->
+      <!-- Fila 2: Buscador y Filtro de Sede -->
       <div style="padding:0 20px; margin-top:8px;">
-          <div style="position:relative; width:100%;">
-            <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
-            <input id="team-search" type="text" placeholder="Buscar compañero..." autocomplete="off" value="${teamSearchQuery}"
-              style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
-              onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+          <div style="display:flex; gap:8px; width:100%;">
+            <div style="position:relative; flex:1;">
+              <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
+              <input id="team-search" type="text" placeholder="Buscar compañero..." autocomplete="off" value="${teamSearchQuery}"
+                style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <select id="team-sede-filter" style="border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;padding:0 12px;outline:none; cursor:pointer;">
+               <option value="Todas" ${activeTeamSede === 'Todas' ? 'selected' : ''}>Todas las sedes</option>
+               <option value="Miami" ${activeTeamSede === 'Miami' ? 'selected' : ''}>Miami</option>
+               <option value="Orlando" ${activeTeamSede === 'Orlando' ? 'selected' : ''}>Orlando</option>
+               <option value="Dallas" ${activeTeamSede === 'Dallas' ? 'selected' : ''}>Dallas</option>
+               <option value="Nueva York" ${activeTeamSede === 'Nueva York' ? 'selected' : ''}>Nueva York</option>
+               <option value="Tampa" ${activeTeamSede === 'Tampa' ? 'selected' : ''}>Tampa</option>
+               <option value="Venezuela" ${activeTeamSede === 'Venezuela' ? 'selected' : ''}>Venezuela</option>
+               <option value="Brasil" ${activeTeamSede === 'Brasil' ? 'selected' : ''}>Brasil</option>
+               <option value="Colombia" ${activeTeamSede === 'Colombia' ? 'selected' : ''}>Colombia</option>
+               <option value="Remoto" ${activeTeamSede === 'Remoto' ? 'selected' : ''}>Remoto</option>
+            </select>
           </div>
       </div>
     </div>
@@ -196,6 +211,13 @@ export async function renderMiEquipo() {
         _renderTeamGrid();
       });
     }
+    const sedeSelect = document.getElementById('team-sede-filter');
+    if (sedeSelect) {
+      sedeSelect.addEventListener('change', (e) => {
+        activeTeamSede = e.target.value;
+        _renderTeamGrid();
+      });
+    }
   }, 100);
 
   try {
@@ -224,6 +246,14 @@ function _renderTeamGrid() {
          const unitsStr = units.join(' ').toLowerCase();
          return unitsStr.includes(activeTeamDept.toLowerCase());
       });
+    }
+
+    // Filter by Sede
+    if (activeTeamSede !== 'Todas') {
+       filtered = filtered.filter(w => {
+           const sede = (w.sede || '').toLowerCase();
+           return sede.includes(activeTeamSede.toLowerCase());
+       });
     }
 
     // Filter by Search
