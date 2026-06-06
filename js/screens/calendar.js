@@ -826,6 +826,7 @@ export async function renderMiCalendario() {
       document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
       document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
       document.querySelectorAll('input[name="ev-depto"]').forEach(r => r.disabled = false);
+      document.querySelectorAll('.ev-colab-chk').forEach(c => c.disabled = false);
   }
 
   async function eliminarEventoCalendario() {

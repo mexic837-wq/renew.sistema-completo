@@ -6088,9 +6088,54 @@ window.mostrarDetalleEventoCalendario = async function(event) {
       return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   };
 
+  const props = (event && event.title && event.extendedProps) ? event.extendedProps : {};
+
+  // ── Load collaborators as checkboxes ALWAYS so they are ready for edit mode ──
+  const container = document.getElementById('ev-colaboradores-container');
+  if (container) {
+      container.innerHTML = '<p class="text-xs text-gray-400 italic">Cargando equipo...</p>';
+      try {
+          const workers = await getAdminWorkers();
+          if (workers.length === 0) {
+              container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay colaboradores registrados.</p>';
+          } else {
+              container.innerHTML = workers.map(w => {
+                  const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
+                  const rol = w.rol || 'Sin rol';
+                  const email = w.email || '';
+                  const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
+                  
+                  let isChecked = false;
+                  if (props.attendees && Array.isArray(props.attendees)) {
+                      isChecked = props.attendees.some(a => String(a.id) === String(w.id) || a.email === email);
+                  }
+
+                  return `
+                  <label class="flex items-center gap-3 cursor-pointer group py-1.5 rounded-lg hover:bg-tealAccent/5 px-2 transition-all">
+                      <input type="checkbox" 
+                          class="ev-colab-chk w-4 h-4 rounded accent-teal-500 cursor-pointer flex-shrink-0" 
+                          data-worker="${workerData}" ${isChecked ? 'checked' : ''} disabled>
+                      <div class="flex items-center gap-2 min-w-0">
+                          <div class="w-6 h-6 rounded-full bg-tealAccent/20 border border-tealAccent/30 flex items-center justify-center flex-shrink-0">
+                              <span class="text-[9px] font-black text-tealAccent">${fullName.charAt(0).toUpperCase()}</span>
+                          </div>
+                          <div class="min-w-0">
+                              <p class="text-xs font-bold text-gray-800 dark:text-white truncate">${fullName} <span class="font-normal text-gray-400">(${rol})</span></p>
+                              ${email ? `<p class="text-[9px] text-tealAccent/70 truncate">${email}</p>` : ''}
+                          </div>
+                      </div>
+                  </label>`;
+              }).join('');
+          }
+      } catch (err) {
+          container.innerHTML = '<p class="text-xs text-red-400 italic">Error cargando colaboradores.</p>';
+          console.error('[CALENDAR] Error loading workers:', err);
+      }
+  }
+
+
   // Set in View Mode if event exists
   if (event && event.title) {
-    const props = event.extendedProps || {};
     titleEl.innerHTML = props.isBirthday ? `<i class="fa-solid fa-cake-candles"></i> ${event.title}` : `<i class="fa-solid fa-calendar-check"></i> ${event.title || 'Cita de Instalación'}`;
     btnGuardar.classList.add('hidden');
 
@@ -6247,6 +6292,10 @@ window.mostrarDetalleEventoCalendario = async function(event) {
     titleEl.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> Añadir Evento`;
     btnGuardar.classList.remove('hidden');
     form.reset();
+    
+    // Checkboxes are rendered disabled initially, so enable them for add mode
+    document.querySelectorAll('.ev-colab-chk').forEach(c => c.disabled = false);
+
     // Clear read-only participants panel
     const oldParts = document.getElementById('ev-participantes-readonly');
     if (oldParts) oldParts.innerHTML = '';
@@ -6295,43 +6344,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         r.checked = false;
     });
 
-    // ââ‚¬ââ‚¬ Load collaborators as checkboxes with email for Google Calendar attendees ââ‚¬ââ‚¬
-    const container = document.getElementById('ev-colaboradores-container');
-    if (container) {
-        container.innerHTML = '<p class="text-xs text-gray-400 italic">Cargando equipo...</p>';
-        try {
-            const workers = await getAdminWorkers();
-            if (workers.length === 0) {
-                container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay colaboradores registrados.</p>';
-            } else {
-                container.innerHTML = workers.map(w => {
-                    const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-                    const rol = w.rol || 'Sin rol';
-                    const email = w.email || '';
-                    const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
-                    return `
-                    <label class="flex items-center gap-3 cursor-pointer group py-1.5 rounded-lg hover:bg-tealAccent/5 px-2 transition-all">
-                        <input type="checkbox" 
-                            class="ev-colab-chk w-4 h-4 rounded accent-teal-500 cursor-pointer flex-shrink-0" 
-                            data-worker="${workerData}">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <div class="w-6 h-6 rounded-full bg-tealAccent/20 border border-tealAccent/30 flex items-center justify-center flex-shrink-0">
-                                <span class="text-[9px] font-black text-tealAccent">${fullName.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-xs font-bold text-gray-800 dark:text-white truncate">${fullName} <span class="font-normal text-gray-400">(${rol})</span></p>
-                                ${email ? `<p class="text-[9px] text-tealAccent/70 truncate">${email}</p>` : ''}
-                            </div>
-                        </div>
-                    </label>`;
-                }).join('');
-            }
-        } catch (err) {
-            container.innerHTML = '<p class="text-xs text-red-400 italic">Error cargando colaboradores.</p>';
-            console.error('[CALENDAR] Error loading workers:', err);
-        }
-    }
-  }
+
 
   // ââ‚¬ââ‚¬ Google Places Autocomplete for address field (Exact match from mobile version) ââ‚¬ââ‚¬
   const evDirInput = document.getElementById('ev-direccion');
@@ -6504,6 +6517,8 @@ window.switchEventToEditModeAdmin = function() {
     const colabContainer = document.getElementById('ev-colaboradores').parentElement;
     if(colabContainer) colabContainer.classList.remove('hidden');
     
+    document.querySelectorAll('.ev-colab-chk').forEach(chk => chk.disabled = false);
+
     const oldParts = document.getElementById('ev-participantes-readonly');
     if (oldParts) oldParts.innerHTML = '';
 };
