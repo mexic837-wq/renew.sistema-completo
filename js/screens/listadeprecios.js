@@ -27,8 +27,6 @@ export async function renderListaPrecios() {
   if (!isAdmin) {
     const rankInfo = computeUserRank(user.id, activeUnit, db);
     if (rankInfo && rankInfo.isNoAplica) {
-      // Comentado para habilitar la vista a todos, usarán el fallback
-      /*
       screen.innerHTML = `
         <div class="dash-header" style="padding-bottom:12px;">
           <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
@@ -46,9 +44,13 @@ export async function renderListaPrecios() {
           <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes una lista de precios asignada en este momento. Por favor, contacta a administración si crees que esto es un error.</p>
         </div>
       `;
-      document.getElementById('btn-precios-back')?.addEventListener('click', () => navigate('menu'));
+      setTimeout(() => {
+        document.getElementById('btn-precios-back')?.addEventListener('click', () => {
+          if (window.appNavigate) window.appNavigate('menu');
+          else navigate('menu');
+        });
+      }, 0);
       return;
-      */
     }
 
     if (rankInfo && rankInfo.cur && rankInfo.cur.priceKey) {

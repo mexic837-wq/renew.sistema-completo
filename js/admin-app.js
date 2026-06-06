@@ -10346,7 +10346,17 @@ async function renderListaPreciosAdmin() {
   };
 
   if (isRestrictedManager) {
-      const assignedRango = currentUsr.rango || 'vendedor';
+      const assignedRango = currentUsr.rango || 'no_aplica';
+      if (assignedRango === 'no_aplica') {
+          UI.canvas.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-center text-gray-500 py-20">
+                <i class="fa-solid fa-lock text-5xl mb-4 opacity-30"></i>
+                <h3 class="text-xl font-black text-white uppercase tracking-tighter mb-2">Acceso Restringido</h3>
+                <p class="text-xs font-bold uppercase tracking-widest text-gray-400">No tienes una lista de precios asignada en este momento.</p>
+            </div>
+          `;
+          return;
+      }
       if (rankLabels[assignedRango]) {
           rankLabels = { [assignedRango]: rankLabels[assignedRango] };
       } else {
