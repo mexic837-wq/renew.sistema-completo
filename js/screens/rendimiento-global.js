@@ -72,8 +72,8 @@ export async function renderRendimientoGlobal() {
                 </div>
             </div>
 
-            <!-- KPI Cards (4 cols) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- KPI Cards (5 cols) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <!-- Prospectos -->
                 <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-blue-400/30 transition-all">
                     <p class="text[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2">Prospectos</p>
@@ -102,6 +102,15 @@ export async function renderRendimientoGlobal() {
                         <span id="kpi-ventas-pct" class="text-sm font-black text-emerald-400 mb-1"></span>
                     </div>
                     <p class="text-[10px] text-gray-400 mt-1 font-medium">Proyectos concretados</p>
+                </div>
+
+                <!-- Declinados -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-red-400/30 transition-all">
+                    <p class="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] mb-2">Declinados</p>
+                    <div class="flex items-end gap-3">
+                        <h3 id="kpi-declinados-totales" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-1 font-medium">Prospectos rechazados</p>
                 </div>
 
                 <!-- Tasa de Rendimiento (indicador visual) -->
@@ -146,6 +155,10 @@ export async function renderRendimientoGlobal() {
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-sm"></span>
                             <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Ventas</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-400 shadow-sm"></span>
+                            <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Declinados</span>
                         </div>
                     </div>
                 </div>
@@ -478,6 +491,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const closedProjects = ecoProjects.filter(p => isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
 
     const totalProspectos     = filteredClients.length; // all clients in the ecosystem
+    const totalDeclinados     = filteredClients.filter(c => c.macro_estado === 'Declinado').length;
     const totalPresentaciones = openProjects.length;
     const totalVentas         = closedProjects.length;
 
@@ -497,6 +511,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     document.getElementById('kpi-total-contactos').textContent    = totalProspectos;
     document.getElementById('kpi-proyectos-abiertos').textContent = totalPresentaciones;
     document.getElementById('kpi-ventas-totales').textContent     = totalVentas;
+    if(document.getElementById('kpi-declinados-totales')) document.getElementById('kpi-declinados-totales').textContent = totalDeclinados;
     document.getElementById('kpi-tasa-cierre').textContent        = `${closeRate}%`;
 
     const elPPct = document.getElementById('kpi-prospectos-pct');
@@ -594,6 +609,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     let dataProspectos    = [];
     let dataPresentaciones = [];
     let dataVentas        = [];
+    let dataDeclinados    = [];
     let subtitleText      = '';
 
     // Plot helpers 
@@ -602,6 +618,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const days  = Math.round((end - start) / msDay) + 1;
         const lbs   = [];
         const dp    = Array(days).fill(0);
+        const dd    = Array(days).fill(0);
         const dpr   = Array(days).fill(0);
         const dv    = Array(days).fill(0);
         for (let i = 0; i < days; i++) {
@@ -612,7 +629,10 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             const d = safeDate(c.fecha_registro || c.fecha || c.created_at);
             if (!d) return;
             const idx = Math.round((d - start) / msDay);
-            if (idx >= 0 && idx < days) dp[idx]++;
+            if (idx >= 0 && idx < days) {
+                dp[idx]++;
+                if (c.macro_estado === 'Declinado') dd[idx]++;
+            }
         });
         openArr.forEach(p => {
             const d = safeDate(getProjectDate(p, db));
@@ -626,18 +646,25 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) dv[idx]++;
         });
-        return { lbs, dp, dpr, dv };
+        return { lbs, dp, dpr, dv, dd };
     };
 
     const plotByMonth = (year, clientsArr, openArr, closedArr) => {
         const mn  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
         const dp  = Array(12).fill(0);
+        const dd  = Array(12).fill(0);
         const dpr = Array(12).fill(0);
         const dv  = Array(12).fill(0);
-        clientsArr.forEach(c => { const d = safeDate(c.fecha_registro||c.fecha||c.created_at); if(d && d.getFullYear()===year) dp[d.getMonth()]++; });
+        clientsArr.forEach(c => { 
+            const d = safeDate(c.fecha_registro||c.fecha||c.created_at); 
+            if(d && d.getFullYear()===year) {
+                dp[d.getMonth()]++;
+                if (c.macro_estado === 'Declinado') dd[d.getMonth()]++;
+            }
+        });
         openArr.forEach(p => { const d = safeDate(getProjectDate(p, db)); if(d && d.getFullYear()===year) dpr[d.getMonth()]++; });
         closedArr.forEach(p => { const d = safeDate(getProjectDate(p, db)); if(d && d.getFullYear()===year) dv[d.getMonth()]++; });
-        return { lbs: mn, dp, dpr, dv };
+        return { lbs: mn, dp, dpr, dv, dd };
     };
 
     // Data grouped for chart
@@ -647,24 +674,24 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     if (range === 'weekly') {
         const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
-        labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
+        labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         subtitleText = 'Actividad de la semana en curso.';
     } else if (range === 'monthly') {
         const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
-        labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
+        labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         subtitleText = 'Evolución de prospectos, presentaciones y ventas del mes.';
     } else if (range === 'annual') {
         const r = plotByMonth(currentYear, chartClientes, chartEnProceso, chartVentas);
-        labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
+        labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         subtitleText = `Resumen anual ${currentYear}.`;
     } else if (range === 'custom' && rangeStart && rangeEnd) {
         const diffDays = Math.round((rangeEnd - rangeStart) / 86400000);
         if (diffDays <= 62) {
             const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
-            labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
+            labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         } else {
             const r = plotByMonth(rangeStart.getFullYear(), chartClientes, chartEnProceso, chartVentas);
-            labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv;
+            labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         }
         const fmt = d => d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
         subtitleText = `Rango personalizado: ${fmt(rangeStart)} → ${fmt(rangeEnd)}.`;
@@ -684,10 +711,10 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     globalChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Prospectos', 'Presentaciones', 'Ventas'],
+            labels: ['Prospectos', 'Presentaciones', 'Ventas', 'Declinados'],
             datasets: [{
-                data: [totalProspectos, totalPresentaciones, totalVentas],
-                backgroundColor: ['#60a5fa', '#fbbf24', '#34d399'],
+                data: [totalProspectos, totalPresentaciones, totalVentas, totalDeclinados],
+                backgroundColor: ['#60a5fa', '#fbbf24', '#34d399', '#f87171'],
                 borderWidth: 0,
                 hoverOffset: 10
             }]

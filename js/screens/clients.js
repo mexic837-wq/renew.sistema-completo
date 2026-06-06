@@ -363,6 +363,11 @@ async function _renderList(user, container) {
 
   console.log('Rendering list for technician:', isTecnico, 'Found:', filtered.length, 'records');
 
+  if (currentClientsTab === 'kanban') {
+      _renderKanban(user, container, filtered, db);
+      return;
+  }
+
   if (!filtered || filtered.length === 0) {
     const msg = isTecnico
       ? (t('clients_empty_prospects_tech') || 'No tienes visitas pendientes aún.')
@@ -1717,3 +1722,117 @@ window.openNuevoProspectoGlobal = () => {
     const container = document.getElementById('lista-clientes-movil');
     _wireModalControls(user, container);
 };
+
+function getRepNameForKanban(client, db) {
+  let repId = client.vendedor_asignado_id || client.responsable_id || client.creador_id;
+  if (repId && String(repId).includes(',')) repId = String(repId).split(',')[0].trim();
+  const allWorkers = db?.Usuarios || [];
+  const repUser = allWorkers.find(u => String(u.id) === String(repId));
+  return repUser ? (repUser.nombre + ' ' + (repUser.apellido || '')).trim() : (client.vendedor_asignado_nombre || 'Sin asignar');
+}
+
+function _renderKanban(user, container, filteredClients, db) {
+    if (!filteredClients || filteredClients.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="text-align:center; padding:60px 20px; color:#94a3b8">
+            <i class="fa-solid fa-kanban" style="font-size:4rem; margin-bottom:20px; opacity:0.4; color:#64748b"></i>
+            <h3 style="color:#f1f5f9; margin-bottom:8px; font-size:1.2rem;">Sin prospectos</h3>
+            <p style="font-size:0.9rem; max-width:240px; margin:0 auto; opacity:0.8;">No tienes prospectos para mostrar en el Kanban.</p>
+          </div>
+        `;
+        return;
+    }
+
+    const MACRO_COLS = [
+        { key: 'Prospecto',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
+        { key: 'En Proceso',    emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
+        { key: 'Cliente',        emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
+        { key: 'Declinado',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+    ];
+
+    const columnsHtml = MACRO_COLS.map(col => {
+        const cardsInCol = filteredClients.filter(c => (c.macro_estado || 'Prospecto') === col.key);
+        const cardsHtml = cardsInCol.map(c => {
+            const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length ? c.departamentos_activos : (c.departamento ? [c.departamento] : []);
+            const deptBadges = depts.map(d => {
+                const _nm = d.replace('Renew ','');
+                const dc = _nm.toLowerCase().includes('water') ? '#0ea5e9' : _nm.toLowerCase().includes('solar') ? '#f59e0b' : '#84cc16';
+                return \`<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;background:\${dc}15;color:\${dc};border:1px solid \${dc}30;">\${_nm}</span>\`;
+            }).join(' ');
+            return \`
+            <div class="kanban-card" data-client-id="\${c.id}" style="
+                background:var(--kanban-card-bg, #fff);border:1px solid var(--kanban-card-border, rgba(0,0,0,0.06));
+                border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;
+                transition:transform 0.15s ease, box-shadow 0.15s ease;
+            " onclick="if(window.appNavigate){window.appNavigate('detail', '\${c.id}')}else{window.location.hash='#detail/' + '\${c.id}'}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <span style="font-weight:800;font-size:0.85rem;color:var(--text-primary,#111);">\${c.nombre || 'Sin nombre'}</span>
+                <span style="font-size:9px;font-weight:700;color:var(--text-muted,#999);text-transform:uppercase;">\${c.state_id || ''}</span>
+                </div>
+                <div style="font-size:11px;color:var(--text-secondary,#666);margin-bottom:8px;">\${c.telefono || ''} \${c.email && c.email !== 'Sin Email' ? 'Â· ' + c.email : ''}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <i class="fa-solid fa-user-tie text-[10px] text-tealAccent"></i>
+                <span style="font-size:10px;font-weight:700;color:var(--text-muted,#888);">\${getRepNameForKanban(c, db)}</span>
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">\${deptBadges || '<span style="font-size:9px;color:#aaa;font-style:italic;">Sin departamento</span>'}</div>
+            </div>
+            \`;
+        }).join('');
+
+        return \`
+        <div class="kanban-column" data-macro="\${col.key}" style="
+            flex:1;min-width:260px;max-width:340px;
+            background:\${col.bg};border:1.5px solid \${col.border};border-radius:20px;
+            padding:0;display:flex;flex-direction:column;
+            scroll-snap-align: center;
+        ">
+            <div style="padding:16px 18px 12px;border-bottom:1px solid \${col.border};flex-shrink:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:1.1rem;">\${col.emoji}</span>
+                <span style="font-size:0.8rem;font-weight:900;color:\${col.color};text-transform:uppercase;letter-spacing:1px;">\${col.key}</span>
+                </div>
+                <span style="background:\${col.color}18;color:\${col.color};padding:2px 10px;border-radius:99px;font-size:11px;font-weight:900;">\${cardsInCol.length}</span>
+            </div>
+            </div>
+            <div class="kanban-drop-zone" data-macro="\${col.key}" style="
+            flex:1;overflow-y:auto;padding:20px 14px;min-height:300px; max-height: 55vh;
+            border-radius:0 0 20px 20px;
+            ">
+            \${cardsHtml || \`<div style="text-align:center;padding:60px 10px;color:#aaa;font-size:12px;font-style:italic;opacity:0.5;border:2px dashed rgba(0,0,0,0.05);border-radius:15px;margin:10px;">Sin clientes</div>\`}
+            </div>
+        </div>
+        \`;
+    }).join('');
+
+    container.innerHTML = \`
+        <style>
+          .app-kanban-wrapper {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+          }
+          .app-kanban-wrapper::-webkit-scrollbar {
+            height: 8px;
+          }
+          .app-kanban-wrapper::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+          }
+          .app-kanban-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(0,245,212,0.5);
+            border-radius: 10px;
+          }
+          .dark .app-kanban-wrapper::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+          }
+          .dark .kanban-card { background: #1e293b !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+        </style>
+        <div class="app-kanban-wrapper hide-scrollbar mt-4">
+            \${columnsHtml}
+        </div>
+    \`;
+}

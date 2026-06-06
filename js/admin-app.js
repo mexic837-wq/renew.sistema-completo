@@ -3273,7 +3273,7 @@ window.renderView = async function renderView() {
         { key: 'Prospecto',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#3b82f6', bg: 'rgba(59,130,246,0.06)', border: 'rgba(59,130,246,0.2)' },
         { key: 'En Proceso',    emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#f59e0b', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.2)' },
         { key: 'Cliente',        emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#00f5d4', bg: 'rgba(0,245,212,0.06)',   border: 'rgba(0,245,212,0.2)' },
-        { key: 'Cancelado',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
+        { key: 'Declinado',     emoji: '<i class="fa-solid fa-circle text-[10px]"></i>', color: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.2)' },
       ];
 
       const allClientes = clientesFiltrados;
@@ -3346,7 +3346,96 @@ window.renderView = async function renderView() {
         </div>
       `;
 
-      // ââ‚¬ââ‚¬ Drag & Drop Logic ââ‚¬ââ‚¬
+      function promptDeclineReason() {
+        return new Promise((resolve) => {
+          const modalHtml = `
+            <div id="decline-modal-overlay" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center backdrop-blur-sm px-4 animate-fadeIn">
+              <div class="bg-white dark:bg-darkCard rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
+                <button id="decline-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+                  <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+                <div class="flex items-center gap-4 mb-6">
+                  <div class="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-500">
+                    <i class="fa-solid fa-user-xmark text-2xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-black text-gray-900 dark:text-white">Motivo de Declinación</h3>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Requerido para auditoría</p>
+                  </div>
+                </div>
+                
+                <div class="space-y-4">
+                  <label class="block cursor-pointer">
+                    <input type="radio" name="decline_reason" value="Credit Score Bajo" class="peer sr-only" checked>
+                    <div class="px-4 py-3 rounded-xl border-2 border-gray-100 dark:border-white/10 peer-checked:border-red-400 peer-checked:bg-red-50 dark:peer-checked:bg-red-500/10 transition-all">
+                      <span class="text-sm font-bold text-gray-700 dark:text-gray-200 peer-checked:text-red-600 dark:peer-checked:text-red-400">Credit Score Bajo</span>
+                    </div>
+                  </label>
+                  <label class="block cursor-pointer">
+                    <input type="radio" name="decline_reason" value="Otro" class="peer sr-only">
+                    <div class="px-4 py-3 rounded-xl border-2 border-gray-100 dark:border-white/10 peer-checked:border-red-400 peer-checked:bg-red-50 dark:peer-checked:bg-red-500/10 transition-all">
+                      <span class="text-sm font-bold text-gray-700 dark:text-gray-200 peer-checked:text-red-600 dark:peer-checked:text-red-400">Otro Motivo</span>
+                    </div>
+                  </label>
+                </div>
+                
+                <div id="decline-other-container" class="mt-4 hidden animate-fadeIn">
+                  <textarea id="decline-other-text" rows="3" placeholder="Especifique el motivo de declinación..." class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-400/50 resize-none"></textarea>
+                </div>
+                
+                <div class="mt-8 flex gap-3">
+                  <button id="decline-cancel-btn" class="flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest text-gray-500 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">Cancelar</button>
+                  <button id="decline-confirm-btn" class="flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all">Confirmar</button>
+                </div>
+              </div>
+            </div>
+          `;
+          document.body.insertAdjacentHTML('beforeend', modalHtml);
+          
+          const overlay = document.getElementById('decline-modal-overlay');
+          const closeBtn = document.getElementById('decline-close-btn');
+          const cancelBtn = document.getElementById('decline-cancel-btn');
+          const confirmBtn = document.getElementById('decline-confirm-btn');
+          const radios = document.querySelectorAll('input[name="decline_reason"]');
+          const otherContainer = document.getElementById('decline-other-container');
+          const otherText = document.getElementById('decline-other-text');
+          
+          radios.forEach(r => {
+            r.addEventListener('change', () => {
+              if (r.value === 'Otro') {
+                otherContainer.classList.remove('hidden');
+                otherText.focus();
+              } else {
+                otherContainer.classList.add('hidden');
+              }
+            });
+          });
+          
+          const cleanup = () => overlay.remove();
+          const handleCancel = () => { cleanup(); resolve(null); };
+          const handleConfirm = () => {
+            const selected = document.querySelector('input[name="decline_reason"]:checked').value;
+            if (selected === 'Otro') {
+              const txt = otherText.value.trim();
+              if (!txt) {
+                window.addNotification('Error', 'Especifique el motivo', 'error');
+                return;
+              }
+              cleanup();
+              resolve('Otro: ' + txt);
+            } else {
+              cleanup();
+              resolve(selected);
+            }
+          };
+          
+          closeBtn.addEventListener('click', handleCancel);
+          cancelBtn.addEventListener('click', handleCancel);
+          confirmBtn.addEventListener('click', handleConfirm);
+        });
+      }
+
+      // â â‚¬â â‚¬ Drag & Drop Logic â â‚¬â â‚¬
       const cards = UI.canvas.querySelectorAll('.kanban-card');
       const zones = UI.canvas.querySelectorAll('.kanban-drop-zone');
 
@@ -3406,6 +3495,15 @@ window.renderView = async function renderView() {
           const oldMacro = cli.macro_estado || 'Prospecto';
           const oldEstado = cli.estado || 'Lead';
 
+          if (newMacro === 'Declinado') {
+             const motivo = await promptDeclineReason();
+             if (!motivo) {
+                 window.isKanbanMoving = false;
+                 return; // User cancelled
+             }
+             cli.motivo_declinacion = motivo;
+          }
+
           // Optimistic UI & Blocking
           window.isKanbanMoving = true;
           const overlay = document.createElement('div');
@@ -3416,8 +3514,8 @@ window.renderView = async function renderView() {
           // Update multiple fields for better persistence compatibility
           cli.macro_estado = newMacro;
           cli.estado = newMacro; // Sync standard field
-          if (newMacro === 'Cancelado') {
-            cli.departamento = 'CANCELADO'; // Force legacy field as backup
+          if (newMacro === 'Declinado') {
+            cli.departamento = 'DECLINADO'; // Force legacy field as backup
           }
 
           // ++ NEW LOGIC: AUTO-CREATE OR UPDATE PROJECT TO "Completado" IF DROPPED IN "Cliente"
@@ -6434,7 +6532,7 @@ window.guardarEventoCalendario = async function(e) {
     
     const colorNode = document.querySelector('input[name="ev-color"]:checked');
     let color = colorNode ? colorNode.value : 'Verde';
-    const newToLegacy = { 'Cita': 'Verde', 'Hold': 'Amarillo', 'Reagendar': 'Azul', 'Cancelado': 'Rojo' };
+    const newToLegacy = { 'Cita': 'Verde', 'Hold': 'Amarillo', 'Reagendar': 'Azul', 'Declinado': 'Rojo' };
     color = newToLegacy[color] || color;
     
     const departamentos = Array.from(document.querySelectorAll('input[name="ev-depto"]:checked')).map(el => el.value);
@@ -7999,6 +8097,19 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         </div>
 
         <div style="flex:1;overflow-y:auto;" class="hide-scrollbar">
+            ${cli.macro_estado === 'Declinado' ? `
+            <div class="m-5 p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 relative overflow-hidden group">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-circle-exclamation text-red-500 mt-0.5"></i>
+                    <div>
+                        <h4 class="text-sm font-black text-red-700 dark:text-red-400 leading-tight">Proyecto Declinado</h4>
+                        <p class="text-xs text-red-600 dark:text-red-300 mt-1 font-medium">Motivo: <span class="font-bold">${cli.motivo_declinacion || 'No especificado'}</span></p>
+                        <button id="btn-reactivate-prospect" class="mt-3 px-4 py-2 bg-white dark:bg-darkCard text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:shadow-md transition-all border border-red-100 dark:border-red-500/20 hover:scale-[1.02] active:scale-95">Reactivar a Prospecto</button>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
             <!-- Properties -->
             <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;">
                 <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs items-center">
@@ -8415,6 +8526,29 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
         });
     }, 200);
   };
+  const reactivateBtn = document.getElementById('btn-reactivate-prospect');
+  if (reactivateBtn) {
+      reactivateBtn.addEventListener('click', async () => {
+          reactivateBtn.textContent = 'Actualizando...';
+          reactivateBtn.disabled = true;
+          try {
+              cli.macro_estado = 'Prospecto';
+              cli.estado = 'Lead';
+              cli.departamento = '';
+              cli.motivo_declinacion = null;
+              await saveDB(db);
+              showToast('Cliente reactivado a Prospecto', 'success');
+              closeDrawer();
+              renderView();
+          } catch(err) {
+              console.error(err);
+              showToast('Error al reactivar cliente', 'error');
+              reactivateBtn.textContent = 'Reactivar a Prospecto';
+              reactivateBtn.disabled = false;
+          }
+      });
+  }
+
   document.getElementById('kanban-drawer-close-btn').addEventListener('click', closeDrawer);
   document.getElementById('kanban-drawer-overlay').addEventListener('click', (e) => {
       if(e.target === overlay) closeDrawer();
@@ -8840,11 +8974,11 @@ async function showClientDetail(id) {
       let _me = cli.macro_estado || 'Prospecto';
       
       // Safety recovery for UI consistency
-      if (cli.departamento === 'CANCELADO' || (cli.estado && cli.estado.toLowerCase() === 'cancelado')) {
-        _me = 'Cancelado';
+      if (cli.departamento === 'DECLINADO' || (cli.estado && cli.estado.toLowerCase() === 'declinado')) {
+        _me = 'Declinado';
       }
 
-      const _meColors = { 'Prospecto': 'text-sky-400', 'En Proceso': 'text-amber-400', 'Cliente': 'text-tealAccent', 'Cancelado': 'text-red-400' };
+      const _meColors = { 'Prospecto': 'text-sky-400', 'En Proceso': 'text-amber-400', 'Cliente': 'text-tealAccent', 'Declinado': 'text-red-400' };
       detMacroEl.className = `text-sm font-black ${_meColors[_me] || 'text-gray-400'}`;
       detMacroEl.textContent = _me;
     }
