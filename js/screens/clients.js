@@ -1803,10 +1803,9 @@ function _renderKanban(user, container, filteredClients, db) {
                 <div style="
                     background:var(--surface);border-radius:16px;
                     border:1px solid var(--border);padding:16px;
-                    margin-bottom:10px;cursor:pointer;
+                    cursor:pointer;
                     border-left:3px solid ${col.color};
                     transition:transform 0.15s ease,box-shadow 0.15s ease;
-                    active:transform:scale(0.98);
                 " onclick="if(window.appNavigate){window.appNavigate('detail','${c.id}')}else{window.location.hash='#detail/${c.id}'}">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                         <span style="font-weight:800;font-size:0.95rem;color:var(--text-primary);">${c.nombre || 'Sin nombre'}</span>
@@ -1814,7 +1813,7 @@ function _renderKanban(user, container, filteredClients, db) {
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                         <i class="fa-solid fa-phone" style="color:var(--text-muted);font-size:0.7rem;flex-shrink:0;"></i>
-                        <span style="font-size:0.8rem;color:var(--text-secondary);">${c.telefono || '—'}</span>
+                        <span style="font-size:0.8rem;color:var(--text-secondary);">${c.telefono || '\u2014'}</span>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -1846,15 +1845,45 @@ function _renderKanban(user, container, filteredClients, db) {
                     <span style="font-size:0.7rem;font-weight:900;color:${col.color};text-transform:uppercase;letter-spacing:1px;">${col.key}</span>
                     <span style="background:${col.color}15;color:${col.color};padding:1px 8px;border-radius:99px;font-size:10px;font-weight:900;">${cards.length}</span>
                 </div>
+                <div class="kanban-card-row">
                 ${cardsHtml}
+                </div>
             </div>`;
+
         }).join('');
     };
 
     container.innerHTML = `
-        <div style="padding:0 4px 80px;">
+        <style>
+          .kanban-app-wrapper {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 16px 80px;
+          }
+          .kanban-chips-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0 16px;
+            -webkit-overflow-scrolling: touch;
+            flex-wrap: wrap;
+          }
+          @media (max-width: 640px) {
+            .kanban-app-wrapper { padding: 0 4px 80px; }
+            .kanban-chips-row { flex-wrap: nowrap; }
+          }
+          .kanban-card-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+          @media (min-width: 700px) {
+            .kanban-card-row { grid-template-columns: 1fr 1fr; }
+          }
+        </style>
+        <div class="kanban-app-wrapper">
             <!-- Filter chips -->
-            <div style="display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;" class="hide-scrollbar">
+            <div class="kanban-chips-row hide-scrollbar">
                 <button class="kanban-filter-chip" data-filter="all" style="
                     display:inline-flex;align-items:center;gap:6px;
                     padding:8px 14px;border-radius:50px;
@@ -1870,6 +1899,7 @@ function _renderKanban(user, container, filteredClients, db) {
             </div>
         </div>
     `;
+
 
     // Wire filter chip clicks
     container.querySelectorAll('.kanban-filter-chip').forEach(chip => {
