@@ -8018,6 +8018,11 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                         <input type="date" id="proj-deadline-input" value="${p.fecha_finalizacion ? p.fecha_finalizacion.substring(0,10) : ''}" class="text-[11px] bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 w-full max-w-[130px] transition-colors" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
                     </div>
                     
+                    <div class="text-gray-400 font-medium">Fecha Cierre:</div>
+                    <div class="text-gray-800">
+                        <input type="date" id="proj-close-date-input" value="${p.fecha_cierre ? p.fecha_cierre.substring(0,10) : ''}" class="text-[11px] bg-transparent border border-dashed border-emerald-300 rounded px-2 py-1 outline-none hover:border-emerald-400 cursor-pointer text-emerald-700 w-full max-w-[130px] transition-colors font-bold" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
+                    </div>
+                    
                     <div class="text-gray-400 font-medium mt-2">Proyecto:</div>
                     <div class="text-gray-800 mt-2 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full" style="background:${pipeline.color}"></span> ${pipeline.nombre}
@@ -8173,10 +8178,25 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           p.fecha_finalizacion = e.target.value;
           try {
               await saveGranular('proyectos_dinamicos', [p]);
-              showToast('Fecha de finalización guardada', 'success');
+              showToast('Fecha límite guardada', 'success');
           } catch(err) {
               console.error(err);
               showToast('Error al guardar fecha', 'error');
+          }
+      });
+  }
+
+  // --- Close Date Logic ---
+  const cInput = document.getElementById('proj-close-date-input');
+  if (cInput) {
+      cInput.addEventListener('change', async (e) => {
+          p.fecha_cierre = e.target.value;
+          try {
+              await saveGranular('proyectos_dinamicos', [p]);
+              showToast('Fecha de cierre guardada', 'success');
+          } catch(err) {
+              console.error(err);
+              showToast('Error al guardar fecha de cierre', 'error');
           }
       });
   }
