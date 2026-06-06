@@ -1061,7 +1061,7 @@ export async function renderHRHub() {
                 if (editIdAttr) {
                     const idx = db.Recibos_Pagos.findIndex(r => String(r.id) === String(editIdAttr));
                     if (idx > -1) {
-                        db.Recibos_Pagos[idx] = { ...db.Recibos_Pagos[idx], ...payload, actualizado_en: new Date().toISOString() };
+                        db.Recibos_Pagos[idx] = { ...db.Recibos_Pagos[idx], ...payload };
                         finalRecibo = db.Recibos_Pagos[idx];
                     }
                 } else {
