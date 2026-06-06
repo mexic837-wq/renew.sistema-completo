@@ -281,25 +281,25 @@ function _renderTeamGrid() {
     if (teamSearchQuery.trim() !== '') {
        const q = teamSearchQuery.toLowerCase().trim();
        filtered = filtered.filter(w => {
-           const fullName = \`\${w.nombre || ''} \${w.apellido || ''}\`.toLowerCase();
+           const fullName = `${w.nombre || ''} ${w.apellido || ''}`.toLowerCase();
            return fullName.includes(q);
        });
     }
     
     // Sort Alphabetically A-Z
     filtered.sort((a, b) => {
-       const nameA = \`\${a.nombre || ''} \${a.apellido || ''}\`.trim().toLowerCase();
-       const nameB = \`\${b.nombre || ''} \${b.apellido || ''}\`.trim().toLowerCase();
+       const nameA = `${a.nombre || ''} ${a.apellido || ''}`.trim().toLowerCase();
+       const nameB = `${b.nombre || ''} ${b.apellido || ''}`.trim().toLowerCase();
        return nameA.localeCompare(nameB);
     });
 
     if (filtered.length === 0) {
-      grid.innerHTML = \`
+      grid.innerHTML = `
         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
           <i class="fas fa-users-slash" style="font-size: 3rem; opacity: 0.2; margin-bottom: 16px;"></i>
           <p style="font-weight: 600;">No se encontraron compañeros con estos filtros.</p>
         </div>
-      \`;
+      `;
       return;
     }
 
@@ -307,23 +307,23 @@ function _renderTeamGrid() {
       const initials = (w.nombre?.[0] || '') + (w.apellido?.[0] || '');
       const photoUrl = w.foto || w.photo || null;
       
-      return \`
-        <div class="team-card animate-fade-in" style="animation-delay: \${Math.min(idx * 0.05, 0.5)}s">
+      return `
+        <div class="team-card animate-fade-in" style="animation-delay: ${Math.min(idx * 0.05, 0.5)}s">
           <div class="team-photo-wrapper">
-            \${photoUrl 
-              ? \`<img src="\${photoUrl}" class="team-photo" alt="\${w.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                 <div class="team-photo" style="display:none; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem; background:var(--bg-secondary);">\${initials}</div>\`
-              : \`<div class="team-photo" style="display:flex; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem; background:var(--bg-secondary);">\${initials}</div>\`
+            ${photoUrl 
+              ? `<img src="${photoUrl}" class="team-photo" alt="${w.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="team-photo" style="display:none; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem; background:var(--bg-secondary);">${initials}</div>`
+              : `<div class="team-photo" style="display:flex; align-items:center; justify-content:center; font-weight:900; color:var(--text-muted); font-size:1.2rem; background:var(--bg-secondary);">${initials}</div>`
             }
           </div>
-          <div class="team-name">\${w.nombre} \${w.apellido || ''}</div>
-          <div class="team-role">\${(w.rol || 'Colaborador').toLowerCase().includes('vendedor') ? 'Representante de Ventas' : (w.rol || 'Colaborador')}</div>
+          <div class="team-name">${w.nombre} ${w.apellido || ''}</div>
+          <div class="team-role">${(w.rol || 'Colaborador').toLowerCase().includes('vendedor') ? 'Representante de Ventas' : (w.rol || 'Colaborador')}</div>
           <div class="team-sede" style="font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
-             <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> Sede \${w.sede || 'No asignada'}
+             <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> Sede ${w.sede || 'No asignada'}
           </div>
           
           <div class="team-units" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:-8px; margin-bottom:15px; opacity: 0.8;">
-            \${(() => {
+            ${(() => {
               const units = w.unidades || w.ecosistemas_autorizados || [];
               return units.map(u => {
                 const name = u.replace('Renew ', '').toLowerCase();
@@ -332,24 +332,24 @@ function _renderTeamGrid() {
                 if (name.includes('solar')) { icon = 'fa-sun'; color = '#f59e0b'; }
                 else if (name.includes('water')) { icon = 'fa-droplet'; color = '#0ea5e9'; }
                 else if (name.includes('home')) { icon = 'fa-house'; color = '#84cc16'; }
-                return \`<i class="fa-solid \${icon}" style="font-size: 0.65rem; color: \${color};" title="\${u}"></i>\`;
+                return `<i class="fa-solid ${icon}" style="font-size: 0.65rem; color: ${color};" title="${u}"></i>`;
               }).join('');
             })()}
           </div>
           
           <div class="team-contact">
-            \${w.email ? \`
-              <a href="mailto:\${w.email}" class="contact-icon" title="\${w.email}">
+            ${w.email ? `
+              <a href="mailto:${w.email}" class="contact-icon" title="${w.email}">
                 <i class="fas fa-envelope"></i>
               </a>
-            \` : ''}
-            \${w.telefono ? \`
-              <a href="tel:\${w.telefono}" class="contact-icon" title="\${w.telefono}">
+            ` : ''}
+            ${w.telefono ? `
+              <a href="tel:${w.telefono}" class="contact-icon" title="${w.telefono}">
                 <i class="fas fa-phone"></i>
               </a>
-            \` : ''}
+            ` : ''}
           </div>
         </div>
-      \`;
+      `;
     }).join('');
 }
