@@ -160,6 +160,16 @@ export async function renderClients() {
         document.querySelectorAll('[data-clients-tab]').forEach(b => b.classList.remove('active'));
         fresh.classList.add('active');
         currentClientsTab = fresh.dataset.clientsTab;
+        // Kanban manages its own padding internally
+        if (currentClientsTab === 'kanban') {
+          container.classList.remove('px-4');
+          container.style.paddingLeft = '0';
+          container.style.paddingRight = '0';
+        } else {
+          container.classList.add('px-4');
+          container.style.paddingLeft = '';
+          container.style.paddingRight = '';
+        }
         _renderList(user, container);
       });
     });
@@ -1774,17 +1784,17 @@ function _renderKanban(user, container, filteredClients, db) {
         const count = (grouped[col.key] || []).length;
         return `
         <button class="kanban-filter-chip" data-filter="${col.key}" style="
-            display:inline-flex;align-items:center;gap:6px;
-            padding:8px 14px;border-radius:50px;
+            display:inline-flex;align-items:center;gap:5px;
+            padding:6px 11px;border-radius:50px;
             background:${count > 0 ? col.bg : 'rgba(255,255,255,0.04)'};
             border:1.5px solid ${count > 0 ? col.color + '50' : 'rgba(255,255,255,0.08)'};
             color:${count > 0 ? col.color : '#64748b'};
-            font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
+            font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
             cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;
         ">
-            <i class="fa-solid ${col.icon}" style="font-size:0.7rem;"></i>
+            <i class="fa-solid ${col.icon}" style="font-size:0.62rem;"></i>
             ${col.key}
-            <span style="background:${col.color}25;color:${col.color};padding:1px 7px;border-radius:99px;font-size:10px;font-weight:900;">${count}</span>
+            <span style="background:${col.color}25;color:${col.color};padding:1px 6px;border-radius:99px;font-size:9px;font-weight:900;">${count}</span>
         </button>
         `;
     }).join('');
@@ -1866,29 +1876,33 @@ function _renderKanban(user, container, filteredClients, db) {
           .kanban-app-wrapper {
             max-width: 860px;
             margin: 0 auto;
-            padding: 0 0 80px;
+            padding: 0 16px 80px;
+            box-sizing: border-box;
+            width: 100%;
           }
           .kanban-chips-row {
             display: flex;
-            gap: 8px;
-            overflow-x: auto;
+            flex-wrap: wrap;
+            gap: 6px;
             padding: 4px 0 14px;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
           }
-          .kanban-chips-row::-webkit-scrollbar { display: none; }
           .kanban-card-row {
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
           }
           @media (min-width: 900px) {
-            .kanban-app-wrapper { padding: 0 0 40px; }
+            .kanban-app-wrapper { padding: 0 24px 40px; }
             .kanban-card-row { grid-template-columns: 1fr 1fr; }
+          }
+          .kanban-app-card {
+            box-sizing: border-box;
+            width: 100%;
+            overflow: hidden;
           }
           .kanban-app-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
           }
         </style>
         <div class="kanban-app-wrapper">
@@ -1896,11 +1910,11 @@ function _renderKanban(user, container, filteredClients, db) {
             <div class="kanban-chips-row">
                 <button class="kanban-filter-chip" data-filter="all" style="
                     display:inline-flex;align-items:center;gap:6px;
-                    padding:7px 13px;border-radius:50px;
+                    padding:6px 12px;border-radius:50px;
                     background:rgba(0,245,212,0.1);border:1.5px solid rgba(0,245,212,0.3);
-                    color:var(--primary);font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
+                    color:var(--primary);font-size:0.68rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
                     cursor:pointer;white-space:nowrap;flex-shrink:0;
-                ">Todos <span style="background:rgba(0,245,212,0.2);color:var(--primary);padding:1px 7px;border-radius:99px;font-size:10px;font-weight:900;">${filteredClients.length}</span></button>
+                ">Todos <span style="background:rgba(0,245,212,0.2);color:var(--primary);padding:1px 6px;border-radius:99px;font-size:9px;font-weight:900;">${filteredClients.length}</span></button>
                 ${summaryHtml}
             </div>
             <!-- Cards -->
@@ -1909,6 +1923,7 @@ function _renderKanban(user, container, filteredClients, db) {
             </div>
         </div>
     `;
+
 
 
     // Wire filter chip clicks
