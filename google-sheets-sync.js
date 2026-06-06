@@ -91,9 +91,16 @@ async function syncPreciosFromSheets(supabase) {
             productsToUpsert.push(producto);
         }
 
-        console.log(`[GoogleSheets Sync] Se parsearon ${productsToUpsert.length} productos.`);
+        // Deduplicar por código (tomando el último encontrado si hay duplicados, ej. filas ocultas)
+        const uniqueProducts = {};
+        productsToUpsert.forEach(p => {
+            uniqueProducts[p.codigo] = p;
+        });
+        const finalUniqueProductsToUpsert = Object.values(uniqueProducts);
 
-        if (productsToUpsert.length > 0) {
+        console.log(`[GoogleSheets Sync] Se parsearon ${finalUniqueProductsToUpsert.length} productos únicos (de ${productsToUpsert.length} filas leídas).`);
+
+        if (finalUniqueProductsToUpsert.length > 0) {
             // Sincronizar con Supabase
             // Como upsert por defecto requiere matching en la Primary Key (id),
             // primero debemos obtener los productos actuales para mapear los ids por codigo,
@@ -116,11 +123,11 @@ async function syncPreciosFromSheets(supabase) {
                 });
             }
 
-            const finalPayload = productsToUpsert.map(p => {
+            const finalPayload = finalUniqueProductsToUpsert.map(p => {
                 if (codeToIdMap[p.codigo]) {
                     p.id = codeToIdMap[p.codigo]; // Actualiza el existente
                 } else {
-                    p.id = 'prec_' + Date.now() + '_' + Math.floor(Math.random() * 10000); // Nuevo
+                    p.id = 'wp_' + Date.now() + '_' + Math.floor(Math.random() * 10000); // Nuevo
                 }
                 return p;
             });
