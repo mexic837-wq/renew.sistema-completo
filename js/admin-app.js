@@ -10941,6 +10941,48 @@ window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
     }
 };
 
+window.deleteDrawerFile = async function(projectId, campoId, urlToDelete) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este archivo?')) return;
+    
+    try {
+        const dbLocal = typeof getDB === 'function' ? getDB() : window.state.db || {};
+        const resp = (dbLocal.Respuestas_Dinamicas || []).find(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
+        if (!resp || !resp.valor) return;
+
+        let existingVals = resp.valor.split(',').map(s=>s.trim()).filter(s=>s);
+        const newVals = existingVals.filter(url => url !== urlToDelete);
+        const finalUrlStr = newVals.join(',');
+
+        await window.saveDynamicFields(projectId, { [campoId]: finalUrlStr });
+        
+        // Check if it's a receipt to also delete the commission record
+        const campo = (dbLocal.Admin_Campos_Formulario || []).find(c => String(c.id) === String(campoId));
+        if (campo && finalUrlStr === '') {
+            const label = (campo.etiqueta || '').toLowerCase();
+            const isReceiptLabel = label.includes('recibo') || label.includes('pago') || label.includes('comisi') || label.includes('comprobante');
+            if (isReceiptLabel) {
+                const isVendedor = label.includes('vendedor') || label.includes('representante') || label.includes('comision vendedor') || label.includes('comisión vendedor');
+                const reciboId = `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`;
+                const { deleteRecord } = await import('../api.js');
+                if (deleteRecord) {
+                    try { await deleteRecord('recibos_pagos', reciboId); } catch(e){}
+                }
+                const idx = (dbLocal.Recibos_Pagos || []).findIndex(r => r.id === reciboId);
+                if (idx > -1) dbLocal.Recibos_Pagos.splice(idx, 1);
+            }
+        }
+        
+        showToast('Archivo eliminado', 'success');
+        
+        if (window.openKanbanDrawer && window._currentDrawerPhaseId !== undefined) {
+             window.openKanbanDrawer(projectId, window._currentDrawerPhaseId);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error al eliminar el archivo: ' + e.message);
+    }
+};
+
 window.saveDynamicFields = async function(dealId, respuestas) {
     const db = getDB();
     if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];

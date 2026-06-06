@@ -1365,6 +1365,23 @@ window.deleteProjectDetailFile = async function(projectId, campoId, urlToDelete)
             resp.actualizado_en = new Date().toISOString();
         }
 
+        // Check if it's a receipt to also delete the commission record
+        const campo = (dbLocal.Admin_Campos_Formulario || []).find(c => String(c.id) === String(campoId));
+        if (campo && finalUrlStr === '') {
+            const label = (campo.etiqueta || '').toLowerCase();
+            const isReceiptLabel = label.includes('recibo') || label.includes('pago') || label.includes('comisi') || label.includes('comprobante');
+            if (isReceiptLabel) {
+                const isVendedor = label.includes('vendedor') || label.includes('representante') || label.includes('comision vendedor') || label.includes('comisión vendedor');
+                const reciboId = `rec_up_${projectId}_${isVendedor ? 'v' : 't'}`;
+                const { deleteRecord } = await import('../api.js');
+                if (deleteRecord) {
+                    try { await deleteRecord('recibos_pagos', reciboId); } catch(e){}
+                }
+                const idx = (dbLocal.Recibos_Pagos || []).findIndex(r => r.id === reciboId);
+                if (idx > -1) dbLocal.Recibos_Pagos.splice(idx, 1);
+            }
+        }
+
         showToast('Archivo eliminado', 'success');
         renderDetail(projectId);
     } catch (e) {
