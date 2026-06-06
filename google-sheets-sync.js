@@ -1,7 +1,7 @@
 const { google } = require('googleapis');
 const path = require('path');
 
-const SHEET_ID = '1gTgmVEIJfrWuk2x29hIJAOXUHBVEHUx4';
+const SHEET_ID = '18fw_U53uO4HSZB1bzyC9re8Y9QsQztc4YYWA5Ri4RS4';
 const RANGE = 'LISTA UNIFICADA!A1:N1000'; // Assuming data doesn't exceed 1000 rows
 
 async function syncPreciosFromSheets(supabase) {
