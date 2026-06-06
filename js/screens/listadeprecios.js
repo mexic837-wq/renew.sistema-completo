@@ -85,7 +85,7 @@ export async function renderListaPrecios() {
       ${pdfUrl ? `
       <div style="padding:0 16px; margin-top:8px;">
         <a href="${pdfUrl}" target="_blank" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:10px; background:var(--primary); color:#000; border-radius:12px; text-decoration:none; font-size:0.75rem; font-weight:900; text-transform:uppercase; letter-spacing:1px; box-shadow:0 4px 15px var(--primary-glow);">
-          <i class="fa-solid fa-file-pdf"></i> Ver Catálogo Completo (PDF)
+          <i class="fa-solid fa-file-pdf"></i> VER LISTA DE PRECIOS COMPLETA (PDF)
         </a>
       </div>
       ` : ''}
