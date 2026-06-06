@@ -10237,9 +10237,9 @@ async function renderListaPreciosAdmin() {
       <div class="flex flex-col xl:flex-row justify-between xl:items-center mb-6 gap-6">
           <div class="flex flex-col gap-3">
               <h2 class="text-xl font-black text-white uppercase tracking-tighter">Gestión de Precios</h2>
-              <div class="flex flex-wrap gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit">
                  ${Object.entries(rankLabels).map(([key, label]) => `
-                    <button class="precios-rank-tab px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
+                    <button class="precios-rank-tab px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
                         ${label}
                     </button>
                  `).join('')}
