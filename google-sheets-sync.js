@@ -48,12 +48,11 @@ async function syncPreciosFromSheets(supabase) {
             const row = rows[i];
             if (!row || row.length === 0) continue;
 
-            const codigo = row[1] ? row[1].trim() : '';
+            const codigo = row[0] ? row[0].trim() : '';
             
             // Detectar si es una fila de categoría (ej: "LINEA RENEW ECONÓMICA")
-            // Usualmente el código está vacío y hay texto en otra celda, o el texto de categoría está en B
-            if (codigo && !row[2] && !row[6]) {
-                // Es un título de categoría en la columna B
+            // Ahora CODIGO es row[0], PRODUCTO es row[1], OFICINA es row[5]
+            if (codigo && !row[1] && !row[5]) {
                 currentCategory = codigo;
                 continue;
             }
@@ -70,18 +69,18 @@ async function syncPreciosFromSheets(supabase) {
 
             const producto = {
                 codigo: codigo,
-                nombre: row[2] ? row[2].trim() : '',
-                medida: row[3] ? row[3].trim() : '',
-                boton: row[4] ? row[4].trim() : '',
-                color: row[5] ? row[5].trim() : '',
-                precio_oficina: parsePrice(row[6]),
-                precio_analista: parsePrice(row[7]),
-                precio_vendedor: parsePrice(row[8]),
-                precio_junior: parsePrice(row[9]),
-                precio_iniciante: parsePrice(row[10]),
-                precio_subvende: parsePrice(row[11]),
-                precio_minimo: parsePrice(row[12]),
-                precio_maximo: parsePrice(row[13]),
+                nombre: row[1] ? row[1].trim() : '',
+                medida: row[2] ? row[2].trim() : '',
+                boton: row[3] ? row[3].trim() : '',
+                color: row[4] ? row[4].trim() : '',
+                precio_oficina: parsePrice(row[5]),
+                precio_analista: parsePrice(row[6]),
+                precio_vendedor: parsePrice(row[7]),
+                precio_junior: parsePrice(row[8]),
+                precio_iniciante: parsePrice(row[9]),
+                precio_subvende: parsePrice(row[10]),
+                precio_minimo: parsePrice(row[11]),
+                precio_maximo: parsePrice(row[12]),
                 categoria: currentCategory,
                 sede: 'todas',
                 es_activo: true,
@@ -109,7 +108,7 @@ async function syncPreciosFromSheets(supabase) {
 
             const { data: existingProducts, error: fetchErr } = await supabase
                 .from('water_productos')
-                .select('id, codigo');
+                .select('id, codigo, foto_url');
 
             if (fetchErr) {
                 console.error('[GoogleSheets Sync] Error fetching existing products:', fetchErr);
@@ -117,15 +116,20 @@ async function syncPreciosFromSheets(supabase) {
             }
 
             const codeToIdMap = {};
+            const codeToFotoMap = {};
             if (existingProducts) {
                 existingProducts.forEach(p => {
-                    if (p.codigo) codeToIdMap[p.codigo] = p.id;
+                    if (p.codigo) {
+                        codeToIdMap[p.codigo] = p.id;
+                        if (p.foto_url) codeToFotoMap[p.codigo] = p.foto_url;
+                    }
                 });
             }
 
             const finalPayload = finalUniqueProductsToUpsert.map(p => {
                 if (codeToIdMap[p.codigo]) {
                     p.id = codeToIdMap[p.codigo]; // Actualiza el existente
+                    if (codeToFotoMap[p.codigo]) p.foto_url = codeToFotoMap[p.codigo];
                 } else {
                     p.id = 'wp_' + Date.now() + '_' + Math.floor(Math.random() * 10000); // Nuevo
                 }
@@ -140,6 +144,9 @@ async function syncPreciosFromSheets(supabase) {
                 console.error('[GoogleSheets Sync] Error upserting to Supabase:', upsertErr);
                 return { success: false, error: upsertErr.message };
             }
+
+            // Cleanup de productos duplicados creados por el bug anterior (id: prec_...)
+            await supabase.from('water_productos').delete().like('id', 'prec_%');
 
             console.log('[GoogleSheets Sync] ¡Sincronización completada con éxito!');
             return { success: true, count: finalPayload.length };
