@@ -1431,7 +1431,7 @@ function _wireModalControls(user, container) {
         if (window.quickMapInstance.getCenter()) {
           window.quickMapInstance.setCenter(window.quickMapInstance.getCenter());
         }
-      }, 200);
+      }, 500);
       return;
     }
 
@@ -1559,7 +1559,7 @@ function _wireModalControls(user, container) {
         if (!dirInput.value || dirInput.value.trim() === '') {
           map.setCenter(defaultCenter);
         }
-      }, 200);
+      }, 500);
     };
 
     // Inicializar el mapa inmediatamente al abrir el modal (no esperar al focus)

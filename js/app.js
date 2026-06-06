@@ -455,7 +455,7 @@ export function navigate(screen, param = null) {
             if (dirInput) dirInput.dataset.quickMapsLoaded = '';
             
             if (window.initQuickMaps) window.initQuickMaps();
-          }, 200);
+          }, 450);
         }
       }).catch(() => {});
       break;
@@ -669,7 +669,7 @@ function handleHashChange() {
               if (dirInput) dirInput.dataset.quickMapsLoaded = '';
 
               if (window.initQuickMaps) window.initQuickMaps();
-            }, 200);
+            }, 450);
           }
         }).catch(() => {});
         break;
