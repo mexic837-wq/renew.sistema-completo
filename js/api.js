@@ -2378,11 +2378,23 @@ export function isProjectFinished(p, db) {
 
 export function getProjectDate(p, db) {
   if (!p) return null;
-  // Use fecha_cierre if finished, fallback to creation fecha
+  let date = null;
   if (isProjectFinished(p, db)) {
-    return p.fecha_cierre || p.fecha || p.created_at || p.fecha_registro;
+    date = p.fecha_cierre || p.fecha || p.created_at || p.fecha_registro;
+  } else {
+    date = p.fecha || p.created_at || p.fecha_registro;
   }
-  return p.fecha || p.created_at || p.fecha_registro;
+
+  // If we don't have a specific project date (like fecha_cierre) and we are defaulting to created_at,
+  // we should check if the client has an older/more accurate fecha_registro
+  if (!p.fecha_cierre && db && db.Clientes_Maestro && p.cliente_id) {
+    const cli = db.Clientes_Maestro.find(c => String(c.id) === String(p.cliente_id));
+    if (cli && (cli.fecha_registro || cli.fecha || cli.created_at)) {
+      date = cli.fecha_registro || cli.fecha || cli.created_at;
+    }
+  }
+
+  return date;
 }
 
 // ── INTERNAL MESSAGING (CHAT) ────────────────────────────────

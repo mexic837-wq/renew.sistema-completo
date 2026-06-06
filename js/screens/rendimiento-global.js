@@ -454,6 +454,10 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const safeDate = (raw) => {
         if (!raw) return null;
         let str = String(raw).trim();
+        // Handle format 'YYYY MM DD' by replacing spaces with hyphens
+        if (/^\d{4}\s\d{2}\s\d{2}/.test(str)) {
+            str = str.replace(/\s/g, '-');
+        }
         if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
         if (!str.includes('T')) str += 'T12:00:00';
         const d = new Date(str);
