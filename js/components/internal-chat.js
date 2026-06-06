@@ -192,8 +192,12 @@ async function renderMessages() {
             .replace(/https?:\/\/(api-renew|files-renew)\.0f2zfh\.easypanel\.host(\/storage\/v1)?(\/object\/public)?\//g, '/api/storage-proxy/');
     };
 
+    const currentUserRol = (currentUser?.rol || '').toLowerCase().replace(/_/g, ' ').trim();
+    const isAdminOrCeo = ['admin', 'administrador', 'ceo'].includes(currentUserRol);
+
     const html = messages.map(msg => {
         const isMe = msg.sender_id === currentUser?.id;
+        const canModify = isMe || isAdminOrCeo;
         const date = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const readBy = Array.isArray(msg.read_by) ? msg.read_by : [];
         const imageUrl = normalizeImageUrl(msg.image_url);
@@ -203,19 +207,23 @@ async function renderMessages() {
             markMessageAsRead(msg.id);
         }
 
+        // Action buttons (shown on hover): left side for "mine", right side for others' messages viewed by admin
+        const actionButtons = canModify ? `
+            <div class="absolute ${isMe ? '-left-10' : '-right-10'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1">
+                ${!isAdminOrCeo || isMe ? `
+                <button onclick="window.editInternalMessage('${msg.id}')" class="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-[10px] transition-colors" title="Editar">
+                    <i class="fa-solid fa-pen"></i>
+                </button>` : ''}
+                <button onclick="window.deleteInternalMessage('${msg.id}')" class="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-red-500 hover:text-white flex items-center justify-center text-[10px] transition-colors" title="Eliminar">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        ` : '';
+
         return `
-            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn chat-msg-item">
+            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn chat-msg-item" style="padding: ${!isMe && isAdminOrCeo ? '0 44px 0 0' : isMe ? '0 0 0 0' : '0'};">
                 <div class="max-w-[80%] ${isMe ? 'bg-tealAccent text-black' : 'bg-white dark:bg-white/5 text-gray-800 dark:text-white'} rounded-[1.5rem] p-4 shadow-sm relative group">
-                    ${isMe ? `
-                        <div class="absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1">
-                            <button onclick="window.editInternalMessage('${msg.id}')" class="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-[10px] transition-colors" title="Editar">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button onclick="window.deleteInternalMessage('${msg.id}')" class="w-7 h-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-red-500 hover:text-white flex items-center justify-center text-[10px] transition-colors" title="Eliminar">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    ` : ''}
+                    ${actionButtons}
 
                     ${!isMe ? `<p class="text-[10px] font-black uppercase tracking-widest text-tealAccent mb-1">${msg.sender_name || ''}</p>` : ''}
                     
@@ -232,6 +240,7 @@ async function renderMessages() {
             </div>
         `;
     }).join('');
+
 
     const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
     container.innerHTML = html;
