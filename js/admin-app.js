@@ -8058,10 +8058,18 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
     const campo = campos.find(c => String(c.id) === String(r.campo_id));
     return campo && campo.tipo === 'Archivo' && r.valor && (r.valor.startsWith('data:') || r.valor.startsWith('http') || r.valor.startsWith('/api/') || r.valor.startsWith('/uploads/') || r.valor.includes('/'));
   });
-  const combinedFiles = [...fileRespuestas.map(r => {
+  const combinedFiles = [];
+  fileRespuestas.forEach(r => {
       const campo = campos.find(c => String(c.id) === String(r.campo_id));
-      return { url: r.valor, etiqueta: campo?.etiqueta || 'Archivo', id: r.campo_id };
-  })];
+      const urls = r.valor.split(',').map(s=>s.trim()).filter(s=>s && s !== 'No subido' && s !== 'No provisto');
+      urls.forEach((u, i) => {
+          combinedFiles.push({ 
+              url: u, 
+              etiqueta: urls.length > 1 ? `${campo?.etiqueta || 'Archivo'} (${i+1})` : (campo?.etiqueta || 'Archivo'), 
+              id: `${r.campo_id}_${i}` 
+          });
+      });
+  });
   
   if (cli.adjuntos_oficina) {
       if (cli.adjuntos_oficina.orden_trabajo_url) combinedFiles.push({ url: cli.adjuntos_oficina.orden_trabajo_url, etiqueta: 'Orden de Trabajo', id: 'sys-orden' });
@@ -8081,7 +8089,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
             ${isImage
               ? `<div class="w-full h-16 rounded overflow-hidden relative">
                   <img src="${f.url}" class="w-full h-full object-cover" />
-                  <button onclick="window.openFilePreview('${f.id}', '${etiqueta}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-eye text-white"></i></button>
+                  <button onclick="window.openFilePreview('${f.id}', '${etiqueta}', { valor: '${f.url}' })" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-eye text-white"></i></button>
                 </div>`
               : `<div class="w-full h-16 rounded border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 relative">
                   <i class="fas fa-file-pdf text-red-400 text-xl"></i>
