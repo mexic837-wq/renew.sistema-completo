@@ -1890,7 +1890,7 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   
   // If it's an approval phase, we only advance if the specific "Aprobación" field is set to "Aprobado"
   // or if we are not preventing auto-advance.
-  let canAdvance = allFilled && !options.preventAutoAdvance;
+  let canAdvance = (allFilled || options.ignoreMissingFields) && !options.preventAutoAdvance;
   
   if (isApprovalPhase && !options.forceAdvance) {
      // Check if there's an "Aprobación" field that is NOT "Aprobado"

@@ -1150,7 +1150,8 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
 
   const requiredCampos = campos.filter(c => !c.es_opcional);
   const numRequiredFilled = existingResp.filter(r => requiredCampos.some(c => c.id === r.campo_id) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
-  const isComplete = numRequiredFilled >= requiredCampos.length;
+  // USER REQUEST: Always allow advancing phase in the app, even with missing fields
+  const isComplete = true;
 
   // Force special buttons if phase name matches but they are not in campos
   const actNomLower = actFase.nombre.toLowerCase();
@@ -1235,7 +1236,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       <h3 class="text-lg font-bold text-gray-800 mb-2">${isLocked ? 'Fase en Proceso' : `Acción: Llenar ${actFase.nombre}`}</h3>
       <p class="text-xs text-gray-500 mb-6" id="phase-status-desc">
         ${isLocked ? `Esta etapa debe ser completada por <strong>${deal.rol_fase}</strong>. Puedes ver los avances aquí.` : 
-          (isComplete ? '¡Todo listo! Ya puedes finalizar esta etapa.' : `Faltan <strong>${requiredCampos.length - numRequiredFilled}</strong> campos obligatorios para poder avanzar.`)}
+          'Puedes llenar los campos que necesites y avanzar cuando estés listo.'}
       </p>
       
       <div id="form-fields-container" style="${isLocked ? 'pointer-events:none' : ''}">
@@ -1247,7 +1248,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         <button id="btn-dyn-submit" class="btn btn-primary slide-in-right" 
                 style="width:100%; height:56px; font-size:1.05rem; box-shadow:0 8px 24px ${pipeline.color}40; background:${pipeline.color}; margin-top:20px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:8px"><polyline points="20 6 9 17 4 12"/></svg>
-          <span id="label-submit-text">${isComplete ? 'Finalizar Fase y Enviar' : 'Guardar Avances'}</span>
+          <span id="label-submit-text">Finalizar Fase y Enviar</span>
         </button>
       ` : `
         <div style="margin-top:20px; padding:16px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:12px; text-align:center;">
@@ -1283,7 +1284,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           resp[c.id] = val || "No provisto";
         }
         btnSubmit.innerHTML = 'Espere...';
-        submitPhase(deal.id, resp, actFase.nombre);
+        submitPhase(deal.id, resp, actFase.nombre, { ignoreMissingFields: true });
       });
     }
 
