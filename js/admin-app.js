@@ -8401,14 +8401,14 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                 const previewHtml = hasFile ? `
                   <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] gap-2">
                     ${files.map(fUrl => {
-                       const isImg = fUrl.startsWith('data:image') || fUrl.match(/\\.(jpg|jpeg|png|gif|webp|svg)/i);
+                       const isImg = fUrl.startsWith('data:image') || fUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
                        return `
                        <div class="group relative rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" style="height: 60px;">
                          ${isImg
                            ? `<img src="${fUrl}" class="w-full h-full object-cover" />`
                            : `<i class="fas fa-file-pdf text-red-400 text-2xl"></i>`
                          }
-                         <button onclick="window.openFilePreview('${c.id}', '${safeLabel}', '${fUrl}')" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                         <button onclick="window.openFilePreview('${c.id}', '${safeLabel}', { valor: '${fUrl}' })" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                            <i class="fas ${isImg ? 'fa-eye' : 'fa-download'} text-white text-lg"></i>
                          </button>
                          <button onclick="event.stopPropagation(); window.deleteDrawerFile('${p.id}', '${c.id}', '${fUrl}')" title="Borrar archivo" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10" style="font-size: 10px;">
