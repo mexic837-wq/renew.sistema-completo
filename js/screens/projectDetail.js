@@ -1344,7 +1344,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     timestamp: new Date().toISOString()
                   });
 
-                  submitPhase(deal.id, { [c.id]: fileAnswers[c.id] }, actFase.nombre);
+                  submitPhase(deal.id, { [c.id]: fileAnswers[c.id] }, actFase.nombre, { preventAutoAdvance: true });
               } else {
                   if (label) label.textContent = `Error al subir`;
                   if (addBtn) addBtn.innerHTML = oldHtml;
@@ -1357,9 +1357,9 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   }
 }
 
-async function submitPhase(dealId, resp, faseNombre) {
+async function submitPhase(dealId, resp, faseNombre, options = {}) {
   try {
-    const res = await advanceDealPhase(dealId, resp);
+    const res = await advanceDealPhase(dealId, resp, options);
     if (res.didAdvance) {
       showToast(`¡Fase completada! Avanzando...`, 'success');
       setTimeout(() => {
@@ -1379,7 +1379,7 @@ window.deleteProjectDetailFile = async function(projectId, campoId, urlToDelete)
     if (!confirm('¿Estás seguro de que deseas eliminar este archivo?')) return;
     
     try {
-        const { getDB } = await import('../api.js');
+        const { getDB, saveGranular, deleteRecord } = await import('../api.js');
         const dbLocal = getDB() || {};
         const resp = (dbLocal.Respuestas_Dinamicas || []).find(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
         if (!resp || !resp.valor) return;
@@ -1388,29 +1388,14 @@ window.deleteProjectDetailFile = async function(projectId, campoId, urlToDelete)
         const newVals = existingVals.filter(url => url !== urlToDelete);
         const finalUrlStr = newVals.join(',');
 
-        const { getSupabaseClient } = await import('../api.js');
-        const supabase = getSupabaseClient();
-        
-        if (supabase) {
-            if (finalUrlStr === '') {
-                await supabase.from('Respuestas_Dinamicas').delete().match({ proyecto_id: projectId, campo_id: campoId });
-            } else {
-                await supabase.from('Respuestas_Dinamicas').upsert({
-                    proyecto_id: projectId,
-                    campo_id: campoId,
-                    valor: finalUrlStr,
-                    actualizado_en: new Date().toISOString()
-                }, { onConflict: 'proyecto_id, campo_id' });
-            }
-        }
-        
-        // Update local cache
         if (finalUrlStr === '') {
+            if (deleteRecord) await deleteRecord('respuestas_dinamicas', resp.id);
             const idx = dbLocal.Respuestas_Dinamicas.findIndex(r => r.proyecto_id === projectId && String(r.campo_id) === String(campoId));
             if (idx > -1) dbLocal.Respuestas_Dinamicas.splice(idx, 1);
         } else {
             resp.valor = finalUrlStr;
             resp.actualizado_en = new Date().toISOString();
+            if (saveGranular) await saveGranular('respuestas_dinamicas', [resp]);
         }
 
         // Check if it's a receipt to also delete the commission record
