@@ -9193,18 +9193,15 @@ async function showClientDetail(id) {
         selAssigned.innerHTML = '<option value="">Sin Asignar</option>';
         if (selEditAssigned) selEditAssigned.innerHTML = '<option value="">Sin Asignar</option>';
 
-        const vendedorRoles = ['vendedor', 'representante de ventas', 'técnico'];
         const clientePipeline = cli.pipeline;
 
         const filteredWorkers = workers.filter(w => {
-            const isVendorRole = vendedorRoles.includes((w.rol || '').toLowerCase());
-            if (!isVendorRole) return false;
             // Si hay un pipeline asignado al cliente, filtrar por acceso
             if (clientePipeline && clientePipeline !== '-' && clientePipeline !== 'Lead (Nuevo)') {
                 const workerUnidades = w.unidades || [];
                 return workerUnidades.some(u => u.toLowerCase() === clientePipeline.toLowerCase());
             }
-            return true; // Sin pipeline asignado, mostrar todos los vendedores
+            return true; // Sin pipeline asignado, mostrar todos los usuarios
         });
 
         filteredWorkers.forEach(w => {
