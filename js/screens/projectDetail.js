@@ -1010,8 +1010,19 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
        }
 
        const isDone = hasFile || !!(fileAnswers[c.id]);
-       const donePhotoSrc = isDone && (val?.startsWith('data:image') || deal.id_photo?.startsWith('data:image'))
-                           ? (val?.startsWith('data:image') ? val : deal.id_photo) : null;
+       
+       let firstVal = (fileAnswers[c.id] || val);
+       let valCount = 1;
+       if (firstVal && firstVal.includes(',')) {
+           const parts = firstVal.split(',').map(s=>s.trim()).filter(s=>s);
+           if (parts.length > 0) {
+               firstVal = parts[0];
+               valCount = parts.length;
+           }
+       }
+
+       const isImage = firstVal && (firstVal.startsWith('data:image') || firstVal.match(/\.(jpg|jpeg|png|gif|webp|svg)/i));
+       const donePhotoSrc = isDone && isImage ? firstVal : (deal.id_photo?.startsWith('data:image') ? deal.id_photo : null);
 
        if (isDone) {
          // LOCKED: field already has a value — show as completed, no re-upload allowed
@@ -1026,7 +1037,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                    </div>`
               }
               <div style="flex:1;min-width:0;">
-                <p style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:${pipeline.color};letter-spacing:0.05em;margin:0;">Archivo Cargado</p>
+                <p style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:${pipeline.color};letter-spacing:0.05em;margin:0;">${valCount > 1 ? valCount + ' Archivos Cargados' : 'Archivo Cargado'}</p>
                 <p style="font-size:0.7rem;color:var(--text-muted);margin:0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.etiqueta}</p>
               </div>
               <div style="background:${pipeline.color}20;border-radius:50%;width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
@@ -1042,7 +1053,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           <label class="upload-area ${isLocked ? 'locked-upload' : ''}" id="ubox_${c.id}"
                  for="df_${c.id}"
                  style="margin-bottom:16px;cursor:${isLocked ? 'not-allowed' : 'pointer'};display:block;${lockedStyle}">
-            <input type="file" id="df_${c.id}" accept="image/*,.pdf" style="display:none" ${disabledAttr}/>
+            <input type="file" id="df_${c.id}" accept="image/*,.pdf" multiple style="display:none" ${disabledAttr}/>
             <div class="upload-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -1258,49 +1269,60 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
 
     setTimeout(() => {
       campos.filter(c => c.tipo === 'Archivo').forEach(c => {
-        // Skip fields that already have a value — they're locked and display as "done"
-        if (fileAnswers[c.id]) return;
-
         const input = document.getElementById(`df_${c.id}`);
         const area = document.getElementById(`ubox_${c.id}`);
         const label = document.getElementById(`ulbl_${c.id}`);
         if(input) {
           input.addEventListener('change', async () => {
             if (input.files.length) {
-              const file = input.files[0];
               if (label) label.textContent = `Subiendo...`;
-              const url = await uploadFile(file, 'projects');
-              fileAnswers[c.id] = url;
-              if (area) {
-                area.classList.add('has-file');
-                area.style.borderColor = pipeline.color;
-                area.style.background = pipeline.color + '15';
-                const icon = area.querySelector('.upload-icon');
-                if (icon) icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-              }
-              if (label) { label.textContent = `Archivo Cargado`; label.style.color = pipeline.color; }
               
-              syncKanbanActivity({
-                proyecto_id: deal.id,
-                evento: 'ARCHIVO_SUBIDO',
-                campo_etiqueta: c.etiqueta,
-                archivo_nombre: file.name,
-                responsable_id: user?.id,
-                fase_nombre: actFase.nombre
-              });
+              let fileUrls = [];
+              for (let i = 0; i < input.files.length; i++) {
+                  const file = input.files[i];
+                  const url = await uploadFile(file, 'projects');
+                  if (url) fileUrls.push(url);
+              }
+              
+              if (fileUrls.length > 0) {
+                  const existingVals = (fileAnswers[c.id] || '').split(',').map(s=>s.trim()).filter(s=>s && s !== 'No subido' && s !== 'No provisto');
+                  fileAnswers[c.id] = [...existingVals, ...fileUrls].join(',');
+                  
+                  if (area) {
+                    area.classList.add('has-file');
+                    area.style.borderColor = pipeline.color;
+                    area.style.background = pipeline.color + '15';
+                    const icon = area.querySelector('.upload-icon');
+                    if (icon) icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${pipeline.color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+                  }
+                  
+                  const totalCount = [...existingVals, ...fileUrls].length;
+                  if (label) { label.textContent = totalCount > 1 ? `${totalCount} Archivos Cargados` : `Archivo Cargado`; label.style.color = pipeline.color; }
+                  
+                  syncKanbanActivity({
+                    proyecto_id: deal.id,
+                    evento: 'ARCHIVO_SUBIDO',
+                    campo_etiqueta: c.etiqueta,
+                    archivo_nombre: input.files[0].name + (input.files.length > 1 ? ` y ${input.files.length-1} más` : ''),
+                    responsable_id: user?.id,
+                    fase_nombre: actFase.nombre
+                  });
 
-              notifyWebhook({
-                evento: 'ARCHIVO_SUBIDO',
-                proyecto_id: deal.id,
-                cliente_nombre: deal.nombre_cliente,
-                pipeline: pipeline.nombre,
-                fase_actual: actFase.nombre,
-                campo_id: c.id,
-                campo_etiqueta: c.etiqueta,
-                archivo_nombre: file.name,
-                responsable_id: user?.id,
-                timestamp: new Date().toISOString()
-              });
+                  notifyWebhook({
+                    evento: 'ARCHIVO_SUBIDO',
+                    proyecto_id: deal.id,
+                    cliente_nombre: deal.nombre_cliente,
+                    pipeline: pipeline.nombre,
+                    fase_actual: actFase.nombre,
+                    campo_id: c.id,
+                    campo_etiqueta: c.etiqueta,
+                    archivo_nombre: input.files[0].name,
+                    responsable_id: user?.id,
+                    timestamp: new Date().toISOString()
+                  });
+              } else {
+                  if (label) label.textContent = `Error al subir`;
+              }
             }
           });
         }
