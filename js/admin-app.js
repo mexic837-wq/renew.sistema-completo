@@ -8045,11 +8045,14 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   const obsHtml = colaboradores.map(o => {
       const oi = ((o.nombre || '?')[0]).toUpperCase();
-      return `<div class="flex items-center gap-2 mb-2">
-        <div title="${o.nombre}" style="width:24px;height:24px;border-radius:50%;background:${pipeline.color}20;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:900;color:${pipeline.color};overflow:hidden;">
-            ${o.foto ? `<img src="${o.foto}" style="width:100%;height:100%;object-fit:cover;" />` : oi}
+      return `<div class="flex items-center justify-between gap-2 mb-2">
+        <div class="flex items-center gap-2">
+          <div title="${o.nombre}" style="width:24px;height:24px;border-radius:50%;background:${pipeline.color}20;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:900;color:${pipeline.color};overflow:hidden;">
+              ${o.foto ? `<img src="${o.foto}" style="width:100%;height:100%;object-fit:cover;" />` : oi}
+          </div>
+          <span class="text-[11px] text-gray-600 font-medium">${o.nombre}</span>
         </div>
-        <span class="text-[11px] text-gray-600 font-medium">${o.nombre}</span>
+        ${canManageObservers ? `<button onclick="window.kanbanRemoveColab('${p.id}', '${o.id}')" class="text-red-400 hover:text-red-600" title="Remover"><i class="fas fa-times text-[10px]"></i></button>` : ''}
       </div>`;
   }).join('');
 
@@ -8183,8 +8186,19 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                         <span class="w-2 h-2 rounded-full" style="background:${pipeline.color}"></span> ${pipeline.nombre}
                     </div>
                     
-                    <div class="text-gray-400 font-medium">Etapa Actual:</div>
-                    <div class="text-gray-800 font-medium">${faseActual.nombre}</div>
+                    <div class="text-gray-400 font-medium mt-2">Etapa Actual:</div>
+                    <div class="text-gray-800 font-medium mt-2">${faseActual.nombre}</div>
+
+                    <div class="text-gray-400 font-medium mt-2">Técnico:</div>
+                    <div class="text-gray-800 font-medium mt-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                           <i class="fas fa-tools text-gray-300"></i> ${(() => {
+                               const t = allWorkers.find(w => w.id === p.tecnico_id);
+                               return t ? `${t.nombre} ${t.apellido || ''}` : 'Sin asignar';
+                           })()}
+                        </div>
+                        ${isAdmin ? `<button onclick="window.kanbanChangeTecnico('${p.id}')" class="text-[10px] text-blue-500 hover:underline"><i class="fas fa-edit"></i> Editar</button>` : ''}
+                    </div>
                     
                     <div class="text-gray-400 font-medium mt-2">colaboradores:</div>
                     <div class="mt-2">
@@ -8598,7 +8612,77 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       if(e.target === overlay) closeDrawer();
   });
   
+  
   document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeDrawer(); document.removeEventListener('keydown', esc); } });
+
+  window.kanbanRemoveColab = async function(projectId, colabId) {
+      if (!confirm('¿Deseas remover a este colaborador del proyecto?')) return;
+      import('./api.js').then(async ({removeObserver}) => {
+          try {
+              await removeObserver(projectId, colabId);
+              showToast('Colaborador removido', 'success');
+              openKanbanDrawer(projectId, window._currentDrawerPhaseId);
+          } catch(e) {
+              showToast('Error al remover: ' + e.message, 'error');
+          }
+      });
+  };
+
+  window.kanbanChangeTecnico = async function(projectId) {
+      const db = getDB();
+      const pr = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
+      if (!pr) return;
+      const allW = db.Usuarios || [];
+      const techs = allW.filter(w => w.rol && (w.rol.includes('Tecnico') || w.rol.includes('Técnico')));
+      
+      const div = document.createElement('div');
+      div.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+      div.innerHTML = `
+      <div style="background:white;width:400px;border-radius:12px;padding:24px;max-height:80vh;display:flex;flex-direction:column;animation:zoomIn 0.2s ease-out;box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h3 class="text-sm font-bold text-gray-800">Asignar Técnico</h3>
+              <button id="close-tech" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+          </div>
+          <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
+              <div class="obs-item flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg border border-transparent transition-colors">
+                  <span class="text-xs font-bold text-gray-800">Ninguno (Desasignar)</span>
+                  <button class="set-tech-btn text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-md" data-id="">Desasignar</button>
+              </div>
+              ${techs.map(w => `
+              <div class="obs-item flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg border border-transparent transition-colors">
+                  <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center font-bold text-xs">
+                          ${w.foto ? `<img src="${w.foto}" class="w-full h-full rounded-full object-cover">` : (w.nombre[0].toUpperCase())}
+                      </div>
+                      <div class="text-xs font-bold text-gray-800">${w.nombre} ${w.apellido||''}</div>
+                  </div>
+                  <button class="set-tech-btn text-[10px] font-bold text-blue-500 bg-blue-50 px-3 py-1.5 rounded-md" data-id="${w.id}">Seleccionar</button>
+              </div>
+              `).join('')}
+          </div>
+      </div>`;
+      document.body.appendChild(div);
+      
+      div.querySelector('#close-tech').onclick = () => div.remove();
+      div.querySelectorAll('.set-tech-btn').forEach(btn => {
+          btn.onclick = async () => {
+              const techId = btn.dataset.id || null;
+              import('./api.js').then(async ({saveDB}) => {
+                  try {
+                      btn.innerHTML = '...';
+                      pr.tecnico_id = techId;
+                      await saveDB(db);
+                      showToast('Técnico actualizado', 'success');
+                      div.remove();
+                      openKanbanDrawer(projectId, window._currentDrawerPhaseId);
+                  } catch(e) {
+                      showToast('Error al actualizar: ' + e.message, 'error');
+                      btn.innerHTML = 'Error';
+                  }
+              });
+          };
+      });
+  };
 
   // Chat Observers Add logic
   const btnManageObs = document.getElementById('btn-manage-obs');
