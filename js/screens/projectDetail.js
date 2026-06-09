@@ -127,6 +127,7 @@ export async function renderDetail(dealId) {
     const pipelines = await getAdminPipelines();
     const fasesAll = await getAdminFases();
     const allCampos = await getAdminCampos();
+    const respuestas = await getRespuestasByProyecto(dealId);
     
     const pipeline = pipelines.find(p => p.id === deal.pipeline_id);
     const fases = fasesAll.filter(f => f.pipeline_id === pipeline.id).sort((a,b) => a.orden - b.orden);
@@ -134,7 +135,7 @@ export async function renderDetail(dealId) {
     
     const dbMock = { Admin_Campos_Formulario: allCampos };
 
-    await buildDetailView(screen, deal, pipeline, fases, curFidx, dbMock);
+    await buildDetailView(screen, deal, pipeline, fases, curFidx, dbMock, respuestas);
   } catch (err) {
     showToast(err.message, 'error');
     console.error(err);
@@ -143,7 +144,7 @@ export async function renderDetail(dealId) {
   }
 }
 
-async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
+async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respuestas = []) {
   const isCompleted = curFidx === -1;
   const currentFaseObj = isCompleted ? fases[fases.length - 1] : fases[curFidx];
   const currentUser = getCurrentUser();
@@ -185,6 +186,17 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
           const isDone = isCompleted || i < curFidx;
           const isActive = !isCompleted && i === curFidx;
           const isClickable = isDone || isActive;
+          
+          let btnText = 'Ver';
+          if (isClickable) {
+              const phaseCampos = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === f.id);
+              const requiredCampos = phaseCampos.filter(c => !c.es_opcional);
+              const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => String(c.id) === String(r.campo_id)) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+              if (requiredCampos.length > 0 && numRequiredFilled < requiredCampos.length) {
+                  btnText = 'Pending';
+              }
+          }
+
           return `
           <div class="progress-step ${isDone ? 'done' : isActive ? 'active' : ''}" 
                data-fase-id="${f.id}" data-fase-nombre="${f.nombre}" data-fase-idx="${i}"
@@ -197,7 +209,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db) {
                 : (i + 1)}
             </div>
             <div class="step-label" style="white-space:normal; line-height:1.2">${f.nombre}</div>
-            ${isClickable ? `<div style="font-size:0.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:${isDone ? pipeline.color : pipeline.color}; opacity:0.7; margin-top:2px;">Ver</div>` : ''}
+            ${isClickable ? `<div style="font-size:0.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:${isDone ? pipeline.color : pipeline.color}; opacity:0.7; margin-top:2px;">${btnText}</div>` : ''}
           </div>`;
         }).join('')}
       </div>
