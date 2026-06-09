@@ -8436,7 +8436,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           } else {
             const requiredCampos = phaseCampos.filter(c => !c.es_opcional);
             const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => String(c.id) === String(r.campo_id)) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
-            const isComplete = numRequiredFilled >= requiredCampos.length;
+            const isComplete = true; // Modificado: ya no es obligatorio llenar campos para avanzar
 
             const inputsHtml = phaseCampos.map(c => {
               const saved = respuestas.find(r => String(r.campo_id) === String(c.id));
