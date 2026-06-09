@@ -1695,10 +1695,17 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
     const respuestas = await getRespuestasByProyecto(dealId);
 
     // Build rows
+    const allWorkers = db.Usuarios || [];
     const renderValue = (campo, resp) => {
         const val = resp?.valor || '';
         if (!val || val === 'No provisto' || val === 'No subido') {
             return `<span style="color:#94a3b8;font-style:italic;font-size:0.8rem;">Sin respuesta</span>`;
+        }
+        if (campo.tipo === 'Técnico' || campo.tipo === 'Asignación' || campo.tipo === 'Desplegable de Usuarios') {
+            const worker = allWorkers.find(w => w.id === val);
+            if (worker) {
+                return `<span style="font-size:0.9rem;font-weight:600;color:var(--primary);"><i class="fa-solid fa-user-gear" style="margin-right:6px;"></i>${worker.nombre} ${worker.apellido || ''}</span>`;
+            }
         }
         if (campo.tipo === 'Archivo' || (val.includes('http') || val.includes('/api/')) && val.includes(',')) {
             const urls = val.split(',').map(s=>s.trim()).filter(s=>s && s !== 'No subido' && s !== 'No provisto');
