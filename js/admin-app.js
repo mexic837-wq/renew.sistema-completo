@@ -2048,7 +2048,20 @@ function bindGlobalEvents() {
         }
 
         await saveGranular('proyectos_dinamicos', [p]);
+        
+        const wrapper = document.getElementById('kanban-wrapper');
+        const scrollPos = wrapper ? wrapper.scrollLeft : 0;
+        
         await renderView();
+        
+        setTimeout(() => {
+            const newWrapper = document.getElementById('kanban-wrapper');
+            if (newWrapper) {
+                newWrapper.style.scrollBehavior = 'auto';
+                newWrapper.scrollLeft = scrollPos;
+                setTimeout(() => newWrapper.style.scrollBehavior = 'smooth', 50);
+            }
+        }, 50);
       }
     }
   });
@@ -4439,14 +4452,37 @@ window.renderView = async function renderView() {
     }
 
     UI.canvas.innerHTML = `
-      <div class="flex gap-4 border-b border-gray-100 dark:border-white/5 mb-10 overflow-x-auto custom-h-scrollbar">
-        ${tabsHtml}
+      <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center border-b border-gray-100 dark:border-white/5 mb-6 overflow-x-auto custom-h-scrollbar">
+        <div class="flex gap-4 min-w-max">
+            ${tabsHtml}
+        </div>
+        <div class="w-full sm:w-auto min-w-[250px] mb-4 sm:mb-0 relative">
+            <input type="text" id="kanban-search" placeholder="Buscar proyecto o cliente..." class="w-full bg-white dark:bg-darkCard border border-gray-200 dark:border-white/10 rounded-full px-4 py-2 pl-10 text-xs font-bold text-gray-800 dark:text-white focus:outline-none focus:border-tealAccent shadow-sm">
+            <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
       </div>
       <div class="scroll-container-kanban flex flex-nowrap gap-4 overflow-x-auto h-[calc(100vh-280px)] items-start pb-12 custom-h-scrollbar scroll-smooth" id="kanban-wrapper" style="width: 100%; max-width: 100%;">
         ${columnsHtml}
         ${completedColumnHtml}
       </div>
     `;
+
+    setTimeout(() => {
+        const searchInput = document.getElementById('kanban-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                document.querySelectorAll('.kanban-card').forEach(card => {
+                    if (!term) {
+                        card.style.display = 'block';
+                        return;
+                    }
+                    const text = card.textContent.toLowerCase();
+                    card.style.display = text.includes(term) ? 'block' : 'none';
+                });
+            });
+        }
+    }, 100);
 
     // Arrows Logic for Kanban
     setTimeout(() => {
