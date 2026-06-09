@@ -1295,6 +1295,9 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         if(input) {
           input.addEventListener('change', async () => {
             if (input.files.length) {
+              const addBtn = document.querySelector(`label[for="df_${c.id}"]`);
+              const oldHtml = addBtn ? addBtn.innerHTML : '';
+              if (addBtn) addBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Subiendo...`;
               if (label) label.textContent = `Subiendo...`;
               
               let fileUrls = [];
@@ -1340,8 +1343,11 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     responsable_id: user?.id,
                     timestamp: new Date().toISOString()
                   });
+
+                  submitPhase(deal.id, { [c.id]: fileAnswers[c.id] }, actFase.nombre);
               } else {
                   if (label) label.textContent = `Error al subir`;
+                  if (addBtn) addBtn.innerHTML = oldHtml;
               }
             }
           });
