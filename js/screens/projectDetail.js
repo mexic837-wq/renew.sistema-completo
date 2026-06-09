@@ -1126,7 +1126,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
            </select>
          </div>
        `;
-     } else if (c.tipo === 'Fecha y Hora') {
+     } else if (c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora') {
        html = `
          <div class="input-wrap no-icon">
            <input type="datetime-local" id="df_${c.id}" value="${val}" ${disabledAttr}

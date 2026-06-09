@@ -90,7 +90,7 @@ export async function renderNotificaciones() {
           type: 'asignacion',
           id: p.id,
           title: `Nueva Asignación: ${cli.nombre || 'Cliente'}`,
-          message: `Has sido asignado a un nuevo proyecto de Water para ${cli.nombre || 'Cliente'}. Por favor acepta o rechaza la asignación y escoge tu horario.`,
+          message: `Has sido asignado a un nuevo proyecto de Water para ${cli.nombre || 'Cliente'}. Por favor acepta o rechaza la asignación.`,
           date: new Date(p.fecha || p.created_at || Date.now()),
           isRead: false,
           originalData: p,
@@ -285,12 +285,8 @@ export async function renderNotificaciones() {
                       </button>
                   </div>
 
-                  <div id="asignacion-horario" style="display:none; margin-top:20px; text-align:left; position:relative; z-index:1;">
-                      <label style="display:block; font-size:0.85rem; color:var(--text-muted); font-weight:700; margin-bottom:8px;">Selecciona Fecha y Hora de la Instalación:</label>
-                      <input type="datetime-local" id="inp-horario-asig" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:white; font-family:inherit; margin-bottom:16px; color-scheme: dark;">
-                      <button id="btn-confirmar-horario" style="width:100%; padding: 14px 20px; background: var(--primary); color: black; border: none; border-radius: 12px; font-weight: 800; cursor:pointer; transition: all 0.2s;">
-                          Confirmar Horario y Aceptar
-                      </button>
+                  <div id="asignacion-horario" style="display:none; margin-top:20px; text-align:center; position:relative; z-index:1;">
+                      <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:16px;">Procesando tu respuesta...</p>
                   </div>
                 </div>
               `;
@@ -340,9 +336,30 @@ export async function renderNotificaciones() {
               const inpHorario = document.getElementById('inp-horario-asig');
 
               if (btnAceptar) {
-                  btnAceptar.onclick = () => {
-                      divActions.style.display = 'none';
-                      divHorario.style.display = 'block';
+                  btnAceptar.onclick = async () => {
+                      btnAceptar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aceptando...';
+                      divActions.style.pointerEvents = 'none';
+
+                      // Buscar la fecha y hora seleccionada por el admin
+                      let horarioAsignado = null;
+                      const respuestas = db.Respuestas_Dinamicas || [];
+                      const campos = db.Admin_Campos_Formulario || [];
+                      
+                      // Buscar respuesta para este proyecto cuyo campo sea de tipo FechaHora
+                      const respHorario = respuestas.find(r => 
+                          r.proyecto_id === item.originalData.id && 
+                          campos.some(c => c.id === r.campo_id && (c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora'))
+                      );
+                      if (respHorario && respHorario.valor && respHorario.valor !== 'No provisto' && respHorario.valor !== 'No subido') {
+                          horarioAsignado = respHorario.valor;
+                      } else {
+                          // Fallback si no hay fecha asignada
+                          horarioAsignado = new Date().toISOString(); 
+                      }
+
+                      await procesarRespuestaAsignacion(item.originalData, item.cliente, 'Aceptado', horarioAsignado, user);
+                      document.getElementById('btn-close-notif-detail').click();
+                      renderNotificaciones(); // reload list
                   };
               }
 
@@ -355,18 +372,7 @@ export async function renderNotificaciones() {
                   };
               }
 
-              if (btnConfirmar) {
-                  btnConfirmar.onclick = async () => {
-                      if (!inpHorario.value) {
-                          alert("Por favor selecciona una fecha y hora");
-                          return;
-                      }
-                      btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-                      await procesarRespuestaAsignacion(item.originalData, item.cliente, 'Aceptado', inpHorario.value, user);
-                      document.getElementById('btn-close-notif-detail').click();
-                      renderNotificaciones(); // reload list
-                  };
-              }
+              // El botón btnConfirmar ha sido eliminado ya que no hay selección manual de horario
           }
 
           // Marcar como leído
