@@ -198,7 +198,7 @@ export async function renderNotificaciones() {
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
               <div class="greeting-time" style="margin-bottom:0;">Mantente al día con el equipo</div>
             </div>
-            <h1 style="font-size:1.3rem;">Anuncios & Reuniones <i class="fa-solid fa-bullhorn"></i></h1>
+            <h1 style="font-size:1.3rem;">Anuncios <i class="fa-solid fa-bullhorn"></i></h1>
           </div>
         </div>
       </div>
