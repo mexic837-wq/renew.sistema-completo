@@ -1700,6 +1700,22 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
         if (!val || val === 'No provisto' || val === 'No subido') {
             return `<span style="color:#94a3b8;font-style:italic;font-size:0.8rem;">Sin respuesta</span>`;
         }
+        if (campo.tipo === 'Archivo' || (val.includes('http') || val.includes('/api/')) && val.includes(',')) {
+            const urls = val.split(',').map(s=>s.trim()).filter(s=>s && s !== 'No subido' && s !== 'No provisto');
+            return `<div style="display:flex; gap:8px; flex-wrap:wrap;">` + urls.map(u => {
+                if (u.match(/\.(pdf)$/i) || u.includes('pdf')) {
+                    return `<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}40;border-radius:8px;padding:5px 12px;font-size:0.75rem;font-weight:700;text-decoration:none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Ver PDF
+                    </a>`;
+                }
+                if (u.match(/\.(jpg|jpeg|png|webp|gif)$/i) || u.includes('storage') || u.startsWith('data:image')) {
+                    return `<img src="${u}" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid var(--border);object-fit:cover;cursor:pointer;" onclick="window.open('${u}')" title="Click para ampliar">`;
+                }
+                return `<a href="${u}" target="_blank" style="font-size:0.8rem;">Abrir Archivo</a>`;
+            }).join('') + `</div>`;
+        }
+
         if (val.match(/\.(pdf)$/i) || ((val.startsWith('http') || val.startsWith('/api/')) && val.includes('pdf'))) {
             return `<a href="${val}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:${pipeline.color}15;color:${pipeline.color};border:1px solid ${pipeline.color}40;border-radius:8px;padding:5px 12px;font-size:0.75rem;font-weight:700;text-decoration:none;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
