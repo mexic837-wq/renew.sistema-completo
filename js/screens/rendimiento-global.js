@@ -569,7 +569,10 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             closeRate:   vCloseRate,
             commissions: vCommissions
         };
-    }).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    }).sort((a, b) => {
+        if (b.sales !== a.sales) return b.sales - a.sales;
+        return (a.nombre || '').localeCompare(b.nombre || '');
+    });
 
     const tbody = document.getElementById('global-leaderboard-body');
     if (tbody) {
