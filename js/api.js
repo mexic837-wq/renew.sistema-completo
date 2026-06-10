@@ -515,7 +515,12 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     // El vendedor es el responsable_id (primero de la lista) del proyecto; el técnico es tecnico_id
     const sessionStr = localStorage.getItem('rs_user');
     const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
-    let trabajadorId = isVendedor ? (proy.asignado_a || proy.responsable_id || proy.vendedor_asignado_id || '').split(',')[0].trim() : (proy.tecnico_id || proy.asignado_a || (proy.responsable_id || '').split(',')[0].trim());
+    
+    // Buscar explícitamente en Respuestas_Dinamicas por si el proyecto virtual no tiene actualizado su asignado_a
+    const dynAsignado = (db.Respuestas_Dinamicas || []).find(r => String(r.proyecto_id) === String(projectId) && r.campo_id === '__asignado_a__');
+    const asignadoAValue = dynAsignado ? dynAsignado.valor : proy.asignado_a;
+    
+    let trabajadorId = isVendedor ? (asignadoAValue || proy.responsable_id || cli.vendedor_asignado_id || '').split(',')[0].trim() : (proy.tecnico_id || asignadoAValue || (proy.responsable_id || '').split(',')[0].trim());
     let user = (db.Usuarios || []).find(u => String(u.id).trim() === String(trabajadorId).trim());
     if (!user && sessionUser && sessionUser.id) {
         const sRole = (sessionUser.rol || '').toLowerCase();
