@@ -1629,16 +1629,10 @@ function _wireModalControls(user, container) {
 
       const notas = document.getElementById('quick-notas')?.value.trim() || '';
       
-      // Validation (Desactivado por petición: todos los campos opcionales)
-      /*
-      if (!nombre) { showToast('El Nombre es obligatorio', 'error'); return; }
-      if (!apellido) { showToast('El Apellido es obligatorio', 'error'); return; }
-      if (tel.length < 5) { showToast('El Teléfono es obligatorio', 'error'); return; }
-      if (!dir) { showToast('La Dirección es obligatoria', 'error'); return; }
-      */
-
-      if (!nombre && !apellido && !tel) {
-         showToast('Al menos pon un nombre o teléfono para identificarlo', 'warning');
+      // Validation (Reactivado con Nombre, Apellido y Direccion obligatorios)
+      if (!nombre || !apellido || !dir) {
+         showToast('Por favor, completa Nombre, Apellido y Dirección obligatorios.', 'warning');
+         return;
       }
 
       try {

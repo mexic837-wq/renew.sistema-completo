@@ -886,8 +886,7 @@
         <div style="display:flex; gap:16px; margin-top:16px">
           <div class="field-group" style="flex:1">
             <label
-              style="color:var(--text-secondary); font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;">Teléfono
-              *</label>
+              style="color:var(--text-secondary); font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;">Teléfono</label>
             <div class="input-wrap no-icon"><input type="tel" id="quick-tel" value="+1 "
                 style="background:var(--bg); width:100%; border:none; padding:12px; border-radius:10px; color:var(--text-primary);" />
             </div>
@@ -916,6 +915,19 @@
           </div>
         </div>
 
+        <div class="field-group" style="margin-top:16px">
+          <label
+            style="color:var(--text-secondary); font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;">Departamento *</label>
+          <div class="input-wrap select-wrap no-icon">
+            <select id="quick-dept"
+              style="background:var(--bg); width:100%; border:none; padding:12px; border-radius:10px; color:var(--text-primary);">
+              <option value="Solar">☀️ Solar</option>
+              <option value="Water"><i class="fa-solid fa-water"></i> Water</option>
+              <option value="Home">🏠 Home</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Botón para mostrar más -->
         <button id="btn-toggle-quick-detalles" onclick="window.toggleQuickDetalles()"
           style="width:100%; background:transparent; border:1px dashed var(--border); color:var(--primary); padding:14px; border-radius:12px; font-size:0.8rem; font-weight:700; text-transform:uppercase; cursor:pointer; margin:20px 0;">
@@ -930,19 +942,6 @@
               style="color:var(--text-secondary); font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;">DOB</label>
             <div class="input-wrap no-icon"><input type="date" id="quick-dob"
                 style="background:var(--bg); width:100%; border:none; padding:12px; border-radius:10px; color:var(--text-primary);" />
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label
-              style="color:var(--text-secondary); font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;">Departamento</label>
-            <div class="input-wrap select-wrap no-icon">
-              <select id="quick-dept"
-                style="background:var(--bg); width:100%; border:none; padding:12px; border-radius:10px; color:var(--text-primary);">
-                <option value="Solar">☀️ Solar</option>
-                <option value="Water"><i class="fa-solid fa-water"></i> Water</option>
-                <option value="Home">🏠 Home</option>
-              </select>
             </div>
           </div>
 
