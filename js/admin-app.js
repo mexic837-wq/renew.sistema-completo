@@ -10933,9 +10933,9 @@ window.updateWorkerRankVisibility = function() {
     if (rankSelect) {
         Array.from(rankSelect.options).forEach(opt => {
             if (opt.value === 'oficina') {
-                opt.style.display = (isManager || isVendedor) ? 'block' : 'none';
-                opt.disabled = !(isManager || isVendedor);
-                if (!(isManager || isVendedor) && rankSelect.value === 'oficina') rankSelect.value = 'no_aplica';
+                opt.style.display = (isManager || isVendedor || isSupervisor) ? 'block' : 'none';
+                opt.disabled = !(isManager || isVendedor || isSupervisor);
+                if (!(isManager || isVendedor || isSupervisor) && rankSelect.value === 'oficina') rankSelect.value = 'no_aplica';
             }
         });
     }
@@ -11062,9 +11062,9 @@ window.updateEditWorkerRankVisibility = function() {
     if (rankSelect) {
         Array.from(rankSelect.options).forEach(opt => {
             if (opt.value === 'oficina') {
-                opt.style.display = (isManager || isVendedor) ? 'block' : 'none';
-                opt.disabled = !(isManager || isVendedor);
-                if (!(isManager || isVendedor) && rankSelect.value === 'oficina') rankSelect.value = 'no_aplica';
+                opt.style.display = (isManager || isVendedor || isSupervisor) ? 'block' : 'none';
+                opt.disabled = !(isManager || isVendedor || isSupervisor);
+                if (!(isManager || isVendedor || isSupervisor) && rankSelect.value === 'oficina') rankSelect.value = 'no_aplica';
             }
         });
     }
