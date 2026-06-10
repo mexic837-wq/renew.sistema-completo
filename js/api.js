@@ -515,7 +515,7 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     // El vendedor es el responsable_id (primero de la lista) del proyecto; el técnico es tecnico_id
     const sessionStr = localStorage.getItem('rs_user');
     const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
-    let trabajadorId = isVendedor ? (proy.vendedor_asignado_id || proy.responsable_id || proy.asignado_a || '').split(',')[0].trim() : (proy.tecnico_id || proy.asignado_a || (proy.responsable_id || '').split(',')[0].trim());
+    let trabajadorId = isVendedor ? (proy.asignado_a || proy.responsable_id || proy.vendedor_asignado_id || '').split(',')[0].trim() : (proy.tecnico_id || proy.asignado_a || (proy.responsable_id || '').split(',')[0].trim());
     let user = (db.Usuarios || []).find(u => String(u.id) === String(trabajadorId));
     if (!user && sessionUser && sessionUser.id) {
         user = (db.Usuarios || []).find(u => String(u.id) === String(sessionUser.id));
