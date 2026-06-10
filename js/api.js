@@ -516,10 +516,15 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     const sessionStr = localStorage.getItem('rs_user');
     const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
     let trabajadorId = isVendedor ? (proy.asignado_a || proy.responsable_id || proy.vendedor_asignado_id || '').split(',')[0].trim() : (proy.tecnico_id || proy.asignado_a || (proy.responsable_id || '').split(',')[0].trim());
-    let user = (db.Usuarios || []).find(u => String(u.id) === String(trabajadorId));
+    let user = (db.Usuarios || []).find(u => String(u.id).trim() === String(trabajadorId).trim());
     if (!user && sessionUser && sessionUser.id) {
-        user = (db.Usuarios || []).find(u => String(u.id) === String(sessionUser.id));
-        if (user) trabajadorId = user.id;
+        const sRole = (sessionUser.rol || '').toLowerCase();
+        const isSessVendedor = sRole.includes('vendedor') || sRole.includes('representante');
+        const isSessTecnico = sRole.includes('tecnico') || sRole.includes('técnico');
+        if ((isVendedor && isSessVendedor) || (!isVendedor && isSessTecnico)) {
+            user = (db.Usuarios || []).find(u => String(u.id).trim() === String(sessionUser.id).trim());
+            if (user) trabajadorId = user.id;
+        }
     }
     const trabajadorNom = user ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : 'Staff';
     const clienteNom = cli.nombre || cli.nombre_completo || `Cliente ${cli.id}`;
