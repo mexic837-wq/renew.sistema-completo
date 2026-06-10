@@ -1629,6 +1629,14 @@ function _wireModalControls(user, container) {
 
       const notas = document.getElementById('quick-notas')?.value.trim() || '';
       
+      const isCita = document.getElementById('quick-is-cita')?.checked;
+      const citaDate = document.getElementById('quick-cita-date')?.value;
+
+      if (isCita && !citaDate) {
+         showToast('Por favor, selecciona la fecha y hora de la cita', 'warning');
+         return;
+      }
+      
       // Validation (Reactivado con Nombre, Apellido y Direccion obligatorios)
       if (!nombre || !apellido || !dir) {
          showToast('Por favor, completa Nombre, Apellido y Dirección obligatorios.', 'warning');
@@ -1670,6 +1678,27 @@ function _wireModalControls(user, container) {
              closeModals();
              
              const db = getDB();
+             if (isCita && citaDate) {
+                 if (!db.calendario_eventos) db.calendario_eventos = [];
+                 db.calendario_eventos.push({
+                     id: 'ev_' + Date.now(),
+                     created_at: new Date().toISOString(),
+                     nombre: `Cita Prospecto: ${fullNombre}`,
+                     fecha_inicio: citaDate,
+                     fecha_fin: citaDate,
+                     telefono: tel,
+                     direccion: dir,
+                     descripcion: `Cita generada automáticamente.\nNotas: ${notas}`,
+                     color: 'Cita',
+                     colaboradores: [JSON.stringify({ id: user.id, nombre: `${user.nombre} ${user.apellido || ''}`.trim(), email: user.email })],
+                     departamentos: [dept],
+                     attendees: [],
+                     notificacion_recordatorio: null
+                 });
+                 await saveDB(db);
+                 showToast('Cita creada en el calendario', 'success');
+             }
+
              const updatedClient = db.Clientes_Maestro.find(c => c.id === window.quickSelectedClientId);
              if (updatedClient) {
                  _showPipelineSelector(updatedClient, user);
@@ -1695,6 +1724,29 @@ function _wireModalControls(user, container) {
             pipelineName: null,
             responsable_id: user.id
           });
+          
+          if (isCita && citaDate) {
+              const db = getDB();
+              if (!db.calendario_eventos) db.calendario_eventos = [];
+              db.calendario_eventos.push({
+                  id: 'ev_' + Date.now(),
+                  created_at: new Date().toISOString(),
+                  nombre: `Cita Prospecto: ${fullNombre}`,
+                  fecha_inicio: citaDate,
+                  fecha_fin: citaDate,
+                  telefono: tel,
+                  direccion: dir,
+                  descripcion: `Cita generada automáticamente.\nNotas: ${notas}`,
+                  color: 'Cita',
+                  colaboradores: [JSON.stringify({ id: user.id, nombre: `${user.nombre} ${user.apellido || ''}`.trim(), email: user.email })],
+                  departamentos: [dept],
+                  attendees: [],
+                  notificacion_recordatorio: null
+              });
+              await saveDB(db);
+              showToast('Cita creada en el calendario', 'success');
+          }
+          
           showToast('Prospecto guardado con éxito <i class="fa-solid fa-check text-green-500"></i>', 'success');
         }
 

@@ -928,6 +928,23 @@
           </div>
         </div>
 
+        <div class="field-group" style="margin-top:16px; background: rgba(0,245,212,0.03); border: 1px solid var(--border); padding: 16px; border-radius: 16px;">
+            <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" id="quick-is-cita" class="w-5 h-5 rounded text-tealAccent focus:ring-tealAccent bg-white border-gray-300 dark:bg-black/20 dark:border-white/10" onchange="document.getElementById('quick-cita-date-container').style.display = this.checked ? 'block' : 'none'">
+                <div>
+                    <span class="text-sm font-bold text-gray-700 dark:text-white block">¿Agendar como cita ahora mismo?</span>
+                    <span class="text-xs text-gray-500 block mt-1">Crea automáticamente un evento en tu calendario.</span>
+                </div>
+            </label>
+        </div>
+
+        <div id="quick-cita-date-container" class="field-group" style="margin-top:12px; display:none;">
+            <label style="color:var(--text-secondary); font-size:0.8rem; font-weight:600; margin-bottom:8px; display:block;"><i class="fa-solid fa-calendar-plus mr-1"></i> Fecha y Hora de la Cita *</label>
+            <div class="input-wrap no-icon">
+                <input type="datetime-local" id="quick-cita-date" style="background:var(--bg); width:100%; border:none; padding:12px; border-radius:10px; color:var(--text-primary);" />
+            </div>
+        </div>
+
         <!-- Botón para mostrar más -->
         <button id="btn-toggle-quick-detalles" onclick="window.toggleQuickDetalles()"
           style="width:100%; background:transparent; border:1px dashed var(--border); color:var(--primary); padding:14px; border-radius:12px; font-size:0.8rem; font-weight:700; text-transform:uppercase; cursor:pointer; margin:20px 0;">
