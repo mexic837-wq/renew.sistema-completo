@@ -6136,36 +6136,46 @@ window.mostrarDetalleEventoCalendario = async function(event) {
           if (workers.length === 0) {
               container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay colaboradores registrados.</p>';
           } else {
-              container.innerHTML = workers.map(w => {
+              let parsedAttendees = [];
+              if (props && props.attendees) {
+                  try { parsedAttendees = typeof props.attendees === 'string' ? JSON.parse(props.attendees) : props.attendees; } catch(e){}
+              }
+              if (!Array.isArray(parsedAttendees)) parsedAttendees = [];
+
+              let parsedColabs = [];
+              if (props && props.colaboradores) {
+                  try { parsedColabs = typeof props.colaboradores === 'string' ? JSON.parse(props.colaboradores) : props.colaboradores; } catch(e){}
+              }
+              if (!Array.isArray(parsedColabs)) parsedColabs = [];
+
+              let mappedWorkers = workers.map(w => {
                   const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
                   const rol = w.rol || 'Sin rol';
                   const email = w.email || '';
                   const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
                   
-                  let isChecked = false;
+                  let isChecked = parsedAttendees.some(a => {
+                      let obj = typeof a === 'string' ? (JSON.parse(a) || {}) : a;
+                      return String(obj.id) === String(w.id) || (obj.email && obj.email === email);
+                  });
                   
-                  let arrAtt = [];
-                  if (props && props.attendees) {
-                      try { arrAtt = typeof props.attendees === 'string' ? JSON.parse(props.attendees) : props.attendees; } catch(e){}
-                  }
-                  if (Array.isArray(arrAtt)) {
-                      isChecked = isChecked || arrAtt.some(a => {
-                          let obj = typeof a === 'string' ? (JSON.parse(a) || {}) : a;
-                          return String(obj.id) === String(w.id) || (obj.email && obj.email === email);
-                      });
-                  }
-                  
-                  let arrCol = [];
-                  if (!isChecked && props && props.colaboradores) {
-                      try { arrCol = typeof props.colaboradores === 'string' ? JSON.parse(props.colaboradores) : props.colaboradores; } catch(e){}
-                  }
-                  if (!isChecked && Array.isArray(arrCol)) {
-                      isChecked = isChecked || arrCol.some(c => {
+                  if (!isChecked) {
+                      isChecked = parsedColabs.some(c => {
                           let obj = typeof c === 'string' ? (JSON.parse(c) || {}) : c;
                           return String(obj.id) === String(w.id) || (obj.email && obj.email === email);
                       });
                   }
+                  return { w, fullName, rol, email, workerData, isChecked };
+              });
 
+              mappedWorkers.sort((a, b) => {
+                  if (a.isChecked && !b.isChecked) return -1;
+                  if (!a.isChecked && b.isChecked) return 1;
+                  return a.fullName.localeCompare(b.fullName);
+              });
+
+              container.innerHTML = mappedWorkers.map(item => {
+                  const { fullName, rol, email, workerData, isChecked } = item;
                   return `
                   <label class="flex items-center gap-3 cursor-pointer group py-1.5 rounded-lg hover:bg-tealAccent/5 px-2 transition-all">
                       <input type="checkbox" 
