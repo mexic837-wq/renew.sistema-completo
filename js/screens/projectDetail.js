@@ -1280,8 +1280,6 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         // Bloquear avance si faltan datos básicos del cliente
         const missingFields = [];
         if (!deal.nombre_cliente || deal.nombre_cliente.trim() === '') missingFields.push('Nombre del cliente');
-        if (!deal.email || deal.email.trim() === '' || deal.email === 'N/A') missingFields.push('Email');
-        if (!deal.telefono || deal.telefono.trim() === '') missingFields.push('Teléfono');
         if (!deal.direccion || deal.direccion.trim() === '') missingFields.push('Dirección');
 
         if (missingFields.length > 0) {
