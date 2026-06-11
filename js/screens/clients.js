@@ -1809,7 +1809,15 @@ window.openNuevoProspectoGlobal = () => {
     const dirInput = document.getElementById('quick-direccion');
     if (dirInput) dirInput.dataset.quickMapsLoaded = '';
 
-    if (window.initQuickMaps) setTimeout(window.initQuickMaps, 400);
+    if (window.initQuickMaps) {
+        setTimeout(() => {
+            window.initQuickMaps();
+            if (window.quickMapInstance && window.google) {
+                google.maps.event.trigger(window.quickMapInstance, 'resize');
+                window.quickMapInstance.setCenter(window.quickMapInstance.getCenter());
+            }
+        }, 400);
+    }
 
     const user = getCurrentUser();
     const container = document.getElementById('lista-clientes-movil');
