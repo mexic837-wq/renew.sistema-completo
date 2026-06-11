@@ -838,6 +838,65 @@ export async function uploadFile(file, type = 'others') {
         }
     }
 
+    // ── CHUNKED UPLOAD FOR LARGE FILES (> 10MB) ──
+    const CHUNK_THRESHOLD = 10 * 1024 * 1024; // 10MB
+    if (finalFile.size > CHUNK_THRESHOLD) {
+        console.log(`[UPLOAD] Archivo pesado detectado (${(finalFile.size/1024/1024).toFixed(2)}MB). Usando subida por fragmentos para evitar límites del servidor.`);
+        const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        const CHUNK_SIZE = 1 * 1024 * 1024; // 1 MB chunks
+        const totalChunks = Math.ceil(finalFile.size / CHUNK_SIZE);
+
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * CHUNK_SIZE;
+            const end   = Math.min(start + CHUNK_SIZE, finalFile.size);
+            const chunk = finalFile.slice(start, end);
+
+            let attempt = 0;
+            let chunkOk = false;
+            while (attempt < 3 && !chunkOk) {
+                try {
+                    const r = await fetch(`${API_BASE}/upload-chunk?uploadId=${uploadId}&chunkIndex=${i}`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/octet-stream' },
+                        body:    chunk
+                    });
+                    if (!r.ok) {
+                        const err = await r.text().catch(() => r.status);
+                        throw new Error(`Fragmento ${i} rechazado (HTTP ${r.status}): ${err}`);
+                    }
+                    chunkOk = true;
+                } catch (netErr) {
+                    attempt++;
+                    if (attempt >= 3) throw netErr;
+                    console.warn(`[UPLOAD] Reintentando fragmento ${i} (intento ${attempt})...`);
+                    await new Promise(r => setTimeout(r, 1000 * attempt));
+                }
+            }
+        }
+
+        const contentType = finalFile.type || 'application/octet-stream';
+        
+        const completeRes = await fetch(`${API_BASE}/complete-upload`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ 
+                uploadId, 
+                fileName: finalFile.name, 
+                folder: type, 
+                totalChunks, 
+                contentType 
+            })
+        });
+
+        if (!completeRes.ok) {
+            throw new Error(`Fallo al ensamblar el archivo en el servidor (HTTP ${completeRes.status})`);
+        }
+        const completeData = await completeRes.json();
+        if (completeData.success) return completeData.url;
+        throw new Error(completeData.error || 'Fallo al completar subida de archivo pesado');
+    }
+
+    // ── NORMAL UPLOAD FOR SMALL FILES ──
     const formData = new FormData();
     formData.append('file', finalFile);
     formData.append('type', type);
