@@ -1146,6 +1146,13 @@ function resetModal() {
   const lic = document.getElementById('quick-state-id');
   if (lic) lic.value = '';
 
+  const isCitaChk = document.getElementById('quick-is-cita');
+  if (isCitaChk) isCitaChk.checked = false;
+  const citaDateContainer = document.getElementById('quick-cita-date-container');
+  if (citaDateContainer) citaDateContainer.style.display = 'none';
+  const citaDateInp = document.getElementById('quick-cita-date');
+  if (citaDateInp) citaDateInp.value = '';
+
   quickAdjID = null; quickAdjBill = null; quickAdjSeguro = null;
 
   document.querySelectorAll('.doc-btn').forEach(btn => {
@@ -1680,7 +1687,7 @@ function _wireModalControls(user, container) {
              const db = getDB();
              if (isCita && citaDate) {
                  if (!db.calendario_eventos) db.calendario_eventos = [];
-                 db.calendario_eventos.push({
+                 const nuevoEvento = {
                      id: 'ev_' + Date.now(),
                      created_at: new Date().toISOString(),
                      nombre: `Cita Prospecto: ${fullNombre}`,
@@ -1694,8 +1701,14 @@ function _wireModalControls(user, container) {
                      departamentos: [dept],
                      attendees: [],
                      notificacion_recordatorio: null
-                 });
-                 await saveDB(db);
+                 };
+                 db.calendario_eventos.push(nuevoEvento);
+                 // Evitar sobrescritura de bd si hay concurrencia
+                 try {
+                   const { saveGranular } = await import('../api.js');
+                   await saveGranular('calendario_eventos', [nuevoEvento]);
+                 } catch(e) { await saveDB(db); }
+                 
                  showToast('Cita creada en el calendario', 'success');
              }
 
@@ -1728,7 +1741,7 @@ function _wireModalControls(user, container) {
           if (isCita && citaDate) {
               const db = getDB();
               if (!db.calendario_eventos) db.calendario_eventos = [];
-              db.calendario_eventos.push({
+              const nuevoEvento = {
                   id: 'ev_' + Date.now(),
                   created_at: new Date().toISOString(),
                   nombre: `Cita Prospecto: ${fullNombre}`,
@@ -1742,8 +1755,13 @@ function _wireModalControls(user, container) {
                   departamentos: [dept],
                   attendees: [],
                   notificacion_recordatorio: null
-              });
-              await saveDB(db);
+              };
+              db.calendario_eventos.push(nuevoEvento);
+              try {
+                const { saveGranular } = await import('../api.js');
+                await saveGranular('calendario_eventos', [nuevoEvento]);
+              } catch(e) { await saveDB(db); }
+
               showToast('Cita creada en el calendario', 'success');
           }
           
@@ -1765,8 +1783,14 @@ function _wireModalControls(user, container) {
         console.error(err);
         showToast('Error al guardar: ' + err.message, 'error');
       } finally {
-        newBtnSave.innerHTML = 'Guardar';
-        newBtnSave.disabled = false;
+        const currBtn = document.getElementById('btn-guardar-quick');
+        if (currBtn) {
+            currBtn.innerHTML = 'Guardar';
+            currBtn.disabled = false;
+        } else {
+            newBtnSave.innerHTML = 'Guardar';
+            newBtnSave.disabled = false;
+        }
       }
     });
   }
