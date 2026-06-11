@@ -518,7 +518,7 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     
     // Buscar explícitamente en Respuestas_Dinamicas por si el proyecto virtual no tiene actualizado su asignado_a
     const dynAsignado = (db.Respuestas_Dinamicas || []).find(r => String(r.proyecto_id) === String(projectId) && r.campo_id === '__asignado_a__');
-    const asignadoAValue = dynAsignado ? dynAsignado.valor : proy.asignado_a;
+    const asignadoAValue = proy.asignado_a || (dynAsignado ? dynAsignado.valor : null);
     
     let trabajadorId = isVendedor ? (asignadoAValue || proy.responsable_id || cli.vendedor_asignado_id || '').split(',')[0].trim() : (proy.tecnico_id || asignadoAValue || (proy.responsable_id || '').split(',')[0].trim());
     let user = (db.Usuarios || []).find(u => String(u.id).trim() === String(trabajadorId).trim());
