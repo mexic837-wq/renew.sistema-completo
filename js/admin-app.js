@@ -8485,7 +8485,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
                       ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
                     </label>
-                    <div style="display:flex; align-items:center; gap:8px; padding:8px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:8px;">
+                    <div style="display:flex; align-items:center; gap:8px; padding:8px; background:#f8fafc; border:1px solid ${hasFile ? pipeline.color : '#e2e8f0'}; border-radius:8px; transition:all 0.2s;"
+                         ondragover="event.preventDefault(); this.style.transform='scale(1.02)'; this.style.borderColor='${pipeline.color}';"
+                         ondragleave="event.preventDefault(); this.style.transform='none'; this.style.borderColor='${hasFile ? pipeline.color : '#e2e8f0'}';"
+                         ondrop="event.preventDefault(); this.style.transform='none'; this.style.borderColor='${hasFile ? pipeline.color : '#e2e8f0'}'; window.handleDrawerFileDrop('${p.id}', '${c.id}', event)">
                        <i class="fas ${hasFile ? 'fa-check-circle' : 'fa-cloud-upload'}" style="color:${hasFile ? pipeline.color : '#94a3b8'};font-size:14px;"></i>
                        <span style="font-size:10px; font-weight:600; flex:1; color:${hasFile ? pipeline.color : '#94a3b8'}">${hasFile ? files.length + ' archivo(s)' : 'Pendiente'}</span>
                        <input type="file" id="dfd_${c.id}" style="display:none" accept="image/*,.pdf" multiple onchange="window.handleDrawerFileUpload('${p.id}', '${c.id}', this)">
@@ -11202,6 +11205,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+window.handleDrawerFileDrop = function(projectId, campoId, event) {
+    if (!event.dataTransfer.files || event.dataTransfer.files.length === 0) return;
+    const inputEl = document.getElementById('dfd_' + campoId);
+    if (!inputEl) return;
+    
+    // Create a mock input object for handleDrawerFileUpload
+    const mockInput = {
+        files: event.dataTransfer.files,
+        nextElementSibling: inputEl.nextElementSibling,
+        value: ''
+    };
+    window.handleDrawerFileUpload(projectId, campoId, mockInput);
+};
 
 window.handleDrawerFileUpload = async function(projectId, campoId, inputEl) {
     if (!inputEl.files || inputEl.files.length === 0) return;
