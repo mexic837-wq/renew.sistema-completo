@@ -1517,6 +1517,8 @@ async function initLeaderboardChart(user) {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
+  if (!window.lbLocationFilter) window.lbLocationFilter = 'General';
+
   allProjects.forEach(p => {
     if (pipeline && p.pipeline_id !== pipeline.id) return;
     
@@ -1558,6 +1560,12 @@ async function initLeaderboardChart(user) {
     const isWTecnico = /t[eé]cn[io]co/i.test(w.rol || '');
     const isWVendedor = (w.rol || '').toLowerCase().includes('vendedor') || (w.rol || '').toLowerCase().includes('representante');
     const isWCall = (w.rol || '').toLowerCase().includes('call');
+
+    if (window.lbLocationFilter === 'Ciudad' && user.sede) {
+        const wSede = (w.sede || '').toLowerCase();
+        const uSede = (user.sede || '').toLowerCase();
+        if (wSede !== uSede) return; // Skip if city doesn't match
+    }
 
     let shouldInclude = false;
     if (isTecnico) {
@@ -1672,10 +1680,23 @@ async function initLeaderboardChart(user) {
       </div>`;
   });
 
-  // ——— Final assembly ———
+  // \u2014\u2014\u2014 Final assembly \u2014\u2014\u2014
+  
+  window.toggleLbFilter = async (filter) => {
+      window.lbLocationFilter = filter;
+      const { getCurrentUser } = await import('../auth.js');
+      initLeaderboardChart(getCurrentUser());
+  };
+
   tab.innerHTML = `
     <div style="margin-bottom:20px;">
-      <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0 0 4px;text-align:center;">\uD83C\uDFC6 ${isTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+        <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
+        <div style="display:flex; background:var(--surface-alt); border-radius:8px; overflow:hidden; border:1px solid var(--border);">
+          <button onclick="window.toggleLbFilter('Ciudad')" style="padding:4px 10px; font-size:0.7rem; font-weight:700; border:none; background:${window.lbLocationFilter==='Ciudad'?'var(--primary)':'transparent'}; color:${window.lbLocationFilter==='Ciudad'?'#0f172a':'var(--text-muted)'}; cursor:pointer; transition:all 0.2s;">Mi Ciudad</button>
+          <button onclick="window.toggleLbFilter('General')" style="padding:4px 10px; font-size:0.7rem; font-weight:700; border:none; background:${window.lbLocationFilter==='General'?'var(--primary)':'transparent'}; color:${window.lbLocationFilter==='General'?'#0f172a':'var(--text-muted)'}; cursor:pointer; transition:all 0.2s;">General</button>
+        </div>
+      </div>
       <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${activeUnit} \u00B7 ${now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
     </div>
     <div style="background:linear-gradient(180deg, rgba(0,223,191,0.08) 0%, var(--surface-alt) 60%);border-radius:20px;padding:24px 12px 0;margin-bottom:16px;border:1px solid rgba(0,223,191,0.1);">
