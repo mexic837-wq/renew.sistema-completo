@@ -267,7 +267,7 @@ async function _renderList(user, container) {
   const allFases = db.Admin_Fases || [];
 
   // RBAC filter
-  const activeUnit = pipelineToMatch;
+  const activeUnit = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
 
   const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const isHighRole = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRolNorm);
