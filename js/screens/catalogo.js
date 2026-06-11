@@ -251,11 +251,16 @@ export async function renderCatalogo() {
         `;
         return;
       }
+      
+      const customPrices = JSON.parse(localStorage.getItem('catalogo_custom_prices') || '{}');
 
       grid.innerHTML = filtered.map((p, i) => {
         const imgHTML = p.foto_url
           ? `<img src="${p.foto_url}" class="precio-card-img" alt="${p.nombre}" loading="lazy">`
           : `<div class="precio-card-img-placeholder">💧</div>`;
+
+        const savedPrice = customPrices[p.id];
+        const displayPrice = savedPrice !== undefined ? savedPrice : p[activePriceKey];
 
         return `
           <div class="precio-card animate-fade-in" data-id="${p.id}" style="animation-delay:${i * 0.04}s;">
@@ -266,8 +271,8 @@ export async function renderCatalogo() {
               <p class="precio-code">COD: ${p.codigo || '—'}</p>
               <div class="precio-price-row">
                 <div>
-                  <div class="precio-price-label">${isAdmin ? `Precio ${activePriceKey.replace('precio_','').charAt(0).toUpperCase() + activePriceKey.replace('precio_','').slice(1)}` : 'Tu Precio'}</div>
-                  <div class="precio-price-value">${formatPrice(p[activePriceKey])}</div>
+                  <div class="precio-price-label">Tu Precio a Mostrar</div>
+                  <div class="precio-price-value" id="card-price-${p.id}">${formatPrice(displayPrice)}</div>
                 </div>
                 <div style="width:32px; height:32px; border-radius:10px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
                   <i class="fas fa-chevron-right" style="font-size:0.75rem;"></i>
@@ -339,8 +344,8 @@ function _showProductDetail(prod, priceKey, isAdmin) {
 
   const price = priceKey ? prod[priceKey] : null;
 
-  // Build rank prices table if admin
-  const initialPrice = price || prod.precio_full || 0;
+  const customPrices = JSON.parse(localStorage.getItem('catalogo_custom_prices') || '{}');
+  const initialPrice = customPrices[prod.id] !== undefined ? customPrices[prod.id] : (price || prod.precio_full || 0);
   
   const ranksHTML = `
     <div style="margin-top:20px; background:linear-gradient(135deg,#0ea5e915,#0284c705); border:1.5px solid #0ea5e930; border-radius:18px; padding:24px; text-align:center;">
@@ -467,6 +472,17 @@ function _showProductDetail(prod, priceKey, isAdmin) {
         inputEl.style.borderColor = '#0ea5e950';
         inputEl.style.color = '#0ea5e9';
         errorEl.style.display = 'none';
+        
+        if (!isNaN(val)) {
+          const cp = JSON.parse(localStorage.getItem('catalogo_custom_prices') || '{}');
+          cp[prod.id] = val;
+          localStorage.setItem('catalogo_custom_prices', JSON.stringify(cp));
+          
+          const cardPriceEl = document.getElementById(`card-price-${prod.id}`);
+          if (cardPriceEl) {
+            cardPriceEl.textContent = formatPrice(val);
+          }
+        }
       }
     });
   }
