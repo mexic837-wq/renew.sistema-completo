@@ -518,7 +518,7 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     
     // Buscar explícitamente en Respuestas_Dinamicas por si el proyecto virtual no tiene actualizado su asignado_a
     const dynAsignado = (db.Respuestas_Dinamicas || []).find(r => String(r.proyecto_id) === String(projectId) && r.campo_id === '__asignado_a__');
-    const fallbackVendedor = proy.asignado_a || proy.responsable_id || cli.vendedor_asignado_id || (dynAsignado ? dynAsignado.valor : '');
+    const fallbackVendedor = cli.vendedor_asignado_id || proy.asignado_a || proy.responsable_id || (dynAsignado ? dynAsignado.valor : '');
     const fallbackTecnico = proy.tecnico_id || proy.asignado_a || proy.responsable_id || (dynAsignado ? dynAsignado.valor : '');
     
     let trabajadorId = isVendedor ? fallbackVendedor.split(',')[0].trim() : fallbackTecnico.split(',')[0].trim();
