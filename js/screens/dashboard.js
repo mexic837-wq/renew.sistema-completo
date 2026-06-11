@@ -1684,7 +1684,6 @@ async function initLeaderboardChart(user) {
   
   window.toggleLbFilter = async (filter) => {
       window.lbLocationFilter = filter;
-      const { getCurrentUser } = await import('../auth.js');
       initLeaderboardChart(getCurrentUser());
   };
 
