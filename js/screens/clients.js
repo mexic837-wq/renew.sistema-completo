@@ -260,14 +260,14 @@ async function _renderList(user, container) {
       }
   }
 
-  const pipelineToMatch = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
-  const activePipelineObj = pipelineToMatch ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === pipelineToMatch.toLowerCase().trim()) : null;
+  const pipelineKeyword = activeDeptFilter === 'Todos' ? null : activeDeptFilter.replace('Renew ', '').trim();
+  const activePipelineObj = pipelineKeyword ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === pipelineKeyword.toLowerCase().trim() || pip.nombre.toLowerCase().trim() === ('renew ' + pipelineKeyword).toLowerCase().trim()) : null;
   const allProys = [...(db.Proyectos_Dinamicos || [])].sort((a,b) => new Date(b.created_at || b.fecha || 0) - new Date(a.created_at || a.fecha || 0));
 
   const allFases = db.Admin_Fases || [];
 
   // RBAC filter
-  const activeUnit = pipelineToMatch;
+  const activeUnit = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
 
   const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const isHighRole = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRolNorm);
@@ -327,17 +327,21 @@ async function _renderList(user, container) {
 
     // Pipeline filter (applies to everyone including admins) — multi-dept aware
     if (activeUnit) {
-      const activePipeline = activeUnit.toLowerCase().trim();
+      const activeKeyword = activeUnit.replace('Renew ', '').trim().toLowerCase(); // 'solar', 'water', 'home'
       const clientDepts = getDeptArray(c).map(d => d.toLowerCase().trim());
-      // Legacy single-field fallback
-      const legacyDept = (c.empresa || c.departamento || '').toLowerCase().trim();
-      const hasNoPipeline = clientDepts.length === 0 && (!legacyDept || legacyDept === 'lead (nuevo)' || legacyDept === '-');
-      if (hasNoPipeline) return true; // show unassigned clients everywhere
       
-      // Check if any of the client's departments match the active unit
-      const matchesActive = clientDepts.some(d => activePipeline.includes(d) || d.includes(activePipeline.replace('renew ', '')));
-      // Prevent generic 'renew' from matching everything
-      const matchesLegacy = legacyDept !== '' && legacyDept !== 'renew' && legacyDept !== 'renew group' && (activePipeline.includes(legacyDept) || legacyDept.includes(activePipeline.replace('renew ', '')));
+      const legacyDept = (c.empresa || c.departamento || '').toLowerCase().trim();
+      const isGeneric = !legacyDept || legacyDept === 'lead (nuevo)' || legacyDept === '-' || legacyDept === 'renew' || legacyDept === 'renew group';
+      
+      const hasNoPipeline = clientDepts.length === 0 && isGeneric;
+      
+      if (hasNoPipeline) {
+         // Generic/unassigned clients default to Solar, don't pollute Water/Home
+         return activeKeyword === 'solar';
+      }
+      
+      const matchesActive = clientDepts.some(d => d.includes(activeKeyword) || activeKeyword.includes(d));
+      const matchesLegacy = !isGeneric && legacyDept.includes(activeKeyword);
       
       if (!matchesActive && !matchesLegacy) return false;
     }
