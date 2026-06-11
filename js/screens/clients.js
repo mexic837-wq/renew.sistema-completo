@@ -340,7 +340,7 @@ async function _renderList(user, container) {
          return activeKeyword === 'solar';
       }
       
-      const matchesActive = clientDepts.some(d => d.includes(activeKeyword) || activeKeyword.includes(d));
+      const matchesActive = clientDepts.some(d => d.includes(activeKeyword));
       const matchesLegacy = !isGeneric && legacyDept.includes(activeKeyword);
       
       if (!matchesActive && !matchesLegacy) return false;
@@ -378,8 +378,20 @@ async function _renderList(user, container) {
   } else {
     filtered = misClientes.filter(c => {
       const clientProjects = projectsByClient.get(c.id) || [];
+      if (currentClientsTab === 'prospectos') {
+        // A prospect = has NO active project in the selected pipeline.
+        // If a pipeline filter is active, check specifically for that pipeline.
+        // If no filter (Todos), check for any project at all.
+        if (activePipelineObj) {
+          const hasProjectInPipeline = clientProjects.some(p => String(p.pipeline_id) === String(activePipelineObj.id));
+          return !hasProjectInPipeline;
+        } else {
+          // Todos: show only clients with no projects at all
+          return clientProjects.length === 0;
+        }
+      }
+      // Mis Clientes tab: has at least one project in the selected pipeline (or any if Todos)
       const hasProject = clientProjects.some(p => (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
-      if (currentClientsTab === 'prospectos') return !hasProject;
       return hasProject;
     });
   }
