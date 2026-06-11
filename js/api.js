@@ -847,7 +847,20 @@ export async function uploadFile(file, type = 'others') {
             method: 'POST',
             body: formData
         });
-        const data = await res.json();
+        
+        if (res.status === 413) {
+            throw new Error('El archivo es demasiado grande. Por favor, sube un archivo más ligero (máx 15MB).');
+        }
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (err) {
+            console.error('Upload error (Invalid JSON):', text);
+            throw new Error('El servidor rechazó el archivo (posiblemente excede el límite de tamaño permitido).');
+        }
+
         if (data.success) return data.url;
         throw new Error(data.error || 'Fallo al subir archivo');
     } catch (e) {
