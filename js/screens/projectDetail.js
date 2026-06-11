@@ -1305,6 +1305,19 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         const label = document.getElementById(`ulbl_${c.id}`);
         const handleFiles = async (files) => {
             if (files.length) {
+              let montoManual = null;
+              if (c.etiqueta && c.etiqueta.toLowerCase().includes('recibo')) {
+                  const val = prompt(`Al subir este recibo (${c.etiqueta}), ¿deseas asignarle un Monto Total para que el representante/técnico lo vea?\nIngresa solo el número (ej. 1500) o déjalo en blanco si no aplica:`);
+                  if (val !== null && val.trim() !== '') {
+                      if (isNaN(parseFloat(val))) {
+                          alert('El monto debe ser un número válido.');
+                          if (input) input.value = '';
+                          return;
+                      }
+                      montoManual = parseFloat(val);
+                  }
+              }
+
               const addBtn = document.querySelector(`label[for="df_${c.id}"]`);
               const oldHtml = addBtn ? addBtn.innerHTML : '';
               if (addBtn) addBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Subiendo...`;
@@ -1353,6 +1366,12 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     responsable_id: user?.id,
                     timestamp: new Date().toISOString()
                   });
+
+                  if (montoManual !== null) {
+                      window._tempReciboMonto = montoManual;
+                  } else {
+                      window._tempReciboMonto = undefined;
+                  }
 
                   submitPhase(deal.id, { [c.id]: fileAnswers[c.id] }, actFase.nombre, { preventAutoAdvance: true });
               } else {
