@@ -1305,17 +1305,16 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         const input = document.getElementById(`df_${c.id}`);
         const area = document.getElementById(`ubox_${c.id}`);
         const label = document.getElementById(`ulbl_${c.id}`);
-        if(input) {
-          input.addEventListener('change', async () => {
-            if (input.files.length) {
+        const handleFiles = async (files) => {
+            if (files.length) {
               const addBtn = document.querySelector(`label[for="df_${c.id}"]`);
               const oldHtml = addBtn ? addBtn.innerHTML : '';
               if (addBtn) addBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Subiendo...`;
               if (label) label.textContent = `Subiendo...`;
               
               let fileUrls = [];
-              for (let i = 0; i < input.files.length; i++) {
-                  const file = input.files[i];
+              for (let i = 0; i < files.length; i++) {
+                  const file = files[i];
                   const url = await uploadFile(file, 'projects');
                   if (url) fileUrls.push(url);
               }
@@ -1339,7 +1338,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     proyecto_id: deal.id,
                     evento: 'ARCHIVO_SUBIDO',
                     campo_etiqueta: c.etiqueta,
-                    archivo_nombre: input.files[0].name + (input.files.length > 1 ? ` y ${input.files.length-1} más` : ''),
+                    archivo_nombre: files[0].name + (files.length > 1 ? ` y ${files.length-1} más` : ''),
                     responsable_id: user?.id,
                     fase_nombre: actFase.nombre
                   });
@@ -1352,7 +1351,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     fase_actual: actFase.nombre,
                     campo_id: c.id,
                     campo_etiqueta: c.etiqueta,
-                    archivo_nombre: input.files[0].name,
+                    archivo_nombre: files[0].name,
                     responsable_id: user?.id,
                     timestamp: new Date().toISOString()
                   });
@@ -1362,6 +1361,33 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                   if (label) label.textContent = `Error al subir`;
                   if (addBtn) addBtn.innerHTML = oldHtml;
               }
+            }
+        };
+
+        if(input) {
+          input.addEventListener('change', () => handleFiles(input.files));
+        }
+
+        if(area && !isLocked) {
+          area.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            area.style.transform = 'scale(1.02)';
+            area.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+            area.style.borderColor = pipeline.color || '#3b82f6';
+          });
+          area.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            area.style.transform = 'none';
+            area.style.boxShadow = 'none';
+            area.style.borderColor = '';
+          });
+          area.addEventListener('drop', (e) => {
+            e.preventDefault();
+            area.style.transform = 'none';
+            area.style.boxShadow = 'none';
+            area.style.borderColor = '';
+            if (e.dataTransfer.files && e.dataTransfer.files.length) {
+               handleFiles(e.dataTransfer.files);
             }
           });
         }
