@@ -216,14 +216,7 @@ export async function renderClients() {
         const dirInput = document.getElementById('quick-direccion');
         if (dirInput) dirInput.dataset.quickMapsLoaded = '';
 
-        // Pre-select current department
-        const deptSelect = document.getElementById('quick-dept');
-        if (deptSelect) {
-            let activePipName = (activeDeptFilter === 'Todos') ? (localStorage.getItem('active_unit') || 'Renew Solar') : activeDeptFilter;
-            if (activePipName.includes('Solar')) deptSelect.value = 'Solar';
-            else if (activePipName.includes('Water')) deptSelect.value = 'Water';
-            else if (activePipName.includes('Home')) deptSelect.value = 'Home';
-        }
+        // Department is NOT pre-selected based on filter — user must pick it explicitly
 
         if (window.initQuickMaps) setTimeout(window.initQuickMaps, 400);
       });
@@ -1163,12 +1156,7 @@ function resetModal() {
     }
   }
   const dept = document.getElementById('quick-dept');
-  if (dept) {
-    const activeUnit = (localStorage.getItem('active_unit') || 'Solar').toLowerCase();
-    if (activeUnit.includes('water')) dept.value = 'Water';
-    else if (activeUnit.includes('home')) dept.value = 'Home';
-    else dept.value = 'Solar';
-  }
+  if (dept) dept.value = 'Solar'; // default to first option, NOT linked to active filter
 
   const lic = document.getElementById('quick-state-id');
   if (lic) lic.value = '';
@@ -1656,10 +1644,7 @@ function _wireModalControls(user, container) {
       const licencia = document.getElementById('quick-state-id')?.value.trim() || '-';
       let dept = document.getElementById('quick-dept')?.value || 'Solar';
 
-      // Auto-correct dept if it's default but we are in a specific unit
-      const activeUnit = (localStorage.getItem('active_unit') || '').toLowerCase();
-      if (dept === 'Solar' && activeUnit.includes('water')) dept = 'Water';
-      if (dept === 'Solar' && activeUnit.includes('home')) dept = 'Home';
+      // Department comes directly from what the user selected — no override
 
       const notas = document.getElementById('quick-notas')?.value.trim() || '';
       
