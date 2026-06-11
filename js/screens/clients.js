@@ -549,7 +549,7 @@ async function _renderList(user, container) {
     const targetId = proy ? proy.id : null;
 
     let deleteBtnHtml = '';
-      const isDeletableRole = ['admin', 'administrador', 'ceo', 'vendedor', 'representante'].some(r => userRolNorm.includes(r));
+      const isDeletableRole = ['admin', 'administrador', 'ceo'].some(r => userRolNorm.includes(r));
       if (isDeletableRole) {
         deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="Eliminar Cliente"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
       }

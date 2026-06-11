@@ -545,7 +545,13 @@ export async function renderMiCalendario() {
         currentEventId = props.originalId || event.id;
         
         btnEditar.classList.remove('hidden');
-        btnEliminar.classList.remove('hidden');
+        // Only admin/CEO can delete events
+        const canDelete = user && ['admin', 'administrador', 'ceo'].some(r => (user.rol || '').toLowerCase().replace(/_/g,' ').trim().includes(r));
+        if (canDelete) {
+          btnEliminar.classList.remove('hidden');
+        } else {
+          btnEliminar.classList.add('hidden');
+        }
 
         document.getElementById('ev-nombre').value = event.title ? event.title.replace(/<[^>]*>?/gm, '').trim() : '';
         document.getElementById('ev-nombre').readOnly = true;
