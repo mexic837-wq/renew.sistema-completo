@@ -328,22 +328,30 @@ async function _renderList(user, container) {
     // Pipeline filter (applies to everyone including admins) — multi-dept aware
     if (activeUnit) {
       const activeKeyword = activeUnit.replace('Renew ', '').trim().toLowerCase(); // 'solar', 'water', 'home'
+      
+      // Use departamentos_activos as the authoritative source (modern field).
+      // ONLY fall back to legacy fields if departamentos_activos is empty.
+      const hasModernDepts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0;
       const clientDepts = getDeptArray(c).map(d => d.toLowerCase().trim());
       
-      const legacyDept = (c.empresa || c.departamento || '').toLowerCase().trim();
-      const isGeneric = !legacyDept || legacyDept === 'lead (nuevo)' || legacyDept === '-' || legacyDept === 'renew' || legacyDept === 'renew group';
-      
-      const hasNoPipeline = clientDepts.length === 0 && isGeneric;
-      
-      if (hasNoPipeline) {
-         // Generic/unassigned clients default to Solar, don't pollute Water/Home
-         return activeKeyword === 'solar';
+      if (hasModernDepts) {
+        // Trust ONLY the modern field — ignore stale empresa/departamento
+        const matchesModern = clientDepts.some(d => d.includes(activeKeyword));
+        if (!matchesModern) return false;
+      } else {
+        // Legacy fallback: use empresa / departamento
+        const legacyDept = (c.departamento || c.empresa || '').toLowerCase().trim();
+        const isGeneric = !legacyDept || legacyDept === 'lead (nuevo)' || legacyDept === '-' || legacyDept === 'renew' || legacyDept === 'renew group';
+        
+        if (clientDepts.length === 0 && isGeneric) {
+          // Generic/unassigned clients default to Solar only
+          return activeKeyword === 'solar';
+        }
+        
+        const matchesActive = clientDepts.some(d => d.includes(activeKeyword));
+        const matchesLegacy = !isGeneric && legacyDept.includes(activeKeyword);
+        if (!matchesActive && !matchesLegacy) return false;
       }
-      
-      const matchesActive = clientDepts.some(d => d.includes(activeKeyword));
-      const matchesLegacy = !isGeneric && legacyDept.includes(activeKeyword);
-      
-      if (!matchesActive && !matchesLegacy) return false;
     }
     return true;
   });
