@@ -347,8 +347,8 @@ function _showProductDetail(prod, priceKey, isAdmin) {
       <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 10px;">Tu Precio a Mostrar</p>
       
       <div style="position:relative; max-width:200px; margin:0 auto;">
-        <span style="position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:1.5rem; font-weight:900; color:#0ea5e9;">$</span>
-        <input type="number" id="catalogo-precio-input" value="${initialPrice}" style="width:100%; padding:12px 12px 12px 40px; border-radius:12px; border:2px solid #0ea5e950; background:var(--surface); color:#0ea5e9; font-size:1.8rem; font-weight:900; outline:none; text-align:left; transition:all 0.2s;" />
+        <input type="number" id="catalogo-precio-input" value="${initialPrice}" style="width:100%; padding:12px; border-radius:12px; border:2px solid #0ea5e950; background:var(--surface); color:#0ea5e9; font-size:1.8rem; font-weight:900; outline:none; text-align:center; transition:all 0.2s;" />
+        <div style="position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:1.5rem; font-weight:900; color:#0ea5e9; pointer-events:none;">$</div>
       </div>
       
       <div id="catalogo-precio-error" style="display:none; color:#ef4444; font-size:0.8rem; font-weight:700; margin-top:12px; background:#ef444415; padding:8px; border-radius:8px;">
@@ -429,14 +429,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
             ${ranksHTML}
 
             <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
-              ${(prod.precio_minimo || prod.precio_maximo) ? `
-                <div style="background:rgba(14,165,233,0.05); border:1.5px solid rgba(14,165,233,0.1); border-radius:18px; padding:16px; text-align:center;">
-                  <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 6px;">Rango de Venta Sugerido</p>
-                  <p style="font-size:1.3rem; font-weight:900; color:var(--text-primary); margin:0;">
-                    ${formatPrice(prod.precio_minimo)} — ${formatPrice(prod.precio_maximo)}
-                  </p>
-                </div>
-              ` : ''}
+              <!-- (Rango de Venta Sugerido oculto para clientes) -->
 
 
 
