@@ -40,6 +40,7 @@ import { renderMiEquipo } from './screens/equipo.js';
 import { renderPartners } from './screens/partners.js';
 import { renderMisRecibos } from './screens/recibos.js';
 import { renderListaPrecios } from './screens/listadeprecios.js';
+import { renderCatalogo } from './screens/catalogo.js';
 import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
@@ -389,7 +390,7 @@ window.verificarAnunciosNuevos = async function() {
 setInterval(window.verificarAnunciosNuevos, 30000);
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'mis-adelantos'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'mis-adelantos'];
 
 export function navigate(screen, param = null) {
   // Auth guard
@@ -466,6 +467,7 @@ export function navigate(screen, param = null) {
     case 'partners': renderPartners();               break;
     case 'mis-recibos': renderMisRecibos();          break;
     case 'lista-precios': renderListaPrecios();      break;
+    case 'catalogo': renderCatalogo();               break;
     case 'plantillas':  renderPlantillas();          break;
     case 'confirmacion-instalacion': renderConfirmacionInstalacion(); break;
     case 'mis-adelantos': renderMisAdelantos(); break;
@@ -681,6 +683,7 @@ function handleHashChange() {
       case 'partners': renderPartners(); break;
       case 'mis-recibos': renderMisRecibos(); break;
       case 'lista-precios': renderListaPrecios(); break;
+      case 'catalogo': renderCatalogo(); break;
       case 'plantillas':  renderPlantillas();  break;
       case 'mis-adelantos': renderMisAdelantos(); break;
       case 'contract-app': /* iframe */ break;
