@@ -30,7 +30,7 @@ export async function renderCatalogo() {
       screen.innerHTML = `
         <div class="dash-header" style="padding-bottom:12px;">
           <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
-            <button id="btn-precios-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <button id="btn-catalogo-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
               <i class="fa-solid fa-arrow-left text-xl"></i>
             </button>
             <div class="dash-greeting" style="text-align:center;">
@@ -45,7 +45,7 @@ export async function renderCatalogo() {
         </div>
       `;
       setTimeout(() => {
-        document.getElementById('btn-precios-back')?.addEventListener('click', () => {
+        document.getElementById('btn-catalogo-back')?.addEventListener('click', () => {
           if (window.appNavigate) window.appNavigate('menu');
           else navigate('menu');
         });
@@ -75,7 +75,7 @@ export async function renderCatalogo() {
   screen.innerHTML = `
     <div class="dash-header" style="padding-bottom:12px;">
       <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
-        <button id="btn-precios-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+        <button id="btn-catalogo-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
           <i class="fa-solid fa-arrow-left text-xl"></i>
         </button>
         <div class="dash-greeting" style="text-align:center;">
@@ -90,18 +90,18 @@ export async function renderCatalogo() {
     <div style="padding:12px 16px 0;">
       <div style="position:relative; margin-bottom:12px;">
         <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem;"></i>
-        <input type="text" id="precios-search" placeholder="Buscar producto o código..."
+        <input type="text" id="catalogo-search" placeholder="Buscar producto o código..."
           style="width:100%; padding:13px 16px 13px 42px; border-radius:16px; border:1px solid var(--border); background:var(--surface-alt); color:var(--text-primary); font-size:0.9rem; outline:none; box-sizing:border-box;">
       </div>
 
       <!-- Category filter tabs (populated after load) -->
-      <div id="precios-category-tabs" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;"></div>
+      <div id="catalogo-category-tabs" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;"></div>
       
       <!-- Rank Switcher (Admin only) -->
-      <div id="rank-switcher-container" style="display:none; gap:8px; overflow-x:auto; scrollbar-width:none; margin-top:12px; padding-bottom:4px;"></div>
+      <div id="catalogo-rank-switcher-container" style="display:none; gap:8px; overflow-x:auto; scrollbar-width:none; margin-top:12px; padding-bottom:4px;"></div>
     </div>
 
-    <div id="precios-grid" style="padding:12px 16px 100px; display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px;">
+    <div id="catalogo-grid" style="padding:12px 16px 100px; display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px;">
       ${[1,2,3,4].map(() => `
         <div class="skeleton" style="height:180px; border-radius:20px;"></div>
       `).join('')}
@@ -204,13 +204,13 @@ export async function renderCatalogo() {
     </style>
   `;
 
-  document.getElementById('btn-precios-back')?.addEventListener('click', () => navigate('menu'));
+  document.getElementById('btn-catalogo-back')?.addEventListener('click', () => navigate('menu'));
 
   try {
     const allProducts = (await getListaPrecios()).filter(p => p.es_activo !== false);
-    const grid = document.getElementById('precios-grid');
-    const searchInput = document.getElementById('precios-search');
-    const catTabsContainer = document.getElementById('precios-category-tabs');
+    const grid = document.getElementById('catalogo-grid');
+    const searchInput = document.getElementById('catalogo-search');
+    const catTabsContainer = document.getElementById('catalogo-category-tabs');
 
     // Build category list
     const cats = ['Todos', ...new Set(allProducts.map(p => p.categoria).filter(Boolean))];
@@ -288,7 +288,7 @@ export async function renderCatalogo() {
 
     // Rank Switcher for Admins
     if (isAdmin) {
-      const rankContainer = document.getElementById('rank-switcher-container');
+      const rankContainer = document.getElementById('catalogo-rank-switcher-container');
       rankContainer.style.display = 'flex';
       const ranks = [
         { label: 'Oficina',   key: 'precio_oficina' },
@@ -322,7 +322,7 @@ export async function renderCatalogo() {
 
   } catch (err) {
     console.error('[ListaPrecios]', err);
-    const grid = document.getElementById('precios-grid');
+    const grid = document.getElementById('catalogo-grid');
     if (grid) grid.innerHTML = `
       <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#ef4444;">
         <i class="fas fa-exclamation-triangle" style="font-size:3rem; margin-bottom:16px;"></i>
@@ -334,7 +334,7 @@ export async function renderCatalogo() {
 
 // ── Product Detail Responsive Modal ──────────────────────────
 function _showProductDetail(prod, priceKey, isAdmin) {
-  const existing = document.getElementById('modal-precio-detail');
+  const existing = document.getElementById('modal-catalogo-detail');
   if (existing) existing.remove();
 
   const price = priceKey ? prod[priceKey] : null;
@@ -364,7 +364,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
     : `<div class="detail-placeholder">💧</div>`;
 
   const modal = document.createElement('div');
-  modal.id = 'modal-precio-detail';
+  modal.id = 'modal-catalogo-detail';
   modal.className = 'modal-overlay-custom';
   modal.innerHTML = `
     <div class="modal-sheet-custom">
@@ -393,7 +393,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
                 <h2 style="font-size:1.6rem;font-weight:900;color:var(--text-primary);margin:0;line-height:1.1;">${prod.nombre}</h2>
                 <p style="font-size:0.8rem;color:var(--text-muted);margin:8px 0 0;font-weight:700;letter-spacing:1px;">COD: ${prod.codigo || '—'}</p>
               </div>
-              <button id="btn-close-precio-modal" style="background:var(--surface-alt);border:none;border-radius:14px;width:40px;height:40px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:16px;transition:0.2s;" onmouseover="this.style.color='#fff';this.style.background='#ef444450'" onmouseout="this.style.color='var(--text-muted)';this.style.background='var(--surface-alt)'">
+              <button id="btn-close-catalogo-modal" style="background:var(--surface-alt);border:none;border-radius:14px;width:40px;height:40px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:16px;transition:0.2s;" onmouseover="this.style.color='#fff';this.style.background='#ef444450'" onmouseout="this.style.color='var(--text-muted)';this.style.background='var(--surface-alt)'">
                 <i class="fas fa-times"></i>
               </button>
             </div>
@@ -479,5 +479,5 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   }
 
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  document.getElementById('btn-close-precio-modal').addEventListener('click', () => modal.remove());
+  document.getElementById('btn-close-catalogo-modal').addEventListener('click', () => modal.remove());
 }
