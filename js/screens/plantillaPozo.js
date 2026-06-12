@@ -15,7 +15,7 @@ export function renderPlantillaPozo() {
     .ci-back { width:38px;height:38px;border-radius:50%;border:none;background:var(--surface-alt);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.2s; }
     .ci-back:hover { background:rgba(14,165,233,.12);color:#0ea5e9; }
     .ci-body { padding:20px;display:flex;flex-direction:column;gap:20px;padding-bottom:160px; }
-    .ci-section { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden; }
+    .ci-section { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:visible; }
     .ci-section-hdr { padding:16px 20px;display:flex;align-items:center;gap:12px; }
     .ci-section-icon { width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
     .ci-section-body { padding:0 20px 20px; }
@@ -250,6 +250,15 @@ export function renderPlantillaPozo() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       showToast('¡PDF generado exitosamente!', 'success');
+      
+      // Descarga automática en el dispositivo
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Especificaciones_Pozo_${d.nombre.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
       window.open(url, '_blank');
       
       setTimeout(() => window.appNavigate('plantillas'), 1000);
