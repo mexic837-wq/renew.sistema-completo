@@ -568,16 +568,21 @@ export async function renderMiCalendario() {
         document.getElementById('ev-fecha-fin').readOnly = true;
 
         if (props.direccion) {
-            document.getElementById('ev-direccion').classList.add('nuclear-hidden');
+            document.getElementById('ev-direccion').value = props.direccion;
+            document.getElementById('ev-direccion').readOnly = true;
+            document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
             const linkDir = document.getElementById('ev-direccion-link');
-            linkDir.classList.remove('nuclear-hidden');
+            linkDir.classList.remove('hidden', 'nuclear-hidden');
+            linkDir.style.display = 'flex';
             const addressUrl = encodeURIComponent(props.direccion);
             linkDir.href = `https://www.google.com/maps/search/?api=1&query=${addressUrl}`;
         } else {
             document.getElementById('ev-direccion').value = '';
             document.getElementById('ev-direccion').readOnly = true;
             document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
-            document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
+            const linkDir = document.getElementById('ev-direccion-link');
+            linkDir.classList.add('hidden', 'nuclear-hidden');
+            linkDir.style.display = '';
         }
 
         if (props.isBirthday) {
@@ -645,7 +650,9 @@ export async function renderMiCalendario() {
         document.getElementById('ev-descripcion').readOnly = false;
         document.getElementById('ev-direccion').readOnly = false;
         document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
-        document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
+        const linkDir = document.getElementById('ev-direccion-link');
+        linkDir.classList.add('hidden', 'nuclear-hidden');
+        linkDir.style.display = '';
 
         // Google Places Autocomplete for address field
         const evDirInput = document.getElementById('ev-direccion');
@@ -859,7 +866,9 @@ export async function renderMiCalendario() {
       document.getElementById('ev-descripcion').readOnly = false;
       document.getElementById('ev-direccion').readOnly = false;
       document.getElementById('ev-direccion').classList.remove('nuclear-hidden');
-      document.getElementById('ev-direccion-link').classList.add('nuclear-hidden');
+      const linkDir = document.getElementById('ev-direccion-link');
+      linkDir.classList.add('hidden', 'nuclear-hidden');
+      linkDir.style.display = '';
       document.querySelectorAll('input[name="ev-color"]').forEach(r => r.disabled = false);
       document.querySelectorAll('input[name="ev-depto"]').forEach(r => r.disabled = false);
       document.querySelectorAll('.ev-colab-chk').forEach(c => c.disabled = false);
