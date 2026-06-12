@@ -245,21 +245,29 @@ export function renderPlantillaPozo() {
         body: JSON.stringify(d)
       });
 
-      if (!res.ok) throw new Error('Error al generar PDF de Pozo');
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error || 'Error al generar PDF de Pozo');
       
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
       showToast('¡PDF generado exitosamente!', 'success');
       
-      // Descarga automática en el dispositivo
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Especificaciones_Pozo_${d.nombre.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Abrir en pestaña nueva
+      window.open(result.url, '_blank');
 
-      window.open(url, '_blank');
+      // Descarga automática forzada
+      try {
+        const fileRes = await fetch(result.url);
+        const fileBlob = await fileRes.blob();
+        const fileObjUrl = URL.createObjectURL(fileBlob);
+        const a = document.createElement('a');
+        a.href = fileObjUrl;
+        a.download = `Especificaciones_Pozo_${d.nombre.replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(fileObjUrl);
+      } catch (e) {
+        console.warn('No se pudo forzar la descarga:', e);
+      }
       
       setTimeout(() => window.appNavigate('plantillas'), 1000);
 
