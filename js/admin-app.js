@@ -10987,8 +10987,9 @@ window.updateWorkerRankVisibility = function() {
     const isManager = rolVal === 'manager';
     const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión' || rolVal === 'supervisión';
     const isCallCenter = rolVal.includes('call center');
+    const isTecnico = rolVal === 'técnico' || rolVal === 'tecnico';
     
-    const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter || isManager;
+    const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter || isManager || isTecnico;
 
     // Rango: Vendedores, PM, Supervisor, Manager con Water
     const waterChecked = Array.from(document.querySelectorAll('.usr-pip-chk:checked')).some(chk => {
