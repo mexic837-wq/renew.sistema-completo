@@ -8837,14 +8837,19 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           const lastWord = val.split(' ').pop();
           if (lastWord.startsWith('@')) {
               const query = lastWord.substring(1).toLowerCase();
-              const matches = allWorkers.filter(w => w.nombre && w.nombre.toLowerCase().includes(query));
+              const matches = allWorkers.filter(w => {
+                  const fullName = `${w.nombre} ${w.apellido || ''}`.trim().toLowerCase();
+                  return fullName.includes(query);
+              });
               if (matches.length > 0) {
-                  mentionDropdown.innerHTML = matches.map(w => `
-                      <div class="mention-item" data-id="${w.id}" data-name="${w.nombre}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                  mentionDropdown.innerHTML = matches.map(w => {
+                      const fullName = `${w.nombre} ${w.apellido || ''}`.trim();
+                      return `
+                      <div class="mention-item" data-id="${w.id}" data-name="${fullName}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
                           <div style="width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">${w.nombre.charAt(0)}</div>
-                          <span style="color: #374151; font-weight: 600;">${w.nombre}</span>
+                          <span style="color: #374151; font-weight: 600;">${fullName}</span>
                       </div>
-                  `).join('');
+                  `}).join('');
                   mentionDropdown.classList.remove('hidden');
                   
                   mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
