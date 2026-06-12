@@ -154,7 +154,10 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   const isAssigned = deal.asignado_a === currentUser?.id || deal.responsable_id === currentUser?.id || (Array.isArray(deal.tecnicos) && deal.tecnicos.some(t => t.id === currentUser?.id)) || (Array.isArray(deal.colaboradores) && deal.colaboradores.some(c => c.id === currentUser?.id));
   const isPM = ['project manager', 'manager de ventas', 'account manager', 'supervisión', 'supervisor', 'manager', 'oficina'].some(r => roleStr.includes(r));
   const isTecnico = roleStr.includes('técnico') || roleStr.includes('tecnico');
-  const canSeeChat = isAdmin || (isPM && isAssigned) || (isTecnico && isAssigned) || (isPM);
+  let discusionArray = [];
+  try { discusionArray = typeof deal.discusion === 'string' ? JSON.parse(deal.discusion || '[]') : (deal.discusion || []); } catch(e) { discusionArray = []; }
+  const isMentionedInChat = discusionArray.some(msg => (msg.mentions || []).includes(String(user.id)));
+  const canSeeChat = isAdmin || (isPM && isAssigned) || (isTecnico && isAssigned) || (isPM) || isMentionedInChat;
   const canManageObservers = isAdmin || isResponsable;
   const dbFull = getDB();
   const allWorkers = dbFull.Usuarios || [];
@@ -430,8 +433,57 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   const btnSend = document.getElementById('btn-send-discussion');
   const inputDisc = document.getElementById('discussion-input');
   const chkIssue = document.getElementById('chk-has-issue');
+  let currentMentions = [];
 
   if (btnSend && inputDisc) {
+      // Mentions Dropdown Logic
+      const db = getDB();
+      const allWorkers = db.Usuarios || window._cachedAdminWorkers || [];
+      const mentionDropdown = document.createElement('div');
+      mentionDropdown.className = 'mention-dropdown hidden';
+      mentionDropdown.style.cssText = 'position: absolute; bottom: 100%; left: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; max-height: 150px; overflow-y: auto; width: 220px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; margin-bottom: 4px;';
+      
+      inputDisc.parentElement.style.position = 'relative';
+      inputDisc.parentElement.appendChild(mentionDropdown);
+
+      inputDisc.addEventListener('input', () => {
+          const val = inputDisc.value;
+          const lastWord = val.split(' ').pop();
+          if (lastWord.startsWith('@')) {
+              const query = lastWord.substring(1).toLowerCase();
+              const matches = allWorkers.filter(w => w.nombre && w.nombre.toLowerCase().includes(query));
+              if (matches.length > 0) {
+                  mentionDropdown.innerHTML = matches.map(w => `
+                      <div class="mention-item" data-id="${w.id}" data-name="${w.nombre}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 0.8rem; transition: background 0.2s;" onmouseover="this.style.background='var(--surface-alt)'" onmouseout="this.style.background='transparent'">
+                          <div style="width: 20px; height: 20px; border-radius: 50%; background: ${pipeline.color || 'var(--primary)'}; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">${w.nombre.charAt(0)}</div>
+                          <span style="color: var(--text-primary); font-weight: 600;">${w.nombre}</span>
+                      </div>
+                  `).join('');
+                  mentionDropdown.classList.remove('hidden');
+                  
+                  mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
+                      item.addEventListener('click', () => {
+                          currentMentions.push(String(item.dataset.id));
+                          const words = inputDisc.value.split(' ');
+                          words.pop();
+                          inputDisc.value = words.join(' ') + (words.length > 0 ? ' ' : '') + '@' + item.dataset.name + ' ';
+                          mentionDropdown.classList.add('hidden');
+                          inputDisc.focus();
+                      });
+                  });
+              } else {
+                  mentionDropdown.classList.add('hidden');
+              }
+          } else {
+              mentionDropdown.classList.add('hidden');
+          }
+      });
+
+      // Hide dropdown on blur (delayed to allow click)
+      inputDisc.addEventListener('blur', () => {
+          setTimeout(() => mentionDropdown.classList.add('hidden'), 200);
+      });
+
       const sendComment = async () => {
           const text = inputDisc.value.trim();
           if (!text) return;
@@ -442,8 +494,10 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               foto: user?.foto,
               user: user?.nombre || 'Usuario',
               text: text,
+              mentions: [...new Set(currentMentions)],
               date: new Date().toISOString()
           };
+          currentMentions = [];
           
           if (!deal.discusion) deal.discusion = [];
           if (typeof deal.discusion === 'string') {

@@ -238,6 +238,54 @@ export function gatherAdminNotifications(db, user) {
         });
     });
 
+    // ── 7. Menciones y Mensajes en Chat ────────────────────────────────
+    proyectos.forEach(p => {
+        let discusionArray = [];
+        try { discusionArray = typeof p.discusion === 'string' ? JSON.parse(p.discusion || '[]') : (p.discusion || []); } catch(e) {}
+        if (discusionArray.length === 0) return;
+
+        const cli = clientes.find(c => c.id === p.cliente_id);
+        const clienteName = cli ? `${cli.nombre || ''}` : 'un cliente';
+        
+        const isManager = ['manager', 'project manager', 'oficina'].some(r => (user.rol||'').toLowerCase().includes(r));
+        const isAssigned = p.asignado_a === user.id || p.responsable_id === user.id;
+
+        const relevantMessages = discusionArray.filter(msg => {
+            if (String(msg.user_id) === String(user.id)) return false; 
+            
+            if (isAdminUser) return true; 
+            if (isManager && isAssigned) return true; 
+            if ((msg.mentions || []).includes(String(user.id))) return true; 
+            
+            return false;
+        });
+
+        if (relevantMessages.length > 0) {
+            const lastMessage = relevantMessages[relevantMessages.length - 1];
+            const msgDate = new Date(lastMessage.date);
+            const isMention = (lastMessage.mentions || []).includes(String(user.id));
+            const notifId = `chat_${p.id}_${msgDate.getTime()}`; 
+            if (archivedIds.has(notifId)) return;
+
+            notifs.push({
+                id: notifId,
+                type: 'chat',
+                icon: 'fa-comments',
+                color: isMention ? '#a855f7' : '#3b82f6',
+                bg: isMention ? 'rgba(168,85,247,0.12)' : 'rgba(59,130,246,0.12)',
+                title: isMention ? `Mención en Chat` : `Mensaje en Proyecto`,
+                message: `${lastMessage.user || 'Alguien'} dice: "${lastMessage.text}" en ${clienteName}`,
+                date: msgDate,
+                isRead: readIds.has(notifId),
+                link: {
+                    label: 'Ver Chat',
+                    action: 'proyecto', 
+                    data: { projectId: p.id, clienteId: p.cliente_id }
+                }
+            });
+        }
+    });
+
     // Ordenar por fecha desc (más reciente primero)
     notifs.sort((a, b) => b.date - a.date);
     return notifs;

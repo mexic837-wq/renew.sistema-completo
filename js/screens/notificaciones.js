@@ -135,8 +135,35 @@ export async function renderNotificaciones() {
       };
   });
 
-  // Show global announcements, meetings, and personal notifications (assignments, events, observers)
-  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario, ...misObservaciones].sort((a,b) => b.date - a.date);
+  // Recopilar Menciones en Chat
+  const misMencionesChat = (db.Proyectos_Dinamicos || []).flatMap(p => {
+      let discusionArray = [];
+      try { discusionArray = typeof p.discusion === 'string' ? JSON.parse(p.discusion || '[]') : (p.discusion || []); } catch(e) {}
+      
+      const mentionsToMe = discusionArray.filter(msg => (msg.mentions || []).includes(String(user.id)));
+      if (mentionsToMe.length === 0) return [];
+      
+      const lastMessage = mentionsToMe[mentionsToMe.length - 1];
+      const chatReadData = JSON.parse(localStorage.getItem(`chat_read_${user.id}_${p.id}`) || '0');
+      const msgDate = new Date(lastMessage.date).getTime();
+      const isRead = msgDate <= chatReadData;
+
+      const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
+      
+      return {
+          type: 'chat_mention',
+          id: p.id,
+          title: `Mención en Chat de Proyecto`,
+          message: `${lastMessage.user || 'Alguien'} te mencionó: "${lastMessage.text}"`,
+          date: new Date(lastMessage.date),
+          isRead: isRead,
+          originalData: p,
+          cliente: cli
+      };
+  });
+
+  // Show global announcements, meetings, and personal notifications (assignments, events, observers, chat mentions)
+  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario, ...misObservaciones, ...misMencionesChat].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
@@ -162,10 +189,12 @@ export async function renderNotificaciones() {
             ? 'background: rgba(16, 185, 129, 0.15); color: #10b981;'
             : item.type === 'observador'
               ? 'background: rgba(139, 92, 246, 0.15); color: #8b5cf6;'
-              : item.type === 'adelanto'
-                ? 'background: rgba(14, 165, 233, 0.15); color: #0ea5e9;'
-                : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
-      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : item.type === 'observador' ? 'fa-eye' : item.type === 'adelanto' ? 'fa-hand-holding-dollar' : 'fa-bullhorn';
+                : item.type === 'adelanto'
+                  ? 'background: rgba(14, 165, 233, 0.15); color: #0ea5e9;'
+                  : item.type === 'chat_mention'
+                    ? 'background: rgba(168, 85, 247, 0.15); color: #a855f7;'
+                    : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
+      const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : item.type === 'observador' ? 'fa-eye' : item.type === 'adelanto' ? 'fa-hand-holding-dollar' : item.type === 'chat_mention' ? 'fa-comments' : 'fa-bullhorn';
 
       return `
         <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
@@ -234,6 +263,12 @@ export async function renderNotificaciones() {
           const type = el.dataset.type;
           const item = allItems.find(i => i.id === id && i.type === type);
           if (!item) return;
+
+          if (type === 'chat_mention') {
+             localStorage.setItem(`chat_read_${user.id}_${id}`, Date.now().toString());
+             window.location.hash = '#detail/' + id;
+             return;
+          }
 
           // Mostrar Modal
           const modal = document.getElementById('notif-detail-modal');

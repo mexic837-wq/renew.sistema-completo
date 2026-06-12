@@ -8819,8 +8819,55 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   // Chat Send Logic
   const btnSend = document.getElementById('btn-send-discussion');
   const inputDisc = document.getElementById('discussion-input');
+  let currentMentions = [];
 
   if (btnSend && inputDisc) {
+      // Mentions Dropdown Logic
+      const db = getDB();
+      const allWorkers = window.state?.workers || db.Usuarios || [];
+      const mentionDropdown = document.createElement('div');
+      mentionDropdown.className = 'mention-dropdown hidden';
+      mentionDropdown.style.cssText = 'position: absolute; bottom: 100%; left: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 150px; overflow-y: auto; width: 220px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 50; margin-bottom: 4px;';
+      
+      inputDisc.parentElement.style.position = 'relative';
+      inputDisc.parentElement.appendChild(mentionDropdown);
+
+      inputDisc.addEventListener('input', () => {
+          const val = inputDisc.value;
+          const lastWord = val.split(' ').pop();
+          if (lastWord.startsWith('@')) {
+              const query = lastWord.substring(1).toLowerCase();
+              const matches = allWorkers.filter(w => w.nombre && w.nombre.toLowerCase().includes(query));
+              if (matches.length > 0) {
+                  mentionDropdown.innerHTML = matches.map(w => `
+                      <div class="mention-item" data-id="${w.id}" data-name="${w.nombre}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                          <div style="width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">${w.nombre.charAt(0)}</div>
+                          <span style="color: #374151; font-weight: 600;">${w.nombre}</span>
+                      </div>
+                  `).join('');
+                  mentionDropdown.classList.remove('hidden');
+                  
+                  mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
+                      item.addEventListener('click', () => {
+                          currentMentions.push(String(item.dataset.id));
+                          const words = inputDisc.value.split(' ');
+                          words.pop();
+                          inputDisc.value = words.join(' ') + (words.length > 0 ? ' ' : '') + '@' + item.dataset.name + ' ';
+                          mentionDropdown.classList.add('hidden');
+                          inputDisc.focus();
+                      });
+                  });
+              } else {
+                  mentionDropdown.classList.add('hidden');
+              }
+          } else {
+              mentionDropdown.classList.add('hidden');
+          }
+      });
+
+      inputDisc.addEventListener('blur', () => {
+          setTimeout(() => mentionDropdown.classList.add('hidden'), 200);
+      });
       const btnChatEmoji = document.getElementById('btn-chat-emoji');
       const emojiPicker = document.getElementById('chat-emoji-picker');
       if (btnChatEmoji && emojiPicker) {
@@ -8898,8 +8945,10 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               text: text,
               fileUrl: fileUrl,
               fileName: fileName,
+              mentions: [...new Set(currentMentions)],
               date: new Date().toISOString()
           };
+          currentMentions = [];
           
           if (!p.discusion) p.discusion = [];
           if (typeof p.discusion === 'string') {
