@@ -8073,7 +8073,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.id === p.pipeline_id) || { nombre: 'N/A', color: '#0d9488' };
   const fases = (db.Admin_Fases || []).filter(f => f.pipeline_id === p.pipeline_id).sort((a, b) => a.orden - b.orden);
   const faseActual = fases.find(f => f.id === p.fase_id) || { nombre: 'Completado' };
-  const isProjectCompleted = cli.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+  const isProjectCompleted = p.fase_id === 'Completado' || p.fase_id === null;
   const displayPhaseId = targetPhaseId !== null ? targetPhaseId : (isProjectCompleted && fases.length > 0 ? fases[fases.length - 1].id : p.fase_id);
   const isCurrentPhase = !isProjectCompleted && displayPhaseId === p.fase_id;
   const displayPhase = fases.find(f => f.id === displayPhaseId) || faseActual;
