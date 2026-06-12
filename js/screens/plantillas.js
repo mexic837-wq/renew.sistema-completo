@@ -194,6 +194,16 @@ export function renderPlantillas() {
         },
         {
             id:     'confirmacion-instalacion',
+            
+          {
+            id:     'plantilla_pozo',
+            icon:   'fa-solid fa-water',
+            dept:   'WATER',
+            title:  'Especificaciones de Pozo',
+            desc:   'Documento para registrar los detalles técnicos y descripción del agua de un pozo.',
+            action: () => window.appNavigate('plantilla-pozo')
+          },
+          {
             title:  'Confirmación de Instalación',
             sub:    'Renew Water',
             desc:   'Documento de cierre que confirma equipos instalados, observaciones y firma del cliente.',

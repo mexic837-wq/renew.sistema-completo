@@ -43,6 +43,7 @@ import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderCatalogo } from './screens/catalogo.js';
 import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
+import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
 import { _renderToolsForPipeline } from './screens/dashboard.js';
 import { t, getLang } from './i18n.js';
@@ -470,6 +471,7 @@ export function navigate(screen, param = null) {
     case 'catalogo': renderCatalogo();               break;
     case 'plantillas':  renderPlantillas();          break;
     case 'confirmacion-instalacion': renderConfirmacionInstalacion(); break;
+    case 'plantilla-pozo': renderPlantillaPozo(); break;
     case 'mis-adelantos': renderMisAdelantos(); break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);

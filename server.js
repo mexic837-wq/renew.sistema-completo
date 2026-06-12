@@ -1456,6 +1456,59 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
     }
 });
 
+// ── PLANTILLA POZO PDF ENDPOINT ──
+app.post('/api/generar-plantilla-pozo', async (req, res) => {
+    console.log('[/api/generar-plantilla-pozo] Petición recibida.');
+    try {
+        let d = req.body.datos || req.body;
+        const moldePath = path.join(__dirname, 'PLANTILLAS_RENEW_POZO_molde.pdf');
+
+        if (!fs.existsSync(moldePath)) {
+            return res.status(404).json({ error: 'No se encontró el PDF de molde de pozo' });
+        }
+
+        console.log('[PDF] Generando plantilla pozo con molde:', moldePath);
+        const pdfBytes = await generarPDF(moldePath, d);
+
+        // Subir a Supabase
+        const fileName = `plantillas_pozo/plantilla_pozo_${Date.now()}.pdf`;
+        const { error: uploadError } = await supabase.storage
+            .from('archivos_renew')
+            .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
+
+        let finalUrl = null;
+        if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
+            finalUrl = publicUrl;
+
+            let targetClienteId = d.clienteId || null;
+            if (!targetClienteId && d.proyectoId) {
+                const { data: proy } = await supabase.from('proyectos_dinamicos')
+                    .select('cliente_id').eq('id', d.proyectoId).single();
+                if (proy?.cliente_id) targetClienteId = proy.cliente_id;
+            }
+
+            if (targetClienteId) {
+                const { data: cli } = await supabase.from('clientes_maestro')
+                    .select('adjuntos_oficina').eq('id', targetClienteId).single();
+                let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
+                adj.plantilla_pozo_url = finalUrl;
+                await supabase.from('clientes_maestro')
+                    .update({ adjuntos_oficina: adj, plantilla_pozo_url: finalUrl })
+                    .eq('id', targetClienteId);
+                console.log(`[PLANTILLA POZO] Cliente ${targetClienteId} actualizado.`);
+            }
+        } else {
+            console.error('[STORAGE ERROR - PLANTILLA POZO]', uploadError);
+        }
+
+        res.json({ success: true, url: finalUrl });
+    } catch (err) {
+        console.error('[/api/generar-plantilla-pozo] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── CONTRATO PDF ENDPOINT ──
 // ── CONTRATO PDF ENDPOINT ──
 app.post('/api/generar-contrato', async (req, res) => {
