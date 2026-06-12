@@ -2461,13 +2461,13 @@ export function isProjectFinished(p, db) {
       const faseNom = String(faseObj.nombre || '').toLowerCase();
       if (finishedTerms.some(term => faseNom.includes(term)) || faseNom.includes('completado')) return true;
 
-      // Lógica específica para SOLAR: contar como completado (venta) desde la fase de Instalación en adelante
+      // Lógica específica para SOLAR: contar como completado (venta) desde la fase de NTP NOC en adelante
       if (db.Admin_Pipelines) {
         const pipeline = db.Admin_Pipelines.find(pip => pip.id === faseObj.pipeline_id);
         if (pipeline && String(pipeline.nombre || '').toLowerCase().includes('solar')) {
-          const instalacionFase = db.Admin_Fases.find(f => f.pipeline_id === pipeline.id && String(f.nombre || '').toLowerCase().includes('instalaci'));
-          if (instalacionFase && typeof faseObj.orden === 'number' && typeof instalacionFase.orden === 'number') {
-            if (faseObj.orden >= instalacionFase.orden) return true;
+          const ntpFase = db.Admin_Fases.find(f => f.pipeline_id === pipeline.id && String(f.nombre || '').toLowerCase().includes('ntp'));
+          if (ntpFase && typeof faseObj.orden === 'number' && typeof ntpFase.orden === 'number') {
+            if (faseObj.orden >= ntpFase.orden) return true;
           }
         }
       }
