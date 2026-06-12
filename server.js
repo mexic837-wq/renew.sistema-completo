@@ -1502,7 +1502,11 @@ app.post('/api/generar-plantilla-pozo', async (req, res) => {
             console.error('[STORAGE ERROR - PLANTILLA POZO]', uploadError);
         }
 
-        res.json({ success: true, url: finalUrl });
+        res.json({ 
+            success: true, 
+            url: finalUrl,
+            pdfBase64: Buffer.from(pdfBytes).toString('base64')
+        });
     } catch (err) {
         console.error('[/api/generar-plantilla-pozo] Error:', err);
         res.status(500).json({ error: err.message });

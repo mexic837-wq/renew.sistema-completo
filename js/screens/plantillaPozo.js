@@ -248,23 +248,38 @@ export function renderPlantillaPozo() {
       const result = await res.json();
       if (!res.ok || !result.success) throw new Error(result.error || 'Error al generar PDF de Pozo');
       
-      showToast('¡PDF generado exitosamente!', 'success');
-      
-      // Abrir en pestaña nueva
-      window.open(result.url, '_blank');
+      // Abrir en pestaña nueva si hay URL
+      if (result.url) {
+        window.open(result.url, '_blank');
+      }
 
-      // Descarga automática forzada
+      // Descarga automática forzada desde Base64 o URL
       try {
-        const fileRes = await fetch(result.url);
-        const fileBlob = await fileRes.blob();
-        const fileObjUrl = URL.createObjectURL(fileBlob);
-        const a = document.createElement('a');
-        a.href = fileObjUrl;
-        a.download = `Especificaciones_Pozo_${d.nombre.replace(/\s+/g, '_')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(fileObjUrl);
+        let fileObjUrl = null;
+        if (result.pdfBase64) {
+          const byteCharacters = atob(result.pdfBase64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const fileBlob = new Blob([byteArray], {type: 'application/pdf'});
+          fileObjUrl = URL.createObjectURL(fileBlob);
+        } else if (result.url) {
+          const fileRes = await fetch(result.url);
+          const fileBlob = await fileRes.blob();
+          fileObjUrl = URL.createObjectURL(fileBlob);
+        }
+
+        if (fileObjUrl) {
+          const a = document.createElement('a');
+          a.href = fileObjUrl;
+          a.download = `Especificaciones_Pozo_${d.nombre.replace(/\s+/g, '_')}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(fileObjUrl);
+        }
       } catch (e) {
         console.warn('No se pudo forzar la descarga:', e);
       }
