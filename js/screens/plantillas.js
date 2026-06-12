@@ -194,16 +194,6 @@ export function renderPlantillas() {
         },
         {
             id:     'confirmacion-instalacion',
-            
-          {
-            id:     'plantilla_pozo',
-            icon:   'fa-solid fa-water',
-            dept:   'WATER',
-            title:  'Especificaciones de Pozo',
-            desc:   'Documento para registrar los detalles técnicos y descripción del agua de un pozo.',
-            action: () => window.appNavigate('plantilla-pozo')
-          },
-          {
             title:  'Confirmación de Instalación',
             sub:    'Renew Water',
             desc:   'Documento de cierre que confirma equipos instalados, observaciones y firma del cliente.',
@@ -213,6 +203,17 @@ export function renderPlantillas() {
             cat:    'water',
             navigate: 'confirmacion-instalacion'
         },
+        {
+            id:     'plantilla-pozo',
+            title:  'Especificaciones de Pozo',
+            sub:    'Renew Water',
+            desc:   'Documento para registrar los detalles técnicos y descripción del agua de un pozo.',
+            icon:   '<i class="fa-solid fa-water"></i>',
+            iconBg: 'rgba(14,165,233,.12)',
+            iconColor: '#0ea5e9',
+            cat:    'water',
+            navigate: 'plantilla-pozo'
+        }
     ];
 
     let activeFilter = 'all';
