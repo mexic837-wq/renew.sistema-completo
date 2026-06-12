@@ -271,7 +271,7 @@ export async function renderCatalogo() {
               <p class="precio-code">COD: ${p.codigo || '—'}</p>
               <div class="precio-price-row">
                 <div>
-                  <div class="precio-price-label">Tu Precio a Mostrar</div>
+                  <div class="precio-price-label">Precio</div>
                   <div class="precio-price-value" id="card-price-${p.id}">${formatPrice(displayPrice)}</div>
                 </div>
                 <div style="width:32px; height:32px; border-radius:10px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
@@ -349,7 +349,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   
   const ranksHTML = `
     <div style="margin-top:20px; background:linear-gradient(135deg,#0ea5e915,#0284c705); border:1.5px solid #0ea5e930; border-radius:18px; padding:24px; text-align:center;">
-      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 10px;">Tu Precio a Mostrar</p>
+      <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 10px;">Precio</p>
       
       <div style="position:relative; max-width:200px; margin:0 auto;">
         <input type="number" id="catalogo-precio-input" value="${initialPrice}" style="width:100%; padding:12px; border-radius:12px; border:2px solid #0ea5e950; background:var(--surface); color:#0ea5e9; font-size:1.8rem; font-weight:900; outline:none; text-align:center; transition:all 0.2s;" />
