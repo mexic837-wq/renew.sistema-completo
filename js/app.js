@@ -391,7 +391,7 @@ window.verificarAnunciosNuevos = async function() {
 setInterval(window.verificarAnunciosNuevos, 30000);
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'mis-adelantos'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'plantilla-pozo', 'mis-adelantos'];
 
 export function navigate(screen, param = null) {
   // Auth guard
