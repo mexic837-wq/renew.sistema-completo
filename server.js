@@ -1427,20 +1427,23 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
             const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
             finalUrl = publicUrl;
 
-            // Guardar en clientes_maestro si hay proyectoId
-            if (d.proyectoId) {
+            // Guardar en clientes_maestro si hay proyectoId o clienteId
+            let targetClienteId = d.clienteId || null;
+            if (!targetClienteId && d.proyectoId) {
                 const { data: proy } = await supabase.from('proyectos_dinamicos')
                     .select('cliente_id').eq('id', d.proyectoId).single();
-                if (proy?.cliente_id) {
-                    const { data: cli } = await supabase.from('clientes_maestro')
-                        .select('adjuntos_oficina').eq('id', proy.cliente_id).single();
-                    let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
-                    adj.confirmacion_instalacion_url = finalUrl;
-                    await supabase.from('clientes_maestro')
-                        .update({ adjuntos_oficina: adj, confirmacion_instalacion_url: finalUrl })
-                        .eq('id', proy.cliente_id);
-                    console.log(`[CONFIRMACION] Cliente ${proy.cliente_id} actualizado.`);
-                }
+                if (proy?.cliente_id) targetClienteId = proy.cliente_id;
+            }
+
+            if (targetClienteId) {
+                const { data: cli } = await supabase.from('clientes_maestro')
+                    .select('adjuntos_oficina').eq('id', targetClienteId).single();
+                let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
+                adj.confirmacion_instalacion_url = finalUrl;
+                await supabase.from('clientes_maestro')
+                    .update({ adjuntos_oficina: adj, confirmacion_instalacion_url: finalUrl })
+                    .eq('id', targetClienteId);
+                console.log(`[CONFIRMACION] Cliente ${targetClienteId} actualizado.`);
             }
         } else {
             console.error('[STORAGE ERROR - CONFIRMACION]', uploadError);

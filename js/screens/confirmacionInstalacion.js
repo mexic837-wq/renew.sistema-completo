@@ -2,7 +2,7 @@
    RENEW OS – confirmacionInstalacion.js
    Formulario: Confirmación de Instalación (Renew Water)
    ============================================================ */
-import { getCurrentUser } from '../api.js';
+import { getCurrentUser, getDB } from '../api.js';
 import { showToast } from '../components/toast.js';
 
 let sigCanvas, sigCtx, sigDrawing = false;
@@ -297,7 +297,76 @@ export function renderConfirmacionInstalacion() {
 
   _initSig();
   _initDate();
+  _initAutocomplete();
   _autofillFromParams();
+}
+
+function _initAutocomplete() {
+  const inputComprador = document.getElementById('ci-comprador');
+  if (!inputComprador) return;
+
+  const db = getDB();
+  const clientes = db.Clientes_Maestro || [];
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'ci-autocomplete-dropdown hidden';
+  dropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; margin-top: 4px;';
+  
+  inputComprador.parentElement.style.position = 'relative';
+  inputComprador.parentElement.appendChild(dropdown);
+
+  inputComprador.addEventListener('input', () => {
+    const val = inputComprador.value.trim().toLowerCase();
+    if (val.length < 2) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+
+    const matches = clientes.filter(c => (c.nombre || '').toLowerCase().includes(val));
+    if (matches.length > 0) {
+      dropdown.innerHTML = matches.map((c, i) => `
+        <div class="ci-autocomplete-item" data-idx="${i}" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; transition: background 0.2s;" onmouseover="this.style.background='var(--surface-alt)'" onmouseout="this.style.background='transparent'">
+            <span style="color: var(--text-primary); font-weight: 700; font-size: 0.9rem;">${c.nombre || ''}</span>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">${c.email || ''} - ${c.telefono || ''}</span>
+        </div>
+      `).join('');
+      
+      dropdown.querySelectorAll('.ci-autocomplete-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const c = matches[item.dataset.idx];
+          inputComprador.value = c.nombre || '';
+          
+          const tel = document.getElementById('ci-telefono');
+          if (tel) tel.value = c.telefono || '';
+          
+          const email = document.getElementById('ci-email');
+          if (email) email.value = c.email || '';
+          
+          const dir = document.getElementById('ci-direccion');
+          if (dir) dir.value = c.direccion || '';
+          
+          const city = document.getElementById('ci-ciudad');
+          if (city) city.value = c.ciudad || '';
+          
+          const state = document.getElementById('ci-estado');
+          if (state) state.value = c.estado || '';
+          
+          const zip = document.getElementById('ci-zip');
+          if (zip) zip.value = c.zip || '';
+
+          window._ci_clienteId = c.id;
+          dropdown.classList.add('hidden');
+        });
+      });
+      dropdown.classList.remove('hidden');
+    } else {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  inputComprador.addEventListener('blur', () => {
+    setTimeout(() => dropdown.classList.add('hidden'), 200);
+  });
 }
 
 function _initDate() {
@@ -376,6 +445,7 @@ window.ciSubmit = async () => {
 
   const datos = {
     proyectoId: window._ci_proyectoId || null,
+    clienteId: window._ci_clienteId || null,
     fecha,
     telefono:    _val('ci-telefono'),
     comprador,
