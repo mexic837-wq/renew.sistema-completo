@@ -449,20 +449,19 @@ async function _renderList(user, container) {
     let enManosDeHtml = '';
 
     if (proy) {
-      const isTerminal = proy.estado === 'Completado' || proy.fase_id === 'Completado' || proy.fase_id === null;
       const fase = allFases.find(f => f.id === proy.fase_id);
 
-      if (isTerminal) {
-        etapaLabel = 'COMPLETADO';
-        progress = 100;
-        rolEncargado = null;
-      } else if (fase) {
+      if (fase) {
         etapaLabel = fase.nombre;
         rolEncargado = fase.rol_encargado || null;
         const pipFases = allFases.filter(f => f.pipeline_id === proy.pipeline_id).sort((a, b) => a.orden - b.orden);
         const totalPhases = pipFases.length;
         const currentOrder = fase.orden || 0;
         progress = totalPhases > 0 ? Math.round((currentOrder / totalPhases) * 100) : 50;
+      } else if (proy.estado === 'Completado' || proy.fase_id === 'Completado' || proy.fase_id === null) {
+        etapaLabel = 'COMPLETADO';
+        progress = 100;
+        rolEncargado = null;
       }
     }
 

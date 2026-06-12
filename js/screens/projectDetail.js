@@ -156,7 +156,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   const isTecnico = roleStr.includes('técnico') || roleStr.includes('tecnico');
   let discusionArray = [];
   try { discusionArray = typeof deal.discusion === 'string' ? JSON.parse(deal.discusion || '[]') : (deal.discusion || []); } catch(e) { discusionArray = []; }
-  const isMentionedInChat = discusionArray.some(msg => (msg.mentions || []).includes(String(user.id)));
+  const isMentionedInChat = discusionArray.some(msg => (msg.mentions || []).includes(String(currentUser?.id)));
   const canSeeChat = isAdmin || (isPM && isAssigned) || (isTecnico && isAssigned) || (isPM) || isMentionedInChat;
   const canManageObservers = isAdmin || isResponsable;
   const dbFull = getDB();
