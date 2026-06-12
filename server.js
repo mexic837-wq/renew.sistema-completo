@@ -1334,6 +1334,12 @@ async function generarPDF(moldePath, datos) {
             }
           } else {
             textField.setText(String(value));
+            // FIX: If a field is multiline, setting an explicit font size prevents pdf-lib from vertically centering the text
+            try {
+              if (textField.isMultiline()) {
+                textField.setFontSize(10);
+              }
+            } catch (e) {}
           }
         } catch (innerErr) {
           console.warn(`[PDF] Error al escribir en campo ${name}:`, innerErr.message);
