@@ -1008,7 +1008,9 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         </div>
        `;
     } else if (c.tipo === 'Orden de Trabajo') {
-       const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
+       const cliMetadata = deal.clientData?.adjuntos_oficina || {};
+       const actualPdfUrl = (val && val.startsWith('http')) ? val : (cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url || deal.orden_trabajo_url);
+       const isDone = !!(val && val !== 'No subido' && val !== 'No provisto') || !!actualPdfUrl;
        html = `
         <div style="margin-bottom:16px;">
           <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
@@ -1017,11 +1019,34 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
               <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <span style="color:#0d9488; font-size:0.85rem; font-weight:700;">Orden de Trabajo Completada</span>
-              ${val.startsWith('http') ? `<button onclick="window.open('${val}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+              <span style="color:#0d9488; font-size:0.85rem; font-weight:700;">Orden de Trabajo / Pozo Completada</span>
+              ${actualPdfUrl ? `<button onclick="window.open('${actualPdfUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
             </div>
           ` : `
-            <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" ${disabledAttr} onclick="
+            <div style="margin-bottom: 12px;">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Qué tipo de trabajo es?</label>
+                <select id="wo-tipo-trabajo-${c.id}" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-[#0d9488] focus:border-[#0d9488] block p-3 font-medium transition-colors" onchange="
+                    const val = this.value;
+                    const btn = document.getElementById('wo-action-btn-${c.id}');
+                    if (val === 'pozo') {
+                        btn.innerText = 'Llenar Plantilla de Pozo';
+                        btn.onclick = function() {
+                            if (window.appNavigate) window.appNavigate('plantilla-pozo', { proyectoId: '${deal.id}' });
+                        };
+                    } else {
+                        btn.innerText = 'Llenar Orden de Trabajo';
+                        btn.onclick = function() {
+                            const iframe = document.getElementById('iframe-work-order');
+                            if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
+                            if (window.appNavigate) window.appNavigate('work-order');
+                        };
+                    }
+                ">
+                    <option value="orden">Orden de Trabajo Estándar</option>
+                    <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
+                </select>
+            </div>
+            <button type="button" id="wo-action-btn-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" ${disabledAttr} onclick="
               const iframe = document.getElementById('iframe-work-order');
               if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
               if (window.appNavigate) window.appNavigate('work-order');
@@ -1029,7 +1054,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
               Llenar Orden de Trabajo
             </button>
           `}
-          <input type="hidden" id="df_${c.id}" value="${val || 'Completado en Formulario Externo'}" />
+          <input type="hidden" id="df_${c.id}" value="${actualPdfUrl || val || 'Completado en Formulario Externo'}" />
         </div>
        `;
     } else if (c.tipo === 'Contrato') {
@@ -1254,12 +1279,37 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           }
       }
       if (isWorkOrderPhase && !hasWorkOrderField) {
-          const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo'));
+          const cliMetadata = deal.clientData?.adjuntos_oficina || {};
+          const hasMetadata = !!(cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url || deal.orden_trabajo_url);
+          const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo')) || hasMetadata;
           if (!isDone) {
             extraHtml += `
               <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
-                <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" onclick="
+                <div style="margin-bottom: 12px;">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Qué tipo de trabajo es?</label>
+                    <select id="wo-tipo-trabajo-extra" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-[#0d9488] focus:border-[#0d9488] block p-3 font-medium transition-colors" onchange="
+                        const val = this.value;
+                        const btn = document.getElementById('wo-action-btn-extra');
+                        if (val === 'pozo') {
+                            btn.innerText = 'Llenar Plantilla de Pozo';
+                            btn.onclick = function() {
+                                if (window.appNavigate) window.appNavigate('plantilla-pozo', { proyectoId: '${deal.id}' });
+                            };
+                        } else {
+                            btn.innerText = 'Llenar Orden de Trabajo';
+                            btn.onclick = function() {
+                                const iframe = document.getElementById('iframe-work-order');
+                                if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
+                                if (window.appNavigate) window.appNavigate('work-order');
+                            };
+                        }
+                    ">
+                        <option value="orden">Orden de Trabajo Estándar</option>
+                        <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
+                    </select>
+                </div>
+                <button type="button" id="wo-action-btn-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" onclick="
                   const iframe = document.getElementById('iframe-work-order');
                   if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
                   if (window.appNavigate) window.appNavigate('work-order');
