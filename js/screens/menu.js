@@ -298,7 +298,12 @@ function mostrarModalCuenta(user) {
           <div style="flex:1;">
             <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Cambiar Contraseña</p>
             <div style="display:flex; gap:8px; margin-top:4px;">
-              <input type="password" id="input-account-password" value="${user.password || user.pass || ''}" placeholder="Nueva contraseña" style="flex:1; width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text-primary); font-size:0.85rem; outline:none;">
+              <div style="position:relative; flex:1;">
+                <input type="password" id="input-account-password" value="${user.password || user.pass || ''}" placeholder="Nueva contraseña" style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 40px 8px 12px; color:var(--text-primary); font-size:0.85rem; outline:none; box-sizing:border-box;">
+                <button type="button" onclick="const input = document.getElementById('input-account-password'); const icon = this.querySelector('i'); if (input.type === 'password') { input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); } else { input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; width:24px; height:24px; transition:0.2s hover:color:var(--text-primary);">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
               <button id="btn-save-password" style="background:rgba(0, 245, 212, 0.1); color:var(--tealAccent); border:1px solid var(--tealAccent); border-radius:8px; padding:0 16px; font-weight:800; cursor:pointer; transition:0.2s;"><i class="fa-solid fa-check"></i></button>
             </div>
           </div>
