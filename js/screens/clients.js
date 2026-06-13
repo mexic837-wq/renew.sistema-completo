@@ -550,7 +550,7 @@ async function _renderList(user, container) {
     let deleteBtnHtml = '';
       const isDeletableRole = ['admin', 'administrador', 'ceo'].some(r => userRolNorm.includes(r));
       if (isDeletableRole) {
-        deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="Eliminar Cliente"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
+        deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="${targetId ? 'Eliminar Proyecto' : 'Eliminar Prospecto'}"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
       }
 
       // Resolve Representative
@@ -660,22 +660,35 @@ async function _renderList(user, container) {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const clientId = btn.dataset.clientId;
+      const projectId = btn.dataset.projectId;
       const client = misClientes.find(c => c.id === clientId);
       if (!client) return;
 
-      if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente al cliente/prospecto ${client.nombre}? Esta acción no se puede deshacer.`)) return;
+      const isProjectDeletion = projectId && projectId !== 'null';
+      const promptMsg = isProjectDeletion 
+          ? `¿Estás seguro de que deseas eliminar permanentemente ESTE PROYECTO de ${client.nombre}?` 
+          : `¿Estás seguro de que deseas eliminar permanentemente al prospecto ${client.nombre}?`;
+
+      if (!confirm(promptMsg)) return;
 
       try {
         btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
         btn.disabled = true;
 
-        const { deleteClientesMaestro } = await import('../api.js');
-        await deleteClientesMaestro(clientId);
-        import('../components/toast.js').then(m => m.showToast('Cliente eliminado', 'success'));
+        if (isProjectDeletion) {
+            const { deleteAdminProject } = await import('../api.js');
+            await deleteAdminProject(projectId);
+            import('../components/toast.js').then(m => m.showToast('Proyecto eliminado', 'success'));
+        } else {
+            const { deleteClientesMaestro } = await import('../api.js');
+            await deleteClientesMaestro(clientId);
+            import('../components/toast.js').then(m => m.showToast('Prospecto eliminado', 'success'));
+        }
+        
         _renderList(user, container);
       } catch (err) {
         console.error(err);
-        import('../components/toast.js').then(m => m.showToast('Error al eliminar cliente', 'error'));
+        import('../components/toast.js').then(m => m.showToast('Error al eliminar', 'error'));
         btn.innerHTML = `<i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i>`;
         btn.disabled = false;
       }
