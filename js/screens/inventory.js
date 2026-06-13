@@ -199,6 +199,21 @@ export function renderInventoryTech(dealId = null) {
         return;
     }
 
+    filtered.sort((a, b) => {
+        const getRank = (eco) => {
+            if (!eco) return 99;
+            const text = eco.toLowerCase();
+            if (text.includes('economica') || text.includes('económica')) return 1;
+            if (text.includes('clasica') || text.includes('clásica')) return 2;
+            if (text.includes('pozo')) return 3;
+            return 99;
+        };
+        const rankA = getRank(a.ecosistema);
+        const rankB = getRank(b.ecosistema);
+        if (rankA !== rankB) return rankA - rankB;
+        return (a.nombreItem || '').localeCompare(b.nombreItem || '');
+    });
+
     filtered.forEach(item => {
       const card = document.createElement('div');
       card.className = 'inv-item-card';
