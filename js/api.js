@@ -1957,8 +1957,23 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   const camposFase = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === p.fase_id);
   // misRespuestas ya fue declarado arriba y contiene los mismos datos
   
+  // ── CASH DETECTION ──
+  const pipelineObj = db.Admin_Pipelines?.find(pip => pip.id === p.pipeline_id);
+  const isRenewWater = pipelineObj && pipelineObj.nombre.toLowerCase().includes('water');
+  let isCash = false;
+  if (isRenewWater) {
+      const metodoPagoField = db.Admin_Campos_Formulario?.find(c => c.pipeline_id === p.pipeline_id && (c.etiqueta.toLowerCase().includes('método de pago') || c.etiqueta.toLowerCase().includes('metodo de pago')));
+      if (metodoPagoField) {
+          const resp = db.Respuestas_Dinamicas?.find(r => r.proyecto_id === dealId && r.campo_id === metodoPagoField.id);
+          if (resp && resp.valor.toLowerCase() === 'cash') isCash = true;
+      }
+  }
+
   const missingFields = [];
   const allFilled = (camposFase || []).every(c => {
+    if (isCash && (c.tipo === 'Aplicación de Crédito' || c.etiqueta.toLowerCase().includes('aprobación'))) {
+        return true; // Ignore credit/approval fields for Cash
+    }
     // Re-query from DB to ensure we have the latest values including what we just saved
     const r = (db.Respuestas_Dinamicas || []).find(resp => resp.proyecto_id === dealId && resp.campo_id === c.id);
     const hasValue = r && r.valor && r.valor !== "No subido" && r.valor !== "No provisto";
@@ -1981,7 +1996,7 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   // or if we are not preventing auto-advance.
   let canAdvance = (allFilled || options.ignoreMissingFields) && !options.preventAutoAdvance;
   
-  if (isApprovalPhase && !options.forceAdvance) {
+  if (isApprovalPhase && !options.forceAdvance && !isCash) {
      // Check if there's an "Aprobación" field that is NOT "Aprobado"
      const approvalField = camposFase.find(c => c.etiqueta.toLowerCase().includes('aprobación'));
      if (approvalField) {
@@ -1994,9 +2009,28 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
 
   if (canAdvance) {
     if (curFidx < fases.length - 1) {
-      const nextFaseId = fases[curFidx + 1].id;
-      await updateProyectoFase(dealId, nextFaseId, respuestas);
-      didAdvance = true;
+      let nextFidx = curFidx + 1;
+      
+      // Phase skipping for Cash in Renew Water
+      if (isCash) {
+          while (nextFidx < fases.length) {
+              const fn = fases[nextFidx].nombre.toLowerCase();
+              if (fn.includes('llamada de renew') || fn.includes('firma de contrato') || fn.includes('llamada de financiera') || fn.includes('llamada de finance')) {
+                  console.log(`[API] Bypassing phase ${fases[nextFidx].nombre} for Cash project.`);
+                  nextFidx++;
+              } else {
+                  break;
+              }
+          }
+      }
+      
+      if (nextFidx < fases.length) {
+          const nextFaseId = fases[nextFidx].id;
+          await updateProyectoFase(dealId, nextFaseId, respuestas);
+          didAdvance = true;
+      } else {
+          isCompletado = true;
+      }
     } else {
       isCompletado = true;
       const cliObj = db.Clientes_Maestro.find(c => c.id === p.cliente_id);

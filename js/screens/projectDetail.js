@@ -922,6 +922,14 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
 
   const existingResp = await getRespuestasByProyecto(deal.id);
 
+  // Cash detection logic
+  const metodoPagoField = campos.find(c => c.etiqueta.toLowerCase().includes('método de pago') || c.etiqueta.toLowerCase().includes('metodo de pago'));
+  let isCash = false;
+  if (metodoPagoField) {
+      const resp = existingResp.find(r => r.campo_id === metodoPagoField.id);
+      if (resp && resp.valor.toLowerCase() === 'cash') isCash = true;
+  }
+
   if (!campos.length) {
     const isWorkOrder = actFase.nombre.toLowerCase().includes('orden de trabajo');
     const isContract = actFase.nombre.toLowerCase().includes('contrato');
@@ -948,9 +956,14 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             Llenar Contrato
           </button>
         ` : ''}
-        ${!isLocked && isCreditApp ? `
+        ${!isLocked && isCreditApp && !isCash ? `
           <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:#0284c7" id="btn-go-credit">
             Llenar Aplicación de Crédito
+          </button>
+        ` : ''}
+        ${!isLocked && isCreditApp && isCash ? `
+          <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:${pipeline.color};" id="btn-advance-empty-cash">
+            Avanzar a la Siguiente Fase
           </button>
         ` : ''}
         ${!isLocked && !isWorkOrder && !isContract && !isCreditApp ? `<button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:${pipeline.color};" id="btn-advance-empty">Avanzar a la Siguiente Fase</button>` : ''}
@@ -989,6 +1002,8 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       }
       const btnEmpty = document.getElementById('btn-advance-empty');
       if (btnEmpty) btnEmpty.addEventListener('click', () => submitPhase(deal.id, {}, pipeline.nombre));
+      const btnEmptyCash = document.getElementById('btn-advance-empty-cash');
+      if (btnEmptyCash) btnEmptyCash.addEventListener('click', () => submitPhase(deal.id, {}, pipeline.nombre));
     }
     return;
   }
@@ -1009,11 +1024,35 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
          const isSelected = val === optVal ? 'selected' : '';
          return `<option value="${optVal}" ${isSelected}>${optVal}</option>`;
        }).join('');
-       html = `<div class="input-wrap select-wrap no-icon"><select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}"><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select></div>`;
+       
+       let onChangeLogic = '';
+       if (c.etiqueta.toLowerCase().includes('método de pago') || c.etiqueta.toLowerCase().includes('metodo de pago')) {
+           onChangeLogic = `onchange="
+                import('../api.js').then(m => m.saveGranular('respuestas_dinamicas', [{
+                    id: '${saved ? saved.id : Date.now().toString()}', 
+                    proyecto_id: '${deal.id}', 
+                    campo_id: '${c.id}', 
+                    valor: this.value
+                }]).then(() => {
+                    const db = window.getDB();
+                    if (!db.Respuestas_Dinamicas) db.Respuestas_Dinamicas = [];
+                    const exist = db.Respuestas_Dinamicas.find(r => r.campo_id === '${c.id}' && r.proyecto_id === '${deal.id}');
+                    if (exist) exist.valor = this.value;
+                    else db.Respuestas_Dinamicas.push({id: '${saved ? saved.id : Date.now().toString()}', proyecto_id: '${deal.id}', campo_id: '${c.id}', valor: this.value});
+                    if (window.renderDetail) window.renderDetail('${deal.id}');
+                }))
+           "`;
+       }
+       let hideStyle = (isCash && c.etiqueta.toLowerCase().includes('aprobación')) ? 'display:none;' : '';
+       
+       html = `<div class="input-wrap select-wrap no-icon credit-dependent-field" style="${hideStyle}">
+                 <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2" style="${hideStyle}">${c.etiqueta}</label>
+                 <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
+               </div>`;
     } else if (c.tipo === 'Aplicación de Crédito') {
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
        html = `
-        <div style="margin-bottom:16px;">
+        <div style="margin-bottom:16px; ${isCash ? 'display:none;' : ''}" class="credit-dependent-field">
           <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
           ${isDone ? `
             <div style="background:#0284c715; border:1px solid #0284c740; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
