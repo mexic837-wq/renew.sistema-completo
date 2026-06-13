@@ -235,40 +235,8 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
           ${renderProjectInventory(deal.id)}
         </div>
         </div>
-        ` : ''}
-      </div>
-
-      <!-- Right Column -->
-      <div style="display:flex; flex-direction:column; gap:24px;">
-        <!-- Chat del Proyecto -->
-        <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: 600px; max-height: 80vh;">
-          <!-- Header -->
-          <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin:0; font-weight:700; letter-spacing:0.5px;">Chat del Proyecto</h3>
-                  <label style="font-size:0.7rem; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-primary);">
-                     <input type="checkbox" id="chk-has-issue" ${deal.tiene_problema ? 'checked' : ''} style="accent-color:#ef4444; width:14px; height:14px;">
-                     Atención Req.
-                  </label>
-              </div>
-          </div>
-          
-          <!-- Messages -->
-          <div id="discussion-list" style="padding:20px; font-size:0.85rem; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background:var(--bg);">
-            ${renderDiscussion(deal.discusion, pipeline.color)}
-          </div>
-          
-          <!-- Input -->
-          <div style="display:flex; gap:8px; padding:12px; border-top:1px solid var(--border); background:var(--surface-alt); align-items:center;">
-            <input type="text" id="discussion-input" placeholder="Escribe un mensaje..." style="flex:1; height:44px; min-width:0; border-radius:12px; background:var(--bg); border:1px solid var(--border); color:var(--text-primary); padding:0 14px; font-size:0.85rem; outline:none;" />
-            <button id="btn-send-discussion" style="background:${pipeline.color}; color:#fff; border:none; width:44px; height:44px; border-radius:12px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px ${pipeline.color}40;">
-              <i class="fa-solid fa-paper-plane text-sm"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- 2-Column Grid for Details and Contact -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Detalles del Proyecto y Contacto (movido a la columna izquierda) -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
           <!-- Detalles del Proyecto -->
           <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); display:flex; flex-direction:column;">
             <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
@@ -337,7 +305,43 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
             </div>
           </div>
         </div>
+      </div>
 
+      <!-- Right Column -->
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <!-- Chat del Proyecto -->
+        <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: 100%; min-height: 600px; max-height: 85vh;">
+          <!-- Header -->
+          <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin:0; font-weight:700; letter-spacing:0.5px;">Chat del Proyecto</h3>
+                  <label style="font-size:0.7rem; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-primary);">
+                     <input type="checkbox" id="chk-has-issue" ${deal.tiene_problema ? 'checked' : ''} style="accent-color:#ef4444; width:14px; height:14px;">
+                     Atención Req.
+                  </label>
+              </div>
+          </div>
+          
+          <!-- Messages -->
+          <div id="discussion-list" style="padding:20px; font-size:0.85rem; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background:var(--bg);">
+            ${renderDiscussion(deal.discusion, pipeline.color)}
+          </div>
+          
+          <!-- Input -->
+          <div style="display:flex; flex-direction:column; border-top:1px solid var(--border); background:var(--surface-alt);">
+            <div id="chat-file-preview" style="display:none; padding: 8px 12px; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px dashed var(--border); background: var(--bg); font-weight: 600;"></div>
+            <div style="display:flex; gap:8px; padding:12px; align-items:center;">
+              <button onclick="document.getElementById('chat-file-input').click()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border); width:44px; height:44px; border-radius:12px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='transparent'">
+                <i class="fa-solid fa-paperclip text-sm"></i>
+              </button>
+              <input type="file" id="chat-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx" />
+              <input type="text" id="discussion-input" placeholder="Escribe un mensaje..." style="flex:1; height:44px; min-width:0; border-radius:12px; background:var(--bg); border:1px solid var(--border); color:var(--text-primary); padding:0 14px; font-size:0.85rem; outline:none;" />
+              <button id="btn-send-discussion" style="background:${pipeline.color}; color:#fff; border:none; width:44px; height:44px; border-radius:12px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px ${pipeline.color}40;">
+                <i class="fa-solid fa-paper-plane text-sm"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -522,16 +526,53 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
           setTimeout(() => mentionDropdown.classList.add('hidden'), 200);
       });
 
+      // Chat input file listener
+      const chatFileInput = document.getElementById('chat-file-input');
+      const chatFilePreview = document.getElementById('chat-file-preview');
+      if (chatFileInput && chatFilePreview) {
+          chatFileInput.addEventListener('change', (e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                  chatFilePreview.textContent = e.target.files[0].name;
+                  chatFilePreview.style.display = 'block';
+              } else {
+                  chatFilePreview.style.display = 'none';
+              }
+          });
+      }
+
       const sendComment = async () => {
           const text = inputDisc.value.trim();
-          if (!text) return;
+          const hasFile = chatFileInput && chatFileInput.files && chatFileInput.files.length > 0;
+          
+          if (!text && !hasFile) return;
           const user = getCurrentUser();
+          
+          let fileUrl = null;
+          let fileName = null;
+          
+          if (hasFile) {
+              const file = chatFileInput.files[0];
+              fileName = file.name;
+              try {
+                  btnSend.innerHTML = '...';
+                  fileUrl = await uploadFile(file, 'chat');
+              } catch(e) {
+                  console.error("Chat file upload error", e);
+                  const { showToast } = await import('../components/toast.js');
+                  showToast('Error subiendo archivo', 'error');
+                  btnSend.innerHTML = `<i class="fa-solid fa-paper-plane text-sm"></i>`;
+                  return;
+              }
+          }
+
           const comment = {
               type: 'user',
               user_id: user?.id,
               foto: user?.foto,
               user: user?.nombre || 'Usuario',
               text: text,
+              fileUrl: fileUrl,
+              fileName: fileName,
               mentions: [...new Set(currentMentions)],
               date: new Date().toISOString()
           };
@@ -549,11 +590,14 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               btnSend.innerHTML = '...';
               await saveGranular('proyectos_dinamicos', [deal]);
               inputDisc.value = '';
+              if (chatFileInput) chatFileInput.value = '';
+              if (chatFilePreview) chatFilePreview.style.display = 'none';
               const list = document.getElementById('discussion-list');
               list.innerHTML = renderDiscussion(deal.discusion, pipeline.color);
               list.scrollTop = list.scrollHeight;
           } catch(e) {
               console.error("Save discussion error:", e);
+              const { showToast } = await import('../components/toast.js');
               showToast('Error al guardar comentario: ' + e.message, 'error');
               deal.discusion.pop();
           } finally {
