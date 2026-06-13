@@ -1046,7 +1046,6 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
        let hideStyle = (isCash && c.etiqueta.toLowerCase().includes('aprobación')) ? 'display:none;' : '';
        
        html = `<div class="input-wrap select-wrap no-icon credit-dependent-field" style="${hideStyle}">
-                 <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2" style="${hideStyle}">${c.etiqueta}</label>
                  <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
                </div>`;
     } else if (c.tipo === 'Aplicación de Crédito') {
@@ -1308,7 +1307,15 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      } else {
        html = `<div class="input-wrap no-icon"><input type="${c.tipo==='Número'?'number':'text'}" id="df_${c.id}" class="w-full" placeholder="${c.etiqueta}..." value="${val}" ${disabledAttr} style="${lockedStyle}"></div>`;
      }
-    return c.tipo === 'Archivo' ? html : `<div class="field-group"><label>${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic; font-size:0.85em; color:var(--text-muted);">(Opcional)</span>' : ''}</label>${html}</div>`;
+     
+     const isHidden = isCash && (c.etiqueta.toLowerCase().includes('aprobación') || c.tipo === 'Aplicación de Crédito');
+     const hideWrapperStr = isHidden ? 'display:none;' : '';
+     
+     if (c.tipo === 'Archivo' || c.tipo === 'Aplicación de Crédito' || c.tipo === 'Contrato' || c.tipo === 'Orden de Trabajo') {
+         return `<div style="${hideWrapperStr}">${html}</div>`;
+     } else {
+         return `<div class="field-group" style="${hideWrapperStr}"><label>${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic; font-size:0.85em; color:var(--text-muted);">(Opcional)</span>' : ''}</label>${html}</div>`;
+     }
   }).join('');
 
   const requiredCampos = campos.filter(c => !c.es_opcional);
