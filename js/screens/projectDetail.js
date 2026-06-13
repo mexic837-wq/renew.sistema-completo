@@ -427,7 +427,6 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               };
           });
       });
-      });
   }
 
   // Handle Scroll to Chat from Notifications
