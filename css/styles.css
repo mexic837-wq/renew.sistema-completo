@@ -1710,17 +1710,6 @@ body.no-nav #bottom-nav {
   }
   .form-footer .btn-primary { width: 300px !important; box-shadow: var(--shadow-lg) !important; }
   .form-footer .btn-primary { width: 300px !important; box-shadow: var(--shadow-lg) !important; }
-
-  /* DETAIL PAGE COLUMN SPLIT */
-  #screen-detail > div:nth-child(3) {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 32px !important;
-    padding: 40px 64px 100px !important;
-    align-items: start !important;
-    max-width: 1500px !important;
-    margin: 0 auto !important;
-  }
 }
  
 /* ── Sala Virtual (Base/Mobile) ─────────────────────── */
