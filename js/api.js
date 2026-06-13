@@ -132,11 +132,11 @@ function applyPostProcessing(freshDB) {
                     
                     // Fire-and-forget save to backend
                     if (window._canSaveAutoFields) {
-                         import('./api.js').then(m => m.saveGranular('admin_campos_formulario', [newField]).catch(() => {}));
+                         saveGranular('admin_campos_formulario', [newField]).catch(() => {});
                     } else {
                          window._canSaveAutoFields = true;
                          setTimeout(() => {
-                             import('./api.js').then(m => m.saveGranular('admin_campos_formulario', [newField]).catch(() => {}));
+                             saveGranular('admin_campos_formulario', [newField]).catch(() => {});
                          }, 5000); // delay to not block init
                     }
                 }
