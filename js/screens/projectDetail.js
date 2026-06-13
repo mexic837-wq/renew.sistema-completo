@@ -157,7 +157,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   let discusionArray = [];
   try { discusionArray = typeof deal.discusion === 'string' ? JSON.parse(deal.discusion || '[]') : (deal.discusion || []); } catch(e) { discusionArray = []; }
   const isMentionedInChat = discusionArray.some(msg => (msg.mentions || []).includes(String(currentUser?.id)));
-  const canSeeChat = isAdmin || (isPM && isAssigned) || (isTecnico && isAssigned) || (isPM) || isMentionedInChat;
+  const canSeeChat = true; // El usuario siempre tiene acceso al chat si puede ver el proyecto
   const canManageObservers = isAdmin || isResponsable;
   const dbFull = getDB();
   const allWorkers = dbFull.Usuarios || [];
@@ -218,7 +218,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
     </div>
 
-    <div style="padding: 16px; padding-bottom: 40px;">
+    <div class="grid grid-cols-1 xl:grid-cols-[1fr_1.5fr] gap-6" style="padding: 16px; padding-bottom: 40px; max-width: 1600px; margin: 0 auto;">
       <!-- Left Column -->
       <div style="display:flex; flex-direction:column; gap:24px;">
         <div id="dynamic-action-section"></div>
@@ -240,99 +240,104 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
 
       <!-- Right Column -->
       <div style="display:flex; flex-direction:column; gap:24px;">
-        <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
-          <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" style="background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
-          <div style="display:flex; flex-direction:column; gap:4px; grid-column: 1 / -1;">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Descripción</span>
-            <span style="font-size:0.85rem; font-weight:500; color:var(--text-primary); line-height:1.4">${deal.descripcion || '<span class="italic text-gray-400">Sin descripción</span>'}</span>
+        <!-- Chat del Proyecto -->
+        <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: 600px; max-height: 80vh;">
+          <!-- Header -->
+          <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin:0; font-weight:700; letter-spacing:0.5px;">Chat del Proyecto</h3>
+                  <label style="font-size:0.7rem; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-primary);">
+                     <input type="checkbox" id="chk-has-issue" ${deal.tiene_problema ? 'checked' : ''} style="accent-color:#ef4444; width:14px; height:14px;">
+                     Atención Req.
+                  </label>
+              </div>
           </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Asignado a</span>
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px"><i class="fa-solid fa-user-circle text-gray-300"></i> ${assigneeName}</span>
+          
+          <!-- Messages -->
+          <div id="discussion-list" style="padding:20px; font-size:0.85rem; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background:var(--bg);">
+            ${renderDiscussion(deal.discusion, pipeline.color)}
           </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Proyecto</span>
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px"><span class="w-2 h-2 rounded-full inline-block" style="background:${pipeline.color}"></span> ${pipeline.nombre}</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Creado el</span>
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${new Date(deal.fecha || Date.now()).toLocaleDateString()}</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Fecha Límite</span>
-            ${isAdmin ? 
-              `<input type="date" id="pd-deadline-input" value="${deal.fecha_finalizacion ? deal.fecha_finalizacion.substring(0,10) : ''}" class="bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 transition-colors" style="font-size:0.85rem; max-width:140px;">` : 
-              `<span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); padding:4px 0;">${deal.fecha_finalizacion ? new Date(deal.fecha_finalizacion).toLocaleDateString() : 'Sin definir'}</span>`
-            }
-          </div>
-          <div style="display:flex; flex-direction:column; gap:8px; grid-column: 1 / -1; margin-top:8px; border-top:1px dashed var(--border); padding-top:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">colaboradores</span>
-                ${canManageObservers ? `
-                <button id="btn-manage-obs" style="background:transparent; border:none; color:${pipeline.color}; font-size:0.75rem; font-weight:700; cursor:pointer;">
-                    <i class="fa-solid fa-plus mr-1"></i> Añadir
-                </button>` : ''}
-            </div>
-            <div style="display:flex; align-items:center; gap:4px; padding-left:8px;">
-                ${obsHtml || `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">No hay colaboradores</span>`}
-            </div>
+          
+          <!-- Input -->
+          <div style="display:flex; gap:8px; padding:12px; border-top:1px solid var(--border); background:var(--surface-alt); align-items:center;">
+            <input type="text" id="discussion-input" placeholder="Escribe un mensaje..." style="flex:1; height:44px; min-width:0; border-radius:12px; background:var(--bg); border:1px solid var(--border); color:var(--text-primary); padding:0 14px; font-size:0.85rem; outline:none;" />
+            <button id="btn-send-discussion" style="background:${pipeline.color}; color:#fff; border:none; width:44px; height:44px; border-radius:12px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px ${pipeline.color}40;">
+              <i class="fa-solid fa-paper-plane text-sm"></i>
+            </button>
           </div>
         </div>
-      </div>
 
-      <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05)">
-        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>
-        <div style="display:flex; flex-direction:column; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border)">
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Email</span>
-            <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.email || 'N/A'}</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Teléfono</span>
-            <span style="font-size:0.95rem; font-weight:700; color:${pipeline.color}; word-break:break-all">${deal.telefono}</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Dirección</span>
-            <span style="font-size:0.95rem; font-weight:500; color:var(--text-primary); word-break:break-all; line-height:1.4">${deal.direccion}</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">ID / Licencia de Conducir</span>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.licencia || '-'}</span>
-              ${deal.foto_id ? `<button onclick="window.open('${deal.foto_id}')" style="background:${pipeline.color}; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver Documento</button>` : `<span style="font-size:0.7rem; color:var(--text-muted); font-style:italic">Sin adjunto</span>`}
+        <!-- 2-Column Grid for Details and Contact -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Detalles del Proyecto -->
+          <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); display:flex; flex-direction:column;">
+            <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Detalles del Proyecto</h3>
+            <div style="background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border); flex:1; display:flex; flex-direction:column; gap:16px;">
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Descripción</span>
+                <span style="font-size:0.85rem; font-weight:500; color:var(--text-primary); line-height:1.4">${deal.descripcion || '<span class="italic text-gray-400">Sin descripción</span>'}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Asignado a</span>
+                <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px"><i class="fa-solid fa-user-circle text-gray-300"></i> ${assigneeName}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Proyecto</span>
+                <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px"><span class="w-2 h-2 rounded-full inline-block" style="background:${pipeline.color}"></span> ${pipeline.nombre}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Creado el</span>
+                <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${new Date(deal.fecha || Date.now()).toLocaleDateString()}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Fecha Límite</span>
+                ${isAdmin ? 
+                  `<input type="date" id="pd-deadline-input" value="${deal.fecha_finalizacion ? deal.fecha_finalizacion.substring(0,10) : ''}" class="bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 transition-colors" style="font-size:0.85rem; max-width:140px;">` : 
+                  `<span style="font-size:0.85rem; font-weight:600; color:var(--text-primary); padding:4px 0;">${deal.fecha_finalizacion ? new Date(deal.fecha_finalizacion).toLocaleDateString() : 'Sin definir'}</span>`
+                }
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px; margin-top:auto; border-top:1px dashed var(--border); padding-top:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">colaboradores</span>
+                    ${canManageObservers ? `
+                    <button id="btn-manage-obs" style="background:transparent; border:none; color:${pipeline.color}; font-size:0.75rem; font-weight:700; cursor:pointer;">
+                        <i class="fa-solid fa-plus mr-1"></i> Añadir
+                    </button>` : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:4px; padding-left:8px;">
+                    ${obsHtml || `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">No hay colaboradores</span>`}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      ${canSeeChat ? `
-      <div id="project-chat-card" class="info-card slide-in-bottom" style="margin-bottom:120px; padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
-        <!-- Header -->
-        <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin:0; font-weight:700; letter-spacing:0.5px;">Chat del Proyecto</h3>
-                <label style="font-size:0.7rem; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-primary);">
-                   <input type="checkbox" id="chk-has-issue" ${deal.tiene_problema ? 'checked' : ''} style="accent-color:#ef4444; width:14px; height:14px;">
-                   Atención Req.
-                </label>
+          <!-- Datos de Contacto Central -->
+          <div class="info-card slide-in-bottom" style="padding:20px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); display:flex; flex-direction:column;">
+            <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; font-weight:700; letter-spacing:0.5px">Datos de Contacto Central</h3>
+            <div style="display:flex; flex-direction:column; gap:16px; background:var(--surface-alt); padding:20px; border-radius:12px; border:1px solid var(--border); flex:1;">
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Email</span>
+                <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.email || 'N/A'}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Teléfono</span>
+                <span style="font-size:0.95rem; font-weight:700; color:${pipeline.color}; word-break:break-all">${deal.telefono}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">Dirección</span>
+                <span style="font-size:0.95rem; font-weight:500; color:var(--text-primary); word-break:break-all; line-height:1.4">${deal.direccion}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px; margin-top:auto;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">ID / Licencia de Conducir</span>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.licencia || '-'}</span>
+                  ${deal.foto_id ? `<button onclick="window.open('${deal.foto_id}')" style="background:${pipeline.color}; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver Documento</button>` : `<span style="font-size:0.7rem; color:var(--text-muted); font-style:italic">Sin adjunto</span>`}
+                </div>
+              </div>
             </div>
+          </div>
         </div>
-        
-        <!-- Messages -->
-        <div id="discussion-list" style="padding:20px; font-size:0.85rem; height: 320px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background:var(--bg);">
-          ${renderDiscussion(deal.discusion, pipeline.color)}
-        </div>
-        
-        <!-- Input -->
-        <div style="display:flex; gap:8px; padding:12px; border-top:1px solid var(--border); background:var(--surface-alt); align-items:center;">
-          <input type="text" id="discussion-input" placeholder="Escribe un mensaje..." style="flex:1; height:44px; min-width:0; border-radius:12px; background:var(--bg); border:1px solid var(--border); color:var(--text-primary); padding:0 14px; font-size:0.85rem; outline:none;" />
-          <button id="btn-send-discussion" style="background:${pipeline.color}; color:#fff; border:none; width:44px; height:44px; border-radius:12px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px ${pipeline.color}40;">
-            <i class="fa-solid fa-paper-plane text-sm"></i>
-          </button>
-        </div>
-      </div>
-      ` : ''}
+
       </div>
     </div>
   `;
