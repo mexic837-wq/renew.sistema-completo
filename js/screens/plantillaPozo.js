@@ -200,7 +200,7 @@ export function renderPlantillaPozo(proyIdParam = null) {
         div.onmouseleave = () => div.style.background = 'transparent';
         div.onclick = () => {
           linkedClienteId = c.id;
-          const proy = (db.Proyectos_Dinamicos || []).find(p => p.cliente_id === c.id);
+          const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.cliente_id) === String(c.id));
           if (proy) linkedProyectoId = proy.id;
           
           searchInput.value = c.nombre;
@@ -299,45 +299,71 @@ export function renderPlantillaPozo(proyIdParam = null) {
         console.warn('No se pudo forzar la descarga:', e);
       }
       
-      // ── NEW: Save to client profile and satisfy Phase requirement ──
-      if (result.url && linkedClienteId) {
+      // ── NEW: Upload Base64 to get a public URL if none was provided ──
+      let finalPdfUrl = result.url;
+      if (!finalPdfUrl && result.pdfBase64) {
+          try {
+              console.log('[POZO] Uploading Base64 PDF to storage...');
+              const byteCharacters = atob(result.pdfBase64);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+              const byteArray = new Uint8Array(byteNumbers);
+              const fileBlob = new Blob([byteArray], { type: 'application/pdf' });
+              const finalFile = new File([fileBlob], `Especificaciones_Pozo_${d.nombre.replace(/\\s+/g, '_')}.pdf`, { type: 'application/pdf' });
+              
+              const { uploadFile } = await import('../api.js');
+              finalPdfUrl = await uploadFile(finalFile, 'pozos');
+              console.log('[POZO] Upload successful:', finalPdfUrl);
+          } catch(err) {
+              console.error('[POZO] Error uploading PDF:', err);
+          }
+      }
+
+      // ── Save to client profile ──
+      if (finalPdfUrl && linkedClienteId) {
           const db = getDB();
-          const client = (db.Clientes_Maestro || []).find(c => c.id === linkedClienteId);
+          const client = (db.Clientes_Maestro || []).find(c => String(c.id) === String(linkedClienteId));
           if (client) {
               if (!client.adjuntos_oficina || Array.isArray(client.adjuntos_oficina)) client.adjuntos_oficina = {};
-              client.adjuntos_oficina.plantilla_pozo_url = result.url;
+              client.adjuntos_oficina.plantilla_pozo_url = finalPdfUrl;
               client.adjuntos_oficina.ultima_pozo_fecha = new Date().toISOString();
               const { saveGranular } = await import('../api.js');
               await saveGranular('clientes_maestro', [client]);
           }
       }
 
-      if (result.url && linkedProyectoId) {
+      // ── Save to project and advance phase ──
+      if (linkedProyectoId) {
           const db = getDB();
-          const project = (db.Proyectos_Dinamicos || []).find(p => p.id === linkedProyectoId);
+          const project = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(linkedProyectoId));
           if (project) {
               const dynamicField = db.Admin_Campos_Formulario?.find(c => 
-                  c.tipo === 'Orden de Trabajo' && c.fase_id === project.fase_id
+                  c.tipo === 'Orden de Trabajo' && String(c.fase_id) === String(project.fase_id)
               );
               const responses = {};
-              if (dynamicField) responses[dynamicField.id] = result.url;
+              if (dynamicField && finalPdfUrl) responses[dynamicField.id] = finalPdfUrl;
               
               // Also explicitly save to the project's metadata
               if (!project.clientData) project.clientData = {};
               if (!project.clientData.adjuntos_oficina) project.clientData.adjuntos_oficina = {};
-              project.clientData.adjuntos_oficina.plantilla_pozo_url = result.url;
-              project.orden_trabajo_url = result.url;
+              if (finalPdfUrl) {
+                  project.clientData.adjuntos_oficina.plantilla_pozo_url = finalPdfUrl;
+                  project.orden_trabajo_url = finalPdfUrl;
+              }
               
               const { advanceDealPhase, saveGranular } = await import('../api.js');
               await saveGranular('proyectos_dinamicos', [project]);
-              await advanceDealPhase(linkedProyectoId, responses, { preventAutoAdvance: false });
+              if (Object.keys(responses).length > 0) {
+                  await advanceDealPhase(linkedProyectoId, responses, { preventAutoAdvance: false });
+              }
               
               showToast('Plantilla de Pozo Guardada en el Proyecto', 'success');
               setTimeout(() => window.appNavigate('detail', linkedProyectoId), 1500);
-              return;
+              return; // EXIT HERE so it doesn't redirect to plantillas
           }
       }
       
+      // Fallback redirect if no project was linked
       setTimeout(() => window.appNavigate('plantillas'), 1500);
 
     } catch (error) {
