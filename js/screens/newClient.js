@@ -720,6 +720,32 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
         btnSaveModal.disabled = true;
         btnSaveModal.textContent = "Procesando...";
 
+        const sysDb = getDB();
+        const editId = document.getElementById('nc-edit-id').value;
+
+        // ── PREVENCIÓN DE CLIENTES DUPLICADOS ────────
+        if (!editId) {
+            const cleanDir = dir.toLowerCase().trim().replace(/\s+/g, ' ');
+            const isDuplicate = (sysDb.Clientes_Maestro || []).some(c => {
+                if (!c.direccion || c.direccion.toLowerCase() === "pendiente") return false;
+                const cDir = c.direccion.toLowerCase().trim().replace(/\s+/g, ' ');
+                if (cDir === cleanDir) {
+                    const existingDepts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length 
+                        ? c.departamentos_activos 
+                        : (c.departamento ? [c.departamento] : []);
+                    return departamentos_activos.some(d => existingDepts.some(ed => ed.toLowerCase() === d.toLowerCase()));
+                }
+                return false;
+            });
+
+            if (isDuplicate) {
+                showToast("Ya existe un cliente con esta dirección en el departamento seleccionado.", "error");
+                btnSaveModal.disabled = false;
+                btnSaveModal.textContent = "Guardar Cliente";
+                return;
+            }
+        }
+
         // ── 2. UPLOAD DOCUMENTS (ID, Bill, Seguro) ────────
         const uploadIfFile = async (inputId, folder) => {
           const inp = document.getElementById(inputId);
@@ -737,8 +763,6 @@ function buildDynamicForm(screen, pipeline, faseActual, campos) {
         ]);
         
         const fullNombre = `${firstNom} ${apellido}`.trim();
-        const sysDb = getDB();
-        const editId = document.getElementById('nc-edit-id').value;
     
         if (editId) {
             const cliIdx = (sysDb.Clientes_Maestro || []).findIndex(c => c.id === editId);
