@@ -589,12 +589,12 @@ export function openAdminBellPanel() {
                 if (window.openKanbanDrawer && projectId) {
                     window.openKanbanDrawer(projectId);
                 } else if (window.appNavigate && clienteId) {
-                    // Si es una notificación de asignación de técnico que requiere aceptar/rechazar, enviar a la bandeja de notificaciones (inbox)
                     const notifItem = btn.closest('.bell-notif-item');
                     if (notifItem && notifItem.querySelector('.fa-clipboard-user')) {
                         window.appNavigate('notificaciones');
                     } else {
-                        window.appNavigate('clients');
+                        localStorage.setItem('scroll_to_chat', projectId);
+                        window.appNavigate('detail', projectId);
                     }
                 }
             } else if (action === 'hrhub_adelantos') {

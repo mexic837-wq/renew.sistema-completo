@@ -307,7 +307,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
 
       ${canSeeChat ? `
-      <div class="info-card slide-in-bottom" style="margin-bottom:120px; padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
+      <div id="project-chat-card" class="info-card slide-in-bottom" style="margin-bottom:120px; padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
         <!-- Header -->
         <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -427,7 +427,36 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               };
           });
       });
+      });
   }
+
+  // Handle Scroll to Chat from Notifications
+  setTimeout(() => {
+      if (localStorage.getItem('scroll_to_chat') === String(deal.id)) {
+          localStorage.removeItem('scroll_to_chat');
+          const chatCard = document.getElementById('project-chat-card');
+          if (chatCard) {
+              chatCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              
+              const originalShadow = chatCard.style.boxShadow;
+              const originalBorder = chatCard.style.border;
+              
+              chatCard.style.transition = 'all 0.5s ease';
+              chatCard.style.boxShadow = `0 0 20px ${pipeline.color}`;
+              chatCard.style.border = `2px solid ${pipeline.color}`;
+              
+              setTimeout(() => {
+                  chatCard.style.boxShadow = originalShadow;
+                  chatCard.style.border = originalBorder;
+              }, 2000);
+              
+              const input = document.getElementById('discussion-input');
+              if (input) {
+                  setTimeout(() => input.focus(), 600);
+              }
+          }
+      }
+  }, 400);
 
   // Discusión Interna Event Listeners
   const btnSend = document.getElementById('btn-send-discussion');
