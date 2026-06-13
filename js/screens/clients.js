@@ -669,17 +669,8 @@ async function _renderList(user, container) {
         btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
         btn.disabled = true;
 
-        const db = getDB();
-        if (db.Clientes_Maestro) {
-          db.Clientes_Maestro = db.Clientes_Maestro.filter(c => c.id !== clientId);
-        }
-        if (db.Proyectos_Dinamicos) {
-          db.Proyectos_Dinamicos = db.Proyectos_Dinamicos.filter(p => p.cliente_id !== clientId);
-        }
-        
-        const { saveGranular, deleteRecord } = await import('../api.js');
-        await deleteRecord('clientes_maestro', clientId);
-        
+        const { deleteClientesMaestro } = await import('../api.js');
+        await deleteClientesMaestro(clientId);
         import('../components/toast.js').then(m => m.showToast('Cliente eliminado', 'success'));
         _renderList(user, container);
       } catch (err) {
