@@ -665,9 +665,22 @@ async function _renderList(user, container) {
       if (!client) return;
 
       const isProjectDeletion = projectId && projectId !== 'null';
-      const promptMsg = isProjectDeletion 
-          ? `¿Estás seguro de que deseas eliminar permanentemente ESTE PROYECTO de ${client.nombre}?` 
-          : `¿Estás seguro de que deseas eliminar permanentemente al prospecto ${client.nombre}?`;
+      
+      // Determine if this is the last project the client has
+      const db = getDB();
+      const clientProjects = (db.Proyectos_Dinamicos || []).filter(p => String(p.cliente_id) === String(clientId));
+      const isLastProject = isProjectDeletion && clientProjects.length <= 1;
+
+      let promptMsg = '';
+      if (isProjectDeletion) {
+          if (isLastProject) {
+              promptMsg = `¿Estás seguro de que deseas eliminar permanentemente ESTE PROYECTO de ${client.nombre}?\n\nNota: Al ser su único proyecto, el cliente también será eliminado del sistema.`;
+          } else {
+              promptMsg = `¿Estás seguro de que deseas eliminar permanentemente ESTE PROYECTO de ${client.nombre}?`;
+          }
+      } else {
+          promptMsg = `¿Estás seguro de que deseas eliminar permanentemente al prospecto ${client.nombre}?`;
+      }
 
       if (!confirm(promptMsg)) return;
 
@@ -675,14 +688,14 @@ async function _renderList(user, container) {
         btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
         btn.disabled = true;
 
-        if (isProjectDeletion) {
+        if (isProjectDeletion && !isLastProject) {
             const { deleteAdminProject } = await import('../api.js');
             await deleteAdminProject(projectId);
             import('../components/toast.js').then(m => m.showToast('Proyecto eliminado', 'success'));
         } else {
             const { deleteClientesMaestro } = await import('../api.js');
             await deleteClientesMaestro(clientId);
-            import('../components/toast.js').then(m => m.showToast('Prospecto eliminado', 'success'));
+            import('../components/toast.js').then(m => m.showToast(isLastProject ? 'Proyecto y cliente eliminados' : 'Prospecto eliminado', 'success'));
         }
         
         _renderList(user, container);
