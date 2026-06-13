@@ -1376,28 +1376,30 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             extraHtml += `
               <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
-                <div style="margin-bottom: 12px;">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Qué tipo de trabajo es?</label>
-                    <select id="wo-tipo-trabajo-extra" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-[#0d9488] focus:border-[#0d9488] block p-3 font-medium transition-colors" onchange="
-                        const val = this.value;
-                        const btn = document.getElementById('wo-action-btn-extra');
-                        if (val === 'pozo') {
-                            btn.innerText = 'Llenar Plantilla de Pozo';
-                            btn.onclick = function() {
-                                if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
-                            };
-                        } else {
-                            btn.innerText = 'Llenar Orden de Trabajo';
-                            btn.onclick = function() {
-                                const iframe = document.getElementById('iframe-work-order');
-                                if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
-                                if (window.appNavigate) window.appNavigate('work-order');
-                            };
-                        }
-                    ">
-                        <option value="orden">Orden de Trabajo Estándar</option>
-                        <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
-                    </select>
+                <div class="field-group" style="margin-bottom: 12px;">
+                    <label>¿Qué tipo de trabajo es?</label>
+                    <div class="input-wrap select-wrap no-icon">
+                        <select id="wo-tipo-trabajo-extra" onchange="
+                            const val = this.value;
+                            const btn = document.getElementById('wo-action-btn-extra');
+                            if (val === 'pozo') {
+                                btn.innerText = 'Llenar Plantilla de Pozo';
+                                btn.onclick = function() {
+                                    if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
+                                };
+                            } else {
+                                btn.innerText = 'Llenar Orden de Trabajo';
+                                btn.onclick = function() {
+                                    const iframe = document.getElementById('iframe-work-order');
+                                    if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
+                                    if (window.appNavigate) window.appNavigate('work-order');
+                                };
+                            }
+                        ">
+                            <option value="orden">Orden de Trabajo Estándar</option>
+                            <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="button" id="wo-action-btn-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" onclick="
                   const iframe = document.getElementById('iframe-work-order');
