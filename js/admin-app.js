@@ -8453,7 +8453,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
               const val = saved ? saved.valor : '';
               let fieldHtml = '';
               
-              if (c.tipo === 'Archivo') {
+              if (c.tipo === 'Archivo' || c.tipo === 'Orden de Trabajo' || c.tipo === 'Aplicación de Crédito' || c.tipo === 'Contrato') {
                 const files = val ? val.split(',').map(s=>s.trim()).filter(s=>s) : [];
                 const hasFile = files.length > 0;
                 const safeLabel = c.etiqueta.replace(/'/g, "\\'");
