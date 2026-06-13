@@ -1039,7 +1039,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     const exist = db.Respuestas_Dinamicas.find(r => r.campo_id === '${c.id}' && r.proyecto_id === '${deal.id}');
                     if (exist) exist.valor = this.value;
                     else db.Respuestas_Dinamicas.push({id: '${saved ? saved.id : Date.now().toString()}', proyecto_id: '${deal.id}', campo_id: '${c.id}', valor: this.value});
-                    if (window.renderDetail) window.renderDetail('${deal.id}');
+                    if (window.appNavigate) window.appNavigate('detail', '${deal.id}');
                 }))
            "`;
        }
