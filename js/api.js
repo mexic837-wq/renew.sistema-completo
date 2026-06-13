@@ -119,9 +119,8 @@ function applyPostProcessing(freshDB) {
                 const hasMetodoPago = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && (c.etiqueta.toLowerCase().includes('pago') || c.etiqueta.toLowerCase().includes('cash')));
                 if (!hasMetodoPago) {
                     const newField = {
-                        id: 'cf_auto_' + Date.now(),
+                        id: 'cf_' + Date.now(),
                         fase_id: phase1.id,
-                        pipeline_id: waterPip.id,
                         etiqueta: 'Método de Pago',
                         tipo: 'Desplegable',
                         opciones: 'Crédito, Cash',
@@ -1997,9 +1996,10 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   const isRenewWater = pipelineObj && pipelineObj.nombre.toLowerCase().includes('water');
   let isCash = false;
   if (isRenewWater) {
+      const waterFases = db.Admin_Fases?.filter(f => f.pipeline_id === p.pipeline_id).map(f => f.id) || [];
       const metodoPagoField = db.Admin_Campos_Formulario?.find(c => {
           const etLower = (c.etiqueta || '').toLowerCase();
-          return c.pipeline_id === p.pipeline_id && (etLower.includes('método de pago') || etLower.includes('metodo de pago') || etLower.includes('pago') || etLower.includes('cash'));
+          return waterFases.includes(c.fase_id) && (etLower.includes('método de pago') || etLower.includes('metodo de pago') || etLower.includes('pago') || etLower.includes('cash'));
       });
       if (metodoPagoField) {
           const resp = db.Respuestas_Dinamicas?.find(r => r.proyecto_id === dealId && r.campo_id === metodoPagoField.id);
