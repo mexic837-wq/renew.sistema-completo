@@ -218,7 +218,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-6" style="padding: 16px; padding-bottom: 40px; max-width: 100%; margin: 0 auto;">
+    <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6" style="padding: 16px; padding-bottom: 40px; max-width: 100%; margin: 0 auto;">
       <!-- Left Column -->
       <div style="display:flex; flex-direction:column; gap:24px;">
         <div id="dynamic-action-section"></div>
@@ -311,7 +311,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       <!-- Right Column -->
       <div style="display:flex; flex-direction:column; gap:24px;">
         <!-- Chat del Proyecto -->
-        <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: 100%; min-height: 600px; max-height: 85vh;">
+        <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: calc(100vh - 200px); min-height: 400px; max-height: 650px;">
           <!-- Header -->
           <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
               <div style="display:flex; justify-content:space-between; align-items:center;">
