@@ -161,10 +161,17 @@ export function renderMisRecibos() {
   renderDeptFilters();
 
   function getReciboDept(r, db) {
-      if (r.datos_json && r.datos_json.departamento) {
-          let d = r.datos_json.departamento.toLowerCase();
-          if (d === 'otro') return 'oficina';
-          return d;
+      if (r.datos_json) {
+          if (r.datos_json.departamento) {
+              let d = r.datos_json.departamento.toLowerCase();
+              if (d === 'otro') return 'oficina';
+              return d;
+          }
+          if (r.datos_json.dpto) {
+              let d = r.datos_json.dpto.toLowerCase();
+              if (d === 'otro') return 'oficina';
+              return d;
+          }
       }
       if (r.proyecto_id && db.Clientes_Maestro) {
           const cli = db.Clientes_Maestro.find(c => String(c.id) === String(r.proyecto_id) || String(c.proyecto_id) === String(r.proyecto_id));
@@ -183,25 +190,33 @@ export function renderMisRecibos() {
     const query = (document.getElementById('recibos-search')?.value || '').toLowerCase().trim();
     const db = window.getDB ? window.getDB() : { Clientes_Maestro: [] };
     
+    const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    const isHighRole = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRolNorm);
+    const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home', 'Oficina'] : (user.unidades || []);
+    const allowedDepts = units.map(u => u.replace('Renew ', '').toLowerCase());
+    
     let filtered = [];
     if (currentFilter === 'mis_recibos') {
       filtered = allRecibos.filter(r => r.trabajador_id === user.id);
     } else {
-      filtered = allRecibos.filter(r => {
-          if (r.tipo !== currentFilter) return false;
-          const isOficina = (r.datos_json && r.datos_json.subtipo === 'oficina');
-          if (activeDeptFilter.toLowerCase() === 'oficina') return isOficina;
-          if (isOficina) return false; // don't show in others
-          return true;
-      });
+      filtered = allRecibos.filter(r => r.tipo === currentFilter);
     }
 
-    if (activeDeptFilter !== 'Todos' && activeDeptFilter.toLowerCase() !== 'oficina') {
-      filtered = filtered.filter(r => {
-          const dept = getReciboDept(r, db);
-          return dept === activeDeptFilter.toLowerCase();
-      });
-    }
+    filtered = filtered.filter(r => {
+        let dept = getReciboDept(r, db);
+        
+        if (activeDeptFilter !== 'Todos') {
+            return dept === activeDeptFilter.toLowerCase();
+        } else {
+            // Todos selected
+            if (isHighRole) {
+                return dept !== 'oficina'; // Hide oficina from Todos to keep list clean, available in Oficina tab
+            } else {
+                if (dept === '') return true; // Show unassigned
+                return allowedDepts.includes(dept);
+            }
+        }
+    });
 
     if (query) {
       filtered = filtered.filter(r =>
