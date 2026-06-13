@@ -343,9 +343,7 @@ export function renderPlantillaPozo(proyIdParam = null) {
               const responses = {};
               if (dynamicField && finalPdfUrl) responses[dynamicField.id] = finalPdfUrl;
               
-              if (finalPdfUrl) {
-                  project.orden_trabajo_url = finalPdfUrl;
-              }
+              // 
               
               const { advanceDealPhase, saveGranular } = await import('../api.js');
               await saveGranular('proyectos_dinamicos', [project]);

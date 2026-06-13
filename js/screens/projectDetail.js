@@ -1083,7 +1083,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
     } else if (c.tipo === 'Orden de Trabajo') {
        const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(c => String(c.id) === String(deal.cliente_id));
        const cliMetadata = dbClient?.adjuntos_oficina || {};
-       const actualPdfUrl = (val && val.startsWith('http')) ? val : (cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url || deal.orden_trabajo_url);
+       const actualPdfUrl = (val && val.startsWith('http')) ? val : (cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url);
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto') || !!actualPdfUrl;
        html = `
         <div style="margin-bottom:16px;">
@@ -1371,8 +1371,9 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           }
       }
       if (isWorkOrderPhase && !hasWorkOrderField) {
-          const cliMetadata = deal.clientData?.adjuntos_oficina || {};
-          const hasMetadata = !!(cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url || deal.orden_trabajo_url);
+          const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(c => String(c.id) === String(deal.cliente_id));
+          const cliMetadata = dbClient?.adjuntos_oficina || {};
+          const hasMetadata = !!(cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url);
           const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo')) || hasMetadata;
           if (!isDone) {
             extraHtml += `

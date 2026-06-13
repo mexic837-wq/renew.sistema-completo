@@ -154,11 +154,7 @@ window.addEventListener('message', async (e) => {
           }
           
           console.log(`[APP] Syncing PDF URL to local project: ${project.id}`);
-          if (isWorkOrder) {
-              project.orden_trabajo_url = e.data.pdfUrl;
-          } else {
-              project.contrato_url = e.data.pdfUrl;
-          }
+          // removed non-existent url assignments
           await sgLocal('proyectos_dinamicos', [project]);
       }
 
