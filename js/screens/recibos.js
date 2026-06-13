@@ -61,6 +61,10 @@ export function renderMisRecibos() {
       </div>
       ` : ''}
 
+      <!-- Dept filters -->
+      <div id="recibos-dept-filter" style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;"></div>
+
+
       <!-- Receipts list -->
       <div id="recibos-list">
         ${_renderRecibosList(isAdmin ? allRecibos.filter(r => r.tipo === 'vendedor' && !(r.datos_json && r.datos_json.subtipo === 'oficina')) : allRecibos, isAdmin)}
@@ -111,14 +115,94 @@ export function renderMisRecibos() {
     searchInput.addEventListener('input', () => applyReciboFilters());
   }
 
+  // Dept filter logic
+  let activeDeptFilter = localStorage.getItem('recibos_dept_filter') || 'Todos';
+
+  function renderDeptFilters() {
+    const deptContainer = document.getElementById('recibos-dept-filter');
+    if (!deptContainer) return;
+    
+    const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    const isHighRole = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRolNorm);
+    const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home', 'Oficina'] : (user.unidades || []);
+    
+    const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
+    
+    // Ensure active filter is valid
+    if (!depts.map(d=>d.toLowerCase()).includes(activeDeptFilter.toLowerCase())) {
+        activeDeptFilter = 'Todos';
+    }
+
+    deptContainer.innerHTML = depts.map(dept => {
+      const isActive = activeDeptFilter.toLowerCase() === dept.toLowerCase();
+      let color = 'var(--text-secondary)';
+      let bg = 'transparent';
+      let border = 'var(--border)';
+      if (isActive) {
+        if (dept === 'Todos') { color = 'var(--primary)'; bg = 'rgba(0, 223, 191, 0.1)'; border = 'var(--primary)'; }
+        else if (dept === 'Solar') { color = '#f59e0b'; bg = 'rgba(245, 158, 11, 0.1)'; border = '#f59e0b'; }
+        else if (dept === 'Water') { color = '#0ea5e9'; bg = 'rgba(14, 165, 233, 0.1)'; border = '#0ea5e9'; }
+        else if (dept === 'Home') { color = '#a855f7'; bg = 'rgba(168, 85, 247, 0.1)'; border = '#a855f7'; }
+        else if (dept === 'Oficina') { color = '#ef4444'; bg = 'rgba(239, 68, 68, 0.1)'; border = '#ef4444'; }
+      }
+      return `<button class="rfil-dept-pill" data-dept="${dept}" style="padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; color: ${color}; background: ${bg}; border: 1px solid ${border}; flex-shrink: 0;">${dept.toUpperCase()}</button>`;
+    }).join('');
+
+    deptContainer.querySelectorAll('.rfil-dept-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        activeDeptFilter = pill.dataset.dept;
+        localStorage.setItem('recibos_dept_filter', activeDeptFilter);
+        renderDeptFilters();
+        applyReciboFilters(); 
+      });
+    });
+  }
+
+  renderDeptFilters();
+
+  function getReciboDept(r, db) {
+      if (r.datos_json && r.datos_json.departamento) {
+          let d = r.datos_json.departamento.toLowerCase();
+          if (d === 'otro') return 'oficina';
+          return d;
+      }
+      if (r.proyecto_id && db.Clientes_Maestro) {
+          const cli = db.Clientes_Maestro.find(c => String(c.id) === String(r.proyecto_id) || String(c.proyecto_id) === String(r.proyecto_id));
+          if (cli) {
+              if (cli.departamentos_activos && cli.departamentos_activos.length) {
+                  return cli.departamentos_activos[0].toLowerCase().replace('renew ', '');
+              }
+              if (cli.departamento) return cli.departamento.toLowerCase().replace('renew ', '');
+              if (cli.empresa) return cli.empresa.toLowerCase().replace('renew ', '');
+          }
+      }
+      return '';
+  }
+
   function applyReciboFilters() {
     const query = (document.getElementById('recibos-search')?.value || '').toLowerCase().trim();
+    const db = window.getDB ? window.getDB() : { Clientes_Maestro: [] };
+    
     let filtered = [];
     if (currentFilter === 'mis_recibos') {
       filtered = allRecibos.filter(r => r.trabajador_id === user.id);
     } else {
-      filtered = allRecibos.filter(r => r.tipo === currentFilter && !(r.datos_json && r.datos_json.subtipo === 'oficina'));
+      filtered = allRecibos.filter(r => {
+          if (r.tipo !== currentFilter) return false;
+          const isOficina = (r.datos_json && r.datos_json.subtipo === 'oficina');
+          if (activeDeptFilter.toLowerCase() === 'oficina') return isOficina;
+          if (isOficina) return false; // don't show in others
+          return true;
+      });
     }
+
+    if (activeDeptFilter !== 'Todos' && activeDeptFilter.toLowerCase() !== 'oficina') {
+      filtered = filtered.filter(r => {
+          const dept = getReciboDept(r, db);
+          return dept === activeDeptFilter.toLowerCase();
+      });
+    }
+
     if (query) {
       filtered = filtered.filter(r =>
         (r.cliente_nombre || '').toLowerCase().includes(query) ||
@@ -136,6 +220,9 @@ export function renderMisRecibos() {
     document.getElementById('recibos-list').innerHTML = _renderRecibosList(filtered, isAdmin);
     _attachReciboCardListeners();
   }
+
+  // Initial call since we overwrote the behavior
+  applyReciboFilters();
 
   // Close modal
   document.getElementById('btn-cerrar-recibo-modal')?.addEventListener('click', () => {
