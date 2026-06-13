@@ -235,6 +235,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
           ${renderProjectInventory(deal.id)}
         </div>
         </div>
+        \` : ''}
         <!-- Detalles del Proyecto y Contacto (movido a la columna izquierda) -->
         <div style="display:flex; flex-direction:column; gap:24px;">
           <!-- Detalles del Proyecto -->
