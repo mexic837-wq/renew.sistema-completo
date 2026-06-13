@@ -5,7 +5,7 @@
 import { getCurrentUser, getDB } from '../api.js';
 import { showToast } from '../components/toast.js';
 
-export function renderPlantillaPozo() {
+export function renderPlantillaPozo(proyIdParam = null) {
   const screen = document.getElementById('screen-plantilla-pozo');
   if (!screen) return;
 
@@ -152,7 +152,22 @@ export function renderPlantillaPozo() {
   `;
 
   let linkedClienteId = null;
-  let linkedProyectoId = null;
+  let linkedProyectoId = proyIdParam || null;
+  
+  if (linkedProyectoId) {
+      setTimeout(() => {
+          const db = getDB();
+          const proy = (db.Proyectos_Dinamicos || []).find(p => p.id === linkedProyectoId);
+          if (proy && proy.cliente_id) {
+              linkedClienteId = proy.cliente_id;
+              const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id));
+              if (cli) {
+                  document.getElementById('pp-nombre').value = cli.nombre || '';
+                  document.getElementById('pp-search').value = cli.nombre || '';
+              }
+          }
+      }, 150);
+  }
 
   setTimeout(() => {
     const searchInput = document.getElementById('pp-search');
@@ -284,7 +299,37 @@ export function renderPlantillaPozo() {
         console.warn('No se pudo forzar la descarga:', e);
       }
       
-      setTimeout(() => window.appNavigate('plantillas'), 1000);
+      // ── NEW: Save to client profile and satisfy Phase requirement ──
+      if (result.url && linkedClienteId) {
+          const db = getDB();
+          const client = (db.Clientes_Maestro || []).find(c => c.id === linkedClienteId);
+          if (client) {
+              if (!client.adjuntos_oficina || Array.isArray(client.adjuntos_oficina)) client.adjuntos_oficina = {};
+              client.adjuntos_oficina.plantilla_pozo_url = result.url;
+              client.adjuntos_oficina.ultima_pozo_fecha = new Date().toISOString();
+              const { saveGranular } = await import('../api.js');
+              await saveGranular('clientes_maestro', [client]);
+          }
+      }
+
+      if (result.url && linkedProyectoId) {
+          const db = getDB();
+          const project = (db.Proyectos_Dinamicos || []).find(p => p.id === linkedProyectoId);
+          if (project) {
+              const dynamicField = db.Admin_Campos_Formulario?.find(c => 
+                  c.tipo === 'Orden de Trabajo' && c.fase_id === project.fase_id
+              );
+              const responses = {};
+              if (dynamicField) responses[dynamicField.id] = result.url;
+              const { advanceDealPhase } = await import('../api.js');
+              await advanceDealPhase(linkedProyectoId, responses, { preventAutoAdvance: false });
+              showToast('Plantilla de Pozo Guardada en el Proyecto', 'success');
+              setTimeout(() => window.appNavigate('detail', linkedProyectoId), 1500);
+              return;
+          }
+      }
+      
+      setTimeout(() => window.appNavigate('plantillas'), 1500);
 
     } catch (error) {
       console.error(error);

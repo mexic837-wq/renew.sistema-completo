@@ -148,6 +148,8 @@ window.addEventListener('message', async (e) => {
                   client.adjuntos_oficina.app_url = e.data.pdfUrl;
                   client.adjuntos_oficina.ultima_credit_fecha = new Date().toISOString();
               }
+              const { saveGranular: sgClient } = await import('./api.js');
+              await sgClient('clientes_maestro', [client]);
           }
       }
 
@@ -470,8 +472,8 @@ export function navigate(screen, param = null) {
     case 'lista-precios': renderListaPrecios();      break;
     case 'catalogo': renderCatalogo();               break;
     case 'plantillas':  renderPlantillas();          break;
-    case 'confirmacion-instalacion': renderConfirmacionInstalacion(); break;
-    case 'plantilla-pozo': renderPlantillaPozo(); break;
+    case 'confirmacion-instalacion': renderConfirmacionInstalacion(idParam); break;
+    case 'plantilla-pozo': renderPlantillaPozo(idParam); break;
     case 'mis-adelantos': renderMisAdelantos(); break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);

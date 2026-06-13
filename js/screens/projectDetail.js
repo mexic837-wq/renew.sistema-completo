@@ -1384,7 +1384,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                         if (val === 'pozo') {
                             btn.innerText = 'Llenar Plantilla de Pozo';
                             btn.onclick = function() {
-                                if (window.appNavigate) window.appNavigate('plantilla-pozo', { proyectoId: '${deal.id}' });
+                                if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
                             };
                         } else {
                             btn.innerText = 'Llenar Orden de Trabajo';
