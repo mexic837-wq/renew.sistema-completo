@@ -108,6 +108,41 @@ function applyPostProcessing(freshDB) {
             }
         }
     });
+
+    // Auto-inject Método de Pago in Phase 1 of Renew Water if missing
+    if (freshDB.Admin_Pipelines && freshDB.Admin_Fases && freshDB.Admin_Campos_Formulario) {
+        const waterPip = freshDB.Admin_Pipelines.find(p => p.nombre.toLowerCase().includes('water'));
+        if (waterPip) {
+            const phases = freshDB.Admin_Fases.filter(f => f.pipeline_id === waterPip.id).sort((a,b) => a.orden - b.orden);
+            if (phases.length > 0) {
+                const phase1 = phases[0];
+                const hasMetodoPago = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && (c.etiqueta.toLowerCase().includes('pago') || c.etiqueta.toLowerCase().includes('cash')));
+                if (!hasMetodoPago) {
+                    const newField = {
+                        id: 'cf_auto_' + Date.now(),
+                        fase_id: phase1.id,
+                        pipeline_id: waterPip.id,
+                        etiqueta: 'Método de Pago',
+                        tipo: 'Desplegable',
+                        opciones: 'Crédito, Cash',
+                        es_opcional: false,
+                        orden: 0
+                    };
+                    freshDB.Admin_Campos_Formulario.unshift(newField); // Add to beginning of phase 1
+                    
+                    // Fire-and-forget save to backend
+                    if (window._canSaveAutoFields) {
+                         import('./api.js').then(m => m.saveGranular('admin_campos_formulario', [newField]).catch(() => {}));
+                    } else {
+                         window._canSaveAutoFields = true;
+                         setTimeout(() => {
+                             import('./api.js').then(m => m.saveGranular('admin_campos_formulario', [newField]).catch(() => {}));
+                         }, 5000); // delay to not block init
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ─── DB INITIALIZATION ──────────────────────────────────────
