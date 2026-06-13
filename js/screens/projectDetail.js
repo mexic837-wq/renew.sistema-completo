@@ -928,9 +928,14 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       return etLower.includes('método de pago') || etLower.includes('metodo de pago') || etLower.includes('pago') || etLower.includes('cash');
   });
   let isCash = false;
+  let isMetodoPagoEmpty = false;
   if (metodoPagoField) {
       const resp = existingResp.find(r => r.campo_id === metodoPagoField.id);
-      if (resp && resp.valor && resp.valor.trim().toLowerCase() === 'cash') isCash = true;
+      if (!resp || !resp.valor || resp.valor.trim() === 'Elegir...' || resp.valor.trim() === '') {
+          isMetodoPagoEmpty = true;
+      } else if (resp.valor.trim().toLowerCase() === 'cash') {
+          isCash = true;
+      }
   }
 
   if (!campos.length) {
@@ -1042,7 +1047,10 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
            "`;
        }
        const labelLower = c.etiqueta.toLowerCase();
-       let hideStyle = (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion'))) ? 'display:none;' : '';
+       const isThisMetodoPago = labelLower.includes('método de pago') || labelLower.includes('metodo de pago') || labelLower.includes('pago') || labelLower.includes('cash');
+       let hideStyle = '';
+       if (isMetodoPagoEmpty && !isThisMetodoPago) hideStyle = 'display:none;';
+       else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion'))) hideStyle = 'display:none;';
        
        html = `<div class="input-wrap select-wrap no-icon credit-dependent-field" style="${hideStyle}">
                  <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
@@ -1308,7 +1316,15 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      }
      
      const labelLower = c.etiqueta.toLowerCase();
-     const isHidden = isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || c.tipo === 'Aplicación de Crédito');
+     const isThisMetodoPago = labelLower.includes('método de pago') || labelLower.includes('metodo de pago') || labelLower.includes('pago') || labelLower.includes('cash');
+     
+     let isHidden = false;
+     if (isMetodoPagoEmpty && !isThisMetodoPago) {
+         isHidden = true;
+     } else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || c.tipo === 'Aplicación de Crédito')) {
+         isHidden = true;
+     }
+     
      const hideWrapperStr = isHidden ? 'display:none;' : '';
      
      if (c.tipo === 'Archivo' || c.tipo === 'Aplicación de Crédito' || c.tipo === 'Contrato' || c.tipo === 'Orden de Trabajo') {
@@ -1335,7 +1351,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   
   let extraHtml = '';
   if (!isLocked) {
-      if (isCreditAppPhase && !hasCreditField) {
+      if (isCreditAppPhase && !hasCreditField && !isCash && !isMetodoPagoEmpty) {
           const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Aplicación de Crédito'));
           if (!isDone) {
             extraHtml += `
