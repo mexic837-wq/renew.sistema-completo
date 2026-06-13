@@ -218,9 +218,9 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
     </div>
 
-    <div style="display:flex; flex-wrap:wrap; gap:24px; padding: 16px; padding-bottom: 40px; max-width: 100%; margin: 0 auto; width: 100%;">
+    <div style="display:flex; flex-wrap:wrap; gap:32px; padding: 24px 40px; padding-bottom: 40px; max-width: 100%; margin: 0 auto; width: 100%;">
       <!-- Left Column -->
-      <div style="flex: 0 0 350px; display:flex; flex-direction:column; gap:24px; max-width: 100%;">
+      <div style="flex: 0 0 420px; display:flex; flex-direction:column; gap:24px; max-width: 100%;">
         <div id="dynamic-action-section"></div>
 
         ${(pipeline.nombre || '').toLowerCase().includes('water') && currentFaseObj && currentFaseObj.nombre.toLowerCase().includes('instalaci') ? `
