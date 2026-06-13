@@ -1997,16 +1997,20 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   const isRenewWater = pipelineObj && pipelineObj.nombre.toLowerCase().includes('water');
   let isCash = false;
   if (isRenewWater) {
-      const metodoPagoField = db.Admin_Campos_Formulario?.find(c => c.pipeline_id === p.pipeline_id && (c.etiqueta.toLowerCase().includes('método de pago') || c.etiqueta.toLowerCase().includes('metodo de pago')));
+      const metodoPagoField = db.Admin_Campos_Formulario?.find(c => {
+          const etLower = (c.etiqueta || '').toLowerCase();
+          return c.pipeline_id === p.pipeline_id && (etLower.includes('método de pago') || etLower.includes('metodo de pago') || etLower.includes('pago') || etLower.includes('cash'));
+      });
       if (metodoPagoField) {
           const resp = db.Respuestas_Dinamicas?.find(r => r.proyecto_id === dealId && r.campo_id === metodoPagoField.id);
-          if (resp && resp.valor.toLowerCase() === 'cash') isCash = true;
+          if (resp && resp.valor && resp.valor.trim().toLowerCase() === 'cash') isCash = true;
       }
   }
 
   const missingFields = [];
   const allFilled = (camposFase || []).every(c => {
-    if (isCash && (c.tipo === 'Aplicación de Crédito' || c.etiqueta.toLowerCase().includes('aprobación'))) {
+    const labelLower = (c.etiqueta || '').toLowerCase();
+    if (isCash && (c.tipo === 'Aplicación de Crédito' || labelLower.includes('aprobación') || labelLower.includes('aprobacion'))) {
         return true; // Ignore credit/approval fields for Cash
     }
     // Re-query from DB to ensure we have the latest values including what we just saved
@@ -2033,7 +2037,10 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
   
   if (isApprovalPhase && !options.forceAdvance && !isCash) {
      // Check if there's an "Aprobación" field that is NOT "Aprobado"
-     const approvalField = camposFase.find(c => c.etiqueta.toLowerCase().includes('aprobación'));
+     const approvalField = camposFase.find(c => {
+         const labelLower = (c.etiqueta || '').toLowerCase();
+         return labelLower.includes('aprobación') || labelLower.includes('aprobacion');
+     });
      if (approvalField) {
         const resp = db.Respuestas_Dinamicas.find(r => r.proyecto_id === dealId && r.campo_id === approvalField.id);
         if (!resp || resp.valor !== 'Aprobado') {
