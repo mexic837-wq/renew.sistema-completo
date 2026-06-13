@@ -218,7 +218,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-[1fr_1.5fr] gap-6" style="padding: 16px; padding-bottom: 40px; max-width: 1600px; margin: 0 auto;">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-6" style="padding: 16px; padding-bottom: 40px; max-width: 100%; margin: 0 auto;">
       <!-- Left Column -->
       <div style="display:flex; flex-direction:column; gap:24px;">
         <div id="dynamic-action-section"></div>
