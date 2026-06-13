@@ -321,8 +321,17 @@ export function renderPlantillaPozo(proyIdParam = null) {
               );
               const responses = {};
               if (dynamicField) responses[dynamicField.id] = result.url;
-              const { advanceDealPhase } = await import('../api.js');
+              
+              // Also explicitly save to the project's metadata
+              if (!project.clientData) project.clientData = {};
+              if (!project.clientData.adjuntos_oficina) project.clientData.adjuntos_oficina = {};
+              project.clientData.adjuntos_oficina.plantilla_pozo_url = result.url;
+              project.orden_trabajo_url = result.url;
+              
+              const { advanceDealPhase, saveGranular } = await import('../api.js');
+              await saveGranular('proyectos_dinamicos', [project]);
               await advanceDealPhase(linkedProyectoId, responses, { preventAutoAdvance: false });
+              
               showToast('Plantilla de Pozo Guardada en el Proyecto', 'success');
               setTimeout(() => window.appNavigate('detail', linkedProyectoId), 1500);
               return;

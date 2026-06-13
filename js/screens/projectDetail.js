@@ -1104,26 +1104,27 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     if (val === 'pozo') {
                         btn.innerText = 'Llenar Plantilla de Pozo';
                         btn.onclick = function() {
-                            if (window.appNavigate) window.appNavigate('plantilla-pozo', { proyectoId: '${deal.id}' });
+                            if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
                         };
-                    } else {
+                        btn.style.display = 'block';
+                    } else if (val === 'orden') {
                         btn.innerText = 'Llenar Orden de Trabajo';
                         btn.onclick = function() {
                             const iframe = document.getElementById('iframe-work-order');
                             if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
                             if (window.appNavigate) window.appNavigate('work-order');
                         };
+                        btn.style.display = 'block';
+                    } else {
+                        btn.style.display = 'none';
                     }
                 ">
+                    <option value="" disabled selected>Elegir...</option>
                     <option value="orden">Orden de Trabajo Estándar</option>
                     <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
                 </select>
             </div>
-            <button type="button" id="wo-action-btn-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" ${disabledAttr} onclick="
-              const iframe = document.getElementById('iframe-work-order');
-              if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
-              if (window.appNavigate) window.appNavigate('work-order');
-            ">
+            <button type="button" id="wo-action-btn-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" ${disabledAttr}>
               Llenar Orden de Trabajo
             </button>
           `}
@@ -1387,25 +1388,26 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                                 btn.onclick = function() {
                                     if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
                                 };
-                            } else {
+                                btn.style.display = 'block';
+                            } else if (val === 'orden') {
                                 btn.innerText = 'Llenar Orden de Trabajo';
                                 btn.onclick = function() {
                                     const iframe = document.getElementById('iframe-work-order');
                                     if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
                                     if (window.appNavigate) window.appNavigate('work-order');
                                 };
+                                btn.style.display = 'block';
+                            } else {
+                                btn.style.display = 'none';
                             }
                         ">
+                            <option value="" disabled selected>Elegir...</option>
                             <option value="orden">Orden de Trabajo Estándar</option>
                             <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
                         </select>
                     </div>
                 </div>
-                <button type="button" id="wo-action-btn-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488" onclick="
-                  const iframe = document.getElementById('iframe-work-order');
-                  if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
-                  if (window.appNavigate) window.appNavigate('work-order');
-                ">
+                <button type="button" id="wo-action-btn-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;">
                   Llenar Orden de Trabajo
                 </button>
               </div>

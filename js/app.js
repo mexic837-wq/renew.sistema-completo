@@ -138,6 +138,8 @@ window.addEventListener('message', async (e) => {
       // ── NEW: Update local Client Profile metadata immediately ──
       if (project && e.data.pdfUrl) {
           const client = db.Clientes_Maestro?.find(c => c.id === project.cliente_id);
+          const { saveGranular: sgLocal } = await import('./api.js');
+          
           if (client) {
               console.log(`[APP] Syncing PDF URL to local client: ${client.id}`);
               if (!client.adjuntos_oficina || Array.isArray(client.adjuntos_oficina)) client.adjuntos_oficina = {};
@@ -148,9 +150,20 @@ window.addEventListener('message', async (e) => {
                   client.adjuntos_oficina.app_url = e.data.pdfUrl;
                   client.adjuntos_oficina.ultima_credit_fecha = new Date().toISOString();
               }
-              const { saveGranular: sgClient } = await import('./api.js');
-              await sgClient('clientes_maestro', [client]);
+              await sgLocal('clientes_maestro', [client]);
           }
+          
+          console.log(`[APP] Syncing PDF URL to local project: ${project.id}`);
+          if (!project.clientData) project.clientData = {};
+          if (!project.clientData.adjuntos_oficina) project.clientData.adjuntos_oficina = {};
+          if (isWorkOrder) {
+              project.clientData.adjuntos_oficina.orden_trabajo_url = e.data.pdfUrl;
+              project.orden_trabajo_url = e.data.pdfUrl;
+          } else {
+              project.clientData.adjuntos_oficina.app_url = e.data.pdfUrl;
+              project.contrato_url = e.data.pdfUrl;
+          }
+          await sgLocal('proyectos_dinamicos', [project]);
       }
 
       // Log activity in Kanban
@@ -891,24 +904,25 @@ window.addEventListener('user_updated', (e) => {
     }
 });
 
-// ── Iframe Screen Sizing Helper ──────────────────────────────
 // Sizes iframe screens to exactly fill the viewport below their header.
-// This fixes the black-bar issue where flex:1 doesn't always work on iframes.
 function _sizeIframeScreen(screenId, iframeId) {
   const section = document.getElementById(`screen-${screenId}`);
   const iframe  = document.getElementById(iframeId);
   if (!section || !iframe) return;
 
   const header  = section.querySelector('.iframe-screen-header');
-  const headerH = header ? header.getBoundingClientRect().height : 60;
-  const iframeH = window.innerHeight - headerH;
+  if (header) {
+      header.style.display = 'flex';
+      header.style.flexShrink = '0';
+  }
 
-  // Apply explicit height so the iframe always fills perfectly
-  iframe.style.height  = `${Math.max(iframeH, 200)}px`;
-  iframe.style.width   = '100%';
+  // Use flexbox instead of manual pixel calculation to avoid black bars
+  iframe.style.flex = '1 1 auto';
+  iframe.style.height = '0';
+  iframe.style.minHeight = '0';
+  iframe.style.width = '100%';
+  iframe.style.border = 'none';
   iframe.style.display = 'block';
-  iframe.style.border  = 'none';
-  iframe.style.flex    = 'none'; // disable flex:1 so explicit height wins
 
   // Re-apply on resize (handles orientation changes and desktop resizes)
   if (!section._resizeHandler) {
