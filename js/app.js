@@ -485,8 +485,8 @@ export function navigate(screen, param = null) {
     case 'lista-precios': renderListaPrecios();      break;
     case 'catalogo': renderCatalogo();               break;
     case 'plantillas':  renderPlantillas();          break;
-    case 'confirmacion-instalacion': renderConfirmacionInstalacion(idParam); break;
-    case 'plantilla-pozo': renderPlantillaPozo(idParam); break;
+    case 'confirmacion-instalacion': renderConfirmacionInstalacion(param); break;
+    case 'plantilla-pozo': renderPlantillaPozo(param); break;
     case 'mis-adelantos': renderMisAdelantos(); break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);
