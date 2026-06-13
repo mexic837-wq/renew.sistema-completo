@@ -873,12 +873,12 @@ export async function uploadFile(file, type = 'others') {
         }
     }
 
-    // ── CHUNKED UPLOAD FOR LARGE FILES (> 10MB) ──
-    const CHUNK_THRESHOLD = 10 * 1024 * 1024; // 10MB
+    // ── CHUNKED UPLOAD FOR LARGE FILES (> 1MB) ──
+    const CHUNK_THRESHOLD = 1 * 1024 * 1024; // 1MB
     if (finalFile.size > CHUNK_THRESHOLD) {
         console.log(`[UPLOAD] Archivo pesado detectado (${(finalFile.size/1024/1024).toFixed(2)}MB). Usando subida por fragmentos para evitar límites del servidor.`);
         const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-        const CHUNK_SIZE = 1 * 1024 * 1024; // 1 MB chunks
+        const CHUNK_SIZE = 500 * 1024; // 500 KB chunks
         const totalChunks = Math.ceil(finalFile.size / CHUNK_SIZE);
 
         for (let i = 0; i < totalChunks; i++) {

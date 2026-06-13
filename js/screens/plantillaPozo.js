@@ -343,11 +343,7 @@ export function renderPlantillaPozo(proyIdParam = null) {
               const responses = {};
               if (dynamicField && finalPdfUrl) responses[dynamicField.id] = finalPdfUrl;
               
-              // Also explicitly save to the project's metadata
-              if (!project.clientData) project.clientData = {};
-              if (!project.clientData.adjuntos_oficina) project.clientData.adjuntos_oficina = {};
               if (finalPdfUrl) {
-                  project.clientData.adjuntos_oficina.plantilla_pozo_url = finalPdfUrl;
                   project.orden_trabajo_url = finalPdfUrl;
               }
               

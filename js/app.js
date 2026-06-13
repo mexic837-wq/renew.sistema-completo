@@ -154,13 +154,9 @@ window.addEventListener('message', async (e) => {
           }
           
           console.log(`[APP] Syncing PDF URL to local project: ${project.id}`);
-          if (!project.clientData) project.clientData = {};
-          if (!project.clientData.adjuntos_oficina) project.clientData.adjuntos_oficina = {};
           if (isWorkOrder) {
-              project.clientData.adjuntos_oficina.orden_trabajo_url = e.data.pdfUrl;
               project.orden_trabajo_url = e.data.pdfUrl;
           } else {
-              project.clientData.adjuntos_oficina.app_url = e.data.pdfUrl;
               project.contrato_url = e.data.pdfUrl;
           }
           await sgLocal('proyectos_dinamicos', [project]);

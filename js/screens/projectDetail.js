@@ -1081,7 +1081,8 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         </div>
        `;
     } else if (c.tipo === 'Orden de Trabajo') {
-       const cliMetadata = deal.clientData?.adjuntos_oficina || {};
+       const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(c => String(c.id) === String(deal.cliente_id));
+       const cliMetadata = dbClient?.adjuntos_oficina || {};
        const actualPdfUrl = (val && val.startsWith('http')) ? val : (cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url || deal.orden_trabajo_url);
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto') || !!actualPdfUrl;
        html = `
