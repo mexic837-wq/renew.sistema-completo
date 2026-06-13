@@ -218,9 +218,9 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6" style="padding: 16px; padding-bottom: 40px; max-width: 100%; margin: 0 auto;">
+    <div style="display:flex; flex-wrap:wrap; gap:24px; padding: 16px; padding-bottom: 40px; max-width: 100%; margin: 0 auto; width: 100%;">
       <!-- Left Column -->
-      <div style="display:flex; flex-direction:column; gap:24px;">
+      <div style="flex: 0 0 350px; display:flex; flex-direction:column; gap:24px; max-width: 100%;">
         <div id="dynamic-action-section"></div>
 
         ${(pipeline.nombre || '').toLowerCase().includes('water') && currentFaseObj && currentFaseObj.nombre.toLowerCase().includes('instalaci') ? `
@@ -309,7 +309,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>
 
       <!-- Right Column -->
-      <div style="display:flex; flex-direction:column; gap:24px;">
+      <div style="flex: 1; min-width: 320px; display:flex; flex-direction:column; gap:24px;">
         <!-- Chat del Proyecto -->
         <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: calc(100vh - 200px); min-height: 400px; max-height: 650px;">
           <!-- Header -->
