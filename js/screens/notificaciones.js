@@ -162,8 +162,8 @@ export async function renderNotificaciones() {
       };
   });
 
-  // Show global announcements, meetings, and personal notifications (assignments, events, observers, chat mentions)
-  const allItems = [...misAnuncios, ...misMeetings, ...misAsignaciones, ...misEventosCalendario, ...misObservaciones, ...misMencionesChat].sort((a,b) => b.date - a.date);
+  // Show ONLY global announcements, meetings, and calendar events (Reuniones)
+  const allItems = [...misAnuncios, ...misMeetings, ...misEventosCalendario].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
