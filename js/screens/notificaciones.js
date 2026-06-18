@@ -162,8 +162,8 @@ export async function renderNotificaciones() {
       };
   });
 
-  // Show ONLY global announcements, meetings, and calendar events (Reuniones)
-  const allItems = [...misAnuncios, ...misMeetings, ...misEventosCalendario].sort((a,b) => b.date - a.date);
+  // Show ONLY global announcements and global meetings
+  const allItems = [...misAnuncios, ...misMeetings].sort((a,b) => b.date - a.date);
 
   let listHtml = '';
   if (allItems.length === 0) {
