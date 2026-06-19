@@ -10,7 +10,7 @@ import {
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js';
+} from './api.js?v=2';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
