@@ -827,7 +827,8 @@ app.post('/api/db', async (req, res) => {
                     banco_nombre:   u.banco_nombre   || null,
                     banco_cuenta:   u.banco_cuenta   || null,
                     banco_ruta:     u.banco_ruta     || null,
-                    zadarma_sip_id: u.zadarma_sip_id || null
+                    zadarma_sip_id: u.zadarma_sip_id || null,
+                    ver_catalogo:   !!u.ver_catalogo
                 };
                 if (mapped.id === 'u1') console.log('[DEBUG-U1] Mapped Carlos:', JSON.stringify(mapped));
                 return mapped;
@@ -1239,7 +1240,8 @@ app.post('/api/upsert', async (req, res) => {
                 banco_nombre:               u.banco_nombre               || null,
                 banco_cuenta:               u.banco_cuenta               || null,
                 banco_ruta:                 u.banco_ruta                 || null,
-                zadarma_sip_id:             u.zadarma_sip_id             || null
+                zadarma_sip_id:             u.zadarma_sip_id             || null,
+                ver_catalogo:               !!u.ver_catalogo
             }));
         } else if (table === 'calendario_eventos') {
             sanitizedRecords = records.map(ev => ({
