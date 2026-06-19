@@ -7847,7 +7847,7 @@ async function toggleDetailEditMode(id) {
                 const updatedUsr = {
                     ...usr,
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
-                    ver_catalogo
+                    ver_catalogo,
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
