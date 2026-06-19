@@ -1499,6 +1499,7 @@ export async function saveAdminWorker(worker) {
     banco_cuenta:               src.banco_cuenta               || null,
     banco_ruta:                 src.banco_ruta                 || null,
     zadarma_sip_id:             src.zadarma_sip_id             || null,
+    ver_catalogo:               !!src.ver_catalogo,
   };
 
   await saveGranular('usuarios', [sanitized]);
