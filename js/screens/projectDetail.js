@@ -180,7 +180,14 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <h2 style="color:white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${deal.nombre_cliente}</h2>
-      <span class="badge" style="margin-left:auto; background:white; color:${pipeline.color}; font-weight:800; box-shadow: 0 2px 8px rgba(0,0,0,0.1)">${isCompleted ? 'Completado' : currentFaseObj.nombre}</span>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+        ${(isAdmin || (isResponsable && curFidx === 0)) ? `
+         <button id="pd-undo-project-btn" style="background:rgba(255,0,0,0.2); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display:flex; align-items:center; gap:6px; transition:all 0.2s;" title="Regresar a Prospecto (Descartar Proyecto)" onmouseover="this.style.background='rgba(239,68,68,0.9)'; this.style.borderColor='rgba(239,68,68,1)'" onmouseout="this.style.background='rgba(255,0,0,0.2)'; this.style.borderColor='rgba(255,255,255,0.3)'">
+            <i class="fas fa-undo"></i> <span class="hide-mobile">Descartar</span>
+         </button>
+        ` : ''}
+        <span class="badge" style="background:white; color:${pipeline.color}; font-weight:800; box-shadow: 0 2px 8px rgba(0,0,0,0.1)">${isCompleted ? 'Completado' : currentFaseObj.nombre}</span>
+      </div>
     </div>
 
     <div class="progress-section" style="margin-top:0; border-radius:0 0 24px 24px; box-shadow:0 8px 16px rgba(0,0,0,0.1)">
@@ -349,6 +356,37 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
 
   const backBtn2 = document.getElementById('pd-back-btn2');
   if (backBtn2) backBtn2.addEventListener('click', () => navigate('dashboard'));
+
+  const undoBtn = document.getElementById('pd-undo-project-btn');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', async () => {
+      const dbFullDb = getDB();
+      const clientProjects = (dbFullDb.Proyectos_Dinamicos || []).filter(p => String(p.cliente_id) === String(deal.cliente_id));
+      const isLastProject = clientProjects.length <= 1;
+      
+      const msg = isLastProject 
+        ? '¿Estás seguro de que deseas descartar este proyecto por accidente?\\n\\nAl ser su único proyecto, el cliente volverá a ser un prospecto en tu Cartera de Clientes.'
+        : '¿Estás seguro de que deseas descartar este proyecto?';
+
+      if (!confirm(msg)) return;
+      
+      try {
+        undoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        undoBtn.disabled = true;
+        const { deleteAdminProject } = await import('../api.js');
+        await deleteAdminProject(deal.id);
+        const { showToast } = await import('../components/toast.js');
+        showToast('Proyecto descartado. Regresó a prospecto.', 'success');
+        navigate('clients'); // go back to clients
+      } catch (err) {
+        console.error(err);
+        const { showToast } = await import('../components/toast.js');
+        showToast('Error al descartar proyecto', 'error');
+        undoBtn.innerHTML = '<i class="fas fa-undo"></i> <span class="hide-mobile">Descartar</span>';
+        undoBtn.disabled = false;
+      }
+    });
+  }
 
   // Deadline logic
   const deadlineInput = document.getElementById('pd-deadline-input');
