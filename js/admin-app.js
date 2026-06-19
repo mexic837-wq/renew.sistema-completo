@@ -7495,6 +7495,7 @@ async function toggleDetailEditMode(id) {
             }
         }
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
+        if (document.getElementById('det-edit-ver-catalogo')) document.getElementById('det-edit-ver-catalogo').checked = !!usr.ver_catalogo;
         
         const sipIdEl = document.getElementById('det-edit-sip-id');
         if (sipIdEl) sipIdEl.value = usr.zadarma_sip_id || '';
@@ -7798,6 +7799,7 @@ async function toggleDetailEditMode(id) {
             const rango = rankEl ? rankEl.value : (usr.rango || 'auto');
             const rango_solar = rankSolarEl ? rankSolarEl.value : (usr.rango_solar || 'no_aplica');
             const department = deptEl ? deptEl.value.trim() : (usr.department || '');
+            const ver_catalogo = document.getElementById('det-edit-ver-catalogo') ? document.getElementById('det-edit-ver-catalogo').checked : !!usr.ver_catalogo;
             const sede = document.getElementById('det-edit-sede')?.value || (usr.sede || 'orlando');
             const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');
             const dob = dobEl ? dobEl.value : (usr.dob || '');
@@ -7845,6 +7847,7 @@ async function toggleDetailEditMode(id) {
                 const updatedUsr = {
                     ...usr,
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
+                    ver_catalogo
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
