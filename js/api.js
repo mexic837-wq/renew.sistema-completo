@@ -117,6 +117,7 @@ function applyPostProcessing(freshDB) {
             if (phases.length > 0) {
                 const phase1 = phases[0];
                 const hasMetodoPago = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && (c.etiqueta.toLowerCase().includes('pago') || c.etiqueta.toLowerCase().includes('cash')));
+                let injectedFields = [];
                 if (!hasMetodoPago) {
                     const newField = {
                         id: 'cf_' + Date.now(),
@@ -128,14 +129,32 @@ function applyPostProcessing(freshDB) {
                         orden: 0
                     };
                     freshDB.Admin_Campos_Formulario.unshift(newField); // Add to beginning of phase 1
-                    
+                    injectedFields.push(newField);
+                }
+                
+                const hasFinanciera = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && c.etiqueta.toLowerCase().includes('financiera'));
+                if (!hasFinanciera) {
+                    const newFinanciera = {
+                        id: 'cf_fin_' + Date.now(),
+                        fase_id: phase1.id,
+                        etiqueta: 'Financiera',
+                        tipo: 'Desplegable',
+                        opciones: 'GoodLeap, Dividend, Mosaic, Aqua, Sunlight, Otro',
+                        es_opcional: false,
+                        orden: 1
+                    };
+                    freshDB.Admin_Campos_Formulario.splice(1, 0, newFinanciera); // Add after Método de Pago
+                    injectedFields.push(newFinanciera);
+                }
+                
+                if (injectedFields.length > 0) {
                     // Fire-and-forget save to backend
                     if (window._canSaveAutoFields) {
-                         saveGranular('admin_campos_formulario', [newField]).catch(() => {});
+                         saveGranular('admin_campos_formulario', injectedFields).catch(() => {});
                     } else {
                          window._canSaveAutoFields = true;
                          setTimeout(() => {
-                             saveGranular('admin_campos_formulario', [newField]).catch(() => {});
+                             saveGranular('admin_campos_formulario', injectedFields).catch(() => {});
                          }, 5000); // delay to not block init
                     }
                 }
