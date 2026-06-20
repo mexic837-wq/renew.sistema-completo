@@ -1138,7 +1138,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
        const isThisMetodoPago = labelLower.includes('método de pago') || labelLower.includes('metodo de pago') || labelLower.includes('pago') || labelLower.includes('cash');
        let hideStyle = '';
        if (isMetodoPagoEmpty && !isThisMetodoPago) hideStyle = 'display:none;';
-       else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion'))) hideStyle = 'display:none;';
+       else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || labelLower.includes('financiera'))) hideStyle = 'display:none;';
        
        html = `<div class="input-wrap select-wrap no-icon credit-dependent-field" style="${hideStyle}">
                  <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
@@ -1411,7 +1411,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      let isHidden = false;
      if (isMetodoPagoEmpty && !isThisMetodoPago) {
          isHidden = true;
-     } else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || c.tipo === 'Aplicación de Crédito')) {
+     } else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || labelLower.includes('financiera') || c.tipo === 'Aplicación de Crédito')) {
          isHidden = true;
      }
      

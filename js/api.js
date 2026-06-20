@@ -158,6 +158,15 @@ function applyPostProcessing(freshDB) {
                          }, 5000); // delay to not block init
                     }
                 }
+                
+                // Deduplicate Financiera fields if multiple were injected by race conditions
+                const financieras = freshDB.Admin_Campos_Formulario.filter(c => c.fase_id === phase1.id && c.etiqueta.toLowerCase().includes('financiera'));
+                if (financieras.length > 1) {
+                    const keepId = financieras[0].id;
+                    const idsToDelete = financieras.slice(1).map(f => f.id);
+                    freshDB.Admin_Campos_Formulario = freshDB.Admin_Campos_Formulario.filter(c => !idsToDelete.includes(c.id));
+                    deleteRecords('admin_campos_formulario', idsToDelete).catch(() => {});
+                }
             }
         }
     }
