@@ -404,12 +404,14 @@ async function dispatchWhatsAppNotif(destId, mensajeDirecto, link, db, isAdminOn
     };
     
     try {
+        console.log('[WP Webhook] Firing to:', N8N_GENERAL_NOTIF_WEBHOOK, payload);
         fetch(N8N_GENERAL_NOTIF_WEBHOOK, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-        }).catch(e => console.warn('WP Webhook error:', e));
-    } catch(e) {}
+        }).then(r => console.log('[WP Webhook] Response status:', r.status))
+          .catch(e => console.warn('WP Webhook error:', e));
+    } catch(e) { console.error('[WP Webhook] Exception:', e); }
 }
 
 function checkAndTriggerWhatsAppNotifs(table, records, db) {
@@ -1983,6 +1985,22 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
     const newAnswers = db.Respuestas_Dinamicas.filter(r => r.proyecto_id === newProyId);
     if (newAnswers.length > 0) {
       await saveGranular('respuestas_dinamicas', newAnswers);
+    }
+  }
+
+  // 4. Dispatch WhatsApp notification for project creation (directly, bypassing cache check)
+  if (newProyecto) {
+    const cliForNotif = db.Clientes_Maestro.find(c => c.id === finalClienteId);
+    const cliNameForNotif = cliForNotif ? cliForNotif.nombre : 'un cliente';
+    const pipelineNameForNotif = pipeline ? pipeline.nombre : 'desconocido';
+    const linkForNotif = `https://renewgroup.site/index.html#proyecto?id=${newProyecto.id}`;
+    const msg = `Nuevo proyecto creado en ${pipelineNameForNotif} para ${cliNameForNotif}.`;
+    // Notify the responsible rep
+    if (responsable_id) {
+      dispatchWhatsAppNotif(responsable_id, msg, linkForNotif, db);
+    } else {
+      // No specific rep, notify admin group only
+      dispatchWhatsAppNotif(null, msg, linkForNotif, db, true);
     }
   }
 
