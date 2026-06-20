@@ -55,7 +55,7 @@ window.openInternalChat = openChat;
 import { showToast } from './components/toast.js';
 window._showToast = showToast;
 
-import { advanceDealPhase, syncKanbanActivity } from './api.js';
+import { advanceDealPhase, syncKanbanActivity, createDynamicDeal } from './api.js';
 
 // Listen for cross-frame messages (e.g., from Work Order iframe)
 window.addEventListener('message', async (e) => {
@@ -73,8 +73,29 @@ window.addEventListener('message', async (e) => {
   if (e.data && (e.data.type === 'WORK_ORDER_SUBMITTED' || e.data.type === 'CREDIT_APP_SUBMITTED')) {
     console.log(`[APP] Received ${e.data.type} message:`, e.data);
     try {
-      let { proyectoId, formData } = e.data;
-      if (!proyectoId) {
+      let { proyectoId, formData, isNewClient } = e.data;
+      const db = getDB();
+
+      if (isNewClient && !proyectoId) {
+          console.log('[APP] isNewClient flag detected. Creating new Client and Project automatically...');
+          const nombre = formData.applicant?.fullName || formData.purchaser || 'Nuevo Cliente';
+          const email = formData.applicant?.email || formData.buyerEmail || '';
+          const phone = formData.applicant?.phone || formData.buyerPhone || '';
+          const address = formData.applicant?.address || formData.buyerAddress || '';
+          const dob = formData.applicant?.dateOfBirth || '-';
+          const state_id = formData.applicant?.state || '-';
+
+          const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
+          // pipelineName defaults to "Water" since it's the RENEW WATER form
+          const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: 'Water' });
+          
+          if (newProyRes && newProyRes.id) {
+              proyectoId = newProyRes.id;
+              console.log('[APP] Auto-created project ID:', proyectoId);
+          } else {
+              throw new Error("No se pudo auto-crear el proyecto para el nuevo cliente.");
+          }
+      } else if (!proyectoId) {
         console.warn('[APP] No proyectoId in message, skipping advancement.');
         return;
       }

@@ -72,6 +72,9 @@
       
       <div id="credit-client-search-area" style="position: relative;">
         <input type="text" id="credit-client-search-input" placeholder="Buscar por nombre o teléfono..." autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" oninput="window.parent.postMessage({ type: 'SEARCH_CLIENTS', query: this.value }, '*')">
+        <button type="button" onclick="setNewCreditClient()" style="margin-top: 10px; width: 100%; padding: 8px; background: #e0e7ff; color: #3730a3; border: 1px dashed #a5b4fc; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#c7d2fe'" onmouseout="this.style.background='#e0e7ff'">
+          ¿No está en el sistema? Crear uno nuevo
+        </button>
         <div id="credit-client-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 50; max-height: 200px; overflow-y: auto;">
           <!-- Results populated here by app.js postMessage -->
         </div>

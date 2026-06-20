@@ -284,9 +284,15 @@ async function handleCreditFormSubmit(e) {
         resetCreditForm(form);
         
         const pdfUrl = response.headers.get('X-Document-Url');
-        if (proyectoId) {
-          window.parent.postMessage({ type: 'CREDIT_APP_SUBMITTED', proyectoId, formData: payload, pdfUrl: pdfUrl }, '*');
-        }
+        const isNewClient = clienteId === 'NEW';
+        window.parent.postMessage({
+          type: 'CREDIT_APP_SUBMITTED',
+          proyectoId: isNewClient ? null : proyectoId,
+          clienteId: isNewClient ? null : clienteId,
+          isNewClient: isNewClient,
+          formData: payload,
+          pdfUrl: pdfUrl
+        }, '*');
       };
     } else {
       let errorMsg = `HTTP ${response.status}`;
@@ -641,6 +647,10 @@ function setCreditClient(id, nombre) {
     formEl.style.pointerEvents = 'auto';
   }
 }
+
+window.setNewCreditClient = function() {
+  setCreditClient('NEW', 'Nuevo Cliente (se creará automáticamente)');
+};
 
 function resetCreditClientSelection() {
   document.getElementById('selected_client_id').value = '';
