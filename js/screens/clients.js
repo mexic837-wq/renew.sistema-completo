@@ -865,7 +865,7 @@ function _showProspectoModal(client, user, db) {
           </div>
           <div style="flex:1;">
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Teléfono</p>
-            <p style="font-size:0.95rem;font-weight:700;color:var(--primary);margin:0;">${client.telefono || 'No registrado'}</p>
+            <input type="text" id="prospecto-telefono" value="${client.telefono || ''}" placeholder="Añadir teléfono..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--primary);font-size:0.95rem;font-weight:700;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid var(--primary)'" onblur="this.style.borderBottom='1px solid transparent'">
           </div>
           ${client.telefono ? `` : ''}
         </div>
@@ -874,9 +874,9 @@ function _showProspectoModal(client, user, db) {
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
              <i class="fa-solid fa-envelope" style="color:#6366f1; font-size:1rem;"></i>
           </div>
-          <div>
+          <div style="flex:1;">
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Correo Electrónico</p>
-            <p style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin:0;word-break:break-all;">${client.email || 'No registrado'}</p>
+            <input type="email" id="prospecto-email" value="${client.email || ''}" placeholder="Añadir correo..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--text-primary);font-size:0.9rem;font-weight:600;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid #6366f1'" onblur="this.style.borderBottom='1px solid transparent'">
           </div>
         </div>
         
@@ -903,28 +903,40 @@ function _showProspectoModal(client, user, db) {
   document.body.appendChild(modal);
 
   const notesEl = modal.querySelector('#prospecto-notes');
+  const telEl = modal.querySelector('#prospecto-telefono');
+  const emailEl = modal.querySelector('#prospecto-email');
   const saveBtn = modal.querySelector('#btn-save-notes');
 
-  // Show save button when notes are changed
-  notesEl.addEventListener('input', () => {
-    if (notesEl.value !== (client.notas || '')) {
+  const checkChanges = () => {
+    if (notesEl.value !== (client.notas || '') || 
+        telEl.value.trim() !== (client.telefono || '').trim() ||
+        emailEl.value.trim() !== (client.email || '').trim()) {
       saveBtn.style.display = 'block';
     } else {
       saveBtn.style.display = 'none';
     }
-  });
+  };
+
+  notesEl.addEventListener('input', checkChanges);
+  telEl.addEventListener('input', checkChanges);
+  emailEl.addEventListener('input', checkChanges);
 
   saveBtn.addEventListener('click', async () => {
     const newNotes = notesEl.value;
+    const newTel = telEl.value.trim();
+    const newEmail = emailEl.value.trim();
+    
     const saveOriginalHtml = saveBtn.innerHTML;
     saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     try {
       const { saveGranular } = await import('../api.js');
-      await saveGranular('clientes_maestro', [{ ...client, notas: newNotes }]);
+      await saveGranular('clientes_maestro', [{ ...client, notas: newNotes, telefono: newTel, email: newEmail }]);
       client.notas = newNotes; // Update locally
+      client.telefono = newTel;
+      client.email = newEmail;
       saveBtn.innerHTML = '¡Guardado!';
       saveBtn.style.background = '#10b981'; // Green
-      import('../components/toast.js').then(m => m.showToast('Notas guardadas', 'success'));
+      import('../components/toast.js').then(m => m.showToast('Datos guardados', 'success'));
       setTimeout(() => {
         saveBtn.style.display = 'none';
         saveBtn.innerHTML = 'Guardar';
@@ -933,7 +945,7 @@ function _showProspectoModal(client, user, db) {
     } catch (e) {
       console.error(e);
       saveBtn.innerHTML = 'Error';
-      import('../components/toast.js').then(m => m.showToast('Error al guardar notas', 'error'));
+      import('../components/toast.js').then(m => m.showToast('Error al guardar datos', 'error'));
       setTimeout(() => { saveBtn.innerHTML = saveOriginalHtml; }, 2000);
     }
   });
