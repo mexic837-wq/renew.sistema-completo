@@ -1428,7 +1428,8 @@ async function initCCLeaderboardChart(user) {
     const ref = p.fecha_gestion || p.fecha_creacion;
     if (!ref) return false;
     const d = new Date(ref);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    const juneFirst = new Date('2026-06-01T00:00:00');
+    return d >= juneFirst;
   });
 
   // Aggregate by operator
@@ -1460,7 +1461,7 @@ async function initCCLeaderboardChart(user) {
   const monthName = now.toLocaleDateString('en-US', { month: 'long' });
   if (tab) tab.innerHTML = `
     <h3 style="font-size:1.1rem;color:var(--text-primary);margin-bottom:4px;">\uD83C\uDFC6 Top Call Center</h3>
-    <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:16px;text-transform:capitalize;">${monthName} ${currentYear}</p>
+    <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:16px;text-transform:capitalize;">Desde Junio 2026</p>
     <div id="cc-leaderboard-list" style="display:flex;flex-direction:column;gap:10px;"></div>
   `;
 
@@ -1541,7 +1542,8 @@ async function initLeaderboardChart(user) {
     if (!dStr.includes('T')) dStr += 'T12:00:00';
     const pDate = new Date(dStr);
     
-    if (isNaN(pDate.getTime()) || pDate.getMonth() !== currentMonth || pDate.getFullYear() !== currentYear) return;
+    const juneFirst = new Date('2026-06-01T00:00:00');
+    if (isNaN(pDate.getTime()) || pDate < juneFirst) return;
     
     // Credit goes to tecnico if tecnico, otherwise to the assigned vendor in client OR the project creator
     let targetUserId = null;
@@ -1699,7 +1701,7 @@ async function initLeaderboardChart(user) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
         <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
       </div>
-      <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${activeUnit} \u00B7 ${now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
+      <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${activeUnit} \u00B7 Desde Junio 2026</p>
     </div>
     <div style="background:linear-gradient(180deg, rgba(0,223,191,0.08) 0%, var(--surface-alt) 60%);border-radius:20px;padding:24px 12px 0;margin-bottom:16px;border:1px solid rgba(0,223,191,0.1);">
       <p style="text-align:center;font-size:.75rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin:0 0 18px;">${isTecnico ? 'MEJORES T\u00C9CNICOS' : (isCallCenter ? 'MEJORES OPERADORES' : t('lb_top_performers'))}</p>
