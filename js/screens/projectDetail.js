@@ -1141,7 +1141,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
        else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || labelLower.includes('financiera'))) hideStyle = 'display:none;';
        
        html = `<div class="input-wrap select-wrap no-icon credit-dependent-field" style="${hideStyle}">
-                 <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option disabled ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
+                 <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option value="" ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
                </div>`;
     } else if (c.tipo === 'Aplicación de Crédito') {
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');

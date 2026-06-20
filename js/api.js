@@ -138,8 +138,8 @@ function applyPostProcessing(freshDB) {
                         id: 'cf_fin_' + Date.now(),
                         fase_id: phase1.id,
                         etiqueta: 'Financiera',
-                        tipo: 'Desplegable',
-                        opciones: 'GoodLeap, Dividend, Mosaic, Aqua, Sunlight, Otro',
+                        tipo: 'Texto',
+                        opciones: '',
                         es_opcional: false,
                         orden: 1
                     };
@@ -166,6 +166,20 @@ function applyPostProcessing(freshDB) {
                     const idsToDelete = financieras.slice(1).map(f => f.id);
                     freshDB.Admin_Campos_Formulario = freshDB.Admin_Campos_Formulario.filter(c => !idsToDelete.includes(c.id));
                     deleteRecords('admin_campos_formulario', idsToDelete).catch(() => {});
+                }
+                
+                // Convert Financiera to Text if it was injected as Dropdown previously
+                const financierasToUpdate = freshDB.Admin_Campos_Formulario.filter(c => c.fase_id === phase1.id && c.etiqueta.toLowerCase().includes('financiera') && c.tipo !== 'Texto');
+                if (financierasToUpdate.length > 0) {
+                    financierasToUpdate.forEach(f => {
+                        f.tipo = 'Texto';
+                        f.opciones = '';
+                    });
+                    if (window._canSaveAutoFields) {
+                        saveGranular('admin_campos_formulario', financierasToUpdate).catch(() => {});
+                    } else {
+                        setTimeout(() => { saveGranular('admin_campos_formulario', financierasToUpdate).catch(() => {}); }, 6000);
+                    }
                 }
             }
         }
