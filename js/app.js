@@ -829,8 +829,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (hash && SCREENS.includes(hash.split('/')[0])) {
     handleHashChange();
   } else {
-    // Check if user needs hub selection
-    if (user && user.unidades && user.unidades.length > 1 && !localStorage.getItem('active_unit')) {
+    // ── Deep Link Handler (from WhatsApp notifications) ──
+    const urlParams = new URLSearchParams(window.location.search);
+    const deepProyecto = urlParams.get('deepProyecto');
+    const deepCliente  = urlParams.get('deepCliente');
+    const deepScreen   = urlParams.get('deepScreen');
+
+    if (deepProyecto && deepCliente && user) {
+      // Navigate to project detail directly
+      navigate('dashboard');
+      setTimeout(() => navigate('detail', { projectId: deepProyecto, clienteId: deepCliente }), 300);
+    } else if (deepScreen && user && SCREENS.includes(deepScreen)) {
+      navigate(deepScreen);
+    } else if (user && user.unidades && user.unidades.length > 1 && !localStorage.getItem('active_unit')) {
       navigate('hub');
     } else {
       navigate(user ? 'dashboard' : 'login');

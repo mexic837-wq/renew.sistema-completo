@@ -392,12 +392,13 @@ async function dispatchWhatsAppNotif(destId, mensajeDirecto, link, db, isAdminOn
     let targetUser = null;
     if (destId) targetUser = allUsers.find(u => String(u.id) === String(destId));
     
+    const fullName = targetUser ? `${targetUser.nombre || ''} ${targetUser.apellido || ''}`.trim() : null;
     const payload = {
         event: "notificacion_general",
-        destinatario_nombre: targetUser ? (targetUser.nombre + ' ' + (targetUser.apellido || '')).trim() : 'Administración',
+        destinatario_nombre: fullName || 'Administración',
         destinatario_telefono: targetUser ? (targetUser.telefono || '') : '',
         mensaje_directo: mensajeDirecto,
-        mensaje_admin: targetUser ? `[Notificación para ${targetUser.nombre}] ${mensajeDirecto}` : `[Notificación Global] ${mensajeDirecto}`,
+        mensaje_admin: fullName ? `[Notificación para ${fullName}] ${mensajeDirecto}` : `[Notificación Global] ${mensajeDirecto}`,
         link: link,
         timestamp: new Date().toISOString(),
         is_admin_only: isAdminOnly
@@ -426,7 +427,7 @@ function checkAndTriggerWhatsAppNotifs(table, records, db) {
                 if (!oldRec) {
                     const participants = [...(rec.attendees||[]), ...(rec.colaboradores||[])];
                     participants.forEach(p => {
-                        dispatchWhatsAppNotif(p.id, `Tienes un evento programado: ${rec.nombre || 'Evento'}.`, `https://renewgroup.site/index.html#calendario`, db);
+                        dispatchWhatsAppNotif(p.id, `Tienes un evento programado: ${rec.nombre || 'Evento'}.`, `https://renewgroup.site/index.html?deepScreen=mi-calendario`, db);
                     });
                 }
             });
@@ -437,7 +438,7 @@ function checkAndTriggerWhatsAppNotifs(table, records, db) {
                 const oldRec = db.Proyectos_Dinamicos.find(x => x.id === rec.id);
                 const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(rec.cliente_id));
                 const cliName = cli ? cli.nombre : 'un cliente';
-                const link = `https://renewgroup.site/index.html#proyecto?id=${rec.id}`;
+                const link = `https://renewgroup.site/index.html?deepProyecto=${rec.id}&deepCliente=${rec.cliente_id}`;
                 
                 if (oldRec) {
                     if (rec.tecnico_id && String(rec.tecnico_id) !== String(oldRec.tecnico_id)) {
@@ -493,7 +494,7 @@ function checkAndTriggerWhatsAppNotifs(table, records, db) {
                         dispatchWhatsAppNotif(null, `Nuevo adelanto solicitado por ${rec.trabajador_nombre}. Monto: $${rec.monto}`, `https://renewgroup.site/index.html#hrhub`, db, true);
                     }
                 } else if (oldRec.estado !== rec.estado && rec.estado !== 'Pendiente') {
-                    dispatchWhatsAppNotif(rec.trabajador_id, `Tu adelanto de $${rec.monto} ha sido ${rec.estado}.`, `https://renewgroup.site/index.html#mis-adelantos`, db);
+                    dispatchWhatsAppNotif(rec.trabajador_id, `Tu adelanto de $${rec.monto} ha sido ${rec.estado}.`, `https://renewgroup.site/index.html?deepScreen=mis-adelantos`, db);
                 }
             });
         }
@@ -1993,7 +1994,7 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
     const cliForNotif = db.Clientes_Maestro.find(c => c.id === finalClienteId);
     const cliNameForNotif = cliForNotif ? cliForNotif.nombre : 'un cliente';
     const pipelineNameForNotif = pipeline ? pipeline.nombre : 'desconocido';
-    const linkForNotif = `https://renewgroup.site/index.html#proyecto?id=${newProyecto.id}`;
+    const linkForNotif = `https://renewgroup.site/index.html?deepProyecto=${newProyecto.id}&deepCliente=${finalClienteId}`;
     const msg = `Nuevo proyecto creado en ${pipelineNameForNotif} para ${cliNameForNotif}.`;
     // Notify the responsible rep
     if (responsable_id) {
