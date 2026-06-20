@@ -209,10 +209,16 @@
             <div class="field-group span-full">
               <label for="ca_id_photo">Foto de Identificación (ID Photo) <span class="required">*</span></label>
               <div class="file-upload-wrapper">
-                <input type="file" id="ca_id_photo" name="idPhoto" accept="image/*" required style="display: none;" onchange="handleFileSelect(this, 'ca_id_photo_preview')" />
-                <button type="button" class="btn-secondary" onclick="document.getElementById('ca_id_photo').click()">
-                  📸 Tomar / Subir Foto ID
-                </button>
+                <input type="file" id="ca_id_photo_cam" name="idPhotoCam" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(this, 'ca_id_photo_preview')" />
+                <input type="file" id="ca_id_photo_file" name="idPhoto" accept="image/*" style="display: none;" onchange="handleFileSelect(this, 'ca_id_photo_preview')" />
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('ca_id_photo_cam').click()">
+                    📸 Tomar Foto
+                  </button>
+                  <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('ca_id_photo_file').click()">
+                    📁 Subir Archivo
+                  </button>
+                </div>
                 <div id="ca_id_photo_preview" class="file-preview"></div>
               </div>
             </div>
@@ -331,10 +337,16 @@
             <div class="field-group span-full">
               <label for="cb_id_photo">Foto de Identificación Co-Aplicante (ID Photo) <span class="optional-badge">Opcional</span></label>
               <div class="file-upload-wrapper">
-                <input type="file" id="cb_id_photo" name="co_idPhoto" accept="image/*" style="display: none;" onchange="handleFileSelect(this, 'cb_id_photo_preview')" />
-                <button type="button" class="btn-secondary" onclick="document.getElementById('cb_id_photo').click()">
-                  📸 Tomar / Subir Foto ID Co-Aplicante
-                </button>
+                <input type="file" id="cb_id_photo_cam" name="co_idPhotoCam" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(this, 'cb_id_photo_preview')" />
+                <input type="file" id="cb_id_photo_file" name="co_idPhoto" accept="image/*" style="display: none;" onchange="handleFileSelect(this, 'cb_id_photo_preview')" />
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('cb_id_photo_cam').click()">
+                    📸 Tomar Foto
+                  </button>
+                  <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('cb_id_photo_file').click()">
+                    📁 Subir Archivo
+                  </button>
+                </div>
                 <div id="cb_id_photo_preview" class="file-preview"></div>
               </div>
             </div>
@@ -618,10 +630,16 @@
             <div class="field-group span-full">
               <label for="wo_id_photo">Foto de Identificación (ID Photo) <span class="required">*</span></label>
               <div class="file-upload-wrapper">
-                <input type="file" id="wo_id_photo" name="wo_idPhoto" accept="image/*" required style="display: none;" onchange="handleFileSelect(this, 'wo_id_photo_preview')" />
-                <button type="button" class="btn-secondary" onclick="document.getElementById('wo_id_photo').click()">
-                  📸 Tomar / Subir Foto ID
-                </button>
+                <input type="file" id="wo_id_photo_cam" name="wo_idPhotoCam" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(this, 'wo_id_photo_preview')" />
+                <input type="file" id="wo_id_photo_file" name="wo_idPhoto" accept="image/*" style="display: none;" onchange="handleFileSelect(this, 'wo_id_photo_preview')" />
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('wo_id_photo_cam').click()">
+                    📸 Tomar Foto
+                  </button>
+                  <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('wo_id_photo_file').click()">
+                    📁 Subir Archivo
+                  </button>
+                </div>
                 <div id="wo_id_photo_preview" class="file-preview"></div>
               </div>
             </div>
