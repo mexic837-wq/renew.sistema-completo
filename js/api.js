@@ -2538,8 +2538,15 @@ export function isProjectFinished(p, db) {
       const faseNom = String(faseObj.nombre || '').toLowerCase();
       if (finishedTerms.some(term => faseNom.includes(term)) || faseNom.includes('completado')) return true;
 
-      // Lógica general (solicitada): contar como completado (venta) desde la fase 2 en adelante para todos
-      if (typeof faseObj.orden === 'number' && faseObj.orden >= 2) return true;
+      // Lógica específica para SOLAR: contar como completado (venta) desde la fase 2 en adelante
+      if (db.Admin_Pipelines) {
+        const pipeline = db.Admin_Pipelines.find(pip => pip.id === faseObj.pipeline_id);
+        if (pipeline && String(pipeline.nombre || '').toLowerCase().includes('solar')) {
+          if (typeof faseObj.orden === 'number' && faseObj.orden >= 2) {
+             return true;
+          }
+        }
+      }
     }
   }
   return false;
