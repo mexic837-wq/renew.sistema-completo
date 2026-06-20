@@ -760,6 +760,7 @@ const _applyTheme = (theme) => {
   }
 };
 
+let lastThemeToggle = 0;
 document.addEventListener('click', (e) => {
   const themeBtn = e.target.closest('#btn-theme-toggle') || e.target.closest('#btn-theme-toggle-mobile');
   const sidebarToggleBtn = e.target.closest('#btn-toggle-sidebar');
@@ -774,7 +775,10 @@ document.addEventListener('click', (e) => {
 
   if (themeBtn) {
     e.preventDefault();
-    e.stopPropagation();
+    e.stopImmediatePropagation();
+    const now = Date.now();
+    if (now - lastThemeToggle < 500) return;
+    lastThemeToggle = now;
     const isCurrentlyDark = document.body.classList.contains('dark-theme');
     const newTheme = isCurrentlyDark ? 'light' : 'dark';
     localStorage.setItem('theme', newTheme);
