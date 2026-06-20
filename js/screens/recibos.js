@@ -161,6 +161,7 @@ export function renderMisRecibos() {
   renderDeptFilters();
 
   function getReciboDept(r, db) {
+      if (r.departamento) return r.departamento.toLowerCase();
       if (r.datos_json) {
           if (r.datos_json.departamento) {
               let d = r.datos_json.departamento.toLowerCase();
@@ -173,14 +174,30 @@ export function renderMisRecibos() {
               return d;
           }
       }
-      if (r.proyecto_id && db.Clientes_Maestro) {
-          const cli = db.Clientes_Maestro.find(c => String(c.id) === String(r.proyecto_id) || String(c.proyecto_id) === String(r.proyecto_id));
-          if (cli) {
-              if (cli.departamentos_activos && cli.departamentos_activos.length) {
-                  return cli.departamentos_activos[0].toLowerCase().replace('renew ', '');
+
+      if (r.proyecto_id) {
+          const proyectos = db.Proyectos_Dinamicos || [];
+          const pipelines = db.Admin_Pipelines || [];
+          const proy = proyectos.find(p => String(p.id) === String(r.proyecto_id));
+          if (proy) {
+              const pip = pipelines.find(p => String(p.id) === String(proy.pipeline_id));
+              if (pip) {
+                  const n = (pip.nombre || '').toLowerCase();
+                  if (n.includes('water')) return 'water';
+                  if (n.includes('solar')) return 'solar';
+                  if (n.includes('home'))  return 'home';
               }
-              if (cli.departamento) return cli.departamento.toLowerCase().replace('renew ', '');
-              if (cli.empresa) return cli.empresa.toLowerCase().replace('renew ', '');
+          }
+          
+          if (db.Clientes_Maestro) {
+              const cli = db.Clientes_Maestro.find(c => String(c.id) === String(r.proyecto_id) || String(c.proyecto_id) === String(r.proyecto_id));
+              if (cli) {
+                  if (cli.departamentos_activos && cli.departamentos_activos.length) {
+                      return cli.departamentos_activos[0].toLowerCase().replace('renew ', '');
+                  }
+                  if (cli.departamento) return cli.departamento.toLowerCase().replace('renew ', '');
+                  if (cli.empresa) return cli.empresa.toLowerCase().replace('renew ', '');
+              }
           }
       }
       return '';
