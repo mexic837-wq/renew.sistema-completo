@@ -163,11 +163,11 @@ body {
   position: fixed !important;
   inset: 0 !important;
   z-index: 200 !important;
-  background: var(--bg) !important;
+  background: #f8fafc !important; /* Force light background to blend with iframe */
   display: flex !important;
   flex-direction: column !important;
   min-height: unset !important;
-  height: 100dvh !important;
+  height: 100% !important;
   overflow: hidden !important;
 }
 .iframe-screen-frame {
