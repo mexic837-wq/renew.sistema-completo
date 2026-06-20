@@ -866,7 +866,7 @@ function _showProspectoModal(client, user, db) {
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Teléfono</p>
             <p style="font-size:0.95rem;font-weight:700;color:var(--primary);margin:0;">${client.telefono || 'No registrado'}</p>
           </div>
-          ${client.telefono ? \`<a href="tel:\${client.telefono}" style="background:var(--primary);color:#0f172a;border:none;border-radius:10px;padding:8px 14px;font-weight:800;font-size:0.8rem;text-decoration:none;flex-shrink:0;"><i class="fa-solid fa-phone"></i> Llamar</a>\` : ''}
+          ${client.telefono ? `<a href="tel:${client.telefono}" style="background:var(--primary);color:#0f172a;border:none;border-radius:10px;padding:8px 14px;font-weight:800;font-size:0.8rem;text-decoration:none;flex-shrink:0;"><i class="fa-solid fa-phone"></i> Llamar</a>` : ''}
         </div>
         
         <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
