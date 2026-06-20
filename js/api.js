@@ -2021,7 +2021,8 @@ export async function getDealById(dealId) {
   const specificUsers = fase.usuarios_especificos || [];
   const rolEncargadoNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const isMyTurn = userRolNorm === rolEncargadoNorm || (userRolNorm.includes('call') && rolEncargadoNorm.includes('call')) || specificUsers.includes(user.id);
-  const isLocked = !isAdmin && !isMyTurn;
+  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
+  const isLocked = !isAdmin && !isMyTurn && !isResponsable;
 
   return { 
     ...p,
@@ -2204,6 +2205,12 @@ export async function advanceDealPhase(dealId, respuestas, options = {}) {
                   break;
               }
           }
+      }
+      
+      // ── SET FECHA CIERRE FOR SOLAR PHASE 2 ──
+      const isRenewSolar = pipelineObj && pipelineObj.nombre.toLowerCase().includes('solar');
+      if (isRenewSolar && nextFidx >= 1 && !p.fecha_cierre) {
+          p.fecha_cierre = new Date().toISOString().split('T')[0];
       }
       
       if (nextFidx < fases.length) {
