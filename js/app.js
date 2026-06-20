@@ -302,6 +302,30 @@ import { saveDB, getDB } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
 
+// ── Test function para probar el webhook de WhatsApp directamente desde la consola ──
+window.testWpWebhook = async function() {
+  const WH = 'https://n8n.renewgroup.site/webhook/notifiaciones-generales';
+  const payload = {
+    event: "notificacion_general",
+    destinatario_nombre: "Test Usuario",
+    destinatario_telefono: "",
+    mensaje_directo: "Mensaje de prueba desde la consola.",
+    mensaje_admin: "[Notificación para Test] Mensaje de prueba desde la consola.",
+    link: "https://renewgroup.site/index.html#hub",
+    timestamp: new Date().toISOString(),
+    is_admin_only: false
+  };
+  console.log('[TEST WP] Enviando a:', WH);
+  try {
+    const r = await fetch(WH, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    console.log('[TEST WP] Status:', r.status, r.statusText);
+    const txt = await r.text();
+    console.log('[TEST WP] Response:', txt);
+  } catch(e) {
+    console.error('[TEST WP] Error:', e);
+  }
+};
+
 window.verificarAnunciosNuevos = async function() {
   const user = getCurrentUser();
   if (!user || !user.id) return;
