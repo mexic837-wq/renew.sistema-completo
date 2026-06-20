@@ -516,7 +516,14 @@ export function navigate(screen, param = null) {
   }
 
   // Update hash (for browser history / deep linking)
-  const hash = param ? `#${screen}/${param}` : `#${screen}`;
+  // For detail screen, serialize param object as path: #detail/PROYECTO_ID/CLIENTE_ID
+  let hashParam;
+  if (screen === 'detail' && param && typeof param === 'object') {
+    hashParam = `${param.projectId}/${param.clienteId}`;
+  } else {
+    hashParam = (param && typeof param !== 'object') ? param : null;
+  }
+  const hash = hashParam ? `#${screen}/${hashParam}` : `#${screen}`;
   if (window.location.hash !== hash) {
     window.history.pushState({ screen, param }, '', hash);
   }
@@ -684,7 +691,23 @@ function handleHashChange() {
       case 'dashboard':  renderDashboard();       break;
       case 'notificaciones': renderNotificaciones(); break;
       case 'new-client': renderNewClient();       break;
-      case 'detail':     renderDetail(param);     break;
+      case 'detail': {
+        // Hash format: #detail/PROYECTO_ID/CLIENTE_ID
+        const projId = parts[1];
+        const cliId = parts[2];
+        if (projId && cliId) {
+          renderDetail({ projectId: projId, clienteId: cliId });
+        } else if (projId) {
+          // Only project ID — look up cliente from DB
+          const db = getDB();
+          const proyecto = (db.Proyectos_Dinamicos || []).find(p => p.id === projId);
+          if (proyecto) renderDetail({ projectId: projId, clienteId: proyecto.cliente_id });
+          else renderDetail(projId); // fallback
+        } else {
+          navigate('dashboard');
+        }
+        break;
+      }
       case 'academy':    renderAcademy();         break;
       case 'menu':       renderMenu();            break;
       case 'inventory-tech': renderInventoryTech(param); break;
