@@ -253,6 +253,7 @@ async function _renderList(user, container) {
       }
   }
 
+  if (activeDeptFilter === null) activeDeptFilter = localStorage.getItem('active_unit') || 'Todos';
   const pipelineKeyword = activeDeptFilter === 'Todos' ? null : activeDeptFilter.replace('Renew ', '').trim();
   const activePipelineObj = pipelineKeyword ? (db.Admin_Pipelines || []).find(pip => pip.nombre.toLowerCase().trim() === pipelineKeyword.toLowerCase().trim() || pip.nombre.toLowerCase().trim() === ('renew ' + pipelineKeyword).toLowerCase().trim()) : null;
   const allProys = [...(db.Proyectos_Dinamicos || [])].sort((a,b) => new Date(b.created_at || b.fecha || 0) - new Date(a.created_at || a.fecha || 0));
