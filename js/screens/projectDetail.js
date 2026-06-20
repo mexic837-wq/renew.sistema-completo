@@ -1019,7 +1019,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   let isMetodoPagoEmpty = false;
   if (metodoPagoField) {
       const resp = existingResp.find(r => r.campo_id === metodoPagoField.id);
-      if (!resp || !resp.valor || resp.valor.trim() === 'Elegir...' || resp.valor.trim() === '') {
+      if (!resp || !resp.valor || resp.valor.trim() === 'Elegir...' || resp.valor.trim() === 'Escoge una opción' || resp.valor.trim() === '') {
           isMetodoPagoEmpty = true;
       } else if (resp.valor.trim().toLowerCase() === 'cash') {
           isCash = true;
@@ -1141,7 +1141,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
        else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || labelLower.includes('financiera'))) hideStyle = 'display:none;';
        
        html = `<div class="input-wrap select-wrap no-icon credit-dependent-field" style="${hideStyle}">
-                 <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option value="" ${!val ? 'selected' : ''}>Elegir...</option>${opts}</select>
+                 <select id="df_${c.id}" ${disabledAttr} style="${lockedStyle}" ${onChangeLogic}><option value="" ${!val ? 'selected' : ''}>Escoge una opción</option>${opts}</select>
                </div>`;
     } else if (c.tipo === 'Aplicación de Crédito') {
        const isDone = !!(val && val !== 'No subido' && val !== 'No provisto');
@@ -1584,7 +1584,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         for (const c of campos) {
           const el = document.getElementById(`df_${c.id}`);
           const val = c.tipo === 'Archivo' ? (fileAnswers[c.id] || "") : (el?.value || "").trim();
-          resp[c.id] = val || "No provisto";
+          resp[c.id] = val || "";
         }
         btnSubmit.innerHTML = 'Espere...';
         submitPhase(deal.id, resp, actFase.nombre, { ignoreMissingFields: true });
