@@ -383,6 +383,123 @@ export async function saveDB(db) {
 }
 
 // ── FAST GRANULAR SAVE HELPER ──
+const N8N_GENERAL_NOTIF_WEBHOOK = 'https://n8n.renewgroup.site/webhook/notifiaciones-generales';
+
+async function dispatchWhatsAppNotif(destId, mensajeDirecto, link, db, isAdminOnly = false) {
+    if (!db || !db.Usuarios) return;
+    const allUsers = [...MOCK_USERS, ...(db.Usuarios || [])];
+    
+    let targetUser = null;
+    if (destId) targetUser = allUsers.find(u => String(u.id) === String(destId));
+    
+    const payload = {
+        event: "notificacion_general",
+        destinatario_nombre: targetUser ? (targetUser.nombre + ' ' + (targetUser.apellido || '')).trim() : 'Administración',
+        destinatario_telefono: targetUser ? (targetUser.telefono || '') : '',
+        mensaje_directo: mensajeDirecto,
+        mensaje_admin: targetUser ? `[Notificación para ${targetUser.nombre}] ${mensajeDirecto}` : `[Notificación Global] ${mensajeDirecto}`,
+        link: link,
+        timestamp: new Date().toISOString(),
+        is_admin_only: isAdminOnly
+    };
+    
+    try {
+        fetch(N8N_GENERAL_NOTIF_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(e => console.warn('WP Webhook error:', e));
+    } catch(e) {}
+}
+
+function checkAndTriggerWhatsAppNotifs(table, records, db) {
+    if (!db) return;
+    try {
+        const allUsers = [...MOCK_USERS, ...(db.Usuarios || [])];
+        const adminUsers = allUsers.filter(u => ['admin', 'administrador', 'ceo'].includes((u.rol || '').toLowerCase()));
+        
+        if (table === 'calendario_eventos' && db.calendario_eventos) {
+            records.forEach(rec => {
+                const oldRec = db.calendario_eventos.find(x => x.id === rec.id);
+                if (!oldRec) {
+                    const participants = [...(rec.attendees||[]), ...(rec.colaboradores||[])];
+                    participants.forEach(p => {
+                        dispatchWhatsAppNotif(p.id, `Tienes un evento programado: ${rec.nombre || 'Evento'}.`, `https://renewgroup.site/index.html#calendario`, db);
+                    });
+                }
+            });
+        }
+        
+        if (table === 'proyectos_dinamicos' && db.Proyectos_Dinamicos) {
+            records.forEach(rec => {
+                const oldRec = db.Proyectos_Dinamicos.find(x => x.id === rec.id);
+                const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(rec.cliente_id));
+                const cliName = cli ? cli.nombre : 'un cliente';
+                const link = `https://renewgroup.site/index.html#proyecto?id=${rec.id}`;
+                
+                if (oldRec) {
+                    if (rec.tecnico_id && String(rec.tecnico_id) !== String(oldRec.tecnico_id)) {
+                        dispatchWhatsAppNotif(rec.tecnico_id, `Tienes una nueva asignación técnica para ${cliName}.`, link, db);
+                    }
+                    if (rec.responsable_id && String(rec.responsable_id) !== String(oldRec.responsable_id)) {
+                        const reps = String(rec.responsable_id).split(',').map(s=>s.trim());
+                        const oldReps = String(oldRec.responsable_id || '').split(',').map(s=>s.trim());
+                        reps.forEach(r => {
+                            if (!oldReps.includes(r)) {
+                                dispatchWhatsAppNotif(r, `Te han asignado como responsable del proyecto de ${cliName}.`, link, db);
+                            }
+                        });
+                    }
+                    const oldCollabs = Array.isArray(oldRec.colaboradores) ? oldRec.colaboradores.map(c=>String(c.id)) : [];
+                    const newCollabs = Array.isArray(rec.colaboradores) ? rec.colaboradores.map(c=>String(c.id)) : [];
+                    newCollabs.forEach(cId => {
+                        if (!oldCollabs.includes(cId)) {
+                            dispatchWhatsAppNotif(cId, `Te añadieron como colaborador en el proyecto de ${cliName}.`, link, db);
+                        }
+                    });
+                    
+                    const oldChat = typeof oldRec.discusion === 'string' ? oldRec.discusion : JSON.stringify(oldRec.discusion||[]);
+                    const newChat = typeof rec.discusion === 'string' ? rec.discusion : JSON.stringify(rec.discusion||[]);
+                    if (oldChat !== newChat) {
+                        let oldArr = [];
+                        let newArr = [];
+                        try { oldArr = typeof oldRec.discusion==='string'?JSON.parse(oldRec.discusion):oldRec.discusion; }catch(e){}
+                        try { newArr = typeof rec.discusion==='string'?JSON.parse(rec.discusion):rec.discusion; }catch(e){}
+                        if (newArr.length > oldArr.length) {
+                            const lastMsg = newArr[newArr.length - 1];
+                            (lastMsg.mentions || []).forEach(mId => {
+                                dispatchWhatsAppNotif(mId, `${lastMsg.user || 'Alguien'} te mencionó en el chat de ${cliName}: "${lastMsg.text}"`, link, db);
+                            });
+                        }
+                    }
+                } else {
+                    if (rec.tecnico_id) dispatchWhatsAppNotif(rec.tecnico_id, `Tienes una nueva asignación técnica para ${cliName}.`, link, db);
+                    if (rec.responsable_id) {
+                        String(rec.responsable_id).split(',').map(s=>s.trim()).forEach(r => {
+                            dispatchWhatsAppNotif(r, `Te han asignado como responsable del proyecto de ${cliName}.`, link, db);
+                        });
+                    }
+                }
+            });
+        }
+        
+        if (table === 'rrhh_adelantos' && db.rrhh_adelantos) {
+            records.forEach(rec => {
+                const oldRec = db.rrhh_adelantos.find(x => x.id === rec.id);
+                if (!oldRec) {
+                    if (adminUsers.length > 0) {
+                        dispatchWhatsAppNotif(null, `Nuevo adelanto solicitado por ${rec.trabajador_nombre}. Monto: $${rec.monto}`, `https://renewgroup.site/index.html#hrhub`, db, true);
+                    }
+                } else if (oldRec.estado !== rec.estado && rec.estado !== 'Pendiente') {
+                    dispatchWhatsAppNotif(rec.trabajador_id, `Tu adelanto de $${rec.monto} ha sido ${rec.estado}.`, `https://renewgroup.site/index.html#mis-adelantos`, db);
+                }
+            });
+        }
+    } catch (e) {
+        console.error('[WP Webhook Tracker] Error:', e);
+    }
+}
+
 export async function saveGranular(table, records) {
   // ── STRIP VIRTUAL FIELDS (CLIENT-SIDE) ──
   // These fields only exist in memory and are NOT columns in Supabase.
@@ -416,6 +533,9 @@ export async function saveGranular(table, records) {
   }
 
   try {
+    // Check and dispatch WhatsApp Notifications before updating cache (so we have oldRec)
+    checkAndTriggerWhatsAppNotifs(table, records, cachedDB);
+
     // ── CRITICAL: Update local cachedDB immediately so subsequent calls to getDB() see the changes ──
     if (cachedDB) {
         const tableName = table.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('_');
