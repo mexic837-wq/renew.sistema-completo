@@ -390,7 +390,10 @@ async function _renderList(user, container) {
           // Todos: show only clients with no projects at all
           return clientProjects.length === 0;
         }
+      } else if (currentClientsTab === 'kanban') {
+        return true;
       }
+      
       // Mis Clientes tab: has at least one project in the selected pipeline (or any if Todos)
       const hasProject = clientProjects.some(p => (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
       return hasProject;
