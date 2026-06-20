@@ -25,7 +25,7 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
-import { renderDashboard } from './screens/dashboard.js';
+import { renderDashboard } from './screens/dashboard.js?v=2';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
@@ -45,7 +45,7 @@ import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
-import { _renderToolsForPipeline } from './screens/dashboard.js';
+import { _renderToolsForPipeline } from './screens/dashboard.js?v=2';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
