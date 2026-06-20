@@ -653,8 +653,8 @@ async function _renderList(user, container) {
       }
       */
 
-      // All data complete → show pipeline selector
-      _showPipelineSelector(client, user);
+      // All data complete → show prospecto details modal
+      _showProspectoModal(client, user, db);
     });
   });
 
@@ -832,6 +832,120 @@ function _showCallCenterLeadModal(client, allProys, db) {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.getElementById('btn-cc-lead-close').addEventListener('click', () => modal.remove());
 }
+
+// ── Prospecto Info Modal (Minimalist) ────────────────────────
+function _showProspectoModal(client, user, db) {
+  const existing = document.getElementById('modal-prospecto-info');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-prospecto-info';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);z-index:10000;display:flex;justify-content:center;align-items:flex-end;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);width:100%;border-radius:32px 32px 0 0;padding:0;max-height:90vh;overflow-y:auto;animation:sheetUp .35s cubic-bezier(0.16,1,0.3,1) both; display:flex; flex-direction:column;">
+      <div style="width:44px;height:6px;background:rgba(255,255,255,0.12);border-radius:99px;margin:14px auto 0;flex-shrink:0;"></div>
+
+      <!-- Header -->
+      <div style="padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div>
+          <h2 style="font-size:1.3rem;font-weight:900;color:var(--text-primary);margin:0;">${client.nombre || 'Sin nombre'}</h2>
+          <span style="display:inline-block;margin-top:6px;background:rgba(59,130,246,0.12);color:#3b82f6;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:99px;border:1px solid rgba(59,130,246,0.25);">Prospecto</span>
+        </div>
+        <button id="btn-prospecto-close" style="background:var(--surface-alt);border:none;color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-xmark text-red-500"></i></button>
+      </div>
+
+      <!-- Contact info -->
+      <div style="margin:20px 24px 0;background:var(--surface-alt);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;flex-shrink:0;">
+        <p style="font-size:0.75rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin:0 0 4px;">Datos de Contacto</p>
+        
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,245,212,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-phone" style="color:var(--primary); font-size:1rem;"></i>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Teléfono</p>
+            <p style="font-size:0.95rem;font-weight:700;color:var(--primary);margin:0;">${client.telefono || 'No registrado'}</p>
+          </div>
+          ${client.telefono ? \`<a href="tel:\${client.telefono}" style="background:var(--primary);color:#0f172a;border:none;border-radius:10px;padding:8px 14px;font-weight:800;font-size:0.8rem;text-decoration:none;flex-shrink:0;"><i class="fa-solid fa-phone"></i> Llamar</a>\` : ''}
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+             <i class="fa-solid fa-envelope" style="color:#6366f1; font-size:1rem;"></i>
+          </div>
+          <div>
+            <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Correo Electrónico</p>
+            <p style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin:0;word-break:break-all;">${client.email || 'No registrado'}</p>
+          </div>
+        </div>
+        
+      </div>
+
+      <!-- Notas -->
+      <div style="margin:16px 24px 0;flex-shrink:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <p style="font-size:0.75rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin:0;">Notas del Prospecto</p>
+            <button id="btn-save-notes" style="background:var(--primary);color:#0f172a;border:none;border-radius:8px;padding:4px 10px;font-size:0.7rem;font-weight:800;cursor:pointer;display:none;">Guardar</button>
+        </div>
+        <textarea id="prospecto-notes" placeholder="Escribe notas sobre este prospecto..." style="width:100%;height:100px;background:var(--surface-alt);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);font-size:0.9rem;resize:none;font-family:inherit;box-sizing:border-box;">${client.notas || ''}</textarea>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div style="margin:24px 24px;padding-top:16px;border-top:1px dashed var(--border);display:flex;gap:12px;flex-shrink:0;">
+         <button id="btn-create-project" style="flex:1;background:var(--primary);color:#0f172a;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 8px 16px rgba(0,245,212,0.2);">
+           <i class="fa-solid fa-bolt"></i> Crear Proyecto
+         </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const notesEl = modal.querySelector('#prospecto-notes');
+  const saveBtn = modal.querySelector('#btn-save-notes');
+
+  // Show save button when notes are changed
+  notesEl.addEventListener('input', () => {
+    if (notesEl.value !== (client.notas || '')) {
+      saveBtn.style.display = 'block';
+    } else {
+      saveBtn.style.display = 'none';
+    }
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const newNotes = notesEl.value;
+    const saveOriginalHtml = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    try {
+      const { saveGranular } = await import('../api.js');
+      await saveGranular('clientes_maestro', [{ ...client, notas: newNotes }]);
+      client.notas = newNotes; // Update locally
+      saveBtn.innerHTML = '¡Guardado!';
+      saveBtn.style.background = '#10b981'; // Green
+      import('../components/toast.js').then(m => m.showToast('Notas guardadas', 'success'));
+      setTimeout(() => {
+        saveBtn.style.display = 'none';
+        saveBtn.innerHTML = 'Guardar';
+        saveBtn.style.background = 'var(--primary)';
+      }, 1500);
+    } catch (e) {
+      console.error(e);
+      saveBtn.innerHTML = 'Error';
+      import('../components/toast.js').then(m => m.showToast('Error al guardar notas', 'error'));
+      setTimeout(() => { saveBtn.innerHTML = saveOriginalHtml; }, 2000);
+    }
+  });
+
+  modal.querySelector('#btn-create-project').addEventListener('click', () => {
+    modal.remove();
+    _showPipelineSelector(client, user);
+  });
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('btn-prospecto-close').addEventListener('click', () => modal.remove());
+}
+
 
 // ── Incomplete data modal — breaks the loop ──────────────────
 function _showIncompleteDataModal(client, user, missingFields, container) {
