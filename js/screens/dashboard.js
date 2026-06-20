@@ -1524,7 +1524,7 @@ async function initLeaderboardChart(user) {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  if (!window.lbLocationFilter) window.lbLocationFilter = 'General';
+  window.lbLocationFilter = 'General';
 
   allProjects.forEach(p => {
     if (pipeline && p.pipeline_id !== pipeline.id) return;
@@ -1698,10 +1698,6 @@ async function initLeaderboardChart(user) {
     <div style="margin-bottom:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
         <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
-        <div style="display:flex; background:var(--surface-alt); border-radius:8px; overflow:hidden; border:1px solid var(--border);">
-          <button onclick="window.toggleLbFilter('Ciudad')" style="padding:4px 10px; font-size:0.7rem; font-weight:700; border:none; background:${window.lbLocationFilter==='Ciudad'?'var(--primary)':'transparent'}; color:${window.lbLocationFilter==='Ciudad'?'#0f172a':'var(--text-muted)'}; cursor:pointer; transition:all 0.2s;">Mi Ciudad</button>
-          <button onclick="window.toggleLbFilter('General')" style="padding:4px 10px; font-size:0.7rem; font-weight:700; border:none; background:${window.lbLocationFilter==='General'?'var(--primary)':'transparent'}; color:${window.lbLocationFilter==='General'?'#0f172a':'var(--text-muted)'}; cursor:pointer; transition:all 0.2s;">General</button>
-        </div>
       </div>
       <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${activeUnit} \u00B7 ${now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
     </div>
