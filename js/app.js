@@ -516,10 +516,10 @@ export function navigate(screen, param = null) {
   }
 
   // Update hash (for browser history / deep linking)
-  // For detail screen, serialize param object as path: #detail/PROYECTO_ID/CLIENTE_ID
+  // For detail screen, serialize param as path: #detail/PROYECTO_ID
   let hashParam;
   if (screen === 'detail' && param && typeof param === 'object') {
-    hashParam = `${param.projectId}/${param.clienteId}`;
+    hashParam = param.projectId || param.dealId || null;
   } else {
     hashParam = (param && typeof param !== 'object') ? param : null;
   }
@@ -692,17 +692,10 @@ function handleHashChange() {
       case 'notificaciones': renderNotificaciones(); break;
       case 'new-client': renderNewClient();       break;
       case 'detail': {
-        // Hash format: #detail/PROYECTO_ID/CLIENTE_ID
+        // Hash format: #detail/PROYECTO_ID
         const projId = parts[1];
-        const cliId = parts[2];
-        if (projId && cliId) {
-          renderDetail({ projectId: projId, clienteId: cliId });
-        } else if (projId) {
-          // Only project ID — look up cliente from DB
-          const db = getDB();
-          const proyecto = (db.Proyectos_Dinamicos || []).find(p => p.id === projId);
-          if (proyecto) renderDetail({ projectId: projId, clienteId: proyecto.cliente_id });
-          else renderDetail(projId); // fallback
+        if (projId) {
+          renderDetail(projId);
         } else {
           navigate('dashboard');
         }
@@ -868,17 +861,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if ((deepProyecto && deepCliente) && user) {
       // New format: ?deepProyecto=ID&deepCliente=CLIENT_ID
       navigate('dashboard');
-      setTimeout(() => navigate('detail', { projectId: deepProyecto, clienteId: deepCliente }), 400);
+      setTimeout(() => navigate('detail', deepProyecto), 400);
     } else if (legacyProyectoId && user) {
-      // Legacy format: #proyecto?id=ID — look up cliente from DB
-      const db = getDB();
-      const proyecto = (db.Proyectos_Dinamicos || []).find(p => p.id === legacyProyectoId);
-      if (proyecto) {
-        navigate('dashboard');
-        setTimeout(() => navigate('detail', { projectId: legacyProyectoId, clienteId: proyecto.cliente_id }), 400);
-      } else {
-        navigate(user ? 'dashboard' : 'login');
-      }
+      // Legacy format: #proyecto?id=ID
+      navigate('dashboard');
+      setTimeout(() => navigate('detail', legacyProyectoId), 400);
     } else if (deepScreen && user && SCREENS.includes(deepScreen)) {
       navigate(deepScreen);
     } else if (user && user.unidades && user.unidades.length > 1 && !localStorage.getItem('active_unit')) {
