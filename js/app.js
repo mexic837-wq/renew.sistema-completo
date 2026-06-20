@@ -835,10 +835,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const deepCliente  = urlParams.get('deepCliente');
     const deepScreen   = urlParams.get('deepScreen');
 
-    if (deepProyecto && deepCliente && user) {
-      // Navigate to project detail directly
+    // Also support LEGACY hash format: #proyecto?id=PROYECTO_ID
+    let legacyProyectoId = null;
+    if (!deepProyecto && hash.startsWith('proyecto')) {
+      const idMatch = hash.match(/[?&]id=([^&\s]+)/);
+      if (idMatch) legacyProyectoId = decodeURIComponent(idMatch[1]);
+    }
+
+    if ((deepProyecto && deepCliente) && user) {
+      // New format: ?deepProyecto=ID&deepCliente=CLIENT_ID
       navigate('dashboard');
-      setTimeout(() => navigate('detail', { projectId: deepProyecto, clienteId: deepCliente }), 300);
+      setTimeout(() => navigate('detail', { projectId: deepProyecto, clienteId: deepCliente }), 400);
+    } else if (legacyProyectoId && user) {
+      // Legacy format: #proyecto?id=ID — look up cliente from DB
+      const db = getDB();
+      const proyecto = (db.Proyectos_Dinamicos || []).find(p => p.id === legacyProyectoId);
+      if (proyecto) {
+        navigate('dashboard');
+        setTimeout(() => navigate('detail', { projectId: legacyProyectoId, clienteId: proyecto.cliente_id }), 400);
+      } else {
+        navigate(user ? 'dashboard' : 'login');
+      }
     } else if (deepScreen && user && SCREENS.includes(deepScreen)) {
       navigate(deepScreen);
     } else if (user && user.unidades && user.unidades.length > 1 && !localStorage.getItem('active_unit')) {
