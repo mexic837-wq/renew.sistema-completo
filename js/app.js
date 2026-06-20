@@ -126,7 +126,6 @@ window.addEventListener('message', async (e) => {
       }
 
       // Auto-satisfy the dynamic field requirement for this phase so it can advance
-      const db = getDB();
       const isWorkOrder = (e.data.type === 'WORK_ORDER_SUBMITTED');
       
       // Find the project in the local database
