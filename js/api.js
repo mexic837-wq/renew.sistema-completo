@@ -383,7 +383,7 @@ export async function saveDB(db) {
 }
 
 // ── FAST GRANULAR SAVE HELPER ──
-const N8N_GENERAL_NOTIF_WEBHOOK = 'https://n8n.renewgroup.site/webhook/notifiaciones-generales';
+const N8N_GENERAL_NOTIF_WEBHOOK = 'https://n8n.renewgroup.site/webhook/notificaciones-generales';
 
 async function dispatchWhatsAppNotif(destId, mensajeDirecto, link, db, isAdminOnly = false) {
     if (!db || !db.Usuarios) return;
