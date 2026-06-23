@@ -38,7 +38,7 @@ import { renderMiCalendario } from './screens/calendar.js?v=6';
 import { renderMiMapa } from './screens/mapa.js';
 import { renderMiEquipo } from './screens/equipo.js';
 import { renderPartners } from './screens/partners.js';
-import { renderMisRecibos } from './screens/recibos.js';
+import { renderMisRecibos } from './screens/recibos.js?v=2';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderCatalogo } from './screens/catalogo.js';
 import { renderPlantillas }  from './screens/plantillas.js';

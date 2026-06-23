@@ -305,16 +305,15 @@ function _renderRecibosList(recibos, isAdmin) {
     
     let color = '#10b981'; // tecnico
     let label = 'Recibo de Instalación – Técnico';
-    let monto = datos.total_price ? `$${Number(datos.total_price).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
+    const montoRaw = r.monto || datos.grand_total || datos.total_price;
+    let monto = montoRaw ? `$${Number(montoRaw).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
 
     if (isOficina) {
       color = '#8b5cf6';
       label = 'Recibo de Pago – Oficina';
-      monto = datos.grand_total ? `$${Number(datos.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
     } else if (isVendedor) {
       color = '#3b82f6';
       label = 'Recibo de Pago – Representante';
-      monto = datos.grand_total ? `$${Number(datos.grand_total).toLocaleString('en-US',{minimumFractionDigits:2})}` : '—';
     }
 
     const icon = isVendedor || isOficina
