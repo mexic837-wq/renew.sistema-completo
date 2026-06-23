@@ -10372,9 +10372,8 @@ window._verRecibosWorker = async function(workerId, workerName, workerRol) {
             const color = isVendedor ? '#3b82f6' : '#10b981';
             const label = isVendedor ? 'Recibo de Pago (Vendedor)' : 'Recibo de Instalacion (Tecnico)';
             const d = r.datos_json || {};
-            const monto = isVendedor
-                ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US',{minimumFractionDigits:2}) : '-')
-                : (d.total_price  ? '$' + Number(d.total_price ).toLocaleString('en-US',{minimumFractionDigits:2}) : '-');
+            const montoRaw = r.monto || d.grand_total || d.total_price;
+            const monto = montoRaw ? '$' + Number(montoRaw).toLocaleString('en-US',{minimumFractionDigits:2}) : '-';
             return '<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">' +
                 '<div style="width:40px;height:40px;background:' + color + '15;border:1px solid ' + color + '30;border-radius:10px;display:flex;align-items:center;justify-content:center;color:' + color + ';flex-shrink:0;">' +
                 (isVendedor ? '<i class="fas fa-dollar-sign"></i>' : '<i class="fas fa-tools"></i>') + '</div>' +

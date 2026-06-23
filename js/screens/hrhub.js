@@ -625,11 +625,8 @@ export async function renderHRHub() {
 
             // Monto
             const d = r.datos_json || {};
-            const monto = isOficina
-                ? (r.monto ? '$' + Number(r.monto).toLocaleString('en-US', {minimumFractionDigits:2}) : (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US', {minimumFractionDigits:2}) : '-'))
-                : (isVendedor
-                    ? (d.grand_total ? '$' + Number(d.grand_total).toLocaleString('en-US', {minimumFractionDigits:2}) : '-')
-                    : (d.total_price  ? '$' + Number(d.total_price).toLocaleString('en-US',  {minimumFractionDigits:2}) : '-'));
+            const montoRaw = r.monto || d.grand_total || d.total_price;
+            const monto = montoRaw ? '$' + Number(montoRaw).toLocaleString('en-US', {minimumFractionDigits:2}) : '-';
 
             return `
             <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
