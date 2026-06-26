@@ -86,8 +86,8 @@ window.addEventListener('message', async (e) => {
           const state_id = formData.applicant?.state || '-';
 
           const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
-          // pipelineName defaults to "Water" since it's the RENEW WATER form
-          const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: 'Water' });
+          // pipelineName defaults to "Renew Water" since it's the RENEW WATER form
+          const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: 'Renew Water' });
           
           if (newProyRes && newProyRes.id) {
               proyectoId = newProyRes.id;
