@@ -800,7 +800,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         <div style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
           ${tool.icon}
         </div>
-        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${tool.name.replace(' (Admin)', '').replace('Gestión de Leads (Fase 1)', 'Leads').replace('Mis ', '').replace(' de Pagos', '').replace('Lista de ', '')}</span>
+        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${tool.name.replace(' (Admin)', '').replace('Gestión de Leads (Fase 1)', 'Leads').replace('Mis ', '').replace(' de Pagos', '').replace('Lista de Precios', 'Lista')}</span>
       </a>
     `).join('');
 
