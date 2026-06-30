@@ -1241,7 +1241,8 @@ app.post('/api/upsert', async (req, res) => {
                 banco_cuenta:               u.banco_cuenta               || null,
                 banco_ruta:                 u.banco_ruta                 || null,
                 zadarma_sip_id:             u.zadarma_sip_id             || null,
-                ver_catalogo:               !!u.ver_catalogo
+                ver_catalogo:               !!u.ver_catalogo,
+                ver_partners:               !!u.ver_partners
             }));
         } else if (table === 'calendario_eventos') {
             sanitizedRecords = records.map(ev => ({
