@@ -48,19 +48,27 @@ export function renderAcademy() {
     if (window.mainAcademyFolder) {
         let currentId = window.mainAcademyFolder;
         while (currentId) {
-            const f = allContent.find(x => x.id === currentId);
-            if (f) {
-                path.unshift(f);
-                currentId = f.parent_id;
-            } else {
+            if (currentId.startsWith('cat_')) {
+                const cat = currentId.replace('cat_', '');
+                const catNames = { video: 'Videos', pdf: 'Documentos', banco: 'Banco de Información', faq: 'Soporte y FAQ', equipo: 'Equipo' };
+                path.unshift({ id: currentId, titulo: catNames[cat] || cat.toUpperCase() });
                 currentId = null;
+            } else {
+                const f = allContent.find(x => x.id === currentId);
+                if (f) {
+                    path.unshift(f);
+                    currentId = f.parent_id;
+                } else {
+                    currentId = null;
+                }
             }
         }
     }
 
-    let breadcrumbsHtml = `<span class="cursor-pointer hover:bg-surface-alt py-1 px-2 rounded transition-colors font-semibold" onclick="window.mainAcademyFolder=null; import('./academy.js').then(m=>m.renderAcademy())">Inicio</span>`;
-    path.forEach(f => {
-        breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-50 mx-1"></i> <span class="cursor-pointer hover:bg-surface-alt py-1 px-2 rounded transition-colors font-semibold" onclick="window.mainAcademyFolder='${f.id}'; import('./academy.js').then(m=>m.renderAcademy())">${f.titulo}</span>`;
+    let breadcrumbsHtml = `<span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold text-text-muted hover:text-text-primary" onclick="window.mainAcademyFolder=null; import('./academy.js').then(m=>m.renderAcademy())">Inicio</span>`;
+    path.forEach((f, idx) => {
+        const isLast = idx === path.length - 1;
+        breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-40 mx-1"></i> <span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold ${isLast ? 'text-primary' : 'text-text-muted hover:text-text-primary'}" onclick="window.mainAcademyFolder='${f.id}'; import('./academy.js').then(m=>m.renderAcademy())">${f.titulo}</span>`;
     });
 
     const parentFolderId = path.length > 0 ? path[path.length - 1].parent_id || null : null;
@@ -75,6 +83,20 @@ export function renderAcademy() {
     const currentItems = allContent.filter(i => {
         if (!window.mainAcademyFolder) {
             if (i.parent_id) return false;
+            // Hide legacy files from root
+            if (i.is_folder === undefined) return false;
+        } else if (window.mainAcademyFolder.startsWith('cat_')) {
+            const cat = window.mainAcademyFolder.replace('cat_', '');
+            if (i.parent_id === window.mainAcademyFolder) return true;
+            if (i.is_folder === undefined) {
+                const t = (i.tipo || '').toLowerCase();
+                if (cat === 'video' && t.includes('video')) return true;
+                if (cat === 'pdf' && (t.includes('pdf') || t.includes('guía') || t.includes('documento'))) return true;
+                if (cat === 'banco' && (t.includes('banca') || t.includes('banco'))) return true;
+                if (cat === 'faq' && (t.includes('faq') || t.includes('ayuda'))) return true;
+                if (cat === 'equipo' && t.includes('equipo')) return true;
+            }
+            return false;
         } else {
             if (i.parent_id !== window.mainAcademyFolder) return false;
         }
@@ -181,11 +203,10 @@ export function renderAcademy() {
         `;
     });
 
-    // Add filter buttons html
     const filterHtml = `
-        <div class="flex items-center justify-center gap-4 mt-6 mb-2 relative z-10 w-full">
-          <button class="academy-dept-filter-pill ${activeAcademyDeptFilter === 'Todos' ? 'active' : ''}" data-dept="Todos">Todos</button>
-          ${depts.map(d => `<button class="academy-dept-filter-pill ${activeAcademyDeptFilter === d ? 'active' : ''}" data-dept="${d}">${d}</button>`).join('')}
+        <div class="flex items-center justify-center gap-3 mt-4 mb-8 relative z-10 w-full" id="academy-dept-filters">
+          <button class="academy-dept-filter-pill ${activeAcademyDeptFilter === 'Todos' ? 'active' : ''}" data-dept="Todos" style="padding: 8px 24px; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.3s; ${activeAcademyDeptFilter === 'Todos' ? 'background: var(--primary); color: #000; border: 1px solid var(--primary);' : 'background: transparent; color: var(--text-secondary); border: 1px solid var(--border);'}">TODOS</button>
+          ${depts.map(d => `<button class="academy-dept-filter-pill ${activeAcademyDeptFilter === d ? 'active' : ''}" data-dept="${d}" style="padding: 8px 24px; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.3s; ${activeAcademyDeptFilter === d ? 'background: var(--primary); color: #000; border: 1px solid var(--primary);' : 'background: transparent; color: var(--text-secondary); border: 1px solid var(--border);'}">${d.toUpperCase()}</button>`).join('')}
         </div>
     `;
 
@@ -269,37 +290,33 @@ export function renderAcademy() {
             </div>
             
             <div class="relative group">
-                <button class="bg-primary hover:bg-primary-hover text-surface px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-plus"></i> Nuevo
+                <button class="px-6 py-2.5 rounded-full font-bold text-sm transition-colors flex items-center gap-2 shadow-lg hover:scale-105" style="background: var(--primary); color: #000;">
+                    <i class="fa-solid fa-plus"></i> NUEVO
                 </button>
-                <div class="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                    <button onclick="window.mainCreateFolder()" class="w-full text-left px-4 py-3 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
-                        <i class="fa-solid fa-folder-plus text-primary w-4"></i> Crear Carpeta
+                <div class="absolute right-0 top-full mt-3 w-56 bg-surface border border-border rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden" style="box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                    <button onclick="window.mainCreateFolder()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
+                        <i class="fa-solid fa-folder-plus text-primary text-lg w-5"></i> Crear Carpeta
                     </button>
                     <div class="w-full h-px bg-border"></div>
-                    <button onclick="window.mainUploadDoc()" class="w-full text-left px-4 py-3 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
-                        <i class="fa-solid fa-file-arrow-up text-primary w-4"></i> Subir Archivo
+                    <button onclick="window.mainUploadDoc()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
+                        <i class="fa-solid fa-file-arrow-up text-primary text-lg w-5"></i> Subir Archivo
                     </button>
                 </div>
             </div>
         </header>
 
         ${filterHtml}
+        
         <!-- Explorer Nav Bar -->
-        <div class="px-10 py-4 bg-surface-alt border-b border-border flex items-center gap-4 mb-6" id="academy-explorer-nav">
-            <div class="flex items-center gap-1">
+        <div class="px-10 py-2 flex items-center gap-4 mb-6" id="academy-explorer-nav">
+            <div class="flex items-center gap-2">
                 ${backArrowHtml}
-                <button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-right"></i></button>
                 ${upArrowHtml}
-                <button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="import('./academy.js').then(m=>m.renderAcademy())" title="Actualizar"><i class="fa-solid fa-rotate-right"></i></button>
+                <button class="w-9 h-9 rounded-full hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="import('./academy.js').then(m=>m.renderAcademy())" title="Actualizar"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
-            <div class="flex-1 bg-surface border border-border rounded-lg px-4 py-2 flex items-center gap-2 text-sm text-text-primary shadow-inner min-h-[42px]">
-                <i class="fa-solid fa-display text-text-muted mr-2"></i>
+            <div class="flex-1 flex items-center gap-2 text-sm text-text-primary font-bold">
+                <i class="fa-solid fa-folder-open text-primary mr-2 text-lg"></i>
                 ${breadcrumbsHtml}
-            </div>
-            <div class="w-64 bg-surface border border-border rounded-lg px-4 py-2 flex items-center gap-2 text-sm text-text-muted shadow-inner hidden md:flex min-h-[42px]">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Buscar en la carpeta..." class="bg-transparent border-none outline-none w-full text-text-primary">
             </div>
         </div>
 
