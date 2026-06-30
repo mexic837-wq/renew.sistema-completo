@@ -260,7 +260,7 @@ export async function renderCatalogo() {
           : `<div class="precio-card-img-placeholder">💧</div>`;
 
         const savedPrice = customPrices[p.id];
-        const displayPrice = savedPrice !== undefined ? savedPrice : p[activePriceKey];
+        const displayPrice = savedPrice !== undefined ? savedPrice : (p.precio_minimo || p[activePriceKey] || p.precio_full || 0);
 
         return `
           <div class="precio-card animate-fade-in" data-id="${p.id}" style="animation-delay:${i * 0.04}s;">
