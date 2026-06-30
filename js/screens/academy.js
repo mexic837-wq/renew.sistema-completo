@@ -189,6 +189,77 @@ export function renderAcademy() {
         </div>
     `;
 
+    let heroCardsHtml = '';
+    if (!window.mainAcademyFolder) {
+        heroCardsHtml = `
+          <!-- Contenedor con ancho limitado para "Respiro" -->
+          <div id="academia-menu-principal" class="w-full flex flex-col items-center mb-8">
+            <div class="academy-grid px-10">
+              
+              <!-- Card 1: Videos de Entrenamiento -->
+              <div class="academy-hero-card" data-categoria="video" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_multimedia')}</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_videos')}</h3>
+                </div>
+              </div>
+              
+              <!-- Card 2: PDF -->
+              <div class="academy-hero-card" data-categoria="pdf" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_recursos')}</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_docs')}</h3>
+                </div>
+              </div>
+              
+              <!-- Card 3: Banco -->
+              <div class="academy-hero-card" data-categoria="banco" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_banco')}</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_info')}</h3>
+                </div>
+              </div>
+    
+              <!-- Card 4: FAQ -->
+              <div class="academy-hero-card" data-categoria="faq" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('assets/images/support-bg.png'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_soporte')}</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_faq')}</h3>
+                </div>
+              </div>
+    
+              <!-- Card 5: Detalles de equipo -->
+              <div class="academy-hero-card" data-categoria="equipo" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_equipment_label')}</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_equipment')}</h3>
+                </div>
+              </div>
+              
+              ${activeAcademyDeptFilter === 'Water' ? `
+              <!-- Card 6: Renew Water -->
+              <div class="academy-hero-card" data-link="https://renewwaterus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Water</h3>
+                </div>
+              </div>
+              ` : ''}
+              
+              ${activeAcademyDeptFilter === 'Solar' ? `
+              <!-- Card 7: Renew Solar -->
+              <div class="academy-hero-card" data-link="https://www.renewsolarus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-overlay" style="padding: 16px;">
+                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
+                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Solar</h3>
+                </div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+    }
+
     screen.innerHTML = `
       <div id="vista-academia" class="w-full min-h-screen pb-32 animate-fadeIn" style="background: var(--bg);">
         <header class="flex flex-col md:flex-row items-center justify-between px-10 py-6 bg-surface border-b border-border shadow-sm gap-4">
@@ -215,7 +286,7 @@ export function renderAcademy() {
 
         ${filterHtml}
         <!-- Explorer Nav Bar -->
-        <div class="px-10 py-4 bg-surface-alt border-b border-border flex items-center gap-4 mb-6">
+        <div class="px-10 py-4 bg-surface-alt border-b border-border flex items-center gap-4 mb-6" id="academy-explorer-nav">
             <div class="flex items-center gap-1">
                 ${backArrowHtml}
                 <button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-right"></i></button>
@@ -232,7 +303,26 @@ export function renderAcademy() {
             </div>
         </div>
 
-        <div class="px-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        ${heroCardsHtml}
+
+        <!-- Sub-Vista (Contenido del Módulo) -->
+        <div id="academia-subvista" class="hidden w-full flex flex-col animate-fadeIn academy-main-container">
+          <header class="flex items-center justify-between px-8 w-full" style="background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 20px; box-shadow: var(--shadow-sm); margin-bottom: 30px;">
+            <button id="btn-regresar-academia" style="background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-primary); width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </button>
+            <h2 id="titulo-subvista" style="color: var(--text-primary); font-size: 1.05rem; font-weight: 950; text-transform: uppercase; letter-spacing: 2.2px; flex: 1; text-align: center; margin-right: 44px;">Categoría</h2>
+          </header>
+  
+          <div id="contenedor-recursos-finales" class="academy-grid px-6">
+            <!-- Injected Content -->
+          </div>
+        </div>
+
+        <div id="academia-gestor-grid" class="px-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             ${itemsHtml}
         </div>
       </div>
@@ -416,7 +506,7 @@ export function renderAcademy() {
                 document.getElementById('modal-main-academy').classList.add('hidden');
                 // Refresh
                 import('./academy.js').then(m => m.renderAcademy());
-                window.addNotification('Gestor Academia', 'Guardado exitosamente', 'success');
+                alert('Guardado exitosamente');
                 
             } catch (err) {
                 console.error(err);
@@ -592,42 +682,50 @@ export function renderAcademy() {
   const btnRegresar = document.getElementById('btn-regresar-academia');
   const tituloSub = document.getElementById('titulo-subvista');
   const contenedorFinal = document.getElementById('contenedor-recursos-finales');
+  const gestorGrid = document.getElementById('academia-gestor-grid');
+  const explorerNav = document.getElementById('academy-explorer-nav');
 
-  if (menuPrincipal) {
+  if (document.querySelector('.academy-dept-filter-pill')) {
       document.querySelectorAll('.academy-dept-filter-pill').forEach(pill => {
         pill.addEventListener('click', () => {
           activeAcademyDeptFilter = pill.dataset.dept === 'Todos' ? 'Todos' : pill.dataset.dept;
           renderAcademy(); 
         });
       });
+  }
 
-      const cards = document.querySelectorAll('.academy-hero-card');
-      cards.forEach(card => {
-        card.addEventListener('click', () => {
-          const directLink = card.getAttribute('data-link');
-          if (directLink) {
-            window.open(directLink, '_blank');
-            return;
-          }
-
-          const catKey = card.getAttribute('data-categoria');
-          const catTitle = card.querySelector('h3').innerText;
-
-          menuPrincipal.classList.add('hidden');
-          subVista.classList.remove('hidden');
-
-          tituloSub.innerText = catTitle;
-          renderRecursosFinales(catKey);
-        });
-      });
-
-      if (btnRegresar) {
-          btnRegresar.addEventListener('click', () => {
-            subVista.classList.add('hidden');
-            menuPrincipal.classList.remove('hidden');
-            contenedorFinal.innerHTML = '';
-          });
+  const cards = document.querySelectorAll('.academy-hero-card');
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const directLink = card.getAttribute('data-link');
+      if (directLink) {
+        window.open(directLink, '_blank');
+        return;
       }
+
+      const catKey = card.getAttribute('data-categoria');
+      const catTitle = card.querySelector('h3').innerText;
+
+      if (menuPrincipal) menuPrincipal.classList.add('hidden');
+      if (gestorGrid) gestorGrid.classList.add('hidden');
+      if (explorerNav) explorerNav.classList.add('hidden');
+      
+      if (subVista) subVista.classList.remove('hidden');
+
+      if (tituloSub) tituloSub.innerText = catTitle;
+      renderRecursosFinales(catKey);
+    });
+  });
+
+  if (btnRegresar) {
+      btnRegresar.addEventListener('click', () => {
+        if (subVista) subVista.classList.add('hidden');
+        if (menuPrincipal) menuPrincipal.classList.remove('hidden');
+        if (gestorGrid) gestorGrid.classList.remove('hidden');
+        if (explorerNav) explorerNav.classList.remove('hidden');
+        if (contenedorFinal) contenedorFinal.innerHTML = '';
+      });
+  }
       
       function renderRecursosFinales(catKey) {
         const resources = visibleContent.filter(item => {
