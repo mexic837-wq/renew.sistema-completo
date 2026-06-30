@@ -603,66 +603,122 @@ export async function renderHRHub() {
         // Sort newest first
         const sorted = [...filtered].sort((a, b) => (b.fecha_recibo || '').localeCompare(a.fecha_recibo || ''));
 
-        tbody.innerHTML = sorted.map(r => {
-            const isVendedor = r.tipo === 'vendedor';
-            const isOficina  = r.tipo === 'oficina' || (r.trabajador_id && usuarios.find(u => String(u.id) === String(r.trabajador_id) && ['Manager', 'Admin', 'CEO'].includes(u.rol)));
-            const color      = isOficina ? '#8b5cf6' : (isVendedor ? '#3b82f6' : '#10b981');
-            const tipoLabel  = isOficina ? 'Oficina' : (isVendedor ? 'Vendedor' : 'Técnico');
-            const tipoIcon   = isOficina ? 'fa-building' : (isVendedor ? 'fa-dollar-sign' : 'fa-tools');
-
-            // Worker info
+        // Group by worker
+        const grouped = {};
+        sorted.forEach(r => {
             const worker     = r.trabajador_id ? usuarios.find(u => String(u.id) === String(r.trabajador_id)) : null;
             const workerName = worker ? `${worker.nombre || ''} ${worker.apellido || ''}`.trim() : (r.trabajador_nombre || 'Staff');
-            const workerRol  = worker ? (worker.rol || '-') : (isOficina ? 'Oficina' : (isVendedor ? 'Vendedor' : 'Técnico'));
-            const initial    = workerName[0]?.toUpperCase() || '?';
-            const avatar     = worker?.foto
-                ? `<img src="${worker.foto}" class="w-8 h-8 rounded-full object-cover border border-gray-100">`
-                : `<div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px]" style="background:${color}20;color:${color}">${initial}</div>`;
-
-            // Department
-            const dk   = getDeptKey(r);
-            const dept = DEPT_CFG[dk] || DEPT_CFG.otro;
-
-            // Monto
+            const key = worker ? worker.id : workerName;
+            
+            if (!grouped[key]) {
+                grouped[key] = { worker, workerName, receipts: [], total: 0 };
+            }
+            grouped[key].receipts.push(r);
+            
             const d = r.datos_json || {};
             const montoRaw = r.monto || d.grand_total || d.total_price;
-            const monto = montoRaw ? '$' + Number(montoRaw).toLocaleString('en-US', {minimumFractionDigits:2}) : '-';
+            if (montoRaw) grouped[key].total += Number(montoRaw);
+        });
 
-            return `
-            <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+        window.toggleWorkerReceipts = function(groupId) {
+            const rows = document.querySelectorAll(`.worker-receipts-${groupId}`);
+            const icon = document.getElementById(`icon-toggle-${groupId}`);
+            let isHidden = false;
+            rows.forEach(r => {
+                if (r.style.display === 'none') {
+                    r.style.display = 'table-row';
+                    isHidden = true;
+                } else {
+                    r.style.display = 'none';
+                }
+            });
+            if (icon) {
+                icon.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        };
+
+        const htmlParts = [];
+        
+        Object.keys(grouped).forEach((key, idx) => {
+            const g = grouped[key];
+            const groupId = `grp-${idx}`;
+            
+            // Worker summary row
+            const isVendedor = g.receipts.some(r => r.tipo === 'vendedor');
+            const isOficina  = g.receipts.some(r => r.tipo === 'oficina' || (r.trabajador_id && usuarios.find(u => String(u.id) === String(r.trabajador_id) && ['Manager', 'Admin', 'CEO'].includes(u.rol))));
+            const color      = isOficina ? '#8b5cf6' : (isVendedor ? '#3b82f6' : '#10b981');
+            const workerRol  = g.worker ? (g.worker.rol || '-') : (isOficina ? 'Oficina' : (isVendedor ? 'Vendedor' : 'Técnico'));
+            const initial    = g.workerName[0]?.toUpperCase() || '?';
+            const avatar     = g.worker?.foto
+                ? `<img src="${g.worker.foto}" class="w-8 h-8 rounded-full object-cover border border-gray-100">`
+                : `<div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px]" style="background:${color}20;color:${color}">${initial}</div>`;
+            
+            const totalStr = '$' + g.total.toLocaleString('en-US', {minimumFractionDigits:2});
+            
+            htmlParts.push(`
+            <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer" onclick="toggleWorkerReceipts('${groupId}')">
                 <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-chevron-right text-gray-400 transition-transform" id="icon-toggle-${groupId}"></i>
                         ${avatar}
-                        <span class="font-bold text-gray-900 dark:text-white text-xs">${workerName}</span>
+                        <span class="font-bold text-gray-900 dark:text-white text-xs">${g.workerName}</span>
+                        <span class="px-2 py-0.5 rounded-md text-[9px] font-bold bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 ml-2">${g.receipts.length} recibos</span>
                     </div>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                     <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest" style="background:${color}15;color:${color};border:1px solid ${color}30">${workerRol}</span>
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 w-max" style="background:${dept.color}15;color:${dept.color};border:1px solid ${dept.color}30">
-                        ${dept.icon} ${dept.label}
-                    </span>
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap text-[10px] text-gray-600 dark:text-gray-400 font-medium">${r.cliente_nombre || '-'}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-[11px] font-black" style="color:${color}">${monto}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-[10px] text-gray-500">${r.fecha_recibo || '-'}</td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <span class="flex items-center gap-1 text-[8px] font-black uppercase" style="color:${color}">
-                        <i class="fa-solid ${tipoIcon} text-[7px]"></i>${tipoLabel}
-                    </span>
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap text-right">
-                    ${r.pdf_url
-                        ? `<a href="${r.pdf_url}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all" style="background:${color}15;color:${color};border:1px solid ${color}30;">
-                               <i class="fa-solid fa-file-pdf"></i> Ver PDF</a>`
-                        : `<span class="text-[9px] text-gray-300 italic">Sin PDF</span>`
-                    }
-                    <button onclick="event.stopPropagation(); window.openReciboModal && window.openReciboModal('${r.id}')" class="ml-2 text-tealAccent hover:text-teal-400 transition-colors p-2" title="Editar Recibo"><i class="fa-solid fa-pen text-[10px]"></i></button>
-                    <button onclick="event.stopPropagation(); window.deleteRecibo('${r.id}')" class="text-red-400 hover:text-red-600 transition-colors p-2" title="Eliminar Recibo"><i class="fa-solid fa-trash text-[10px]"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
+                <td colspan="2"></td>
+                <td class="px-4 py-3 whitespace-nowrap text-[11px] font-black text-green-500">Total: ${totalStr}</td>
+                <td colspan="3"></td>
+            </tr>`);
+
+            // Individual receipts
+            g.receipts.forEach(r => {
+                const dk   = getDeptKey(r);
+                const dept = DEPT_CFG[dk] || DEPT_CFG.otro;
+                const d = r.datos_json || {};
+                const montoRaw = r.monto || d.grand_total || d.total_price;
+                const monto = montoRaw ? '$' + Number(montoRaw).toLocaleString('en-US', {minimumFractionDigits:2}) : '-';
+                const rIsOficina = r.tipo === 'oficina' || (r.trabajador_id && usuarios.find(u => String(u.id) === String(r.trabajador_id) && ['Manager', 'Admin', 'CEO'].includes(u.rol)));
+                const rIsVendedor = r.tipo === 'vendedor';
+                const rColor = rIsOficina ? '#8b5cf6' : (rIsVendedor ? '#3b82f6' : '#10b981');
+                const tipoLabel  = rIsOficina ? 'Oficina' : (rIsVendedor ? 'Vendedor' : 'Técnico');
+                const tipoIcon   = rIsOficina ? 'fa-building' : (rIsVendedor ? 'fa-dollar-sign' : 'fa-tools');
+
+                htmlParts.push(`
+                <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors worker-receipts-${groupId}" style="display:none; background:rgba(0,0,0,0.01);">
+                    <td class="px-4 py-2 whitespace-nowrap pl-12 text-[10px] text-gray-500">
+                        <i class="fa-solid fa-turn-up fa-rotate-90 mr-2 opacity-50"></i> Detalle
+                    </td>
+                    <td class="px-4 py-2 whitespace-nowrap"></td>
+                    <td class="px-4 py-2 whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 w-max" style="background:${dept.color}15;color:${dept.color};border:1px solid ${dept.color}30">
+                            ${dept.icon} ${dept.label}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 whitespace-nowrap text-[10px] text-gray-600 dark:text-gray-400 font-medium">${r.cliente_nombre || '-'}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-[11px] font-black" style="color:${rColor}">${monto}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-[10px] text-gray-500">${r.fecha_recibo || '-'}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">
+                        <span class="flex items-center gap-1 text-[8px] font-black uppercase" style="color:${rColor}">
+                            <i class="fa-solid ${tipoIcon} text-[7px]"></i>${tipoLabel}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 whitespace-nowrap text-right">
+                        ${r.pdf_url
+                            ? `<a href="${r.pdf_url}" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all" style="background:${rColor}15;color:${rColor};border:1px solid ${rColor}30;">
+                                   <i class="fa-solid fa-file-pdf"></i> Ver PDF</a>`
+                            : `<span class="text-[9px] text-gray-300 italic">Sin PDF</span>`
+                        }
+                        <button onclick="event.stopPropagation(); window.openReciboModal && window.openReciboModal('${r.id}')" class="ml-2 text-tealAccent hover:text-teal-400 transition-colors p-2" title="Editar Recibo"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="event.stopPropagation(); window.deleteRecibo('${r.id}')" class="text-red-400 hover:text-red-600 transition-colors p-2" title="Eliminar Recibo"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    </td>
+                </tr>`);
+            });
+        });
+
+        tbody.innerHTML = htmlParts.join('');
 
         wireFilterBtns(roleFilter, deptFilter);
     }
