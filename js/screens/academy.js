@@ -828,5 +828,4 @@ export function renderAcademy() {
           }
         }).join('');
       }
-  }
 }
