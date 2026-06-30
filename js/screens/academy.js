@@ -6,6 +6,9 @@ import { getDB } from '../api.js';
 import { t } from '../i18n.js';
 let activeAcademyDeptFilter = 'Todos';
 
+// Global helper to safely resolve the dynamic import from the correct module base URL
+window.reloadAcademy = () => import('./academy.js').then(m => m.renderAcademy());
+
 export function renderAcademy() {
   const user = getCurrentUser();
   const screen = document.getElementById('screen-academy');
@@ -65,19 +68,19 @@ export function renderAcademy() {
         }
     }
 
-    let breadcrumbsHtml = `<span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold text-text-muted hover:text-text-primary" onclick="window.mainAcademyFolder=null; import('./js/screens/academy.js').then(m=>m.renderAcademy())">Inicio</span>`;
+    let breadcrumbsHtml = `<span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold text-text-muted hover:text-text-primary" onclick="window.mainAcademyFolder=null; window.reloadAcademy()">Inicio</span>`;
     path.forEach((f, idx) => {
         const isLast = idx === path.length - 1;
-        breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-40 mx-1"></i> <span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold ${isLast ? 'text-primary' : 'text-text-muted hover:text-text-primary'}" onclick="window.mainAcademyFolder='${f.id}'; import('./js/screens/academy.js').then(m=>m.renderAcademy())">${f.titulo}</span>`;
+        breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-40 mx-1"></i> <span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold ${isLast ? 'text-primary' : 'text-text-muted hover:text-text-primary'}" onclick="window.mainAcademyFolder='${f.id}'; window.reloadAcademy()">${f.titulo}</span>`;
     });
 
     const parentFolderId = path.length > 0 ? path[path.length - 1].parent_id || null : null;
     const upArrowHtml = window.mainAcademyFolder ? 
-        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; import('./js/screens/academy.js').then(m=>m.renderAcademy())" title="Subir un nivel"><i class="fa-solid fa-arrow-up"></i></button>` 
+        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; window.reloadAcademy()" title="Subir un nivel"><i class="fa-solid fa-arrow-up"></i></button>` 
         : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-up"></i></button>`;
 
     const backArrowHtml = window.mainAcademyFolder ? 
-        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; import('./js/screens/academy.js').then(m=>m.renderAcademy())" title="Atrás"><i class="fa-solid fa-arrow-left"></i></button>`
+        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; window.reloadAcademy()" title="Atrás"><i class="fa-solid fa-arrow-left"></i></button>`
         : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-left"></i></button>`;
 
     const currentItems = allContent.filter(i => {
@@ -145,7 +148,7 @@ export function renderAcademy() {
         let iconColor = 'text-primary';
 
         itemsHtml += `
-            <div class="bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col" onclick="window.mainAcademyFolder='${item.id}'; import('./js/screens/academy.js').then(m=>m.renderAcademy())">
+            <div class="bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col" onclick="window.mainAcademyFolder='${item.id}'; window.reloadAcademy()">
                 ${item.miniaturaUrl ? 
                     `<div class="h-32 w-full bg-black relative">
                         <img src="${item.miniaturaUrl}" class="w-full h-full object-cover opacity-80" />
@@ -312,7 +315,7 @@ export function renderAcademy() {
             <div class="flex items-center gap-2">
                 ${backArrowHtml}
                 ${upArrowHtml}
-                <button class="w-9 h-9 rounded-full hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="import('./js/screens/academy.js').then(m=>m.renderAcademy())" title="Actualizar"><i class="fa-solid fa-rotate-right"></i></button>
+                <button class="w-9 h-9 rounded-full hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.reloadAcademy()" title="Actualizar"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
             <div class="flex-1 flex items-center gap-2 text-sm text-text-primary font-bold">
                 <i class="fa-solid fa-folder-open text-primary mr-2 text-lg"></i>
@@ -522,7 +525,7 @@ export function renderAcademy() {
                 
                 document.getElementById('modal-main-academy').classList.add('hidden');
                 // Refresh
-                import('./js/screens/academy.js').then(m => m.renderAcademy());
+                window.reloadAcademy();
                 alert('Guardado exitosamente');
                 
             } catch (err) {
@@ -725,7 +728,7 @@ export function renderAcademy() {
 
       if (isHighRole) {
           window.mainAcademyFolder = 'cat_' + catKey;
-          import('./js/screens/academy.js').then(m => m.renderAcademy());
+          window.reloadAcademy();
           return;
       }
 
