@@ -687,3 +687,4 @@ export function renderAcademy() {
         }).join('');
       }
   }
+}
