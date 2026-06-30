@@ -44,11 +44,9 @@ export function renderAcademy() {
 
   if (isHighRole) {
     window.mainAcademyFolder = window.mainAcademyFolder || null;
-    let breadcrumbsHtml = `<span class="cursor-pointer hover:text-primary transition-colors font-bold" onclick="window.mainAcademyFolder=null; import('./academy.js').then(m=>m.renderAcademy())">Inicio</span>`;
-    
+    let path = [];
     if (window.mainAcademyFolder) {
         let currentId = window.mainAcademyFolder;
-        let path = [];
         while (currentId) {
             const f = allContent.find(x => x.id === currentId);
             if (f) {
@@ -58,10 +56,21 @@ export function renderAcademy() {
                 currentId = null;
             }
         }
-        path.forEach(f => {
-            breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-50 mx-1"></i> <span class="cursor-pointer hover:text-primary transition-colors font-bold" onclick="window.mainAcademyFolder='${f.id}'; import('./academy.js').then(m=>m.renderAcademy())">${f.titulo}</span>`;
-        });
     }
+
+    let breadcrumbsHtml = `<span class="cursor-pointer hover:bg-surface-alt py-1 px-2 rounded transition-colors font-semibold" onclick="window.mainAcademyFolder=null; import('./academy.js').then(m=>m.renderAcademy())">Inicio</span>`;
+    path.forEach(f => {
+        breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-50 mx-1"></i> <span class="cursor-pointer hover:bg-surface-alt py-1 px-2 rounded transition-colors font-semibold" onclick="window.mainAcademyFolder='${f.id}'; import('./academy.js').then(m=>m.renderAcademy())">${f.titulo}</span>`;
+    });
+
+    const parentFolderId = path.length > 0 ? path[path.length - 1].parent_id || null : null;
+    const upArrowHtml = window.mainAcademyFolder ? 
+        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; import('./academy.js').then(m=>m.renderAcademy())" title="Subir un nivel"><i class="fa-solid fa-arrow-up"></i></button>` 
+        : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-up"></i></button>`;
+
+    const backArrowHtml = window.mainAcademyFolder ? 
+        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; import('./academy.js').then(m=>m.renderAcademy())" title="Atrás"><i class="fa-solid fa-arrow-left"></i></button>`
+        : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-left"></i></button>`;
 
     const currentItems = allContent.filter(i => {
         if (!window.mainAcademyFolder) return !i.parent_id;
@@ -90,7 +99,7 @@ export function renderAcademy() {
     let itemsHtml = '';
     if (folders.length === 0 && files.length === 0) {
         itemsHtml = `
-            <div class="col-span-full flex flex-col items-center justify-center py-16 text-center bg-surface border border-border rounded-2xl">
+            <div class="col-span-full flex flex-col items-center justify-center py-16 text-center bg-surface border border-border rounded-2xl mt-4">
                 <i class="fa-solid fa-folder-open text-4xl text-text-muted opacity-30 mb-4"></i>
                 <p class="text-text-muted font-bold">${t('academy_empty') || 'Carpeta vacía'}</p>
             </div>
@@ -147,24 +156,44 @@ export function renderAcademy() {
 
     screen.innerHTML = `
       <div id="vista-academia" class="w-full min-h-screen pb-32 animate-fadeIn" style="background: var(--bg);">
-        <header class="flex flex-col md:flex-row items-center justify-between px-10 py-6 mb-8 bg-surface border-b border-border shadow-sm gap-4">
+        <header class="flex flex-col md:flex-row items-center justify-between px-10 py-6 bg-surface border-b border-border shadow-sm gap-4">
             <div>
                 <h1 style="color: var(--text-primary); font-size: 1.8rem; font-weight: 950; letter-spacing: -1px; line-height: 1; margin: 0; text-transform: uppercase;">${t('academy_title')}</h1>
                 <p style="color: var(--primary); font-size: 0.85rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;">Gestor Avanzado</p>
             </div>
-            <div class="flex items-center gap-3">
-                <button onclick="window.mainCreateFolder()" class="bg-surface-alt border border-border text-text-primary hover:bg-border px-4 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-folder-plus text-primary"></i> Nueva Carpeta
+            
+            <div class="relative group">
+                <button class="bg-primary hover:bg-primary-hover text-surface px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> Nuevo
                 </button>
-                <button onclick="window.mainUploadDoc()" class="bg-primary hover:bg-primary-hover text-surface px-4 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Subir Documento
-                </button>
+                <div class="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                    <button onclick="window.mainCreateFolder()" class="w-full text-left px-4 py-3 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
+                        <i class="fa-solid fa-folder-plus text-primary w-4"></i> Crear Carpeta
+                    </button>
+                    <div class="w-full h-px bg-border"></div>
+                    <button onclick="window.mainUploadDoc()" class="w-full text-left px-4 py-3 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
+                        <i class="fa-solid fa-file-arrow-up text-primary w-4"></i> Subir Archivo
+                    </button>
+                </div>
             </div>
         </header>
 
-        <div class="px-10 mb-6 flex items-center gap-2 text-sm text-text-muted bg-surface-alt py-3 px-5 rounded-2xl mx-10 border border-border shadow-sm">
-            <i class="fa-solid fa-hard-drive text-primary mr-1"></i>
-            ${breadcrumbsHtml}
+        <!-- Explorer Nav Bar -->
+        <div class="px-10 py-4 bg-surface-alt border-b border-border flex items-center gap-4 mb-6">
+            <div class="flex items-center gap-1">
+                ${backArrowHtml}
+                <button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-right"></i></button>
+                ${upArrowHtml}
+                <button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="import('./academy.js').then(m=>m.renderAcademy())" title="Actualizar"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+            <div class="flex-1 bg-surface border border-border rounded-lg px-4 py-2 flex items-center gap-2 text-sm text-text-primary shadow-inner min-h-[42px]">
+                <i class="fa-solid fa-display text-text-muted mr-2"></i>
+                ${breadcrumbsHtml}
+            </div>
+            <div class="w-64 bg-surface border border-border rounded-lg px-4 py-2 flex items-center gap-2 text-sm text-text-muted shadow-inner hidden md:flex min-h-[42px]">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Buscar en la carpeta..." class="bg-transparent border-none outline-none w-full text-text-primary">
+            </div>
         </div>
 
         <div class="px-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
