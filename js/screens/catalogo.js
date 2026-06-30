@@ -345,9 +345,19 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   const price = priceKey ? prod[priceKey] : null;
 
   const customPrices = JSON.parse(localStorage.getItem('catalogo_custom_prices') || '{}');
-  const initialPrice = customPrices[prod.id] !== undefined ? customPrices[prod.id] : (price || prod.precio_full || 0);
+  const initialPrice = customPrices[prod.id] !== undefined ? customPrices[prod.id] : (prod.precio_minimo || price || prod.precio_full || 0);
   
   const ranksHTML = `
+    <style>
+      #catalogo-precio-input::-webkit-outer-spin-button,
+      #catalogo-precio-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      #catalogo-precio-input {
+        -moz-appearance: textfield;
+      }
+    </style>
     <div style="margin-top:20px; background:linear-gradient(135deg,#0ea5e915,#0284c705); border:1.5px solid #0ea5e930; border-radius:18px; padding:24px; text-align:center;">
       <p style="font-size:0.65rem; font-weight:900; color:#0ea5e9; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 10px;">Precio</p>
       
