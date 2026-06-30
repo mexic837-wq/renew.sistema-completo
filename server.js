@@ -984,7 +984,10 @@ app.post('/api/db', async (req, res) => {
                 enlace:         item.enlace         || null,
                 miniaturaUrl:   item.miniaturaUrl   || null,
                 permisos:       item.permisos       || [],
-                fecha_creacion: item.fecha_creacion || null
+                fecha_creacion: item.fecha_creacion || null,
+                parent_id:      item.parent_id      || null,
+                is_folder:      !!item.is_folder,
+                notas:          item.notas          || null
             }));
             syncTasks.push(supabase.from('academia_content').upsert(mappedAca, { onConflict: 'id' }));
         }

@@ -23,6 +23,8 @@ export function renderAcademy() {
 
   const userPipelines = user.unidades || [];
   const visibleContent = allContent.filter(item => {
+    if (item.is_folder) return false;
+
     let hasAccess = false;
     if (isHighRole) hasAccess = true;
     else if (!item.permisos || item.permisos.length === 0) hasAccess = true;
@@ -258,6 +260,7 @@ export function renderAcademy() {
             </div>
             <div style="padding: 20px;">
               <h4 style="margin:0 0 8px; color:var(--text-primary); font-size: 0.95rem; font-weight: 950; line-height: 1.2;">${r.titulo}</h4>
+              ${r.notas ? `<p style="margin: 0 0 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic;">${r.notas}</p>` : ''}
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 ${(r.permisos || []).map(p => `<span style="font-size:0.55rem; padding:4px 10px; background:var(--surface-alt); border: 1px solid var(--border); color:var(--text-secondary); border-radius:8px; font-weight:900; text-transform: uppercase;">${p}</span>`).join('')}
               </div>
@@ -292,6 +295,7 @@ export function renderAcademy() {
             </div>
             <div style="flex: 1;">
               <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo}</h4>
+              ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic;">${r.notas}</p>` : ''}
               <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
                 <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
                 ${(r.tipo || '').replace(/Informaci(?:\u00C3\u00B3|\u00f3)n/g, 'Información')}

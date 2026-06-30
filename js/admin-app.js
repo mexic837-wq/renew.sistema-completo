@@ -935,6 +935,44 @@ window.adminDeleteAcademia = async (id) => {
     }
 };
 
+window.adminEditAcademia = (id) => {
+    const db = getDB();
+    const item = (db.academiaContent || []).find(i => i.id === id);
+    if (!item) return;
+    
+    document.getElementById('aca-titulo').value = item.titulo || '';
+    if (document.getElementById('aca-tipo')) {
+        document.getElementById('aca-tipo').value = item.tipo || 'Video de Entrenamiento';
+    }
+    if (document.getElementById('aca-notas')) {
+        document.getElementById('aca-notas').value = item.notas || '';
+    }
+    
+    // Check permissions
+    document.querySelectorAll('.aca-pip-chk').forEach(c => c.checked = false);
+    if (item.permisos) {
+        document.querySelectorAll('.aca-pip-chk').forEach(c => {
+            if (item.permisos.includes(c.value)) c.checked = true;
+        });
+    }
+
+    const btnSave = document.getElementById('btn-save-academia');
+    if (btnSave) {
+        btnSave.dataset.editId = id;
+        btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
+    }
+    const btnCancel = document.getElementById('aca-cancel-edit');
+    if (btnCancel) btnCancel.classList.remove('hidden');
+    
+    const thumbWrap = document.getElementById('aca-thumb-wrap');
+    if (thumbWrap && (item.tipo || '').includes('Video')) {
+        thumbWrap.style.display = 'block';
+    }
+    
+    // Scroll up to form
+    document.querySelector('.admin-content').scrollTop = 0;
+};
+
 window.adminDeleteWorker = async (id, e) => {
     if(e) { e.stopPropagation(); e.preventDefault(); }
     if (confirm('¿ELIMINAR ESTE TRABAJADOR DEL SISTEMA?')) {
@@ -4638,6 +4676,9 @@ window.renderView = async function renderView() {
     UI.viewDesc.textContent = "Sube y administra el contenido de formación y biblioteca virtual.";
     setGlobalButton(false);
     
+    // Initialize state
+    window.currentAcademyFolder = window.currentAcademyFolder || null;
+    
     const dbLocal = getDB();
     const academiaContent = dbLocal.academiaContent || [];
     
@@ -4650,21 +4691,72 @@ window.renderView = async function renderView() {
       </label>
     `).join('');
 
-    const contentListHtml = academiaContent.map((item, idx) => `
-       <div class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl mb-3 flex justify-between items-center hover:border-tealAccent/40 transition-all">
-         <div>
-            <h4 class="font-bold text-gray-800 dark:text-white text-sm mb-1">${item.titulo}</h4>
-            <div class="flex items-center gap-2 text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-widest">
-               <i class="fa-solid ${(item.tipo || '').includes('Video') ? 'fa-play' : 'fa-file'}"></i> ${(item.tipo || '').replace(/Informaci(?:\u00C3\u00B3|\u00f3)n/g, 'Información')}
-            </div>
-            <div class="flex flex-wrap gap-1">${item.permisos.map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
-         </div>
-         <div class="flex items-center gap-2">
-            <button class="text-tealAccent/50 hover:text-tealAccent hover:bg-tealAccent/10 p-2.5 rounded-lg transition-all" onclick="window.adminEditAcademia('${item.id}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
-            <button class="text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2.5 rounded-lg transition-all" onclick="window.adminDeleteAcademia('${item.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
-         </div>
-       </div>
-    `).join('');
+    // Breadcrumbs
+    let breadcrumbs = [];
+    let curr = window.currentAcademyFolder;
+    while(curr) {
+        const f = academiaContent.find(c => c.id === curr);
+        if(f) {
+            breadcrumbs.unshift(f);
+            curr = f.parent_id;
+        } else {
+            break;
+        }
+    }
+    const breadcrumbHtml = `
+      <div class="flex items-center gap-2 mb-4 text-xs font-bold text-gray-500">
+         <span class="cursor-pointer hover:text-tealAccent transition-colors" onclick="window.currentAcademyFolder=null; window.renderAdminApp()"><i class="fa-solid fa-home"></i> Inicio</span>
+         ${breadcrumbs.map(b => `
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            <span class="cursor-pointer hover:text-tealAccent transition-colors" onclick="window.currentAcademyFolder='${b.id}'; window.renderAdminApp()">${b.titulo}</span>
+         `).join('')}
+      </div>
+    `;
+
+    const currentItems = academiaContent.filter(item => (item.parent_id || null) === window.currentAcademyFolder);
+    
+    currentItems.sort((a, b) => {
+        if(a.is_folder && !b.is_folder) return -1;
+        if(!a.is_folder && b.is_folder) return 1;
+        return (a.titulo || '').localeCompare(b.titulo || '');
+    });
+
+    const contentListHtml = currentItems.map((item, idx) => {
+        if (item.is_folder) {
+            return `
+               <div class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl mb-3 flex justify-between items-center hover:border-tealAccent/40 transition-all cursor-pointer group" onclick="window.currentAcademyFolder='${item.id}'; window.renderAdminApp()">
+                 <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-tealAccent/10 text-tealAccent flex items-center justify-center group-hover:scale-110 transition-transform"><i class="fa-solid fa-folder text-lg"></i></div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 dark:text-white text-sm mb-1">${item.titulo}</h4>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Carpeta</div>
+                    </div>
+                 </div>
+                 <div class="flex items-center gap-2">
+                    <button class="text-tealAccent/50 hover:text-tealAccent hover:bg-tealAccent/10 p-2.5 rounded-lg transition-all" onclick="event.stopPropagation(); window.adminEditAcademia('${item.id}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                    <button class="text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2.5 rounded-lg transition-all" onclick="event.stopPropagation(); window.adminDeleteAcademia('${item.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                 </div>
+               </div>
+            `;
+        } else {
+            return `
+               <div class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl mb-3 flex justify-between items-center hover:border-tealAccent/40 transition-all">
+                 <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <div class="w-8 h-8 rounded-lg bg-gray-200 dark:bg-white/10 text-gray-500 flex items-center justify-center text-xs"><i class="fa-solid ${(item.tipo || '').includes('Video') ? 'fa-play' : 'fa-file'}"></i></div>
+                        <h4 class="font-bold text-gray-800 dark:text-white text-sm">${item.titulo}</h4>
+                    </div>
+                    ${item.notas ? `<p class="text-xs text-gray-500 italic mb-2 mt-1 line-clamp-2">${item.notas}</p>` : ''}
+                    <div class="flex flex-wrap gap-1 mt-2">${item.permisos.map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
+                 </div>
+                 <div class="flex items-center gap-2">
+                    <button class="text-tealAccent/50 hover:text-tealAccent hover:bg-tealAccent/10 p-2.5 rounded-lg transition-all" onclick="window.adminEditAcademia('${item.id}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                    <button class="text-red-500/50 hover:text-red-500 hover:bg-red-500/10 p-2.5 rounded-lg transition-all" onclick="window.adminDeleteAcademia('${item.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                 </div>
+               </div>
+            `;
+        }
+    }).join('');
 
     UI.canvas.innerHTML = `
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto animate-fadeIn">
@@ -4688,6 +4780,9 @@ window.renderView = async function renderView() {
                <option value="Detalles de equipo">${t('aca_type_equipment')}</option>
                <option value="FAQ">${t('aca_type_faq')}</option>
             </select>
+
+            <label class="aqua-label">NOTAS (OPCIONAL)</label>
+            <textarea id="aca-notas" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Añade notas o descripciones..."></textarea>
 
             <label class="aqua-label">${t('aca_field_file')}</label>
             <input type="file" id="aca-file" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" accept=".mp4,.pdf,.doc,.docx">
@@ -4724,13 +4819,17 @@ window.renderView = async function renderView() {
          </div>
          
          <!-- LIST -->
-         <div class="bg-white dark:bg-darkCard p-8 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-               <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Biblioteca Activa</h3>
-               <span class="bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full text-xs font-bold text-gray-500">${academiaContent.length} items</span>
+         <div class="bg-white dark:bg-darkCard p-8 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm flex flex-col">
+            <div class="flex justify-between items-center mb-2">
+               <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Directorio Activo</h3>
+               <div class="flex items-center gap-2">
+                  <button onclick="window.adminCreateFolder()" class="bg-tealAccent/10 text-tealAccent px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-tealAccent/20 transition-all"><i class="fa-solid fa-folder-plus"></i> Nueva Carpeta</button>
+                  <span class="bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-500">${currentItems.length} items</span>
+               </div>
             </div>
-            <div class="overflow-y-auto max-h-[600px] hide-scrollbar custom-scrollbar pr-2">
-              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50"><i class="fa-solid fa-box-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Base de datos vacía</p></div>'}
+            ${breadcrumbHtml}
+            <div class="overflow-y-auto flex-1 hide-scrollbar custom-scrollbar pr-2 mt-2">
+              ${contentListHtml.length ? contentListHtml : '<div class="text-center py-10 opacity-50 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-3"></i><p class="text-xs font-bold uppercase tracking-widest">Carpeta vacía</p></div>'}
             </div>
          </div>
       </div>
@@ -4745,6 +4844,7 @@ window.renderView = async function renderView() {
        
        const titulo = document.getElementById('aca-titulo').value.trim();
        const tipo = document.getElementById('aca-tipo').value;
+       const notas = document.getElementById('aca-notas') ? document.getElementById('aca-notas').value.trim() : null;
        const fileInput = document.getElementById('aca-file');
        const miniaturaInput = document.getElementById('archivoMiniatura');
        const file = fileInput.files[0];
@@ -4763,7 +4863,6 @@ window.renderView = async function renderView() {
        btnSave.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
        btnSave.disabled = true;
 
-       // Barra de progreso en vivo para uploads de video
        let progressBar = document.getElementById('aca-upload-progress');
        let progressFill = document.getElementById('aca-upload-progress-fill');
        let progressText = document.getElementById('aca-upload-progress-text');
@@ -4800,6 +4899,7 @@ window.renderView = async function renderView() {
                    item.titulo = titulo;
                    item.tipo = tipo;
                    item.permisos = permisos;
+                   item.notas = notas;
                    if(videoUrl) item.enlace = videoUrl;
                    if(miniaturaUrl) item.miniaturaUrl = miniaturaUrl;
                }
