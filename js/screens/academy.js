@@ -422,7 +422,7 @@ export function renderAcademy() {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
         // Populate permissions
-        const pipes = getDB().pipelines || [];
+        const pipes = getDB().Admin_Pipelines || [];
         const permList = document.getElementById('main-aca-permisos-list');
         if (permList) {
             permList.innerHTML = pipes.map(p => `

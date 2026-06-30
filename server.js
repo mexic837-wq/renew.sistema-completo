@@ -197,7 +197,10 @@ app.get('/api/db', async (req, res) => {
                 enlace:         item.enlace         || null,
                 miniaturaUrl:   fixUrl(item.miniatura_url  || item.miniaturaUrl),
                 permisos:       item.permisos       || [],
-                fecha_creacion: item.fecha_creacion || null
+                fecha_creacion: item.fecha_creacion || null,
+                parent_id:      item.parent_id      || null,
+                is_folder:      !!item.is_folder,
+                notas:          item.notas          || null
             })),
             inventarioGlobal:        (results[8].data || []).map(item => ({
                 id:          item.id,
