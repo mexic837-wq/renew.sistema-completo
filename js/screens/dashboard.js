@@ -712,7 +712,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       icon: `<i class="fas fa-map-marked-alt"></i>`,
       action: () => window.appNavigate('mi-mapa'), delay: '0.19s', screen: 'mi-mapa'
     } : null,
-    ((user.permisos && 'app_partners' in user.permisos) ? user.permisos.app_partners : (isAdmin || isVentas || user.ver_partners)) ? {
+    (isAdmin || user.ver_partners) ? {
       name: 'Partners', tag: null,
       gradient: 'linear-gradient(90deg,#10b981,#059669)',
       iconBg: 'rgba(16,185,129,0.1)', iconColor: '#10b981',
