@@ -73,8 +73,19 @@ export function renderAcademy() {
         : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-left"></i></button>`;
 
     const currentItems = allContent.filter(i => {
-        if (!window.mainAcademyFolder) return !i.parent_id;
-        return i.parent_id === window.mainAcademyFolder;
+        if (!window.mainAcademyFolder) {
+            if (i.parent_id) return false;
+        } else {
+            if (i.parent_id !== window.mainAcademyFolder) return false;
+        }
+
+        if (activeAcademyDeptFilter !== 'Todos' && !i.is_folder) {
+            if (i.permisos && i.permisos.length > 0) {
+                const activePipName = 'Renew ' + activeAcademyDeptFilter.replace('Renew ', '');
+                if (!i.permisos.includes(activePipName)) return false;
+            }
+        }
+        return true;
     });
 
     const folders = currentItems.filter(i => i.is_folder).sort((a,b) => (a.titulo||'').localeCompare(b.titulo||''));
@@ -107,14 +118,30 @@ export function renderAcademy() {
     }
 
     folders.forEach(item => {
+        let iconHtml = '<i class="fa-solid fa-folder text-xl"></i>';
+        let iconBg = 'bg-primary/10';
+        let iconColor = 'text-primary';
+
         itemsHtml += `
-            <div class="bg-surface border border-border rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all" onclick="window.mainAcademyFolder='${item.id}'; import('./academy.js').then(m=>m.renderAcademy())">
-                <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-folder text-xl"></i>
-                </div>
-                <div class="flex-1 overflow-hidden">
-                    <h4 class="m-0 text-text-primary font-bold truncate">${item.titulo || 'Carpeta sin nombre'}</h4>
-                    <p class="m-0 text-[0.7rem] text-text-muted uppercase tracking-wider font-black mt-1">${allContent.filter(i => i.parent_id === item.id).length} elementos</p>
+            <div class="bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col" onclick="window.mainAcademyFolder='${item.id}'; import('./academy.js').then(m=>m.renderAcademy())">
+                ${item.miniaturaUrl ? 
+                    `<div class="h-32 w-full bg-black relative">
+                        <img src="${item.miniaturaUrl}" class="w-full h-full object-cover opacity-80" />
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center text-white"><i class="fa-solid fa-folder"></i></div>
+                        </div>
+                    </div>` 
+                    : 
+                    `<div class="h-32 w-full flex items-center justify-center ${iconBg} ${iconColor}">
+                        ${iconHtml}
+                    </div>`
+                }
+                <div class="p-4 flex-1 flex flex-col">
+                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${item.titulo || 'Carpeta sin nombre'}</h4>
+                    ${item.notas ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
+                    <div class="mt-auto flex flex-wrap gap-1">
+                        <span class="text-[0.55rem] px-2 py-1 bg-surface-alt border border-border rounded-md uppercase font-black text-text-muted">${allContent.filter(i => i.parent_id === item.id).length} elementos</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -154,6 +181,14 @@ export function renderAcademy() {
         `;
     });
 
+    // Add filter buttons html
+    const filterHtml = `
+        <div class="flex items-center justify-center gap-4 mt-6 mb-2 relative z-10 w-full">
+          <button class="academy-dept-filter-pill ${activeAcademyDeptFilter === 'Todos' ? 'active' : ''}" data-dept="Todos">Todos</button>
+          ${depts.map(d => `<button class="academy-dept-filter-pill ${activeAcademyDeptFilter === d ? 'active' : ''}" data-dept="${d}">${d}</button>`).join('')}
+        </div>
+    `;
+
     screen.innerHTML = `
       <div id="vista-academia" class="w-full min-h-screen pb-32 animate-fadeIn" style="background: var(--bg);">
         <header class="flex flex-col md:flex-row items-center justify-between px-10 py-6 bg-surface border-b border-border shadow-sm gap-4">
@@ -178,6 +213,7 @@ export function renderAcademy() {
             </div>
         </header>
 
+        ${filterHtml}
         <!-- Explorer Nav Bar -->
         <div class="px-10 py-4 bg-surface-alt border-b border-border flex items-center gap-4 mb-6">
             <div class="flex items-center gap-1">
@@ -309,11 +345,21 @@ export function renderAcademy() {
                 const notas = document.getElementById('main-aca-notas').value.trim() || null;
                 
                 if (isFolder) {
+                    const minInput = document.getElementById('main-aca-miniatura');
+                    const minFile = (minInput && minInput.files.length) ? minInput.files[0] : null;
+                    let minUrl = null;
+                    
+                    if (minFile) {
+                        const { uploadFile } = await import('../api.js');
+                        minUrl = await uploadFile(minFile, 'academia_thumbs', () => {});
+                    }
+
                     const newFolder = {
                         id: 'folder_' + Date.now(),
                         titulo: titulo,
                         tipo: 'Carpeta',
                         enlace: '',
+                        miniaturaUrl: minUrl,
                         permisos: [],
                         is_folder: true,
                         parent_id: parentId,
@@ -321,9 +367,8 @@ export function renderAcademy() {
                     };
                     db.academiaContent = db.academiaContent || [];
                     db.academiaContent.push(newFolder);
-                    const { upsertRecord } = await import('../api.js');
-                    await upsertRecord('academia_content', newFolder);
-                    await import('../api.js').then(m => m.saveDB(db));
+                    const { saveDB } = await import('../api.js');
+                    await saveDB(db);
                     
                 } else {
                     const fileInput = document.getElementById('main-aca-file');
@@ -339,7 +384,7 @@ export function renderAcademy() {
                     const progressPct = document.getElementById('main-aca-progress-pct');
                     progressWrap.classList.remove('hidden');
                     
-                    const { uploadFile, upsertRecord, saveDB } = await import('../api.js');
+                    const { uploadFile, saveDB } = await import('../api.js');
                     
                     const fileUrl = await uploadFile(file, 'academia', (pct) => {
                         progressFill.style.width = pct + '%';
@@ -365,7 +410,6 @@ export function renderAcademy() {
                     
                     db.academiaContent = db.academiaContent || [];
                     db.academiaContent.push(newDoc);
-                    await upsertRecord('academia_content', newDoc);
                     await saveDB(db);
                 }
                 
@@ -391,7 +435,7 @@ export function renderAcademy() {
             document.getElementById('main-aca-notas').value = '';
             document.getElementById('main-aca-file-group').style.display = 'none';
             document.getElementById('main-aca-tipo').parentElement.style.display = 'none';
-            document.getElementById('main-aca-thumb-wrap').style.display = 'none';
+            document.getElementById('main-aca-thumb-wrap').style.display = 'block'; // Allow image upload for folders
             document.getElementById('main-aca-permisos-group').style.display = 'none';
             
             const btn = document.getElementById('btn-main-save-academy');
