@@ -576,9 +576,8 @@ export function renderAcademy() {
                 const db = getDB();
                 const item = db.academiaContent.find(x => x.id === id);
                 if (item) {
-                    item.tipo = 'ELIMINADO';
-                    const { saveGranular } = await import('../api.js');
-                    await saveGranular('academia_content', [item]);
+                    const { deleteRecord } = await import('../api.js');
+                    await deleteRecord('academia_content', id);
                     window.reloadAcademy();
                 }
             } catch(e) {
