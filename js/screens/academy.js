@@ -84,6 +84,8 @@ export function renderAcademy() {
         : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-left"></i></button>`;
 
     const currentItems = allContent.filter(i => {
+        if (i.tipo === 'ELIMINADO') return false;
+        
         // Fix DB corruption for folders saved before the backend fix
         if (i.tipo === 'Carpeta') i.is_folder = true;
 
@@ -164,7 +166,12 @@ export function renderAcademy() {
         let iconColor = 'text-primary';
 
         itemsHtml += `
-            <div class="bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col" onclick="window.mainAcademyFolder='${item.id}'; window.reloadAcademy()">
+            <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="window.mainAcademyFolder='${item.id}'; window.reloadAcademy()" data-is-folder="true">
+                <div class="absolute top-2 right-2 flex gap-2 z-10">
+                    <button class="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center transition-colors shadow-sm" onclick="event.stopPropagation(); if(confirm('¿Eliminar esto de forma permanente?')) window.deleteAcademyItem('${item.id}', this);" title="Eliminar">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
                 ${item.miniaturaUrl ? 
                     `<div class="h-32 w-full bg-black relative">
                         <img src="${item.miniaturaUrl}" class="w-full h-full object-cover opacity-80" />
@@ -198,7 +205,12 @@ export function renderAcademy() {
         else if (typeStr.includes('pdf')) { iconHtml = '<i class="fa-solid fa-file-pdf"></i>'; iconBg = 'bg-blue-500/10'; iconColor = 'text-blue-500'; }
         
         itemsHtml += `
-            <div class="bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col" onclick="window.open('${getViewerUrl(item.enlace)}', '_blank')">
+            <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="window.open('${getViewerUrl(item.enlace)}', '_blank')" data-is-folder="false">
+                <div class="absolute top-2 right-2 flex gap-2 z-10">
+                    <button class="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center transition-colors shadow-sm" onclick="event.stopPropagation(); if(confirm('¿Eliminar esto de forma permanente?')) window.deleteAcademyItem('${item.id}', this);" title="Eliminar">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                </div>
                 ${item.miniaturaUrl ? 
                     `<div class="h-32 w-full bg-black relative">
                         <img src="${item.miniaturaUrl}" class="w-full h-full object-cover opacity-80" />
@@ -493,8 +505,8 @@ export function renderAcademy() {
                     };
                     db.academiaContent = db.academiaContent || [];
                     db.academiaContent.push(newFolder);
-                    const { saveDB } = await import('../api.js');
-                    await saveDB(db);
+                    const { saveGranular } = await import('../api.js');
+                    await saveGranular('academia_content', [newFolder]);
                     
                 } else {
                     const fileInput = document.getElementById('main-aca-file');
@@ -510,7 +522,7 @@ export function renderAcademy() {
                     const progressPct = document.getElementById('main-aca-progress-pct');
                     progressWrap.classList.remove('hidden');
                     
-                    const { uploadFile, saveDB } = await import('../api.js');
+                    const { uploadFile, saveGranular } = await import('../api.js');
                     
                     const fileUrl = await uploadFile(file, 'academia', (pct) => {
                         progressFill.style.width = pct + '%';
@@ -536,7 +548,7 @@ export function renderAcademy() {
                     
                     db.academiaContent = db.academiaContent || [];
                     db.academiaContent.push(newDoc);
-                    await saveDB(db);
+                    await saveGranular('academia_content', [newDoc]);
                 }
                 
                 document.getElementById('modal-main-academy').classList.add('hidden');
@@ -554,6 +566,26 @@ export function renderAcademy() {
             }
         });
         
+        window.deleteAcademyItem = async (id, btn) => {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
+            btn.disabled = true;
+            try {
+                const db = getDB();
+                const item = db.academiaContent.find(x => x.id === id);
+                if (item) {
+                    item.tipo = 'ELIMINADO';
+                    const { saveGranular } = await import('../api.js');
+                    await saveGranular('academia_content', [item]);
+                    window.reloadAcademy();
+                }
+            } catch(e) {
+                console.error(e);
+                alert('Error al borrar');
+                btn.innerHTML = '<i class="fa-solid fa-trash text-xs"></i>';
+                btn.disabled = false;
+            }
+        };
+
         // Expose modal triggers
         window.mainCreateFolder = () => {
             document.getElementById('modal-main-academy-title').innerText = 'NUEVA CARPETA';
