@@ -887,6 +887,32 @@ export function renderAcademy() {
               iconColor = '#f59e0b'; // Naranja
             }
 
+            if (r.miniaturaUrl) {
+                return `
+                  <div class="recurso-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%; cursor: pointer;">
+                    <div style="width: 100%; height: 160px; position:relative; background: var(--surface-alt);">
+                      <img src="${r.miniaturaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.9;">
+                      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.1);">
+                        <div style="width:50px; height:50px; border-radius:15px; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--border);">
+                           ${iconSvg}
+                        </div>
+                      </div>
+                    </div>
+                    <div style="padding: 20px;">
+                      <h4 style="margin:0 0 8px; color:var(--text-primary); font-size: 0.95rem; font-weight: 950; line-height: 1.2;">${r.titulo}</h4>
+                      ${r.notas ? `<p style="margin: 0 0 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic;">${r.notas}</p>` : ''}
+                      <p style="margin:0 0 10px; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
+                        ${(r.tipo || '').replace(/Informaci(?:\u00C3\u00B3|\u00f3)n/g, 'Información')}
+                      </p>
+                      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${(r.permisos || []).map(p => `<span style="font-size:0.55rem; padding:4px 10px; background:var(--surface-alt); border: 1px solid var(--border); color:var(--text-secondary); border-radius:8px; font-weight:900; text-transform: uppercase;">${p}</span>`).join('')}
+                      </div>
+                    </div>
+                  </div>
+                `;
+            }
+
             return `
               <div class="recurso-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
                 <div style="width: 52px; height: 52px; border-radius: 15px; background: ${iconBg}; color: ${iconColor}; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
