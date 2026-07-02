@@ -89,6 +89,8 @@ export function renderAcademy() {
         // Fix DB corruption for folders saved before the backend fix
         if (i.tipo === 'Carpeta') i.is_folder = true;
 
+        let belongsToFolder = false;
+
         if (!window.mainAcademyFolder) {
             if (i.parent_id) return false;
             
@@ -104,25 +106,26 @@ export function renderAcademy() {
                     return false;
                 }
             }
+            belongsToFolder = true;
         } else if (window.mainAcademyFolder.startsWith('cat_')) {
             const cat = window.mainAcademyFolder.replace('cat_', '');
-            if (i.parent_id === window.mainAcademyFolder) return true;
-            
-            // Show files that belong to this virtual category
-            if (!i.is_folder && !i.parent_id) {
+            if (i.parent_id === window.mainAcademyFolder) {
+                belongsToFolder = true;
+            } else if (!i.is_folder && !i.parent_id) {
                 const t = (i.tipo || '').toLowerCase();
-                if (cat === 'video' && t.includes('video')) return true;
-                if (cat === 'pdf' && (t.includes('pdf') || t.includes('guía') || t.includes('documento'))) return true;
-                if (cat === 'banco' && (t.includes('banca') || t.includes('banco'))) return true;
-                if (cat === 'faq' && (t.includes('faq') || t.includes('ayuda'))) return true;
-                if (cat === 'equipo' && t.includes('equipo')) return true;
+                if (cat === 'video' && t.includes('video')) belongsToFolder = true;
+                else if (cat === 'pdf' && (t.includes('pdf') || t.includes('guía') || t.includes('documento'))) belongsToFolder = true;
+                else if (cat === 'banco' && (t.includes('banca') || t.includes('banco'))) belongsToFolder = true;
+                else if (cat === 'faq' && (t.includes('faq') || t.includes('ayuda'))) belongsToFolder = true;
+                else if (cat === 'equipo' && t.includes('equipo')) belongsToFolder = true;
             }
-            return false;
         } else {
-            if (i.parent_id !== window.mainAcademyFolder) return false;
+            if (i.parent_id === window.mainAcademyFolder) belongsToFolder = true;
         }
 
-        if (activeAcademyDeptFilter !== 'Todos' && !i.is_folder) {
+        if (!belongsToFolder) return false;
+
+        if (activeAcademyDeptFilter !== 'Todos') {
             if (i.permisos && i.permisos.length > 0) {
                 const activePipName = 'Renew ' + activeAcademyDeptFilter.replace('Renew ', '');
                 if (!i.permisos.includes(activePipName)) return false;
@@ -594,7 +597,7 @@ export function renderAcademy() {
             document.getElementById('main-aca-file-group').style.display = 'none';
             document.getElementById('main-aca-tipo').parentElement.style.display = 'none';
             document.getElementById('main-aca-thumb-wrap').style.display = 'block'; // Allow image upload for folders
-            document.getElementById('main-aca-permisos-group').style.display = 'none';
+            document.getElementById('main-aca-permisos-group').style.display = 'block';
             
             const btn = document.getElementById('btn-main-save-academy');
             btn.dataset.isFolder = 'true';
