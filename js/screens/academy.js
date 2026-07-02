@@ -484,6 +484,7 @@ export function renderAcademy() {
                 const db = getDB();
                 const parentId = window.mainAcademyFolder || null;
                 const notas = document.getElementById('main-aca-notas').value.trim() || null;
+                const permisos = Array.from(document.querySelectorAll('.main-aca-pip-chk:checked')).map(c => c.value);
                 
                 if (isFolder) {
                     const minInput = document.getElementById('main-aca-miniatura');
@@ -501,7 +502,7 @@ export function renderAcademy() {
                         tipo: 'Carpeta',
                         enlace: '',
                         miniaturaUrl: minUrl,
-                        permisos: [],
+                        permisos: permisos,
                         is_folder: true,
                         parent_id: parentId,
                         notas: notas
@@ -518,7 +519,6 @@ export function renderAcademy() {
                     const minInput = document.getElementById('main-aca-miniatura');
                     const minFile = (minInput && minInput.files.length) ? minInput.files[0] : null;
                     const tipo = document.getElementById('main-aca-tipo').value;
-                    const permisos = Array.from(document.querySelectorAll('.main-aca-pip-chk:checked')).map(c => c.value);
                     
                     const progressWrap = document.getElementById('main-aca-progress');
                     const progressFill = document.getElementById('main-aca-progress-fill');
