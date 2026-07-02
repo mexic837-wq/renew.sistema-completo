@@ -84,14 +84,30 @@ export function renderAcademy() {
         : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-left"></i></button>`;
 
     const currentItems = allContent.filter(i => {
+        // Fix DB corruption for folders saved before the backend fix
+        if (i.tipo === 'Carpeta') i.is_folder = true;
+
         if (!window.mainAcademyFolder) {
             if (i.parent_id) return false;
-            // Hide legacy files from root
-            if (i.is_folder === undefined) return false;
+            
+            // Hide files that belong to virtual categories from the root
+            if (!i.is_folder) {
+                const t = (i.tipo || '').toLowerCase();
+                const isCatVideo = t.includes('video');
+                const isCatPdf = t.includes('pdf') || t.includes('guía') || t.includes('documento');
+                const isCatBanco = t.includes('banca') || t.includes('banco');
+                const isCatFaq = t.includes('faq') || t.includes('ayuda');
+                const isCatEquipo = t.includes('equipo');
+                if (isCatVideo || isCatPdf || isCatBanco || isCatFaq || isCatEquipo) {
+                    return false;
+                }
+            }
         } else if (window.mainAcademyFolder.startsWith('cat_')) {
             const cat = window.mainAcademyFolder.replace('cat_', '');
             if (i.parent_id === window.mainAcademyFolder) return true;
-            if (i.is_folder === undefined) {
+            
+            // Show files that belong to this virtual category
+            if (!i.is_folder && !i.parent_id) {
                 const t = (i.tipo || '').toLowerCase();
                 if (cat === 'video' && t.includes('video')) return true;
                 if (cat === 'pdf' && (t.includes('pdf') || t.includes('guía') || t.includes('documento'))) return true;
