@@ -26,7 +26,7 @@ export function renderAcademy() {
 
   const userPipelines = user.unidades || [];
   const visibleContent = allContent.filter(item => {
-    if (item.is_folder) return false;
+    if (item.tipo === 'ELIMINADO') return false;
 
     let hasAccess = false;
     if (isHighRole) hasAccess = true;
@@ -804,15 +804,59 @@ export function renderAcademy() {
       });
   }
       
-      function renderRecursosFinales(catKey) {
+      function renderRecursosFinales(catKey, parentFolderId = null) {
         const resources = visibleContent.filter(item => {
-          const type = (item.tipo || '').toLowerCase();
-          if (catKey === 'video') return type.includes('video');
-          if (catKey === 'pdf') return type.includes('pdf') || type.includes('guía') || type.includes('documento');
-          if (catKey === 'banco') return type.includes('banca') || type.includes('banco');
-          if (catKey === 'faq') return type.includes('faq') || type.includes('ayuda');
-          if (catKey === 'equipo') return type.includes('equipo');
-          return false;
+          if (item.is_folder) {
+             if (parentFolderId) return item.parent_id === parentFolderId;
+             return item.parent_id === 'cat_' + catKey;
+          }
+          
+          // Files
+          if (parentFolderId) {
+             return item.parent_id === parentFolderId;
+          } else {
+             // In root of virtual category
+             if (item.parent_id && !item.parent_id.startsWith('cat_')) return false; // hide files that are inside real folders
+             
+             const type = (item.tipo || '').toLowerCase();
+             if (catKey === 'video') return type.includes('video');
+             if (catKey === 'pdf') return type.includes('pdf') || type.includes('guía') || type.includes('documento');
+             if (catKey === 'banco') return type.includes('banca') || type.includes('banco');
+             if (catKey === 'faq') return type.includes('faq') || type.includes('ayuda');
+             if (catKey === 'equipo') return type.includes('equipo');
+             return false;
+          }
+        });
+
+        // Add back button functionality if we are inside a folder
+        const oldBackBtn = document.getElementById('btn-regresar-academia');
+        const newBackBtn = oldBackBtn.cloneNode(true);
+        oldBackBtn.parentNode.replaceChild(newBackBtn, oldBackBtn);
+        
+        newBackBtn.addEventListener('click', () => {
+          if (parentFolderId) {
+             const currentFolder = visibleContent.find(x => x.id === parentFolderId);
+             const upperId = currentFolder ? currentFolder.parent_id : null;
+             
+             if (upperId && upperId.startsWith('cat_')) {
+                 const catNames = { video: 'Videos', pdf: 'Documentos', banco: 'Banco de Información', faq: 'Soporte y FAQ', equipo: 'Equipo' };
+                 const rawCat = upperId.replace('cat_', '');
+                 if (tituloSub) tituloSub.innerText = catNames[rawCat] || rawCat.toUpperCase();
+                 renderRecursosFinales(catKey, null);
+             } else if (upperId) {
+                 const upFolder = visibleContent.find(x => x.id === upperId);
+                 if (tituloSub) tituloSub.innerText = upFolder ? upFolder.titulo : 'Carpeta';
+                 renderRecursosFinales(catKey, upperId);
+             } else {
+                 renderRecursosFinales(catKey, null);
+             }
+          } else {
+             if (subVista) subVista.classList.add('hidden');
+             if (menuPrincipal) menuPrincipal.classList.remove('hidden');
+             if (gestorGrid) gestorGrid.classList.remove('hidden');
+             if (explorerNav) explorerNav.classList.remove('hidden');
+             if (contenedorFinal) contenedorFinal.innerHTML = '';
+          }
         });
 
         if (resources.length === 0) {
@@ -845,6 +889,27 @@ export function renderAcademy() {
         };
 
         contenedorFinal.innerHTML = resources.map(r => {
+          if (r.is_folder) {
+             return `
+              <div class="recurso-item recurso-carpeta-legacy" data-cat="${catKey}" data-id="${r.id}" data-titulo="${r.titulo}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
+                <div style="width: 52px; height: 52px; border-radius: 15px; background: rgba(255,180,0,0.1); color: #eab308; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
+                  <i class="fa-solid fa-folder"></i>
+                </div>
+                <div style="flex: 1;">
+                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo}</h4>
+                  ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic;">${r.notas}</p>` : ''}
+                  <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #eab308;"></span>
+                    CARPETA
+                  </p>
+                </div>
+                <div style="color: var(--text-muted); padding-right: 10px; opacity: 0.5;">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+              </div>
+             `;
+          }
+
           if (catKey === 'video') {
             return `
               <div class="video-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%;">
@@ -930,5 +995,13 @@ export function renderAcademy() {
             `;
           }
         }).join('');
+
+        // Attach click listeners for folders
+        document.querySelectorAll('.recurso-carpeta-legacy').forEach(el => {
+            el.addEventListener('click', () => {
+                if (tituloSub) tituloSub.innerText = el.dataset.titulo;
+                renderRecursosFinales(el.dataset.cat, el.dataset.id);
+            });
+        });
       }
 }
