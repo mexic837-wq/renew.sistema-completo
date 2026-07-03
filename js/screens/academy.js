@@ -203,12 +203,19 @@ export function renderAcademy() {
         let iconHtml = '<i class="fa-solid fa-file text-xl"></i>';
         let iconBg = 'bg-surface-alt';
         let iconColor = 'text-text-secondary';
+        let onClickAction = `window.open('${getViewerUrl(item.enlace)}', '_blank')`;
         
         if (typeStr.includes('video')) { iconHtml = '<i class="fa-solid fa-play"></i>'; iconBg = 'bg-red-500/10'; iconColor = 'text-red-500'; }
         else if (typeStr.includes('pdf')) { iconHtml = '<i class="fa-solid fa-file-pdf"></i>'; iconBg = 'bg-blue-500/10'; iconColor = 'text-blue-500'; }
+        else if (typeStr === 'nota') { 
+            iconHtml = '<i class="fa-solid fa-quote-left text-2xl"></i>'; 
+            iconBg = 'bg-primary/10'; 
+            iconColor = 'text-primary'; 
+            onClickAction = `window.viewAcademyNote('${item.id}')`; 
+        }
         
         itemsHtml += `
-            <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="window.open('${getViewerUrl(item.enlace)}', '_blank')" data-is-folder="false">
+            <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="${onClickAction}" data-is-folder="false">
                 <div class="absolute top-2 right-2 flex gap-2 z-10">
                     <button class="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center transition-colors shadow-sm" onclick="event.stopPropagation(); if(confirm('¿Eliminar esto de forma permanente?')) window.deleteAcademyItem('${item.id}', this);" title="Eliminar">
                         <i class="fa-solid fa-trash text-xs"></i>
@@ -227,7 +234,7 @@ export function renderAcademy() {
                     </div>`
                 }
                 <div class="p-4 flex-1 flex flex-col">
-                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${item.titulo || 'Documento'}</h4>
+                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${item.titulo || (typeStr === 'nota' ? 'Nota' : 'Documento')}</h4>
                     ${item.notas ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
                     <div class="mt-auto flex flex-wrap gap-1">
                         ${(item.permisos || []).map(p => `<span class="text-[0.55rem] px-2 py-1 bg-surface-alt border border-border rounded-md uppercase font-black text-text-muted">${p}</span>`).join('')}
@@ -333,6 +340,10 @@ export function renderAcademy() {
                     <div class="w-full h-px bg-border"></div>
                     <button onclick="window.mainUploadDoc()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
                         <i class="fa-solid fa-file-arrow-up text-primary text-lg w-5"></i> Subir Archivo
+                    </button>
+                    <div class="w-full h-px bg-border"></div>
+                    <button onclick="window.mainCreateNote()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
+                        <i class="fa-solid fa-pen-to-square text-primary text-lg w-5"></i> Crear Nota
                     </button>
                 </div>
             </div>
@@ -451,6 +462,31 @@ export function renderAcademy() {
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
+        const noteModalHtml = `
+            <div id="modal-view-note" class="fixed inset-0 z-[999] hidden flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-bg" onclick="document.getElementById('modal-view-note').classList.add('hidden')"></div>
+                <div class="relative bg-surface border border-border rounded-3xl shadow-2xl w-full max-w-2xl p-8 animate-slideUp">
+                    <button class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-surface-alt text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors" onclick="document.getElementById('modal-view-note').classList.add('hidden')">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <i class="fa-solid fa-quote-left text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 id="modal-note-title" class="text-xl font-black text-text-primary uppercase tracking-tight m-0">Nota</h3>
+                            <p id="modal-note-date" class="text-xs text-text-muted font-bold m-0"></p>
+                        </div>
+                    </div>
+                    
+                    <div id="modal-note-content" class="text-text-secondary whitespace-pre-wrap leading-relaxed text-sm p-4 bg-bg rounded-2xl border border-border max-h-[60vh] overflow-y-auto">
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', noteModalHtml);
+        
         // Populate permissions
         const pipes = getDB().Admin_Pipelines || [];
         const permList = document.getElementById('main-aca-permisos-list');
@@ -473,10 +509,12 @@ export function renderAcademy() {
             const rawTitulo = document.getElementById('main-aca-titulo').value.trim();
             const btn = document.getElementById('btn-main-save-academy');
             const isFolder = btn.dataset.isFolder === 'true';
+            const isNote = btn.dataset.isFolder === 'note';
             
             const folderId = window.mainAcademyFolder || null;
             
             if (isFolder && !rawTitulo) return alert('El título es requerido para la carpeta');
+            if (isNote && !document.getElementById('main-aca-notas').value.trim()) return alert('Debes escribir algo en la nota');
             
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
@@ -516,6 +554,22 @@ export function renderAcademy() {
                     const { saveGranular } = await import('../api.js');
                     await saveGranular('academia_content', [newFolder]);
                     
+                } else if (isNote) {
+                    const newNote = {
+                        id: 'note_' + Date.now(),
+                        titulo: rawTitulo || 'Nota',
+                        tipo: 'Nota',
+                        enlace: '',
+                        miniaturaUrl: null,
+                        permisos: permisos,
+                        is_folder: false,
+                        parent_id: parentId,
+                        notas: notas
+                    };
+                    db.academiaContent = db.academiaContent || [];
+                    db.academiaContent.push(newNote);
+                    const { saveGranular } = await import('../api.js');
+                    await saveGranular('academia_content', [newNote]);
                 } else {
                     const fileInput = document.getElementById('main-aca-file');
                     if (!fileInput.files.length) throw new Error('Debes seleccionar al menos un archivo');
@@ -622,16 +676,62 @@ export function renderAcademy() {
         };
 
         // Expose modal triggers
-        window.mainCreateFolder = () => {
-            document.getElementById('modal-main-academy-title').innerText = 'NUEVA CARPETA';
-            document.getElementById('main-aca-titulo-label').innerText = 'Título *';
+        window.mainCreateNote = () => {
+            document.getElementById('modal-main-academy-title').innerText = 'CREAR NOTA';
+            document.getElementById('main-aca-titulo-label').innerText = 'Título (Opcional)';
             document.getElementById('main-aca-titulo').value = '';
-            document.getElementById('main-aca-notas').value = '';
+            
+            const notasInput = document.getElementById('main-aca-notas');
+            notasInput.value = '';
+            notasInput.placeholder = 'Escribe tu publicación aquí...';
+            notasInput.classList.remove('h-20');
+            notasInput.classList.add('h-40');
             
             document.getElementById('main-aca-titulo-wrap').style.display = 'block';
             document.getElementById('main-aca-file-group').style.display = 'none';
             document.getElementById('main-aca-tipo-wrap').style.display = 'none';
-            document.getElementById('main-aca-thumb-wrap').style.display = 'block'; // Allow image upload for folders
+            document.getElementById('main-aca-thumb-wrap').style.display = 'none';
+            document.getElementById('main-aca-permisos-group').style.display = 'none';
+            
+            const btn = document.getElementById('btn-main-save-academy');
+            btn.dataset.isFolder = 'note';
+            document.getElementById('modal-main-academy').classList.remove('hidden');
+        };
+
+        window.viewAcademyNote = (id) => {
+            const db = getDB();
+            const note = db.academiaContent.find(x => x.id === id);
+            if (!note) return;
+            
+            document.getElementById('modal-note-title').innerText = note.titulo || 'Nota';
+            
+            // Format date if possible, else just hide it or show "Reciente"
+            const dateStr = note.id.split('_')[1];
+            let dateFormatted = 'Reciente';
+            if (dateStr && !isNaN(dateStr)) {
+                dateFormatted = new Date(parseInt(dateStr)).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+            }
+            document.getElementById('modal-note-date').innerText = dateFormatted;
+            
+            document.getElementById('modal-note-content').textContent = note.notas || '';
+            document.getElementById('modal-view-note').classList.remove('hidden');
+        };
+
+        window.mainCreateFolder = () => {
+            document.getElementById('modal-main-academy-title').innerText = 'NUEVA CARPETA';
+            document.getElementById('main-aca-titulo-label').innerText = 'Título *';
+            document.getElementById('main-aca-titulo').value = '';
+            
+            const notasInput = document.getElementById('main-aca-notas');
+            notasInput.value = '';
+            notasInput.placeholder = 'Notas sobre esta carpeta...';
+            notasInput.classList.remove('h-40');
+            notasInput.classList.add('h-20');
+            
+            document.getElementById('main-aca-titulo-wrap').style.display = 'block';
+            document.getElementById('main-aca-file-group').style.display = 'none';
+            document.getElementById('main-aca-tipo-wrap').style.display = 'none';
+            document.getElementById('main-aca-thumb-wrap').style.display = 'block';
             document.getElementById('main-aca-permisos-group').style.display = 'none';
             
             const btn = document.getElementById('btn-main-save-academy');
@@ -643,7 +743,13 @@ export function renderAcademy() {
             document.getElementById('modal-main-academy-title').innerText = 'SUBIR DOCUMENTO';
             document.getElementById('main-aca-titulo-label').innerText = 'Título (Opcional)';
             document.getElementById('main-aca-titulo').value = '';
-            document.getElementById('main-aca-notas').value = '';
+            
+            const notasInput = document.getElementById('main-aca-notas');
+            notasInput.value = '';
+            notasInput.placeholder = 'Notas sobre este archivo...';
+            notasInput.classList.remove('h-40');
+            notasInput.classList.add('h-20');
+            
             document.getElementById('main-aca-file').value = '';
             document.getElementById('main-aca-miniatura').value = '';
             document.querySelectorAll('.main-aca-pip-chk').forEach(c => c.checked = false);
