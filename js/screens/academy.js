@@ -4,7 +4,7 @@
 import { getCurrentUser } from '../app.js';
 import { getDB } from '../api.js';
 import { t } from '../i18n.js';
-let activeAcademyDeptFilter = 'Todos';
+let activeAcademyDeptFilter = '';
 
 // Global helper to safely resolve the dynamic import from the correct module base URL
 window.reloadAcademy = () => import('./academy.js').then(m => m.renderAcademy());
@@ -239,7 +239,6 @@ export function renderAcademy() {
 
     const filterHtml = `
         <div class="flex items-center justify-center gap-3 mt-4 mb-8 relative z-10 w-full" id="academy-dept-filters">
-          <button class="academy-dept-filter-pill ${activeAcademyDeptFilter === 'Todos' ? 'active' : ''}" data-dept="Todos" style="padding: 8px 24px; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.3s; ${activeAcademyDeptFilter === 'Todos' ? 'background: var(--primary); color: #000; border: 1px solid var(--primary);' : 'background: transparent; color: var(--text-secondary); border: 1px solid var(--border);'}">TODOS</button>
           ${depts.map(d => `<button class="academy-dept-filter-pill ${activeAcademyDeptFilter === d ? 'active' : ''}" data-dept="${d}" style="padding: 8px 24px; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.3s; ${activeAcademyDeptFilter === d ? 'background: var(--primary); color: #000; border: 1px solid var(--primary);' : 'background: transparent; color: var(--text-secondary); border: 1px solid var(--border);'}">${d.toUpperCase()}</button>`).join('')}
         </div>
     `;
