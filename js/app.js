@@ -77,27 +77,15 @@ window.addEventListener('message', async (e) => {
       const db = getDB();
 
       if (isNewClient && !proyectoId) {
-          console.log('[APP] isNewClient flag detected. Creating new Client and Project automatically...');
-          const nombre = formData.aplicante?.nombreCompleto || formData.aplicante?.fullName || formData.purchaser || 'Nuevo Cliente';
-          const email = formData.aplicante?.email || formData.buyerEmail || '';
-          const phone = formData.aplicante?.telefono || formData.aplicante?.phone || formData.buyerPhone || '';
-          const address = formData.aplicante?.direccion || formData.aplicante?.address || formData.buyerAddress || '';
-          const dob = formData.aplicante?.fechaNacimiento || formData.aplicante?.dateOfBirth || '-';
-          const state_id = formData.aplicante?.state || '-';
-
-          const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
-          // pipelineName defaults to "Renew Water" since it's the RENEW WATER form
-          const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: 'Renew Water' });
-          
-          if (newProyRes && newProyRes.id) {
-              proyectoId = newProyRes.id;
-              console.log('[APP] Auto-created project ID:', proyectoId);
-          } else {
-              throw new Error("No se pudo auto-crear el proyecto para el nuevo cliente.");
-          }
+          console.log('[APP] isNewClient flag detected. Skipping local auto-create to prevent duplicates (relying on n8n webhook).');
+          // Close modals and navigate to dashboard for a smooth UX
+          if (typeof window.closeModals === 'function') window.closeModals();
+          navigate('dashboard');
+          showToast('Formulario enviado. El prospecto aparecerá en breve.', 'success');
+          return;
       } else if (!proyectoId) {
-        console.warn('[APP] No proyectoId in message, skipping advancement.');
-        return;
+          console.warn('[APP] No proyectoId in message, skipping advancement.');
+          return;
       }
 
       const rawPayload = formData || {};
