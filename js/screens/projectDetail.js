@@ -1031,6 +1031,10 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
     const isContract = actFase.nombre.toLowerCase().includes('contrato');
     const isCreditApp = actFase.nombre.toLowerCase().includes('aprobación') || actFase.nombre.toLowerCase().includes('crédito');
     
+    const db = typeof getDB !== 'undefined' ? getDB() : null;
+    const cliente = db?.Clientes_Maestro?.find(c => c.id === deal.cliente_id);
+    const isCreditAppFilled = cliente?.adjuntos_oficina?.app_url ? true : false;
+
     container.innerHTML = `
       <div class="form-card slide-in-bottom" style="margin-top:24px; ${isLocked ? 'opacity:0.7; pointer-events:none; filter:grayscale(0.5)' : ''}">
         <div class="flex items-center gap-4 mb-4">
@@ -1038,8 +1042,8 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div>
-            <h3 class="text-lg font-bold text-gray-800">${isLocked ? 'Fase Bloqueada' : (isWorkOrder ? 'Completar Orden de Trabajo' : isContract ? 'Completar Contrato' : isCreditApp ? 'Completar Aplicación de Crédito' : 'Fase en espera')}</h3>
-            <p class="text-sm text-gray-600">${isLocked ? `Corresponde a: ${deal.rol_fase}` : (isWorkOrder || isContract || isCreditApp ? 'Ir a la sección correspondiente para llenarla.' : 'No hay acciones requeridas. Avanzar fase.')}</p>
+            <h3 class="text-lg font-bold text-gray-800">${isLocked ? 'Fase Bloqueada' : (isWorkOrder ? 'Completar Orden de Trabajo' : isContract ? 'Completar Contrato' : (isCreditApp && !isCreditAppFilled) ? 'Completar Aplicación de Crédito' : 'Fase en espera')}</h3>
+            <p class="text-sm text-gray-600">${isLocked ? `Corresponde a: ${deal.rol_fase}` : (isWorkOrder || isContract || (isCreditApp && !isCreditAppFilled) ? 'Ir a la sección correspondiente para llenarla.' : 'No hay acciones requeridas. Avanzar fase.')}</p>
           </div>
         </div>
         ${!isLocked && isWorkOrder ? `
@@ -1052,17 +1056,17 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             Llenar Contrato
           </button>
         ` : ''}
-        ${!isLocked && isCreditApp && !isCash ? `
+        ${!isLocked && isCreditApp && !isCash && !isCreditAppFilled ? `
           <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:#0284c7" id="btn-go-credit">
             Llenar Aplicación de Crédito
           </button>
         ` : ''}
-        ${!isLocked && isCreditApp && isCash ? `
+        ${!isLocked && isCreditApp && (isCash || isCreditAppFilled) ? `
           <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:${pipeline.color};" id="btn-advance-empty-cash">
-            Avanzar a la Siguiente Fase
+            Avanzar a la Siguiente Fase ${isCreditAppFilled ? '(App de Crédito completada)' : ''}
           </button>
         ` : ''}
-        ${!isLocked && !isWorkOrder && !isContract && !isCreditApp ? `<button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:${pipeline.color};" id="btn-advance-empty">Avanzar a la Siguiente Fase</button>` : ''}
+        ${!isLocked && !isWorkOrder && !isContract && (!isCreditApp || (isCreditApp && isCreditAppFilled)) ? `<button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:${pipeline.color};" id="btn-advance-empty">Avanzar a la Siguiente Fase</button>` : ''}
       </div>`;
       
     if (!isLocked) {
@@ -1441,8 +1445,12 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   
   let extraHtml = '';
   if (!isLocked) {
+      const dbInstance = typeof getDB !== 'undefined' ? getDB() : null;
+      const clienteLocal = dbInstance?.Clientes_Maestro?.find(c => c.id === deal.cliente_id);
+      const isAppFilledLocal = clienteLocal?.adjuntos_oficina?.app_url ? true : false;
+      
       if (isCreditAppPhase && !hasCreditField && !isCash && !isMetodoPagoEmpty) {
-          const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Aplicación de Crédito'));
+          const isDone = isAppFilledLocal || existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Aplicación de Crédito'));
           if (!isDone) {
             extraHtml += `
               <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">

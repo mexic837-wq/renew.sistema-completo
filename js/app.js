@@ -78,12 +78,12 @@ window.addEventListener('message', async (e) => {
 
       if (isNewClient && !proyectoId) {
           console.log('[APP] isNewClient flag detected. Creating new Client and Project automatically...');
-          const nombre = formData.applicant?.fullName || formData.purchaser || 'Nuevo Cliente';
-          const email = formData.applicant?.email || formData.buyerEmail || '';
-          const phone = formData.applicant?.phone || formData.buyerPhone || '';
-          const address = formData.applicant?.address || formData.buyerAddress || '';
-          const dob = formData.applicant?.dateOfBirth || '-';
-          const state_id = formData.applicant?.state || '-';
+          const nombre = formData.aplicante?.fullName || formData.purchaser || 'Nuevo Cliente';
+          const email = formData.aplicante?.email || formData.buyerEmail || '';
+          const phone = formData.aplicante?.phone || formData.buyerPhone || '';
+          const address = formData.aplicante?.address || formData.buyerAddress || '';
+          const dob = formData.aplicante?.dateOfBirth || '-';
+          const state_id = formData.aplicante?.state || '-';
 
           const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
           // pipelineName defaults to "Renew Water" since it's the RENEW WATER form
