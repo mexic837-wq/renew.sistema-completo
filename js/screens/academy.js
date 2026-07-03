@@ -979,6 +979,8 @@ export function renderAcademy() {
              // In root of virtual category
              if (item.parent_id && !item.parent_id.startsWith('cat_')) return false; // hide files that are inside real folders
              
+             if (item.parent_id === 'cat_' + catKey) return true;
+             
              const type = (item.tipo || '').toLowerCase();
              if (catKey === 'video') return type.includes('video');
              if (catKey === 'pdf') return type.includes('pdf') || type.includes('guía') || type.includes('documento');
@@ -1090,6 +1092,22 @@ export function renderAcademy() {
                   <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     ${(r.permisos || []).map(p => `<span style="font-size:0.55rem; padding:4px 10px; background:var(--surface-alt); border: 1px solid var(--border); color:var(--text-secondary); border-radius:8px; font-weight:900; text-transform: uppercase;">${p}</span>`).join('')}
                   </div>
+                </div>
+              </div>
+             `;
+          } else if (r.tipo === 'Nota') {
+             return `
+              <div class="recurso-item" onclick="window.viewAcademyNote('${r.id}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
+                <div style="width: 52px; height: 52px; border-radius: 15px; background: rgba(0, 223, 191, 0.1); color: var(--primary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
+                  <i class="fa-solid fa-quote-left" style="font-size: 1.2rem;"></i>
+                </div>
+                <div style="flex: 1;">
+                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo || 'Nota'}</h4>
+                  ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${r.notas}</p>` : ''}
+                  <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+                    NOTA
+                  </p>
                 </div>
               </div>
              `;
