@@ -569,9 +569,37 @@
 
     <form id="form-workorder" novalidate>
 
-      <!-- ── SECCIÓN A: Datos del Comprador ── -->
-      <div class="form-section">
-        <div class="section-header blue-grad">
+      <!-- ── SELECTOR DE PROYECTO OBLIGATORIO (WORK ORDER) ── -->
+      <div id="wo-client-selector" class="client-selector-box mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4" style="margin-bottom: 20px; background-color: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px;">
+        <h3 style="margin-top: 0; color: #1e3a8a; font-size: 14px; margin-bottom: 10px;">🔗 Vincular con Proyecto</h3>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 10px;">Busque y seleccione el proyecto/cliente para esta Orden de Trabajo.</p>
+        
+        <div id="wo-client-search-area" style="position: relative;">
+          <input type="text" id="wo-client-search-input" placeholder="Buscar por nombre de cliente o proyecto..." autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;" oninput="window.parent.postMessage({ type: 'SEARCH_CLIENTS', query: this.value }, '*')">
+          <button type="button" onclick="setNewWOClient()" style="margin-top: 10px; width: 100%; padding: 8px; background: #e0e7ff; color: #3730a3; border: 1px dashed #a5b4fc; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#c7d2fe'" onmouseout="this.style.background='#e0e7ff'">
+            ¿No está en el sistema? Continuar sin vincular
+          </button>
+          <div id="wo-client-search-results" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 50; max-height: 200px; overflow-y: auto;">
+            <!-- Results populated here -->
+          </div>
+        </div>
+        
+        <div id="wo-client-selected-area" style="display: none; align-items: center; justify-content: space-between; background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+          <div>
+            <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold; display: block;">Proyecto Seleccionado</span>
+            <strong id="wo-client-selected-name" style="color: #0f172a; font-size: 14px;"></strong>
+          </div>
+          <button type="button" onclick="resetWOClientSelection()" style="background: none; border: none; color: #ef4444; font-size: 12px; font-weight: bold; cursor: pointer;">Cambiar</button>
+        </div>
+        
+        <input type="hidden" id="wo_selected_project_id" name="wo_selected_project_id">
+      </div>
+
+      <!-- El formulario empieza bloqueado visualmente si no hay proyecto/cliente -->
+      <div id="wo-form-container" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+        <!-- ── SECCIÓN A: Datos del Comprador ── -->
+        <div class="form-section">
+          <div class="section-header blue-grad">
           <div class="section-icon"><i class="fa-solid fa-receipt"></i></div>
           <div>
             <h2>Sección A — Datos del Comprador</h2>
@@ -944,6 +972,7 @@
           <span>Enviar Orden de Trabajo</span>
         </button>
       </div>
+      </div><!-- /wo-form-container -->
 
     </form>
   </section><!-- /panel-workorder -->

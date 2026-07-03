@@ -244,8 +244,11 @@ async function handleWorkOrderSubmit(e) {
       resetWorkOrderForm(form);
       
       const pdfUrl = response.headers.get('X-Document-Url');
+      // Prefer the manually-selected project; fall back to URL param
       const urlParams = new URLSearchParams(window.location.search);
-      const proyectoId = urlParams.get('proyectoId');
+      const proyectoIdFromUrl = urlParams.get('proyectoId');
+      const proyectoIdFromSelector = document.getElementById('wo_selected_project_id')?.value || null;
+      const proyectoId = proyectoIdFromSelector || proyectoIdFromUrl;
       if (proyectoId) {
         window.parent.postMessage({ type: 'WORK_ORDER_SUBMITTED', proyectoId, formData: payload, pdfUrl: pdfUrl }, '*');
       }
@@ -302,14 +305,130 @@ if (typeof document !== 'undefined') {
       initSignatureCanvas('wo-firma-comprador-2', 'btn-limpiar-wo-firma-comprador-2');
     }
 
-    // Auto-llenado si hay proyectoId
+    // Auto-llenado si hay proyectoId en la URL
     const urlParams = new URLSearchParams(window.location.search);
     const proyectoId = urlParams.get('proyectoId');
     if (proyectoId) {
+      // Came from a project link: hide the selector and unlock the form
+      const selectorEl = document.getElementById('wo-client-selector');
+      if (selectorEl) selectorEl.style.display = 'none';
+      unlockWOForm();
+      // Pre-fill hidden project id
+      const hiddenProy = document.getElementById('wo_selected_project_id');
+      if (hiddenProy) hiddenProy.value = proyectoId;
       await autoFillWorkOrderFromProject(proyectoId);
     }
+
+    // Listen for search results from parent app
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'SEARCH_CLIENTS_RESULT') {
+        renderWOClientSearchResults(event.data.data);
+      }
+    });
   });
 }
+
+/* ════════════════════════════════════════════════════════════
+   WORK ORDER PROJECT SELECTOR LOGIC
+════════════════════════════════════════════════════════════ */
+
+function unlockWOForm() {
+  const container = document.getElementById('wo-form-container');
+  if (container) {
+    container.style.opacity = '1';
+    container.style.pointerEvents = 'auto';
+  }
+}
+
+function renderWOClientSearchResults(results) {
+  const container = document.getElementById('wo-client-search-results');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!results || results.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  results.forEach(client => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column;';
+    div.innerHTML = `
+      <span style="font-size: 14px; font-weight: 600; color: #0f172a;">${client.nombre}</span>
+      <span style="font-size: 11px; color: #64748b;">${client.telefono || 'Sin teléfono'} - ${client.email || 'Sin email'}</span>
+    `;
+    div.onmouseenter = () => div.style.background = '#f8fafc';
+    div.onmouseleave = () => div.style.background = 'transparent';
+    div.onclick = () => {
+      setWOClient(client);
+      container.style.display = 'none';
+      const inp = document.getElementById('wo-client-search-input');
+      if (inp) inp.value = '';
+    };
+    container.appendChild(div);
+  });
+
+  container.style.display = 'block';
+}
+
+async function setWOClient(client) {
+  // Save selected client/project info
+  const hiddenProy = document.getElementById('wo_selected_project_id');
+  if (hiddenProy) hiddenProy.value = client.proyectoId || client.id;
+
+  // Update UI to show selected state
+  const selectedName = document.getElementById('wo-client-selected-name');
+  if (selectedName) selectedName.textContent = client.nombre;
+  const searchArea = document.getElementById('wo-client-search-area');
+  if (searchArea) searchArea.style.display = 'none';
+  const selectedArea = document.getElementById('wo-client-selected-area');
+  if (selectedArea) selectedArea.style.display = 'flex';
+
+  // Unlock the form
+  unlockWOForm();
+
+  // Auto-fill from this client's project if we can
+  if (client.proyectoId) {
+    await autoFillWorkOrderFromProject(client.proyectoId);
+  } else {
+    // Fill what we know from search results
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val) { el.value = val; el.dispatchEvent(new Event('input')); }
+    };
+    setVal('wo_purchaser', client.nombre);
+    setVal('wo_phone', client.telefono);
+    setVal('wo_email', client.email);
+    setVal('wo_address', client.direccion);
+  }
+}
+
+window.setNewWOClient = function() {
+  // Continue without linking to a project
+  const selectedName = document.getElementById('wo-client-selected-name');
+  if (selectedName) selectedName.textContent = 'Sin proyecto vinculado';
+  const searchArea = document.getElementById('wo-client-search-area');
+  if (searchArea) searchArea.style.display = 'none';
+  const selectedArea = document.getElementById('wo-client-selected-area');
+  if (selectedArea) selectedArea.style.display = 'flex';
+  unlockWOForm();
+};
+
+window.resetWOClientSelection = function() {
+  const hiddenProy = document.getElementById('wo_selected_project_id');
+  if (hiddenProy) hiddenProy.value = '';
+  const selectedName = document.getElementById('wo-client-selected-name');
+  if (selectedName) selectedName.textContent = '';
+  const searchArea = document.getElementById('wo-client-search-area');
+  if (searchArea) searchArea.style.display = 'block';
+  const selectedArea = document.getElementById('wo-client-selected-area');
+  if (selectedArea) selectedArea.style.display = 'none';
+  const container = document.getElementById('wo-form-container');
+  if (container) {
+    container.style.opacity = '0.5';
+    container.style.pointerEvents = 'none';
+  }
+};
 
 async function autoFillWorkOrderFromProject(id) {
   try {

@@ -403,7 +403,7 @@ app.get('/api/project-info', async (req, res) => {
     }
 });
 
-// GET: Buscar clientes para autocompletar en el formulario de crédito
+// GET: Buscar clientes para autocompletar en formularios
 app.get('/api/search-clients', async (req, res) => {
     try {
         const { q } = req.query;
@@ -411,9 +411,9 @@ app.get('/api/search-clients', async (req, res) => {
 
         console.log(`[API] Searching clients for: ${q}`);
         
-        const { data, error } = await supabase
+        const { data: clients, error } = await supabase
             .from('clientes_maestro')
-            .select('id, nombre, telefono, email')
+            .select('id, nombre, telefono, email, direccion')
             .or(`nombre.ilike.%${q}%,telefono.ilike.%${q}%`)
             .limit(10);
 
@@ -422,7 +422,22 @@ app.get('/api/search-clients', async (req, res) => {
             return res.status(500).json({ error: 'Error buscando clientes' });
         }
 
-        res.json(data || []);
+        // Also look up each client's most recent project so we can link directly
+        const enriched = await Promise.all((clients || []).map(async (cli) => {
+            try {
+                const { data: proyectos } = await supabase
+                    .from('proyectos_dinamicos')
+                    .select('id')
+                    .eq('cliente_id', cli.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                return { ...cli, proyectoId: proyectos?.[0]?.id || null };
+            } catch (_) {
+                return { ...cli, proyectoId: null };
+            }
+        }));
+
+        res.json(enriched);
     } catch (error) {
         console.error('[API ERROR] search-clients:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
