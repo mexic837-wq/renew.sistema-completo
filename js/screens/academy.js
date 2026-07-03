@@ -235,7 +235,7 @@ export function renderAcademy() {
                 }
                 <div class="p-4 flex-1 flex flex-col">
                     <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${item.titulo || (typeStr === 'nota' ? 'Nota' : 'Documento')}</h4>
-                    ${item.notas ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
+                    ${item.notas && typeStr !== 'nota' ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
                     <div class="mt-auto flex flex-wrap gap-1">
                         ${(item.permisos || []).map(p => `<span class="text-[0.55rem] px-2 py-1 bg-surface-alt border border-border rounded-md uppercase font-black text-text-muted">${p}</span>`).join('')}
                     </div>
@@ -1103,7 +1103,6 @@ export function renderAcademy() {
                 </div>
                 <div style="flex: 1;">
                   <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo || 'Nota'}</h4>
-                  ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${r.notas}</p>` : ''}
                   <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
                     <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
                     NOTA
