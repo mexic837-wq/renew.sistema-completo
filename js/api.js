@@ -181,6 +181,38 @@ function applyPostProcessing(freshDB) {
                         setTimeout(() => { saveGranular('admin_campos_formulario', financierasToUpdate).catch(() => {}); }, 6000);
                     }
                 }
+
+                // Update Método de Pago options if they still have the old names
+                const metodoPagoFields = freshDB.Admin_Campos_Formulario.filter(c => c.fase_id === phase1.id && (c.etiqueta.toLowerCase().includes('pago') || c.etiqueta.toLowerCase().includes('cash')));
+                const newOptions = 'Financiamiento, Efectivo (cash)';
+                const camposToUpdate = metodoPagoFields.filter(f => f.opciones && f.opciones.includes('Crédito'));
+                if (camposToUpdate.length > 0) {
+                    camposToUpdate.forEach(f => {
+                        f.opciones = newOptions;
+                    });
+                    if (window._canSaveAutoFields) {
+                        saveGranular('admin_campos_formulario', camposToUpdate).catch(() => {});
+                    } else {
+                        setTimeout(() => { saveGranular('admin_campos_formulario', camposToUpdate).catch(() => {}); }, 7000);
+                    }
+                    
+                    // Also migrate old answers to match the new option values
+                    const fieldIds = camposToUpdate.map(f => f.id);
+                    if (freshDB.Respuestas_Dinamicas) {
+                        const answersToUpdate = freshDB.Respuestas_Dinamicas.filter(r => fieldIds.includes(r.campo_id) && (r.valor === 'Crédito' || r.valor === 'Cash'));
+                        if (answersToUpdate.length > 0) {
+                            answersToUpdate.forEach(r => {
+                                if (r.valor === 'Crédito') r.valor = 'Financiamiento';
+                                if (r.valor === 'Cash') r.valor = 'Efectivo (cash)';
+                            });
+                            if (window._canSaveAutoFields) {
+                                saveGranular('respuestas_dinamicas', answersToUpdate).catch(() => {});
+                            } else {
+                                setTimeout(() => { saveGranular('respuestas_dinamicas', answersToUpdate).catch(() => {}); }, 8000);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
