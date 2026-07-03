@@ -78,11 +78,11 @@ window.addEventListener('message', async (e) => {
 
       if (isNewClient && !proyectoId) {
           console.log('[APP] isNewClient flag detected. Creating new Client and Project automatically...');
-          const nombre = formData.aplicante?.fullName || formData.purchaser || 'Nuevo Cliente';
+          const nombre = formData.aplicante?.nombreCompleto || formData.aplicante?.fullName || formData.purchaser || 'Nuevo Cliente';
           const email = formData.aplicante?.email || formData.buyerEmail || '';
-          const phone = formData.aplicante?.phone || formData.buyerPhone || '';
-          const address = formData.aplicante?.address || formData.buyerAddress || '';
-          const dob = formData.aplicante?.dateOfBirth || '-';
+          const phone = formData.aplicante?.telefono || formData.aplicante?.phone || formData.buyerPhone || '';
+          const address = formData.aplicante?.direccion || formData.aplicante?.address || formData.buyerAddress || '';
+          const dob = formData.aplicante?.fechaNacimiento || formData.aplicante?.dateOfBirth || '-';
           const state_id = formData.aplicante?.state || '-';
 
           const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
