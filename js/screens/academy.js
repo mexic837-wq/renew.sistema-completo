@@ -480,32 +480,6 @@ export function renderAcademy() {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        const noteModalHtml = `
-            <div id="modal-view-note" class="fixed inset-0 z-[999] hidden flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-bg" onclick="document.getElementById('modal-view-note').classList.add('hidden')"></div>
-                <div class="relative bg-surface border border-border rounded-3xl shadow-2xl w-full max-w-2xl p-8 animate-slideUp">
-                    <button class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-surface-alt text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors" onclick="document.getElementById('modal-view-note').classList.add('hidden')">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                    
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <i class="fa-solid fa-quote-left text-lg"></i>
-                        </div>
-                        <div>
-                            <h3 id="modal-note-title" class="text-xl font-black text-text-primary uppercase tracking-tight m-0">Nota</h3>
-                            <p id="modal-note-date" class="text-xs text-text-muted font-bold m-0"></p>
-                        </div>
-                    </div>
-                    
-                    <div id="modal-note-content" class="text-text-secondary whitespace-pre-wrap leading-relaxed text-sm p-4 bg-bg rounded-2xl border border-border max-h-[60vh] overflow-y-auto">
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', noteModalHtml);
-        
         // Populate permissions
         const pipes = getDB().Admin_Pipelines || [];
         const permList = document.getElementById('main-aca-permisos-list');
@@ -1182,5 +1156,32 @@ export function renderAcademy() {
                 renderRecursosFinales(el.dataset.cat, el.dataset.id);
             });
         });
+      }
+
+      if (!document.getElementById('modal-view-note')) {
+          const noteModalHtml = `
+              <div id="modal-view-note" class="fixed inset-0 z-[999] hidden flex items-center justify-center p-4">
+                  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-bg" onclick="document.getElementById('modal-view-note').classList.add('hidden')"></div>
+                  <div class="relative bg-surface border border-border rounded-3xl shadow-2xl w-full max-w-2xl p-8 animate-slideUp">
+                      <button class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-surface-alt text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors" onclick="document.getElementById('modal-view-note').classList.add('hidden')">
+                          <i class="fa-solid fa-xmark"></i>
+                      </button>
+                      
+                      <div class="flex items-center gap-3 mb-6">
+                          <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                              <i class="fa-solid fa-quote-left text-lg"></i>
+                          </div>
+                          <div>
+                              <h3 id="modal-note-title" class="text-xl font-black text-text-primary uppercase tracking-tight m-0">Nota</h3>
+                              <p id="modal-note-date" class="text-xs text-text-muted font-bold m-0"></p>
+                          </div>
+                      </div>
+                      
+                      <div id="modal-note-content" class="text-text-secondary whitespace-pre-wrap leading-relaxed text-sm p-4 bg-bg rounded-2xl border border-border max-h-[60vh] overflow-y-auto">
+                      </div>
+                  </div>
+              </div>
+          `;
+          document.body.insertAdjacentHTML('beforeend', noteModalHtml);
       }
 }
