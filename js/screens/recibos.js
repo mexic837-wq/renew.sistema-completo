@@ -48,15 +48,18 @@ export function renderMisRecibos() {
 
       <!-- Filter tabs (Admins Only) -->
       ${isAdmin ? `
-      <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
         <button data-filter="vendedor"
-          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--primary);background:rgba(0,223,191,0.12);color:var(--primary);font-size:0.8rem;font-weight:800;cursor:pointer;"
+          style="flex:1;min-width:100px;padding:10px;border-radius:12px;border:1.5px solid var(--primary);background:rgba(0,223,191,0.12);color:var(--primary);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-vendedor">Representantes</button>
         <button data-filter="tecnico"
-          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
+          style="flex:1;min-width:100px;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-tecnico">Técnicos</button>
+        <button data-filter="oficina"
+          style="flex:1;min-width:100px;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
+          id="rfil-oficina">Oficina</button>
         <button data-filter="mis_recibos"
-          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
+          style="flex:1;min-width:100px;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:0.8rem;font-weight:800;cursor:pointer;"
           id="rfil-mis_recibos">Mis Recibos</button>
       </div>
       ` : ''}
@@ -93,12 +96,12 @@ export function renderMisRecibos() {
 
   // Filter buttons
   let currentFilter = 'vendedor'; // default to vendedor
-  ['vendedor','tecnico','mis_recibos'].forEach(f => {
+  ['vendedor','tecnico','oficina','mis_recibos'].forEach(f => {
     document.getElementById(`rfil-${f}`)?.addEventListener('click', () => {
       currentFilter = f;
       applyReciboFilters();
       // Update button styles
-      ['vendedor','tecnico','mis_recibos'].forEach(btn => {
+      ['vendedor','tecnico','oficina','mis_recibos'].forEach(btn => {
         const el = document.getElementById(`rfil-${btn}`);
         if (!el) return;
         const isActive = btn === f;
@@ -124,7 +127,7 @@ export function renderMisRecibos() {
     
     const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
     const isHighRole = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRolNorm);
-    const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home', 'Oficina'] : (user.unidades || []);
+    const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || []);
     
     const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
     
@@ -209,12 +212,16 @@ export function renderMisRecibos() {
     
     const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
     const isHighRole = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRolNorm);
-    const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home', 'Oficina'] : (user.unidades || []);
+    const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || []);
     const allowedDepts = units.map(u => u.replace('Renew ', '').toLowerCase());
     
     let filtered = [];
     if (currentFilter === 'mis_recibos') {
       filtered = allRecibos.filter(r => r.trabajador_id === user.id);
+    } else if (currentFilter === 'oficina') {
+      filtered = allRecibos.filter(r => r.tipo === 'vendedor' && r.datos_json && r.datos_json.subtipo === 'oficina');
+    } else if (currentFilter === 'vendedor') {
+      filtered = allRecibos.filter(r => r.tipo === 'vendedor' && !(r.datos_json && r.datos_json.subtipo === 'oficina'));
     } else {
       filtered = allRecibos.filter(r => r.tipo === currentFilter);
     }
@@ -227,7 +234,7 @@ export function renderMisRecibos() {
         } else {
             // Todos selected
             if (isHighRole) {
-                return dept !== 'oficina'; // Hide oficina from Todos to keep list clean, available in Oficina tab
+                return true; 
             } else {
                 if (dept === '') return true; // Show unassigned
                 return allowedDepts.includes(dept);
