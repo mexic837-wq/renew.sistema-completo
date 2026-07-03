@@ -61,7 +61,7 @@ export async function renderListaPrecios() {
   }
   
   let activePriceKey = basePriceKey || 'precio_vendedor';
-  if (isAdmin && !basePriceKey) activePriceKey = 'precio_oficina';
+  if (isAdmin && !basePriceKey) activePriceKey = 'precio_iniciante';
 
   // Fetch cloud catalogs
   const catalogs = await getCatalogos();
