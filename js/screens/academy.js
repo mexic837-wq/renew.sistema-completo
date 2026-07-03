@@ -393,17 +393,17 @@ export function renderAcademy() {
                     
                     <div id="form-main-upload">
                         <div class="space-y-4">
-                            <div>
+                            <div id="main-aca-titulo-wrap">
                                 <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Título *</label>
                                 <input type="text" id="main-aca-titulo" class="w-full bg-bg border border-border rounded-xl px-4 py-3 text-text-primary focus:border-primary outline-none transition-colors" placeholder="Ej. Presentación Q3">
                             </div>
                             
                             <div id="main-aca-file-group">
-                                <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Archivo * (PDF, Video, PPT, DOC)</label>
-                                <input type="file" id="main-aca-file" class="w-full bg-bg border border-border rounded-xl px-4 py-2.5 text-text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary file:text-surface hover:file:bg-primary-hover transition-colors">
+                                <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Archivo(s) * (PDF, Video, PPT, DOC)</label>
+                                <input type="file" id="main-aca-file" multiple class="w-full bg-bg border border-border rounded-xl px-4 py-2.5 text-text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary file:text-surface hover:file:bg-primary-hover transition-colors">
                             </div>
                             
-                            <div>
+                            <div id="main-aca-tipo-wrap">
                                 <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Tipo / Etiqueta</label>
                                 <select id="main-aca-tipo" class="w-full bg-bg border border-border rounded-xl px-4 py-3 text-text-primary focus:border-primary outline-none transition-colors">
                                     <option value="Video de Entrenamiento">Video</option>
@@ -419,12 +419,12 @@ export function renderAcademy() {
                                 <input type="file" id="main-aca-miniatura" accept="image/*" class="w-full bg-bg border border-border rounded-xl px-4 py-2.5 text-text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary file:text-surface hover:file:bg-primary-hover transition-colors">
                             </div>
                             
-                            <div>
+                            <div id="main-aca-notas-wrap">
                                 <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Notas (Opcional)</label>
                                 <textarea id="main-aca-notas" class="w-full bg-bg border border-border rounded-xl px-4 py-3 text-text-primary focus:border-primary outline-none transition-colors h-20 resize-none" placeholder="Notas sobre este archivo..."></textarea>
                             </div>
 
-                            <div id="main-aca-permisos-group">
+                            <div id="main-aca-permisos-group" style="display:none;">
                                 <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Permisos (Pipes) - Dejar vacío para Todos</label>
                                 <div class="grid grid-cols-2 gap-2 bg-bg p-3 rounded-xl border border-border" id="main-aca-permisos-list">
                                     <!-- Injected later -->
@@ -470,11 +470,18 @@ export function renderAcademy() {
 
         // Save logic
         document.getElementById('btn-main-save-academy').addEventListener('click', async () => {
-            const titulo = document.getElementById('main-aca-titulo').value.trim();
-            if (!titulo) return alert('El título es requerido');
-            
+            const rawTitulo = document.getElementById('main-aca-titulo').value.trim();
             const btn = document.getElementById('btn-main-save-academy');
             const isFolder = btn.dataset.isFolder === 'true';
+            
+            const folderId = window.mainAcademyFolder || null;
+            const requiresTitulo = !isFolder && !(folderId && !folderId.startsWith('cat_'));
+            
+            if (requiresTitulo && !rawTitulo && document.getElementById('main-aca-file').files.length <= 1) {
+                // Si sube un solo archivo y requiere título, obligarlo. (Si sube varios, usa el nombre del archivo).
+                return alert('El título es requerido');
+            }
+            if (isFolder && !rawTitulo) return alert('El título es requerido');
             
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
@@ -483,7 +490,13 @@ export function renderAcademy() {
                 const db = getDB();
                 const parentId = window.mainAcademyFolder || null;
                 const notas = document.getElementById('main-aca-notas').value.trim() || null;
-                const permisos = Array.from(document.querySelectorAll('.main-aca-pip-chk:checked')).map(c => c.value);
+                
+                // Inherit permissions automatically based on current active tab
+                // Wait, if activeAcademyDeptFilter is empty string (meaning default), we shouldn't save empty permissions if they selected a valid tab?
+                // `activeAcademyDeptFilter` defaults to `depts[0]` or the clicked pill. So it's always valid (e.g. 'Solar', 'Water').
+                // If there's an active tab, we assign the corresponding pipeline permission.
+                const autoPermiso = activeAcademyDeptFilter ? 'Renew ' + activeAcademyDeptFilter : null;
+                const permisos = autoPermiso ? [autoPermiso] : [];
                 
                 if (isFolder) {
                     const minInput = document.getElementById('main-aca-miniatura');
@@ -497,7 +510,7 @@ export function renderAcademy() {
 
                     const newFolder = {
                         id: 'folder_' + Date.now(),
-                        titulo: titulo,
+                        titulo: rawTitulo,
                         tipo: 'Carpeta',
                         enlace: '',
                         miniaturaUrl: minUrl,
@@ -513,11 +526,16 @@ export function renderAcademy() {
                     
                 } else {
                     const fileInput = document.getElementById('main-aca-file');
-                    if (!fileInput.files.length) throw new Error('Debes seleccionar un archivo');
-                    const file = fileInput.files[0];
+                    if (!fileInput.files.length) throw new Error('Debes seleccionar al menos un archivo');
+                    
                     const minInput = document.getElementById('main-aca-miniatura');
                     const minFile = (minInput && minInput.files.length) ? minInput.files[0] : null;
-                    const tipo = document.getElementById('main-aca-tipo').value;
+                    
+                    let baseTipo = document.getElementById('main-aca-tipo').value;
+                    if (folderId && folderId.startsWith('cat_')) {
+                        const catNames = { cat_video: 'Video de Entrenamiento', cat_pdf: 'Documento PDF', cat_banco: 'Información Bancaria', cat_faq: 'FAQ y Ayuda', cat_equipo: 'Presentación' };
+                        baseTipo = catNames[folderId] || 'Documento PDF';
+                    }
                     
                     const progressWrap = document.getElementById('main-aca-progress');
                     const progressFill = document.getElementById('main-aca-progress-fill');
@@ -526,31 +544,65 @@ export function renderAcademy() {
                     
                     const { uploadFile, saveGranular } = await import('../api.js');
                     
-                    const fileUrl = await uploadFile(file, 'academia', (pct) => {
-                        progressFill.style.width = pct + '%';
-                        progressPct.textContent = pct + '%';
-                    });
-                    
                     let minUrl = null;
                     if (minFile) {
                         minUrl = await uploadFile(minFile, 'academia_thumbs', () => {});
                     }
                     
-                    const newDoc = {
-                        id: 'doc_' + Date.now(),
-                        titulo,
-                        tipo,
-                        enlace: fileUrl,
-                        miniaturaUrl: minUrl,
-                        permisos,
-                        is_folder: false,
-                        parent_id: parentId,
-                        notas
-                    };
+                    const newDocs = [];
+                    const isMultiple = fileInput.files.length > 1;
+                    
+                    // Loop through each file sequentially
+                    for (let i = 0; i < fileInput.files.length; i++) {
+                        const file = fileInput.files[i];
+                        let finalTitulo = rawTitulo;
+                        
+                        if (!requiresTitulo) {
+                            // Inside a real folder -> force filename as title
+                            finalTitulo = file.name;
+                        } else if (isMultiple) {
+                            // Multiple files outside -> force filename as title
+                            finalTitulo = file.name;
+                        }
+                        
+                        // Si por si acaso no tiene titulo...
+                        if (!finalTitulo) finalTitulo = file.name;
+                        
+                        // Inferir tipo si está en una carpeta (donde el tipo no importa, pero le ponemos algo basandonos en la extension)
+                        let finalTipo = baseTipo;
+                        if (folderId && !folderId.startsWith('cat_')) {
+                            const ext = file.name.split('.').pop().toLowerCase();
+                            if (['mp4','mov','avi'].includes(ext)) finalTipo = 'Video de Entrenamiento';
+                            else if (['pdf','doc','docx'].includes(ext)) finalTipo = 'Documento PDF';
+                            else if (['ppt','pptx'].includes(ext)) finalTipo = 'Presentación';
+                            else finalTipo = 'Documento';
+                        }
+                        
+                        progressPct.textContent = `Subiendo ${i + 1}/${fileInput.files.length} (0%)`;
+                        progressFill.style.width = '0%';
+                        
+                        const fileUrl = await uploadFile(file, 'academia', (pct) => {
+                            progressFill.style.width = pct + '%';
+                            progressPct.textContent = `Subiendo ${i + 1}/${fileInput.files.length} (${pct}%)`;
+                        });
+                        
+                        const newDoc = {
+                            id: 'doc_' + Date.now() + '_' + i,
+                            titulo: finalTitulo,
+                            tipo: finalTipo,
+                            enlace: fileUrl,
+                            miniaturaUrl: minUrl,
+                            permisos,
+                            is_folder: false,
+                            parent_id: parentId,
+                            notas
+                        };
+                        newDocs.push(newDoc);
+                    }
                     
                     db.academiaContent = db.academiaContent || [];
-                    db.academiaContent.push(newDoc);
-                    await saveGranular('academia_content', [newDoc]);
+                    db.academiaContent.push(...newDocs);
+                    await saveGranular('academia_content', newDocs);
                 }
                 
                 document.getElementById('modal-main-academy').classList.add('hidden');
@@ -592,10 +644,12 @@ export function renderAcademy() {
             document.getElementById('modal-main-academy-title').innerText = 'NUEVA CARPETA';
             document.getElementById('main-aca-titulo').value = '';
             document.getElementById('main-aca-notas').value = '';
+            
+            document.getElementById('main-aca-titulo-wrap').style.display = 'block';
             document.getElementById('main-aca-file-group').style.display = 'none';
-            document.getElementById('main-aca-tipo').parentElement.style.display = 'none';
+            document.getElementById('main-aca-tipo-wrap').style.display = 'none';
             document.getElementById('main-aca-thumb-wrap').style.display = 'block'; // Allow image upload for folders
-            document.getElementById('main-aca-permisos-group').style.display = 'block';
+            document.getElementById('main-aca-permisos-group').style.display = 'none';
             
             const btn = document.getElementById('btn-main-save-academy');
             btn.dataset.isFolder = 'true';
@@ -610,10 +664,29 @@ export function renderAcademy() {
             document.getElementById('main-aca-miniatura').value = '';
             document.querySelectorAll('.main-aca-pip-chk').forEach(c => c.checked = false);
             
-            document.getElementById('main-aca-file-group').style.display = 'block';
-            document.getElementById('main-aca-tipo').parentElement.style.display = 'block';
-            document.getElementById('main-aca-permisos-group').style.display = 'block';
-            document.getElementById('main-aca-tipo').dispatchEvent(new Event('change')); // Trigger thumbnail visibility
+            const folderId = window.mainAcademyFolder || null;
+            
+            if (folderId && folderId.startsWith('cat_')) {
+                // Dentro de una sección virtual (ej. cat_video)
+                document.getElementById('main-aca-titulo-wrap').style.display = 'block';
+                document.getElementById('main-aca-file-group').style.display = 'block';
+                document.getElementById('main-aca-tipo-wrap').style.display = 'none'; // Se infiere
+                document.getElementById('main-aca-thumb-wrap').style.display = folderId === 'cat_video' ? 'block' : 'none';
+            } else if (folderId) {
+                // Dentro de una carpeta real
+                document.getElementById('main-aca-titulo-wrap').style.display = 'none';
+                document.getElementById('main-aca-file-group').style.display = 'block';
+                document.getElementById('main-aca-tipo-wrap').style.display = 'none';
+                document.getElementById('main-aca-thumb-wrap').style.display = 'none';
+            } else {
+                // En la raíz
+                document.getElementById('main-aca-titulo-wrap').style.display = 'block';
+                document.getElementById('main-aca-file-group').style.display = 'block';
+                document.getElementById('main-aca-tipo-wrap').style.display = 'block';
+                document.getElementById('main-aca-tipo').dispatchEvent(new Event('change')); // Trigger thumbnail visibility
+            }
+            
+            document.getElementById('main-aca-permisos-group').style.display = 'none';
             
             const btn = document.getElementById('btn-main-save-academy');
             btn.dataset.isFolder = 'false';
