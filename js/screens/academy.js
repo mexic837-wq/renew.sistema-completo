@@ -660,7 +660,12 @@ export function renderAcademy() {
                     await deleteRecord('academia_content', id);
                     db.academiaContent = db.academiaContent.filter(x => x.id !== id);
                     await saveDB(db);
-                    window.reloadAcademy();
+                    const card = btn.closest('.academy-card');
+                    if (card) {
+                        card.remove();
+                    } else {
+                        window.reloadAcademy();
+                    }
                 }
             } catch(e) {
                 console.error(e);
