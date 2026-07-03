@@ -4779,13 +4779,16 @@ window.renderView = async function renderView() {
                <option value="Información Bancaria">${t('aca_type_bank')}</option>
                <option value="Detalles de equipo">${t('aca_type_equipment')}</option>
                <option value="FAQ">${t('aca_type_faq')}</option>
+               <option value="Nota">Nota</option>
             </select>
 
-            <label class="aqua-label">NOTAS (OPCIONAL)</label>
-            <textarea id="aca-notas" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" placeholder="Añade notas o descripciones..."></textarea>
+            <label class="aqua-label">NOTAS (OPCIONAL, OBLIGATORIO PARA NOTAS)</label>
+            <textarea id="aca-notas" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none min-h-[120px] resize-y" placeholder="Añade notas o descripciones..."></textarea>
 
-            <label class="aqua-label">${t('aca_field_file')}</label>
-            <input type="file" id="aca-file" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" accept=".mp4,.pdf,.doc,.docx">
+            <div id="aca-file-group">
+               <label class="aqua-label">${t('aca_field_file')}</label>
+               <input type="file" id="aca-file" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" accept=".mp4,.pdf,.doc,.docx">
+            </div>
 
             <div id="aca-thumb-wrap" class="mt-4 mb-4" style="display:none;">
               <label class="aqua-label">${t('aca_upload_label')}</label>
@@ -4851,8 +4854,12 @@ window.renderView = async function renderView() {
        const miniaturaFile = miniaturaInput ? miniaturaInput.files[0] : null;
        const permisos = Array.from(document.querySelectorAll('.aca-pip-chk:checked')).map(cb => cb.value);
 
-       if(!titulo || (!file && !editId)) {
+       if(!titulo || (!file && !editId && tipo !== 'Nota')) {
           window.addNotification('Gestor Academia', editId ? 'El título es obligatorio' : 'El título y el archivo adjunto son obligatorios', 'error');
+          return;
+       }
+       if(tipo === 'Nota' && !notas) {
+          window.addNotification('Gestor Academia', 'El texto de la nota es obligatorio', 'error');
           return;
        }
        if(permisos.length === 0) {
@@ -4866,7 +4873,7 @@ window.renderView = async function renderView() {
        let progressBar = document.getElementById('aca-upload-progress');
        let progressFill = document.getElementById('aca-upload-progress-fill');
        let progressText = document.getElementById('aca-upload-progress-text');
-       if (progressBar) progressBar.classList.remove('hidden');
+       if (progressBar && tipo !== 'Nota') progressBar.classList.remove('hidden');
 
        const onProgress = (pct, msg) => {
            if (progressFill) progressFill.style.width = `${pct}%`;
@@ -4878,7 +4885,7 @@ window.renderView = async function renderView() {
            let videoUrl = null;
            let miniaturaUrl = null;
 
-           if(file || miniaturaFile) {
+           if((file || miniaturaFile) && tipo !== 'Nota') {
                try {
                    const data = await uploadAcademia(file, miniaturaFile, onProgress);
                    if(data.videoUrl) videoUrl = data.videoUrl;
@@ -4911,7 +4918,10 @@ window.renderView = async function renderView() {
                    enlace: videoUrl, 
                    miniaturaUrl: miniaturaUrl,
                    permisos,
-                   fecha_creacion: new Date().toISOString()
+                   notas: notas,
+                   fecha_creacion: new Date().toISOString(),
+                   parent_id: window.currentAcademyFolder || null,
+                   is_folder: false
                });
            }
            
@@ -4940,9 +4950,11 @@ window.renderView = async function renderView() {
 
     document.getElementById('aca-cancel-edit').addEventListener('click', () => {
        document.getElementById('aca-titulo').value = '';
+       document.getElementById('aca-tipo').value = 'Video de Entrenamiento';
        document.getElementById('aca-file').value = '';
        const minInput = document.getElementById('archivoMiniatura');
        if(minInput) minInput.value = '';
+       if(document.getElementById('aca-notas')) document.getElementById('aca-notas').value = '';
        document.querySelectorAll('.aca-pip-chk').forEach(c => c.checked = false);
 
        const btnSave = document.getElementById('btn-save-academia');
@@ -4953,16 +4965,21 @@ window.renderView = async function renderView() {
        const thumbWrap = document.getElementById('aca-thumb-wrap');
        const acaTipoVal = document.getElementById('aca-tipo');
        if(thumbWrap) thumbWrap.style.display = (acaTipoVal && acaTipoVal.value === 'Video de Entrenamiento') ? 'block' : 'none';
+       const fileGroup = document.getElementById('aca-file-group');
+       if(fileGroup) fileGroup.style.display = 'block';
     });
 
-    // Al cambiar el tipo de contenido, ocultamos o mostramos el campo de miniatura
+    // Al cambiar el tipo de contenido, ocultamos o mostramos el campo de miniatura y archivo
     const acaTipoSelect = document.getElementById('aca-tipo');
     const thumbWrapCont = document.getElementById('aca-thumb-wrap');
-    if(acaTipoSelect && thumbWrapCont) {
+    const fileGroupCont = document.getElementById('aca-file-group');
+    if(acaTipoSelect) {
        // Mostrar/ocultar al cargar según valor inicial
-       thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
+       if(thumbWrapCont) thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
+       if(fileGroupCont) fileGroupCont.style.display = (acaTipoSelect.value === 'Nota') ? 'none' : 'block';
         acaTipoSelect.addEventListener('change', () => {
-          thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
+          if(thumbWrapCont) thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
+          if(fileGroupCont) fileGroupCont.style.display = (acaTipoSelect.value === 'Nota') ? 'none' : 'block';
         });
      }
     } // Closing if (saveAcademiaBtn)
