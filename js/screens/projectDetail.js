@@ -1209,33 +1209,37 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Qué tipo de trabajo es?</label>
                 <select id="wo-tipo-trabajo-${c.id}" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-[#0d9488] focus:border-[#0d9488] block p-3 font-medium transition-colors" onchange="
                     const val = this.value;
-                    const btn = document.getElementById('wo-action-btn-${c.id}');
+                    const btnOrden = document.getElementById('wo-btn-orden-${c.id}');
+                    const btnPozo = document.getElementById('wo-btn-pozo-${c.id}');
+                    
                     if (val === 'pozo') {
-                        btn.innerText = 'Llenar Plantilla de Pozo';
-                        btn.onclick = function() {
-                            if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
-                        };
-                        btn.style.display = 'block';
+                        btnOrden.style.display = 'none';
+                        btnPozo.style.display = 'block';
                     } else if (val === 'orden') {
-                        btn.innerText = 'Llenar Orden de Trabajo';
-                        btn.onclick = function() {
-                            const iframe = document.getElementById('iframe-work-order');
-                            if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
-                            if (window.appNavigate) window.appNavigate('work-order');
-                        };
-                        btn.style.display = 'block';
+                        btnOrden.style.display = 'block';
+                        btnPozo.style.display = 'none';
+                    } else if (val === 'ambos') {
+                        btnOrden.style.display = 'block';
+                        btnPozo.style.display = 'block';
                     } else {
-                        btn.style.display = 'none';
+                        btnOrden.style.display = 'none';
+                        btnPozo.style.display = 'none';
                     }
                 ">
                     <option value="" disabled selected>Elegir...</option>
                     <option value="orden">Orden de Trabajo Estándar</option>
                     <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
+                    <option value="ambos">Ambos (Orden de Trabajo y Pozo)</option>
                 </select>
             </div>
-            <button type="button" id="wo-action-btn-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" ${disabledAttr}>
-              Llenar Orden de Trabajo
-            </button>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button type="button" id="wo-btn-orden-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');" ${disabledAttr}>
+                  Llenar Orden de Trabajo
+                </button>
+                <button type="button" id="wo-btn-pozo-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" ${disabledAttr}>
+                  Llenar Plantilla de Pozo
+                </button>
+            </div>
           `}
           <input type="hidden" id="df_${c.id}" value="${actualPdfUrl || val || 'Completado en Formulario Externo'}" />
         </div>
@@ -1498,34 +1502,38 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                     <div class="input-wrap select-wrap no-icon">
                         <select id="wo-tipo-trabajo-extra" onchange="
                             const val = this.value;
-                            const btn = document.getElementById('wo-action-btn-extra');
+                            const btnOrden = document.getElementById('wo-btn-orden-extra');
+                            const btnPozo = document.getElementById('wo-btn-pozo-extra');
+                            
                             if (val === 'pozo') {
-                                btn.innerText = 'Llenar Plantilla de Pozo';
-                                btn.onclick = function() {
-                                    if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');
-                                };
-                                btn.style.display = 'block';
+                                btnOrden.style.display = 'none';
+                                btnPozo.style.display = 'block';
                             } else if (val === 'orden') {
-                                btn.innerText = 'Llenar Orden de Trabajo';
-                                btn.onclick = function() {
-                                    const iframe = document.getElementById('iframe-work-order');
-                                    if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}';
-                                    if (window.appNavigate) window.appNavigate('work-order');
-                                };
-                                btn.style.display = 'block';
+                                btnOrden.style.display = 'block';
+                                btnPozo.style.display = 'none';
+                            } else if (val === 'ambos') {
+                                btnOrden.style.display = 'block';
+                                btnPozo.style.display = 'block';
                             } else {
-                                btn.style.display = 'none';
+                                btnOrden.style.display = 'none';
+                                btnPozo.style.display = 'none';
                             }
                         ">
                             <option value="" disabled selected>Elegir...</option>
                             <option value="orden">Orden de Trabajo Estándar</option>
                             <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
+                            <option value="ambos">Ambos (Orden de Trabajo y Pozo)</option>
                         </select>
                     </div>
                 </div>
-                <button type="button" id="wo-action-btn-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;">
-                  Llenar Orden de Trabajo
-                </button>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <button type="button" id="wo-btn-orden-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');">
+                      Llenar Orden de Trabajo
+                    </button>
+                    <button type="button" id="wo-btn-pozo-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');">
+                      Llenar Plantilla de Pozo
+                    </button>
+                </div>
               </div>
             `;
           }
