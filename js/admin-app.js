@@ -4782,6 +4782,17 @@ window.renderView = async function renderView() {
                <option value="Nota">Nota</option>
             </select>
 
+            <div id="aca-cat-wrap" style="display:none;">
+               <label class="aqua-label">SECCIÓN DE DESTINO (OBLIGATORIO PARA NOTAS EN INICIO)</label>
+               <select id="aca-categoria" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
+                  <option value="cat_video">Videos</option>
+                  <option value="cat_pdf">Documentos</option>
+                  <option value="cat_banco">Banco Financieras</option>
+                  <option value="cat_faq">Soporte y FAQ</option>
+                  <option value="cat_equipo">Detalles de equipo</option>
+               </select>
+            </div>
+
             <label class="aqua-label">NOTAS (OPCIONAL, OBLIGATORIO PARA NOTAS)</label>
             <textarea id="aca-notas" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none min-h-[120px] resize-y" placeholder="Añade notas o descripciones..."></textarea>
 
@@ -4920,7 +4931,7 @@ window.renderView = async function renderView() {
                    permisos,
                    notas: notas,
                    fecha_creacion: new Date().toISOString(),
-                   parent_id: window.currentAcademyFolder || null,
+                   parent_id: window.currentAcademyFolder || (tipo === 'Nota' ? document.getElementById('aca-categoria').value : null),
                    is_folder: false
                });
            }
@@ -4967,19 +4978,24 @@ window.renderView = async function renderView() {
        if(thumbWrap) thumbWrap.style.display = (acaTipoVal && acaTipoVal.value === 'Video de Entrenamiento') ? 'block' : 'none';
        const fileGroup = document.getElementById('aca-file-group');
        if(fileGroup) fileGroup.style.display = 'block';
+       const catWrap = document.getElementById('aca-cat-wrap');
+       if(catWrap) catWrap.style.display = 'none';
     });
 
     // Al cambiar el tipo de contenido, ocultamos o mostramos el campo de miniatura y archivo
     const acaTipoSelect = document.getElementById('aca-tipo');
     const thumbWrapCont = document.getElementById('aca-thumb-wrap');
     const fileGroupCont = document.getElementById('aca-file-group');
+    const catWrap = document.getElementById('aca-cat-wrap');
     if(acaTipoSelect) {
        // Mostrar/ocultar al cargar según valor inicial
        if(thumbWrapCont) thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
        if(fileGroupCont) fileGroupCont.style.display = (acaTipoSelect.value === 'Nota') ? 'none' : 'block';
+       if(catWrap) catWrap.style.display = (acaTipoSelect.value === 'Nota' && !window.currentAcademyFolder) ? 'block' : 'none';
         acaTipoSelect.addEventListener('change', () => {
           if(thumbWrapCont) thumbWrapCont.style.display = (acaTipoSelect.value === 'Video de Entrenamiento') ? 'block' : 'none';
           if(fileGroupCont) fileGroupCont.style.display = (acaTipoSelect.value === 'Nota') ? 'none' : 'block';
+          if(catWrap) catWrap.style.display = (acaTipoSelect.value === 'Nota' && !window.currentAcademyFolder) ? 'block' : 'none';
         });
      }
     } // Closing if (saveAcademiaBtn)

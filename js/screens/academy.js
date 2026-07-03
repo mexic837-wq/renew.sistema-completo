@@ -658,6 +658,8 @@ export function renderAcademy() {
                 if (item) {
                     const { deleteRecord } = await import('../api.js');
                     await deleteRecord('academia_content', id);
+                    db.academiaContent = db.academiaContent.filter(x => x.id !== id);
+                    await saveDB(db);
                     window.reloadAcademy();
                 }
             } catch(e) {
