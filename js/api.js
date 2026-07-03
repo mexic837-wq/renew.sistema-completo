@@ -124,7 +124,7 @@ function applyPostProcessing(freshDB) {
                         fase_id: phase1.id,
                         etiqueta: 'Método de Pago',
                         tipo: 'Desplegable',
-                        opciones: 'Crédito, Cash',
+                        opciones: 'Financiamiento, Efectivo (cash)',
                         es_opcional: false,
                         orden: 0
                     };

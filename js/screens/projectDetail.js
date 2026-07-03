@@ -1021,7 +1021,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       const resp = existingResp.find(r => r.campo_id === metodoPagoField.id);
       if (!resp || !resp.valor || resp.valor.trim() === 'Elegir...' || resp.valor.trim() === 'Escoge una opción' || resp.valor.trim() === '') {
           isMetodoPagoEmpty = true;
-      } else if (resp.valor.trim().toLowerCase() === 'cash') {
+      } else if (resp.valor.trim().toLowerCase() === 'cash' || resp.valor.trim().toLowerCase() === 'efectivo (cash)') {
           isCash = true;
       }
   }
