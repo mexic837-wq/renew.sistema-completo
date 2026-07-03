@@ -394,7 +394,7 @@ export function renderAcademy() {
                     <div id="form-main-upload">
                         <div class="space-y-4">
                             <div id="main-aca-titulo-wrap">
-                                <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2">Título *</label>
+                                <label class="block text-xs font-black text-text-muted uppercase tracking-wider mb-2" id="main-aca-titulo-label">Título (Opcional)</label>
                                 <input type="text" id="main-aca-titulo" class="w-full bg-bg border border-border rounded-xl px-4 py-3 text-text-primary focus:border-primary outline-none transition-colors" placeholder="Ej. Presentación Q3">
                             </div>
                             
@@ -475,13 +475,8 @@ export function renderAcademy() {
             const isFolder = btn.dataset.isFolder === 'true';
             
             const folderId = window.mainAcademyFolder || null;
-            const requiresTitulo = !isFolder && !(folderId && !folderId.startsWith('cat_'));
             
-            if (requiresTitulo && !rawTitulo && document.getElementById('main-aca-file').files.length <= 1) {
-                // Si sube un solo archivo y requiere título, obligarlo. (Si sube varios, usa el nombre del archivo).
-                return alert('El título es requerido');
-            }
-            if (isFolder && !rawTitulo) return alert('El título es requerido');
+            if (isFolder && !rawTitulo) return alert('El título es requerido para la carpeta');
             
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
@@ -492,9 +487,6 @@ export function renderAcademy() {
                 const notas = document.getElementById('main-aca-notas').value.trim() || null;
                 
                 // Inherit permissions automatically based on current active tab
-                // Wait, if activeAcademyDeptFilter is empty string (meaning default), we shouldn't save empty permissions if they selected a valid tab?
-                // `activeAcademyDeptFilter` defaults to `depts[0]` or the clicked pill. So it's always valid (e.g. 'Solar', 'Water').
-                // If there's an active tab, we assign the corresponding pipeline permission.
                 const autoPermiso = activeAcademyDeptFilter ? 'Renew ' + activeAcademyDeptFilter : null;
                 const permisos = autoPermiso ? [autoPermiso] : [];
                 
@@ -556,17 +548,7 @@ export function renderAcademy() {
                     for (let i = 0; i < fileInput.files.length; i++) {
                         const file = fileInput.files[i];
                         let finalTitulo = rawTitulo;
-                        
-                        if (!requiresTitulo) {
-                            // Inside a real folder -> force filename as title
-                            finalTitulo = file.name;
-                        } else if (isMultiple) {
-                            // Multiple files outside -> force filename as title
-                            finalTitulo = file.name;
-                        }
-                        
-                        // Si por si acaso no tiene titulo...
-                        if (!finalTitulo) finalTitulo = file.name;
+                        // Si dejan el título vacío, simplemente se guarda vacío, tal cual como pidieron.
                         
                         // Inferir tipo si está en una carpeta (donde el tipo no importa, pero le ponemos algo basandonos en la extension)
                         let finalTipo = baseTipo;
@@ -642,6 +624,7 @@ export function renderAcademy() {
         // Expose modal triggers
         window.mainCreateFolder = () => {
             document.getElementById('modal-main-academy-title').innerText = 'NUEVA CARPETA';
+            document.getElementById('main-aca-titulo-label').innerText = 'Título *';
             document.getElementById('main-aca-titulo').value = '';
             document.getElementById('main-aca-notas').value = '';
             
@@ -658,6 +641,7 @@ export function renderAcademy() {
         
         window.mainUploadDoc = () => {
             document.getElementById('modal-main-academy-title').innerText = 'SUBIR DOCUMENTO';
+            document.getElementById('main-aca-titulo-label').innerText = 'Título (Opcional)';
             document.getElementById('main-aca-titulo').value = '';
             document.getElementById('main-aca-notas').value = '';
             document.getElementById('main-aca-file').value = '';
@@ -674,7 +658,7 @@ export function renderAcademy() {
                 document.getElementById('main-aca-thumb-wrap').style.display = folderId === 'cat_video' ? 'block' : 'none';
             } else if (folderId) {
                 // Dentro de una carpeta real
-                document.getElementById('main-aca-titulo-wrap').style.display = 'none';
+                document.getElementById('main-aca-titulo-wrap').style.display = 'block'; // Show it, but it's optional! Wait, user said "que simpmeye se suba sin nombre, boviamnete sen al carpeta". We can hide it or show it. They said "ya por fuer ala logica es igual, es mas dejemos la opcion de titulo pero que sea opcional porfvaor y espifcalo en un aprentesis". So show it always but optional!
                 document.getElementById('main-aca-file-group').style.display = 'block';
                 document.getElementById('main-aca-tipo-wrap').style.display = 'none';
                 document.getElementById('main-aca-thumb-wrap').style.display = 'none';
