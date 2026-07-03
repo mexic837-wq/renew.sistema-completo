@@ -1006,7 +1006,16 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
 
   const actFase = fases[curFidx];
   const isLocked = deal.is_locked;
-  const campos = db.Admin_Campos_Formulario.filter(c => c.fase_id === actFase.id);
+  const allCampos = db.Admin_Campos_Formulario.filter(c => c.fase_id === actFase.id);
+  const campos = [];
+  const seenEtiquetas = new Set();
+  for (const c of allCampos) {
+      const etLower = (c.etiqueta || '').toLowerCase().trim();
+      if (!seenEtiquetas.has(etLower)) {
+          seenEtiquetas.add(etLower);
+          campos.push(c);
+      }
+  }
 
   const existingResp = await getRespuestasByProyecto(deal.id);
 
