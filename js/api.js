@@ -124,7 +124,7 @@ function applyPostProcessing(freshDB) {
                         fase_id: phase1.id,
                         etiqueta: 'Método de Pago',
                         tipo: 'Desplegable',
-                        opciones: 'Financiamiento, Efectivo (cash)',
+                        opciones: 'Financiamiento, Efectivo (cash), Zelle, Cheque',
                         es_opcional: false,
                         orden: 0
                     };
@@ -132,6 +132,21 @@ function applyPostProcessing(freshDB) {
                     injectedFields.push(newField);
                 }
                 
+                const hasComprobante = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && c.etiqueta.toLowerCase().includes('comprobante'));
+                if (!hasComprobante) {
+                    const newComprobante = {
+                        id: 'cf_comp_' + Date.now(),
+                        fase_id: phase1.id,
+                        etiqueta: 'Comprobante de Pago',
+                        tipo: 'Archivo',
+                        opciones: '',
+                        es_opcional: false,
+                        orden: 0.5
+                    };
+                    freshDB.Admin_Campos_Formulario.splice(1, 0, newComprobante);
+                    injectedFields.push(newComprobante);
+                }
+
                 const hasFinanciera = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && c.etiqueta.toLowerCase().includes('financiera'));
                 if (!hasFinanciera) {
                     const newFinanciera = {
@@ -184,8 +199,8 @@ function applyPostProcessing(freshDB) {
 
                 // Update Método de Pago options if they still have the old names
                 const metodoPagoFields = freshDB.Admin_Campos_Formulario.filter(c => c.fase_id === phase1.id && (c.etiqueta.toLowerCase().includes('pago') || c.etiqueta.toLowerCase().includes('cash')));
-                const newOptions = 'Financiamiento, Efectivo (cash)';
-                const camposToUpdate = metodoPagoFields.filter(f => f.opciones && f.opciones.includes('Crédito'));
+                const newOptions = 'Financiamiento, Efectivo (cash), Zelle, Cheque';
+                const camposToUpdate = metodoPagoFields.filter(f => f.opciones !== newOptions);
                 if (camposToUpdate.length > 0) {
                     camposToUpdate.forEach(f => {
                         f.opciones = newOptions;

@@ -1017,12 +1017,19 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   });
   let isCash = false;
   let isMetodoPagoEmpty = false;
+  let isZelleOrCheque = false;
   if (metodoPagoField) {
       const resp = existingResp.find(r => r.campo_id === metodoPagoField.id);
       if (!resp || !resp.valor || resp.valor.trim() === 'Elegir...' || resp.valor.trim() === 'Escoge una opción' || resp.valor.trim() === '') {
           isMetodoPagoEmpty = true;
-      } else if (resp.valor.trim().toLowerCase() === 'cash' || resp.valor.trim().toLowerCase() === 'efectivo (cash)') {
-          isCash = true;
+      } else {
+          const valLower = resp.valor.trim().toLowerCase();
+          if (['cash', 'efectivo (cash)', 'zelle', 'cheque'].includes(valLower)) {
+              isCash = true;
+          }
+          if (['zelle', 'cheque'].includes(valLower)) {
+              isZelleOrCheque = true;
+          }
       }
   }
 
@@ -1416,6 +1423,8 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      if (isMetodoPagoEmpty && !isThisMetodoPago) {
          isHidden = true;
      } else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || labelLower.includes('financiera') || c.tipo === 'Aplicación de Crédito')) {
+         isHidden = true;
+     } else if (labelLower.includes('comprobante de pago') && !isZelleOrCheque) {
          isHidden = true;
      }
      
