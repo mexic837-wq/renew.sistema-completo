@@ -190,6 +190,8 @@ function resetCreditForm(formEl) {
    SUBMIT HANDLER — Credit Application
 ════════════════════════════════════════════════════════════ */
 
+let isSubmittingCreditApp = false;
+
 /**
  * Maneja el evento submit del formulario de Aplicación de Crédito.
  * Valida, recolecta datos y los envía al webhook configurado en app.js.
@@ -198,6 +200,11 @@ function resetCreditForm(formEl) {
 async function handleCreditFormSubmit(e) {
   e.preventDefault();
 
+  if (isSubmittingCreditApp) {
+      console.warn('Formulario ya se está enviando, ignorando submit adicional.');
+      return;
+  }
+  
   const form = e.target;
   const btn  = form.querySelector('.btn-submit');
   const span = btn.querySelector('.btn-text') || btn.querySelector('span');
@@ -312,6 +319,7 @@ async function handleCreditFormSubmit(e) {
       : `Error al enviar. (${err.message})`;
     showToast(msg, 'error', 8000);
   } finally {
+    isSubmittingCreditApp = false;
     btn.classList.remove('loading');
     btn.disabled = false;
     span.textContent = originalLabel;

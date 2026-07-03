@@ -85,6 +85,14 @@ window.addEventListener('message', async (e) => {
           const dob = formData.aplicante?.fechaNacimiento || formData.aplicante?.dateOfBirth || '-';
           const state_id = formData.aplicante?.state || '-';
 
+          const now = Date.now();
+          if (window._lastAutoCreateTime && (now - window._lastAutoCreateTime < 10000)) {
+              console.warn('[APP] Evitando creación duplicada: la última creación fue hace menos de 10 segundos.');
+              showToast('Formulario ya procesado.', 'info');
+              return;
+          }
+          window._lastAutoCreateTime = now;
+
           const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
           // pipelineName defaults to "Renew Water" since it's the RENEW WATER form
           const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: 'Renew Water' });
