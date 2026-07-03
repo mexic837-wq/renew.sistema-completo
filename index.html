@@ -374,7 +374,7 @@
               <span class="brand-renew">RENEW</span>
             </div>
           </div>
-          <button id="btn-toggle-sidebar" class="sidebar-toggle" title="Contraer menú">
+          <button id="btn-toggle-sidebar" class="sidebar-toggle" title="Contraer menú" onclick="event.preventDefault(); event.stopPropagation(); document.body.classList.toggle('sidebar-collapsed'); localStorage.setItem('sidebar_collapsed', document.body.classList.contains('sidebar-collapsed'));">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
