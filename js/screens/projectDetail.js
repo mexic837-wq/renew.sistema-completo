@@ -1013,7 +1013,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
   // Cash detection logic
   const metodoPagoField = campos.find(c => {
       const etLower = c.etiqueta.toLowerCase();
-      return etLower.includes('método de pago') || etLower.includes('metodo de pago') || etLower.includes('pago') || etLower.includes('cash');
+      return etLower === 'método de pago' || etLower === 'metodo de pago' || etLower === 'metodo pago' || etLower.includes('método de pago');
   });
   let isCash = false;
   let isMetodoPagoEmpty = false;
@@ -1146,7 +1146,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
            "`;
        }
        const labelLower = c.etiqueta.toLowerCase();
-       const isThisMetodoPago = labelLower.includes('método de pago') || labelLower.includes('metodo de pago') || labelLower.includes('pago') || labelLower.includes('cash');
+       const isThisMetodoPago = labelLower === 'método de pago' || labelLower === 'metodo de pago' || labelLower === 'metodo pago' || labelLower.includes('método de pago');
        let hideStyle = '';
        if (isMetodoPagoEmpty && !isThisMetodoPago) hideStyle = 'display:none;';
        else if (isCash && (labelLower.includes('aprobación') || labelLower.includes('aprobacion') || labelLower.includes('financiera'))) hideStyle = 'display:none;';
@@ -1417,7 +1417,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      }
      
      const labelLower = c.etiqueta.toLowerCase();
-     const isThisMetodoPago = labelLower.includes('método de pago') || labelLower.includes('metodo de pago') || labelLower.includes('pago') || labelLower.includes('cash');
+     const isThisMetodoPago = labelLower === 'método de pago' || labelLower === 'metodo de pago' || labelLower === 'metodo pago' || labelLower.includes('método de pago');
      
      let isHidden = false;
      if (isMetodoPagoEmpty && !isThisMetodoPago) {
