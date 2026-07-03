@@ -9,6 +9,25 @@ let activeAcademyDeptFilter = '';
 // Global helper to safely resolve the dynamic import from the correct module base URL
 window.reloadAcademy = () => import('./academy.js').then(m => m.renderAcademy());
 
+window.viewAcademyNote = (id) => {
+    const db = getDB();
+    const note = (db.academiaContent || []).find(x => x.id === id);
+    if (!note) return;
+    
+    document.getElementById('modal-note-title').innerText = note.titulo || 'Nota';
+    
+    // Format date if possible, else just hide it or show "Reciente"
+    const dateStr = note.id.split('_')[1];
+    let dateFormatted = 'Reciente';
+    if (dateStr && !isNaN(dateStr)) {
+        dateFormatted = new Date(parseInt(dateStr)).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+    }
+    document.getElementById('modal-note-date').innerText = dateFormatted;
+    
+    document.getElementById('modal-note-content').textContent = note.notas || '';
+    document.getElementById('modal-view-note').classList.remove('hidden');
+};
+
 export function renderAcademy() {
   const user = getCurrentUser();
   const screen = document.getElementById('screen-academy');
@@ -698,24 +717,6 @@ export function renderAcademy() {
             document.getElementById('modal-main-academy').classList.remove('hidden');
         };
 
-        window.viewAcademyNote = (id) => {
-            const db = getDB();
-            const note = db.academiaContent.find(x => x.id === id);
-            if (!note) return;
-            
-            document.getElementById('modal-note-title').innerText = note.titulo || 'Nota';
-            
-            // Format date if possible, else just hide it or show "Reciente"
-            const dateStr = note.id.split('_')[1];
-            let dateFormatted = 'Reciente';
-            if (dateStr && !isNaN(dateStr)) {
-                dateFormatted = new Date(parseInt(dateStr)).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-            }
-            document.getElementById('modal-note-date').innerText = dateFormatted;
-            
-            document.getElementById('modal-note-content').textContent = note.notas || '';
-            document.getElementById('modal-view-note').classList.remove('hidden');
-        };
 
         window.mainCreateFolder = () => {
             document.getElementById('modal-main-academy-title').innerText = 'NUEVA CARPETA';
