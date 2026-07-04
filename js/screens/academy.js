@@ -224,6 +224,14 @@ export function renderAcademy() {
         let iconColor = 'text-text-secondary';
         let onClickAction = `window.open('${getViewerUrl(item.enlace)}', '_blank')`;
         
+        let isImage = false;
+        if (item.enlace) {
+            const ext = item.enlace.split('.').pop().split('?')[0].toLowerCase();
+            if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+                isImage = true;
+            }
+        }
+
         if (typeStr.includes('video')) { iconHtml = '<i class="fa-solid fa-play"></i>'; iconBg = 'bg-red-500/10'; iconColor = 'text-red-500'; }
         else if (typeStr.includes('pdf')) { iconHtml = '<i class="fa-solid fa-file-pdf"></i>'; iconBg = 'bg-blue-500/10'; iconColor = 'text-blue-500'; }
         else if (typeStr === 'nota') { 
@@ -232,7 +240,12 @@ export function renderAcademy() {
             iconColor = 'text-primary'; 
             onClickAction = `window.viewAcademyNote('${item.id}')`; 
         }
+        else if (isImage) {
+            iconHtml = '<i class="fa-solid fa-image text-xl"></i>';
+        }
         
+        const validTitle = (item.titulo && item.titulo !== 'null') ? item.titulo : (isImage ? 'Imagen' : (typeStr === 'nota' ? 'Nota' : 'Documento'));
+
         itemsHtml += `
             <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="${onClickAction}" data-is-folder="false">
                 <div class="absolute top-2 right-2 flex gap-2 z-10">
@@ -240,11 +253,11 @@ export function renderAcademy() {
                         <i class="fa-solid fa-trash text-xs"></i>
                     </button>
                 </div>
-                ${item.miniaturaUrl ? 
+                ${(item.miniaturaUrl || isImage) ? 
                     `<div class="h-32 w-full bg-black relative">
-                        <img src="${item.miniaturaUrl}" class="w-full h-full object-cover opacity-80" />
+                        <img src="${item.miniaturaUrl || item.enlace}" class="w-full h-full object-cover opacity-80" />
                         <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center text-white"><i class="fa-solid fa-play"></i></div>
+                            ${item.miniaturaUrl ? `<div class="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center text-white"><i class="fa-solid fa-play"></i></div>` : ''}
                         </div>
                     </div>` 
                     : 
@@ -253,7 +266,7 @@ export function renderAcademy() {
                     </div>`
                 }
                 <div class="p-4 flex-1 flex flex-col">
-                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${item.titulo || (typeStr === 'nota' ? 'Nota' : 'Documento')}</h4>
+                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${validTitle}</h4>
                     ${item.notas && typeStr !== 'nota' ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
                     <div class="mt-auto flex flex-wrap gap-1">
                         ${(item.permisos || []).map(p => `<span class="text-[0.55rem] px-2 py-1 bg-surface-alt border border-border rounded-md uppercase font-black text-text-muted">${p}</span>`).join('')}
