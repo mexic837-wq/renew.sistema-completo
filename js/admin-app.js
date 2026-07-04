@@ -948,6 +948,56 @@ window.adminEditAcademia = (id) => {
         document.getElementById('aca-notas').value = item.notas || '';
     }
     
+    // Configurar el botón de guardar
+    const btnSubmit = document.getElementById('btn-aca-submit');
+    if (btnSubmit) {
+        btnSubmit.dataset.editId = id;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
+    }
+    
+    // Set checkboxes (pipelines)
+    const chks = document.querySelectorAll('.aca-pip-chk');
+    chks.forEach(chk => {
+        if (item.permisos && item.permisos.includes(chk.value)) {
+            chk.checked = true;
+        } else {
+            chk.checked = false;
+        }
+    });
+};
+
+window.adminCreateFolder = async () => {
+    const titulo = prompt("Nombre de la nueva carpeta:");
+    if (!titulo || !titulo.trim()) return;
+    
+    const db = getDB();
+    const newFolder = {
+        id: 'dir_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
+        titulo: titulo.trim(),
+        tipo: 'Carpeta',
+        notas: '',
+        url: '',
+        is_folder: true,
+        parent_id: window.currentAcademyFolder || (window.adminAcaFilter && window.adminAcaFilter !== 'all' ? window.adminAcaFilter : null),
+        permisos: ['All'],
+        fecha: new Date().toISOString()
+    };
+    
+    db.academiaContent = db.academiaContent || [];
+    db.academiaContent.push(newFolder);
+    await saveDB(db);
+    
+    try {
+        const { saveGranular } = await import('./api.js?v=3');
+        await saveGranular('academia_content', newFolder);
+    } catch(err) {
+        console.error('Error guardando carpeta granularmente', err);
+    }
+    
+    if (window.renderView) await window.renderView();
+    if (window.addNotification) window.addNotification('Gestor Academia', `Carpeta "${newFolder.titulo}" creada`, 'success');
+};
+    
     // Check permissions
     document.querySelectorAll('.aca-pip-chk').forEach(c => c.checked = false);
     if (item.permisos) {
@@ -4705,10 +4755,10 @@ window.renderView = async function renderView() {
     }
     const breadcrumbHtml = `
       <div class="flex items-center gap-2 mb-4 text-xs font-bold text-gray-500">
-         <span class="cursor-pointer hover:text-tealAccent transition-colors" onclick="window.currentAcademyFolder=null; window.renderAdminApp()"><i class="fa-solid fa-home"></i> Inicio</span>
+         <span class="cursor-pointer hover:text-tealAccent transition-colors" onclick="window.currentAcademyFolder=null; window.renderView()"><i class="fa-solid fa-home"></i> Inicio</span>
          ${breadcrumbs.map(b => `
             <i class="fa-solid fa-chevron-right text-[10px]"></i>
-            <span class="cursor-pointer hover:text-tealAccent transition-colors" onclick="window.currentAcademyFolder='${b.id}'; window.renderAdminApp()">${b.titulo}</span>
+            <span class="cursor-pointer hover:text-tealAccent transition-colors" onclick="window.currentAcademyFolder='${b.id}'; window.renderView()">${b.titulo}</span>
          `).join('')}
       </div>
     `;
@@ -4753,7 +4803,7 @@ window.renderView = async function renderView() {
     const contentListHtml = currentItems.map((item, idx) => {
         if (item.is_folder) {
             return `
-               <div class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl mb-3 flex justify-between items-center hover:border-tealAccent/40 transition-all cursor-pointer group" onclick="window.currentAcademyFolder='${item.id}'; window.renderAdminApp()">
+               <div class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl mb-3 flex justify-between items-center hover:border-tealAccent/40 transition-all cursor-pointer group" onclick="window.currentAcademyFolder='${item.id}'; window.renderView()">
                  <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-tealAccent/10 text-tealAccent flex items-center justify-center group-hover:scale-110 transition-transform"><i class="fa-solid fa-folder text-lg"></i></div>
                     <div>
@@ -4867,7 +4917,7 @@ window.renderView = async function renderView() {
                <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Directorio Activo</h3>
                <div class="flex items-center gap-2">
                   ${!window.currentAcademyFolder ? `
-                  <select id="admin-aca-filter" class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 py-2 px-3 focus:border-tealAccent focus:outline-none focus:ring-0 appearance-none cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10 transition-colors" onchange="window.adminAcaFilter = document.getElementById('admin-aca-filter').value; window.renderAdminApp()">
+                  <select id="admin-aca-filter" class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 py-2 px-3 focus:border-tealAccent focus:outline-none focus:ring-0 appearance-none cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10 transition-colors" onchange="window.adminAcaFilter = document.getElementById('admin-aca-filter').value; window.renderView()">
                     <option value="all" ${window.adminAcaFilter === 'all' ? 'selected' : ''}>Todas las secciones</option>
                     <option value="cat_video" ${window.adminAcaFilter === 'cat_video' ? 'selected' : ''}>Videos</option>
                     <option value="cat_pdf" ${window.adminAcaFilter === 'cat_pdf' ? 'selected' : ''}>Documentos</option>
