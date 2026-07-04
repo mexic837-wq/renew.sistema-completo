@@ -1094,7 +1094,12 @@ export async function renderHRHub() {
                     const r = (worker.rol || '').toLowerCase();
                     if (r.includes('técnico') || r.includes('tecnico')) {
                         computedTipo = 'tecnico';
-                    } else if (r.includes('ventas') || r.includes('vendedor')) {
+                    } else if (
+                        r.includes('ventas') || r.includes('vendedor') ||
+                        r.includes('supervisor') || r.includes('supervisión') ||
+                        r.includes('manager') || r.includes('representante') ||
+                        r.includes('account') || r.includes('asesor')
+                    ) {
                         computedTipo = 'vendedor';
                     }
                 }

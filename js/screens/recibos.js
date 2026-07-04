@@ -219,9 +219,25 @@ export function renderMisRecibos() {
     if (currentFilter === 'mis_recibos') {
       filtered = allRecibos.filter(r => r.trabajador_id === user.id);
     } else if (currentFilter === 'oficina') {
-      filtered = allRecibos.filter(r => r.tipo === 'vendedor' && r.datos_json && r.datos_json.subtipo === 'oficina');
+      const dbLocal = window.getDB ? window.getDB() : {};
+      const workersLocal = dbLocal.Usuarios || [];
+      const vendedorRolesLocal = ['supervisor', 'supervisión', 'manager', 'representante', 'account', 'asesor', 'ventas', 'vendedor'];
+      filtered = allRecibos.filter(r => {
+        const w = workersLocal.find(u => String(u.id) === String(r.trabajador_id));
+        const wRol = (w?.rol || '').toLowerCase();
+        const wIsVendedor = vendedorRolesLocal.some(vr => wRol.includes(vr));
+        return !wIsVendedor && r.tipo === 'vendedor' && r.datos_json && r.datos_json.subtipo === 'oficina';
+      });
     } else if (currentFilter === 'vendedor') {
-      filtered = allRecibos.filter(r => r.tipo === 'vendedor' && !(r.datos_json && r.datos_json.subtipo === 'oficina'));
+      const dbLocal = window.getDB ? window.getDB() : {};
+      const workersLocal = dbLocal.Usuarios || [];
+      const vendedorRolesLocal = ['supervisor', 'supervisión', 'manager', 'representante', 'account', 'asesor', 'ventas', 'vendedor'];
+      filtered = allRecibos.filter(r => {
+        const w = workersLocal.find(u => String(u.id) === String(r.trabajador_id));
+        const wRol = (w?.rol || '').toLowerCase();
+        const wIsVendedor = vendedorRolesLocal.some(vr => wRol.includes(vr));
+        return r.tipo === 'vendedor' && (wIsVendedor || !(r.datos_json && r.datos_json.subtipo === 'oficina'));
+      });
     } else {
       filtered = allRecibos.filter(r => r.tipo === currentFilter);
     }
@@ -304,11 +320,20 @@ function _renderRecibosList(recibos, isAdmin) {
     </div>
   `;
 
+  const db = window.getDB ? window.getDB() : {};
+  const allWorkers = db.Usuarios || [];
+  // Roles that should be treated as vendedor/representante even if stored as oficina
+  const vendedorRoles = ['supervisor', 'supervisión', 'manager', 'representante', 'account', 'asesor', 'ventas', 'vendedor'];
+
   return recibos.map(r => {
     const datos = r.datos_json || {};
-    const isOficina = datos.subtipo === 'oficina' || r.tipo === 'oficina';
-    const isVendedor = r.tipo === 'vendedor' && !isOficina;
-    const isTecnico = r.tipo === 'tecnico';
+    // Check if the worker's actual role overrides the stored subtipo
+    const worker = allWorkers.find(w => String(w.id) === String(r.trabajador_id));
+    const workerRolLow = (worker?.rol || '').toLowerCase();
+    const workerIsVendedor = vendedorRoles.some(vr => workerRolLow.includes(vr));
+    const isOficina = !workerIsVendedor && (datos.subtipo === 'oficina' || r.tipo === 'oficina');
+    const isVendedor = (r.tipo === 'vendedor' && !isOficina) || workerIsVendedor;
+    const isTecnico = r.tipo === 'tecnico' && !workerIsVendedor;
     
     let color = '#10b981'; // tecnico
     let label = 'Recibo de Instalación – Técnico';
