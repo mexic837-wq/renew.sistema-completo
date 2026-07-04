@@ -4713,7 +4713,26 @@ window.renderView = async function renderView() {
       </div>
     `;
 
-    const currentItems = academiaContent.filter(item => (item.parent_id || null) === window.currentAcademyFolder);
+    window.adminAcaFilter = window.adminAcaFilter || 'all';
+
+    const currentItems = academiaContent.filter(item => {
+        if (window.currentAcademyFolder) {
+            return (item.parent_id || null) === window.currentAcademyFolder;
+        } else {
+            if (window.adminAcaFilter === 'all') {
+                return (item.parent_id || null) === null || (typeof item.parent_id === 'string' && item.parent_id.startsWith('cat_'));
+            } else {
+                let matchType = false;
+                if (window.adminAcaFilter === 'cat_video' && (item.tipo === 'Video de Entrenamiento' || item.tipo === 'Video')) matchType = true;
+                if (window.adminAcaFilter === 'cat_pdf' && (item.tipo === 'Documento/PDF' || item.tipo === 'Documento')) matchType = true;
+                if (window.adminAcaFilter === 'cat_banco' && item.tipo === 'Información Bancaria') matchType = true;
+                if (window.adminAcaFilter === 'cat_faq' && item.tipo === 'FAQ') matchType = true;
+                if (window.adminAcaFilter === 'cat_equipo' && item.tipo === 'Detalles de equipo') matchType = true;
+
+                return item.parent_id === window.adminAcaFilter || ((item.parent_id || null) === null && matchType);
+            }
+        }
+    });
     
     currentItems.sort((a, b) => {
         if(a.is_folder && !b.is_folder) return -1;
@@ -4837,6 +4856,16 @@ window.renderView = async function renderView() {
             <div class="flex justify-between items-center mb-2">
                <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Directorio Activo</h3>
                <div class="flex items-center gap-2">
+                  ${!window.currentAcademyFolder ? `
+                  <select id="admin-aca-filter" class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 py-2 px-3 focus:border-tealAccent focus:outline-none focus:ring-0 appearance-none cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10 transition-colors" onchange="window.adminAcaFilter = this.value; window.renderAdminApp()">
+                    <option value="all" ${window.adminAcaFilter === 'all' ? 'selected' : ''}>Todas las secciones</option>
+                    <option value="cat_video" ${window.adminAcaFilter === 'cat_video' ? 'selected' : ''}>Videos</option>
+                    <option value="cat_pdf" ${window.adminAcaFilter === 'cat_pdf' ? 'selected' : ''}>Documentos</option>
+                    <option value="cat_banco" ${window.adminAcaFilter === 'cat_banco' ? 'selected' : ''}>Banco Financieras</option>
+                    <option value="cat_faq" ${window.adminAcaFilter === 'cat_faq' ? 'selected' : ''}>Soporte y FAQ</option>
+                    <option value="cat_equipo" ${window.adminAcaFilter === 'cat_equipo' ? 'selected' : ''}>Detalles de equipo</option>
+                  </select>
+                  ` : ''}
                   <button onclick="window.adminCreateFolder()" class="bg-tealAccent/10 text-tealAccent px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-tealAccent/20 transition-all"><i class="fa-solid fa-folder-plus"></i> Nueva Carpeta</button>
                   <span class="bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-500">${currentItems.length} items</span>
                </div>
