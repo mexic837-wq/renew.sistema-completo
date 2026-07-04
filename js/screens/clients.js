@@ -548,7 +548,8 @@ async function _renderList(user, container) {
       `;
     }
 
-    const dateStr = c.fecha ? new Date(c.fecha).toLocaleDateString('en-US') : 'Reciente';
+    const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    const dateStr = c.fecha ? new Date(c.fecha).toLocaleString('en-US', dateOptions) : 'Reciente';
     const targetId = proy ? proy.id : null;
 
     let deleteBtnHtml = '';
