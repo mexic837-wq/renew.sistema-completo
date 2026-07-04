@@ -4776,7 +4776,7 @@ window.renderView = async function renderView() {
                         <h4 class="font-bold text-gray-800 dark:text-white text-sm">${item.titulo}</h4>
                     </div>
                     ${item.notas ? `<p class="text-xs text-gray-500 italic mb-2 mt-1 line-clamp-2">${item.notas}</p>` : ''}
-                    <div class="flex flex-wrap gap-1 mt-2">${item.permisos.map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
+                    <div class="flex flex-wrap gap-1 mt-2">${(item.permisos || []).map(p => `<span class="bg-tealAccent/10 text-tealAccent text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-tealAccent/20">${p}</span>`).join('')}</div>
                  </div>
                  <div class="flex items-center gap-2">
                     <button class="text-tealAccent/50 hover:text-tealAccent hover:bg-tealAccent/10 p-2.5 rounded-lg transition-all" onclick="window.adminEditAcademia('${item.id}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
@@ -4867,7 +4867,7 @@ window.renderView = async function renderView() {
                <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Directorio Activo</h3>
                <div class="flex items-center gap-2">
                   ${!window.currentAcademyFolder ? `
-                  <select id="admin-aca-filter" class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 py-2 px-3 focus:border-tealAccent focus:outline-none focus:ring-0 appearance-none cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10 transition-colors" onchange="window.adminAcaFilter = this.value; window.renderAdminApp()">
+                  <select id="admin-aca-filter" class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 py-2 px-3 focus:border-tealAccent focus:outline-none focus:ring-0 appearance-none cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10 transition-colors" onchange="window.adminAcaFilter = document.getElementById('admin-aca-filter').value; window.renderAdminApp()">
                     <option value="all" ${window.adminAcaFilter === 'all' ? 'selected' : ''}>Todas las secciones</option>
                     <option value="cat_video" ${window.adminAcaFilter === 'cat_video' ? 'selected' : ''}>Videos</option>
                     <option value="cat_pdf" ${window.adminAcaFilter === 'cat_pdf' ? 'selected' : ''}>Documentos</option>
