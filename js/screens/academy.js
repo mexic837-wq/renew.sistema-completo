@@ -1111,6 +1111,16 @@ export function renderAcademy() {
             let iconBg = 'var(--surface-alt)';
             let iconColor = 'var(--primary)';
 
+            let isImage = false;
+            if (r.enlace) {
+                const ext = r.enlace.split('.').pop().split('?')[0].toLowerCase();
+                if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+                    isImage = true;
+                }
+            }
+
+            const validTitle = (r.titulo && r.titulo !== 'null') ? r.titulo : (isImage ? 'Imagen' : 'Documento');
+
             if (catKey === 'pdf') {
               iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
               iconColor = '#3b82f6'; // Azul
@@ -1125,19 +1135,19 @@ export function renderAcademy() {
               iconColor = '#f59e0b'; // Naranja
             }
 
-            if (r.miniaturaUrl) {
+            if (r.miniaturaUrl || isImage) {
                 return `
                   <div class="recurso-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%; cursor: pointer;">
                     <div style="width: 100%; height: 160px; position:relative; background: var(--surface-alt);">
-                      <img src="${r.miniaturaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.9;">
+                      <img src="${r.miniaturaUrl || r.enlace}" style="width:100%; height:100%; object-fit:cover; opacity:0.9;">
                       <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.1);">
-                        <div style="width:50px; height:50px; border-radius:15px; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--border);">
+                        ${r.miniaturaUrl ? `<div style="width:50px; height:50px; border-radius:15px; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--border);">
                            ${iconSvg}
-                        </div>
+                        </div>` : ''}
                       </div>
                     </div>
                     <div style="padding: 20px;">
-                      <h4 style="margin:0 0 8px; color:var(--text-primary); font-size: 0.95rem; font-weight: 950; line-height: 1.2;">${r.titulo}</h4>
+                      <h4 style="margin:0 0 8px; color:var(--text-primary); font-size: 0.95rem; font-weight: 950; line-height: 1.2;">${validTitle}</h4>
                       ${r.notas ? `<p style="margin: 0 0 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic;">${r.notas}</p>` : ''}
                       <p style="margin:0 0 10px; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
                         <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
@@ -1157,7 +1167,7 @@ export function renderAcademy() {
                   ${iconSvg}
                 </div>
                 <div style="flex: 1;">
-                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo}</h4>
+                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${validTitle}</h4>
                   ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic;">${r.notas}</p>` : ''}
                   <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
                     <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
