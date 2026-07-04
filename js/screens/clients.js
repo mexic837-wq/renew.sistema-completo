@@ -557,9 +557,11 @@ async function _renderList(user, container) {
         deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="${targetId ? 'Eliminar Proyecto' : 'Eliminar Prospecto'}"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
       }
 
-      // Resolve Representative
-      let repId = c.vendedor_asignado_id || c.responsable_id || c.creador_id;
-      if (proy) repId = proy.responsable_id || proy.creador_id || repId;
+      // Resolve Representative:
+      // Priority: client's explicit vendedor_asignado_id (set from admin) > project's responsable_id > client fallbacks
+      let repId = c.vendedor_asignado_id;
+      if (!repId && proy) repId = proy.responsable_id || proy.creador_id;
+      if (!repId) repId = c.responsable_id || c.creador_id;
       if (repId && String(repId).includes(',')) repId = String(repId).split(',')[0].trim();
       const repUser = allWorkers.find(u => String(u.id) === String(repId));
       const repName = repUser ? (repUser.nombre + ' ' + (repUser.apellido || '')).trim() : (c.vendedor_asignado_nombre || 'Desconocido');
