@@ -4722,14 +4722,18 @@ window.renderView = async function renderView() {
             if (window.adminAcaFilter === 'all') {
                 return (item.parent_id || null) === null || (typeof item.parent_id === 'string' && item.parent_id.startsWith('cat_'));
             } else {
-                let matchType = false;
-                if (window.adminAcaFilter === 'cat_video' && (item.tipo === 'Video de Entrenamiento' || item.tipo === 'Video')) matchType = true;
-                if (window.adminAcaFilter === 'cat_pdf' && (item.tipo === 'Documento/PDF' || item.tipo === 'Documento')) matchType = true;
-                if (window.adminAcaFilter === 'cat_banco' && item.tipo === 'Información Bancaria') matchType = true;
-                if (window.adminAcaFilter === 'cat_faq' && item.tipo === 'FAQ') matchType = true;
-                if (window.adminAcaFilter === 'cat_equipo' && item.tipo === 'Detalles de equipo') matchType = true;
+                let pId = item.parent_id || null;
+                if (pId === window.adminAcaFilter) return true;
 
-                return item.parent_id === window.adminAcaFilter || ((item.parent_id || null) === null && matchType);
+                if (pId === null && item.tipo) {
+                    const t = item.tipo.toLowerCase();
+                    if (window.adminAcaFilter === 'cat_video' && t.includes('video')) return true;
+                    if (window.adminAcaFilter === 'cat_pdf' && (t.includes('documento') || t.includes('pdf'))) return true;
+                    if (window.adminAcaFilter === 'cat_banco' && (t.includes('bancaria') || t.includes('banco'))) return true;
+                    if (window.adminAcaFilter === 'cat_faq' && (t.includes('faq') || t.includes('ayuda'))) return true;
+                    if (window.adminAcaFilter === 'cat_equipo' && (t.includes('equipo') || t.includes('presentación') || t.includes('presentacion'))) return true;
+                }
+                return false;
             }
         }
     });
