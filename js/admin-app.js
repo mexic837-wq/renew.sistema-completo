@@ -4716,25 +4716,31 @@ window.renderView = async function renderView() {
     window.adminAcaFilter = window.adminAcaFilter || 'all';
 
     const currentItems = academiaContent.filter(item => {
-        if (window.currentAcademyFolder) {
-            return (item.parent_id || null) === window.currentAcademyFolder;
-        } else {
-            if (window.adminAcaFilter === 'all') {
-                return (item.parent_id || null) === null || (typeof item.parent_id === 'string' && item.parent_id.startsWith('cat_'));
+        try {
+            if (!item) return false;
+            let pId = item.parent_id || null;
+            if (window.currentAcademyFolder) {
+                return pId === window.currentAcademyFolder;
             } else {
-                let pId = item.parent_id || null;
-                if (pId === window.adminAcaFilter) return true;
+                if (window.adminAcaFilter === 'all') {
+                    return pId === null || (typeof pId === 'string' && pId.startsWith('cat_'));
+                } else {
+                    if (pId === window.adminAcaFilter) return true;
 
-                if (pId === null && item.tipo) {
-                    const t = item.tipo.toLowerCase();
-                    if (window.adminAcaFilter === 'cat_video' && t.includes('video')) return true;
-                    if (window.adminAcaFilter === 'cat_pdf' && (t.includes('documento') || t.includes('pdf'))) return true;
-                    if (window.adminAcaFilter === 'cat_banco' && (t.includes('bancaria') || t.includes('banco'))) return true;
-                    if (window.adminAcaFilter === 'cat_faq' && (t.includes('faq') || t.includes('ayuda'))) return true;
-                    if (window.adminAcaFilter === 'cat_equipo' && (t.includes('equipo') || t.includes('presentación') || t.includes('presentacion'))) return true;
+                    if (pId === null && item.tipo) {
+                        const t = String(item.tipo).toLowerCase();
+                        if (window.adminAcaFilter === 'cat_video' && t.includes('video')) return true;
+                        if (window.adminAcaFilter === 'cat_pdf' && (t.includes('documento') || t.includes('pdf'))) return true;
+                        if (window.adminAcaFilter === 'cat_banco' && (t.includes('bancaria') || t.includes('banco'))) return true;
+                        if (window.adminAcaFilter === 'cat_faq' && (t.includes('faq') || t.includes('ayuda'))) return true;
+                        if (window.adminAcaFilter === 'cat_equipo' && (t.includes('equipo') || t.includes('presentación') || t.includes('presentacion'))) return true;
+                    }
+                    return false;
                 }
-                return false;
             }
+        } catch (e) {
+            console.error('Error filtering item', item, e);
+            return false;
         }
     });
     
