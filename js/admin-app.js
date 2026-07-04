@@ -948,22 +948,30 @@ window.adminEditAcademia = (id) => {
         document.getElementById('aca-notas').value = item.notas || '';
     }
     
-    // Configurar el botón de guardar
-    const btnSubmit = document.getElementById('btn-aca-submit');
-    if (btnSubmit) {
-        btnSubmit.dataset.editId = id;
-        btnSubmit.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
+
+    // Check permissions
+    document.querySelectorAll('.aca-pip-chk').forEach(c => c.checked = false);
+    if (item.permisos) {
+        document.querySelectorAll('.aca-pip-chk').forEach(c => {
+            if (item.permisos.includes(c.value)) c.checked = true;
+        });
+    }
+
+    const btnSave = document.getElementById('btn-save-academia');
+    if (btnSave) {
+        btnSave.dataset.editId = id;
+        btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
+    }
+    const btnCancel = document.getElementById('aca-cancel-edit');
+    if (btnCancel) btnCancel.classList.remove('hidden');
+    
+    const thumbWrap = document.getElementById('aca-thumb-wrap');
+    if (thumbWrap && (item.tipo || '').includes('Video')) {
+        thumbWrap.style.display = 'block';
     }
     
-    // Set checkboxes (pipelines)
-    const chks = document.querySelectorAll('.aca-pip-chk');
-    chks.forEach(chk => {
-        if (item.permisos && item.permisos.includes(chk.value)) {
-            chk.checked = true;
-        } else {
-            chk.checked = false;
-        }
-    });
+    // Scroll up to form
+    document.querySelector('.admin-content').scrollTop = 0;
 };
 
 window.adminCreateFolder = async () => {
@@ -996,31 +1004,6 @@ window.adminCreateFolder = async () => {
     
     if (window.renderView) await window.renderView();
     if (window.addNotification) window.addNotification('Gestor Academia', `Carpeta "${newFolder.titulo}" creada`, 'success');
-};
-    
-    // Check permissions
-    document.querySelectorAll('.aca-pip-chk').forEach(c => c.checked = false);
-    if (item.permisos) {
-        document.querySelectorAll('.aca-pip-chk').forEach(c => {
-            if (item.permisos.includes(c.value)) c.checked = true;
-        });
-    }
-
-    const btnSave = document.getElementById('btn-save-academia');
-    if (btnSave) {
-        btnSave.dataset.editId = id;
-        btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
-    }
-    const btnCancel = document.getElementById('aca-cancel-edit');
-    if (btnCancel) btnCancel.classList.remove('hidden');
-    
-    const thumbWrap = document.getElementById('aca-thumb-wrap');
-    if (thumbWrap && (item.tipo || '').includes('Video')) {
-        thumbWrap.style.display = 'block';
-    }
-    
-    // Scroll up to form
-    document.querySelector('.admin-content').scrollTop = 0;
 };
 
 window.adminDeleteWorker = async (id, e) => {
