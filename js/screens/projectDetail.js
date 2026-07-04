@@ -162,8 +162,12 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   const dbFull = getDB();
   const allWorkers = dbFull.Usuarios || [];
 
-  const assigneeId = deal.asignado_a || deal.responsable_id;
-  const assigneeUser = allWorkers.find(w => w.id === assigneeId);
+  // Resolve the assigned seller: prefer the client's vendedor_asignado_id (set from admin panel),
+  // then fall back to the project's own asignado_a / responsable_id fields.
+  const allClientes = dbFull.Clientes_Maestro || [];
+  const linkedCliente = allClientes.find(c => String(c.id) === String(deal.cliente_id));
+  const assigneeId = linkedCliente?.vendedor_asignado_id || deal.asignado_a || deal.responsable_id || deal.vendedor_id;
+  const assigneeUser = allWorkers.find(w => String(w.id) === String(assigneeId));
   const assigneeName = assigneeUser ? `${assigneeUser.nombre} ${assigneeUser.apellido || ''}`.trim() : 'Sin asignar';
 
   const colaboradores = Array.isArray(deal.colaboradores) ? deal.colaboradores : [];
