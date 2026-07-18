@@ -73,11 +73,13 @@ window.addEventListener('message', async (e) => {
   if (e.data && (e.data.type === 'WORK_ORDER_SUBMITTED' || e.data.type === 'CREDIT_APP_SUBMITTED')) {
     console.log(`[APP] Received ${e.data.type} message:`, e.data);
     try {
-      let { proyectoId, formData, isNewClient } = e.data;
+      let { proyectoId, clienteId, formData, isNewClient, pdfUrl } = e.data;
       const db = getDB();
+      const isWorkOrder = (e.data.type === 'WORK_ORDER_SUBMITTED');
+      let targetClientId = clienteId;
 
       if (isNewClient && !proyectoId) {
-          console.log('[APP] isNewClient flag detected. Creating new Client and Project automatically...');
+          console.log('[APP] isNewClient flag detected. Creating new Client...');
           const nombre = formData.aplicante?.nombreCompleto || formData.aplicante?.fullName || formData.purchaser || 'Nuevo Cliente';
           const email = formData.aplicante?.email || formData.buyerEmail || '';
           const phone = formData.aplicante?.telefono || formData.aplicante?.phone || formData.buyerPhone || '';
@@ -94,18 +96,22 @@ window.addEventListener('message', async (e) => {
           window._lastAutoCreateTime = now;
 
           const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
-          // pipelineName defaults to "Renew Water" since it's the RENEW WATER form
-          const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: 'Renew Water' });
+          // pipelineName defaults to "Renew Water" if Work Order, null if Credit App (just Prospect)
+          const pipelineToCreate = isWorkOrder ? 'Renew Water' : null;
+          const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: pipelineToCreate });
           
           if (newProyRes && newProyRes.id) {
               proyectoId = newProyRes.id;
+              targetClientId = newProyRes.cliente_id;
               console.log('[APP] Auto-created project ID:', proyectoId);
+          } else if (newProyRes && newProyRes.cliente_id) {
+              targetClientId = newProyRes.cliente_id;
+              console.log('[APP] Auto-created Prospecto ID:', targetClientId);
           } else {
-              throw new Error("No se pudo auto-crear el proyecto para el nuevo cliente.");
+              throw new Error("No se pudo auto-crear el registro para el nuevo cliente.");
           }
       } else if (!proyectoId) {
         console.warn('[APP] No proyectoId in message, skipping advancement.');
-        return;
       }
 
       const rawPayload = formData || {};
@@ -134,13 +140,11 @@ window.addEventListener('message', async (e) => {
       }
 
       // Auto-satisfy the dynamic field requirement for this phase so it can advance
-      const isWorkOrder = (e.data.type === 'WORK_ORDER_SUBMITTED');
-      
       // Find the project in the local database
-      let project = (db.Proyectos_Dinamicos || []).find(p => p.id === proyectoId);
+      let project = proyectoId ? (db.Proyectos_Dinamicos || []).find(p => p.id === proyectoId) : null;
       
       // Fallback: search for normalized ID if not found directly
-      if (!project) {
+      if (!project && proyectoId) {
           const normalized = String(proyectoId).toLowerCase().replace('renew-', '').replace(/-/g, '_');
           project = (db.Proyectos_Dinamicos || []).find(p => p.id === normalized || p.id === `proy_${normalized}`);
           if (project) {
@@ -149,7 +153,7 @@ window.addEventListener('message', async (e) => {
           }
       }
 
-      if (!project) {
+      if (!project && proyectoId) {
           console.warn(`[APP] Project ${proyectoId} not found in local DB. Advancement might fail.`);
       }
 
@@ -158,32 +162,34 @@ window.addEventListener('message', async (e) => {
         c.fase_id === project?.fase_id
       );
       
-      if (dynamicField) {
+      if (dynamicField && project) {
         console.log(`[APP] Mapping form to field: ${dynamicField.id} (${dynamicField.etiqueta})`);
         flatResp[dynamicField.id] = 'Completado';
       }
 
       // ── NEW: Update local Client Profile metadata immediately ──
-      if (project && e.data.pdfUrl) {
-          const client = db.Clientes_Maestro?.find(c => c.id === project.cliente_id);
+      if (targetClientId && pdfUrl) {
+          const client = db.Clientes_Maestro?.find(c => c.id === targetClientId);
           const { saveGranular: sgLocal } = await import('./api.js');
           
           if (client) {
               console.log(`[APP] Syncing PDF URL to local client: ${client.id}`);
               if (!client.adjuntos_oficina || Array.isArray(client.adjuntos_oficina)) client.adjuntos_oficina = {};
               if (isWorkOrder) {
-                  client.adjuntos_oficina.orden_trabajo_url = e.data.pdfUrl;
+                  client.adjuntos_oficina.orden_trabajo_url = pdfUrl;
                   client.adjuntos_oficina.ultima_orden_fecha = new Date().toISOString();
               } else {
-                  client.adjuntos_oficina.app_url = e.data.pdfUrl;
+                  client.adjuntos_oficina.app_url = pdfUrl;
                   client.adjuntos_oficina.ultima_credit_fecha = new Date().toISOString();
+                  client.credit_app_url = pdfUrl;
               }
               await sgLocal('clientes_maestro', [client]);
           }
           
-          console.log(`[APP] Syncing PDF URL to local project: ${project.id}`);
-          // removed non-existent url assignments
-          await sgLocal('proyectos_dinamicos', [project]);
+          if (project) {
+              console.log(`[APP] Syncing PDF URL to local project: ${project.id}`);
+              await sgLocal('proyectos_dinamicos', [project]);
+          }
       }
 
       // Log activity in Kanban
@@ -206,9 +212,14 @@ window.addEventListener('message', async (e) => {
         }
       }
 
-      console.log(`[APP] Advancing phase for project: ${proyectoId}...`);
-      const res = await advanceDealPhase(proyectoId, flatResp, advOptions);
-      console.log('[APP] Advance result:', res);
+      let res = { didAdvance: false };
+      if (project) {
+          console.log(`[APP] Advancing phase for project: ${proyectoId}...`);
+          res = await advanceDealPhase(proyectoId, flatResp, advOptions);
+          console.log('[APP] Advance result:', res);
+      } else {
+          console.log(`[APP] No project for this submission. Saved as Prospecto.`);
+      }
 
       // ── WORK ORDER: persist schedule on project for later reference ───────
       if (isWorkOrder && project && rawPayload?.instalacion) {
