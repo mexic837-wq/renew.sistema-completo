@@ -178,6 +178,10 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </div>`;
   }).join('');
 
+  const isWater = (pipeline.nombre || '').toLowerCase().includes('water');
+  const hideUndo = isWater && (curFidx >= 4 || curFidx === -1);
+  const showUndoBtn = (isAdmin || (isResponsable && curFidx === 0)) && !hideUndo;
+
   screen.innerHTML = `
     <div class="screen-header slide-in-left" style="background:${pipeline.color}; border:none">
       <button class="back-btn" id="pd-back-btn2" style="color:#fff; background:rgba(255,255,255,0.2)">
@@ -185,7 +189,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       </button>
       <h2 style="color:white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${deal.nombre_cliente}</h2>
       <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
-        ${(isAdmin || (isResponsable && curFidx === 0)) ? `
+        ${showUndoBtn ? `
          <button id="pd-undo-project-btn" style="background:rgba(255,0,0,0.2); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display:flex; align-items:center; gap:6px; transition:all 0.2s;" title="Regresar a Prospecto (Descartar Proyecto)" onmouseover="this.style.background='rgba(239,68,68,0.9)'; this.style.borderColor='rgba(239,68,68,1)'" onmouseout="this.style.background='rgba(255,0,0,0.2)'; this.style.borderColor='rgba(255,255,255,0.3)'">
             <i class="fas fa-undo"></i> <span class="hide-mobile">Descartar</span>
          </button>
