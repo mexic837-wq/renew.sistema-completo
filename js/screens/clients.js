@@ -266,6 +266,7 @@ async function _renderList(user, container) {
   const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const isHighRole = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRolNorm);
   const isCallCenterRole = userRolNorm.includes('call');
+  const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
 
   // Pre-map projects by client to fix O(N*M) performance issue
   const projectsByClient = new Map();
