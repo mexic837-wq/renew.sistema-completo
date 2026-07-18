@@ -631,7 +631,7 @@ function renderCreditClientSearchResults(results) {
       <span style="font-size: 11px; color: #64748b;">${client.telefono || 'Sin teléfono'} - ${client.email || 'Sin email'}</span>
     `;
     div.onclick = () => {
-      setCreditClient(client.id, client.nombre);
+      setCreditClient(client);
       container.style.display = 'none';
       document.getElementById('credit-client-search-input').value = '';
     };
@@ -641,7 +641,10 @@ function renderCreditClientSearchResults(results) {
   container.style.display = 'block';
 }
 
-function setCreditClient(id, nombre) {
+function setCreditClient(client) {
+  const id = client.id;
+  const nombre = client.nombre;
+  
   document.getElementById('selected_client_id').value = id;
   document.getElementById('selected_client_nombre').value = nombre;
   document.getElementById('credit-client-selected-name').textContent = nombre;
@@ -654,10 +657,37 @@ function setCreditClient(id, nombre) {
     formEl.style.opacity = '1';
     formEl.style.pointerEvents = 'auto';
   }
+  
+  if (id !== 'NEW') {
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val) {
+          el.value = val;
+          el.dispatchEvent(new Event('input'));
+        }
+      };
+      
+      setVal('ca_fullname', client.nombre);
+      setVal('ca_email',    client.email);
+      setVal('ca_phone',    client.telefono);
+      setVal('ca_address',  client.direccion);
+      if (client.state_id) setVal('ca_dl_state', client.state_id);
+      
+      if (client.dob) {
+          let dob = client.dob;
+          if (dob.includes('-')) {
+              const [y, m, d] = dob.split('-');
+              dob = `${m}/${d}/${y}`;
+          }
+          setVal('ca_dob', dob);
+      }
+      
+      if (typeof updateProgressBar === 'function') updateProgressBar();
+  }
 }
 
 window.setNewCreditClient = function() {
-  setCreditClient('NEW', 'Nuevo Cliente (se creará automáticamente)');
+  setCreditClient({ id: 'NEW', nombre: 'Nuevo Cliente (se creará automáticamente)' });
 };
 
 function resetCreditClientSelection() {
