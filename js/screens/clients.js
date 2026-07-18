@@ -351,13 +351,65 @@ async function _renderList(user, container) {
   });
 
 
+  // Search filtering applied FIRST so counts reflect search
+  const searchInput = document.getElementById('clients-app-search');
+  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  let baseClientes = misClientes;
+  if (searchQuery) {
+      baseClientes = baseClientes.filter(c => (c.nombre || '').toLowerCase().includes(searchQuery));
+  }
+
+  // --- NEW: Calculate and update tab counters ---
+  let countProspectos = 0;
+  let countClientes = 0;
+
+  baseClientes.forEach(c => {
+      const clientProjects = projectsByClient.get(c.id) || [];
+      if (isTecnico) {
+        const hasOpenProject = clientProjects.some(p => {
+          const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+          return !isTerminal;
+        });
+        const hasClosedProject = clientProjects.some(p => {
+          const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
+          return isTerminal;
+        });
+        if (hasOpenProject || clientProjects.length === 0) countProspectos++;
+        if (hasClosedProject) countClientes++;
+      } else if (isCallCenterRole) {
+        countProspectos++;
+      } else {
+        if (activePipelineObj) {
+          const hasProjectInPipeline = clientProjects.some(p => String(p.pipeline_id) === String(activePipelineObj.id));
+          if (!hasProjectInPipeline) countProspectos++;
+          else countClientes++;
+        } else {
+          if (clientProjects.length === 0) countProspectos++;
+          else countClientes++;
+        }
+      }
+  });
+
+  const btnPros = document.querySelector('[data-clients-tab="prospectos"]');
+  const btnCli = document.querySelector('[data-clients-tab="clientes"]');
+  if (btnPros) {
+      if (isTecnico) btnPros.innerHTML = (t('clients_tab_prospects_tech') || 'Nuevas Citas') + ` <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
+      else if (isCallCenterRole) btnPros.innerHTML = `Leads Pendientes <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
+      else btnPros.innerHTML = `Mis Prospectos <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
+  }
+  if (btnCli) {
+      if (isTecnico) btnCli.innerHTML = (t('clients_tab_clients_tech') || 'Citas Cerradas') + ` <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
+      else if (isCallCenterRole) btnCli.innerHTML = `Mis Llamadas <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
+      else btnCli.innerHTML = `Mis Clientes <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
+  }
+  // ---------------------------------------------
+
   // Filter by tab (or merge for technician/call center)
-  const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
   let filtered = [];
 
   if (isTecnico) {
     // Show everything assigned to them, but filter by tab (Nuevas Citas vs Citas Cerradas)
-    filtered = misClientes.filter(c => {
+    filtered = baseClientes.filter(c => {
       const clientProjects = projectsByClient.get(c.id) || [];
       const hasOpenProject = clientProjects.some(p => {
         const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
@@ -375,10 +427,10 @@ async function _renderList(user, container) {
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else if (isCallCenterRole) {
     // CC sees only clients whose project is in their phase — already filtered above
-    filtered = misClientes;
+    filtered = baseClientes;
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else {
-    filtered = misClientes.filter(c => {
+    filtered = baseClientes.filter(c => {
       const clientProjects = projectsByClient.get(c.id) || [];
       if (currentClientsTab === 'prospectos') {
         // A prospect = has NO active project in the selected pipeline.
@@ -399,13 +451,6 @@ async function _renderList(user, container) {
       const hasProject = clientProjects.some(p => (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
       return hasProject;
     });
-  }
-
-  const searchInput = document.getElementById('clients-app-search');
-  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
-  if (searchQuery) {
-    filtered = filtered.filter(c => (c.nombre || '').toLowerCase().includes(searchQuery));
   }
 
   console.log('Rendering list for technician:', isTecnico, 'Found:', filtered.length, 'records');
