@@ -72,7 +72,7 @@ export function renderAcademy() {
         while (currentId) {
             if (currentId.startsWith('cat_')) {
                 const cat = currentId.replace('cat_', '');
-                const catNames = { video: 'Videos', pdf: 'Documentos', banco: 'Banco de Información', faq: 'Soporte y FAQ', equipo: 'Equipo' };
+                const catNames = { video: 'Videos', pdf: 'Entrenamiento', banco: 'Banco de Información', faq: 'Soporte y FAQ', equipo: 'Equipo' };
                 path.unshift({ id: currentId, titulo: catNames[cat] || cat.toUpperCase() });
                 currentId = null;
             } else {
@@ -997,7 +997,7 @@ export function renderAcademy() {
              const upperId = currentFolder ? currentFolder.parent_id : null;
              
              if (upperId && upperId.startsWith('cat_')) {
-                 const catNames = { video: 'Videos', pdf: 'Documentos', banco: 'Banco de Información', faq: 'Soporte y FAQ', equipo: 'Equipo' };
+                 const catNames = { video: 'Videos', pdf: 'Entrenamiento', banco: 'Banco de Información', faq: 'Soporte y FAQ', equipo: 'Equipo' };
                  const rawCat = upperId.replace('cat_', '');
                  if (tituloSub) tituloSub.innerText = catNames[rawCat] || rawCat.toUpperCase();
                  renderRecursosFinales(catKey, null);

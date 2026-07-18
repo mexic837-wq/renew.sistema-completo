@@ -4848,7 +4848,7 @@ window.renderView = async function renderView() {
                <label class="aqua-label">SECCIÓN DE DESTINO (OBLIGATORIO PARA NOTAS EN INICIO)</label>
                <select id="aca-categoria" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none">
                   <option value="cat_video">Videos</option>
-                  <option value="cat_pdf">Documentos</option>
+                  <option value="cat_pdf">Entrenamiento</option>
                   <option value="cat_banco">Banco Financieras</option>
                   <option value="cat_faq">Soporte y FAQ</option>
                   <option value="cat_equipo">Detalles de equipo</option>
@@ -4903,7 +4903,7 @@ window.renderView = async function renderView() {
                   <select id="admin-aca-filter" class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 py-2 px-3 focus:border-tealAccent focus:outline-none focus:ring-0 appearance-none cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10 transition-colors" onchange="window.adminAcaFilter = document.getElementById('admin-aca-filter').value; window.renderView()">
                     <option value="all" ${window.adminAcaFilter === 'all' ? 'selected' : ''}>Todas las secciones</option>
                     <option value="cat_video" ${window.adminAcaFilter === 'cat_video' ? 'selected' : ''}>Videos</option>
-                    <option value="cat_pdf" ${window.adminAcaFilter === 'cat_pdf' ? 'selected' : ''}>Documentos</option>
+                    <option value="cat_pdf" ${window.adminAcaFilter === 'cat_pdf' ? 'selected' : ''}>Entrenamiento</option>
                     <option value="cat_banco" ${window.adminAcaFilter === 'cat_banco' ? 'selected' : ''}>Banco Financieras</option>
                     <option value="cat_faq" ${window.adminAcaFilter === 'cat_faq' ? 'selected' : ''}>Soporte y FAQ</option>
                     <option value="cat_equipo" ${window.adminAcaFilter === 'cat_equipo' ? 'selected' : ''}>Detalles de equipo</option>
