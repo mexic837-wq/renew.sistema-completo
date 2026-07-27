@@ -1038,8 +1038,32 @@ function _showProspectoModal(client, user, db) {
         confirmButtonText: 'Confirmar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#ef4444',
-        background: 'var(--surface-alt)',
-        color: 'var(--text-primary)'
+        cancelButtonColor: 'var(--surface-alt)',
+        background: '#1e293b',
+        color: '#f8fafc',
+        customClass: {
+          popup: 'rounded-[24px] border border-[rgba(255,255,255,0.1)] shadow-2xl',
+          title: 'font-outfit font-bold text-xl',
+          confirmButton: 'rounded-xl font-inter font-bold px-5 py-2.5',
+          cancelButton: 'rounded-xl font-inter font-bold px-5 py-2.5 text-white',
+        },
+        didOpen: () => {
+          const swalContainer = document.querySelector('.swal2-container');
+          if (swalContainer) swalContainer.style.zIndex = '20000';
+          
+          const input = Swal.getInput();
+          if (input) {
+            input.style.backgroundColor = 'rgba(15,23,42,0.5)';
+            input.style.border = '1px solid rgba(255,255,255,0.1)';
+            input.style.borderRadius = '12px';
+            input.style.color = '#f1f5f9';
+            input.style.padding = '16px';
+            input.style.fontFamily = 'Inter, sans-serif';
+            input.style.fontSize = '0.9rem';
+            input.style.outline = 'none';
+            input.style.boxShadow = 'none';
+          }
+        }
       });
 
       if (motivo) {
@@ -1074,8 +1098,19 @@ function _showProspectoModal(client, user, db) {
         confirmButtonText: 'Sí, revertir',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#10b981',
-        background: 'var(--surface-alt)',
-        color: 'var(--text-primary)'
+        cancelButtonColor: 'var(--surface-alt)',
+        background: '#1e293b',
+        color: '#f8fafc',
+        customClass: {
+          popup: 'rounded-[24px] border border-[rgba(255,255,255,0.1)] shadow-2xl',
+          title: 'font-outfit font-bold text-xl',
+          confirmButton: 'rounded-xl font-inter font-bold px-5 py-2.5 text-slate-900',
+          cancelButton: 'rounded-xl font-inter font-bold px-5 py-2.5 text-white',
+        },
+        didOpen: () => {
+          const swalContainer = document.querySelector('.swal2-container');
+          if (swalContainer) swalContainer.style.zIndex = '20000';
+        }
       });
 
       if (result.isConfirmed) {
