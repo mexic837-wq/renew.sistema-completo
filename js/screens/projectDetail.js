@@ -187,6 +187,17 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   if (linkedCliente?.archivos) allGlobalFiles = allGlobalFiles.concat(linkedCliente.archivos);
   if (deal.archivos) allGlobalFiles = allGlobalFiles.concat(deal.archivos);
   
+  const addSysFiles = (obj) => {
+      if (!obj || !obj.adjuntos_oficina) return;
+      if (obj.adjuntos_oficina.orden_trabajo_url) allGlobalFiles.push({ url: obj.adjuntos_oficina.orden_trabajo_url, name: 'Orden de Trabajo', type: 'application/pdf' });
+      if (obj.adjuntos_oficina.contrato_url) allGlobalFiles.push({ url: obj.adjuntos_oficina.contrato_url, name: 'Contrato Firmado', type: 'application/pdf' });
+      if (obj.adjuntos_oficina.app_url) allGlobalFiles.push({ url: obj.adjuntos_oficina.app_url, name: 'Hoja de Aplicación', type: 'application/pdf' });
+      const rUrl = obj.adjuntos_oficina.recibo_url || obj.adjuntos_oficina.recibo_vendedor_url || obj.adjuntos_oficina.recibo_tecnico_url;
+      if (rUrl) allGlobalFiles.push({ url: rUrl, name: 'Recibo de Pago', type: 'application/pdf' });
+  };
+  addSysFiles(linkedCliente);
+  addSysFiles(deal);
+  
   if (allGlobalFiles.length > 0) {
       globalFilesHtml = `
       <div class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
