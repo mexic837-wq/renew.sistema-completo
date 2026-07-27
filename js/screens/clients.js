@@ -941,10 +941,29 @@ function _showProspectoModal(client, user, db) {
       </div>
 
       <!-- Footer Buttons -->
-      <div style="margin:24px 24px;padding-top:16px;border-top:1px dashed var(--border);display:flex;gap:12px;flex-shrink:0;">
-         <button id="btn-create-project" style="flex:1;background:var(--primary);color:#0f172a;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 8px 16px rgba(0,245,212,0.2);">
-           <i class="fa-solid fa-bolt"></i> Crear Proyecto
-         </button>
+      <div style="margin:24px 24px;padding-top:16px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:12px;flex-shrink:0;">
+        ${client.macro_estado === 'Declinado' 
+          ? `
+             <div style="background:rgba(239,68,68,0.1); border-left:3px solid #ef4444; padding:12px; border-radius:8px; margin-bottom:4px;">
+               <p style="font-size:0.75rem; color:#ef4444; font-weight:800; margin:0 0 4px 0; text-transform:uppercase;">Motivo de declinación</p>
+               <p style="font-size:0.85rem; color:var(--text-secondary); margin:0;">${client.motivo_declinado || 'Sin motivo especificado'}</p>
+             </div>
+             <button id="btn-revert-prospect" style="width:100%;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
+               <i class="fa-solid fa-rotate-left"></i> Revertir a Prospecto
+             </button>
+             <button id="btn-create-project" style="width:100%;background:var(--primary);color:#0f172a;border:none;border-radius:12px;padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 8px 16px rgba(0,245,212,0.2);">
+               <i class="fa-solid fa-bolt"></i> Crear Proyecto (Aún declinado)
+             </button>
+            ` 
+          : `
+             <button id="btn-create-project" style="width:100%;background:var(--primary);color:#0f172a;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 8px 16px rgba(0,245,212,0.2);">
+               <i class="fa-solid fa-bolt"></i> Crear Proyecto
+             </button>
+             <button id="btn-decline-prospect" style="width:100%;background:rgba(239,68,68,0.1);color:#ef4444;border:none;border-radius:12px;padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
+               <i class="fa-solid fa-ban"></i> Declinar Prospecto
+             </button>
+            `
+        }
       </div>
     </div>
   `;
@@ -1003,6 +1022,82 @@ function _showProspectoModal(client, user, db) {
     modal.remove();
     _showPipelineSelector(client, user);
   });
+
+  const btnDecline = modal.querySelector('#btn-decline-prospect');
+  if (btnDecline) {
+    btnDecline.addEventListener('click', async () => {
+      const { value: motivo } = await Swal.fire({
+        title: 'Declinar Prospecto',
+        input: 'textarea',
+        inputLabel: '¿Cuál es el motivo?',
+        inputPlaceholder: 'Escribe el motivo aquí...',
+        inputAttributes: {
+          'aria-label': 'Escribe el motivo aquí'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Confirmar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ef4444',
+        background: 'var(--surface-alt)',
+        color: 'var(--text-primary)'
+      });
+
+      if (motivo) {
+        modal.remove();
+        try {
+          const { updateClientMaestro } = await import('../api.js');
+          await updateClientMaestro(client.id, { 
+            macro_estado: 'Declinado', 
+            motivo_declinado: motivo 
+          });
+          import('../components/toast.js').then(m => m.showToast('Prospecto declinado', 'success'));
+          // Reload view
+          const container = document.getElementById('lista-clientes-movil');
+          if (container) {
+             _renderList(user, container);
+          }
+        } catch(e) {
+          import('../components/toast.js').then(m => m.showToast('Error al declinar: ' + e.message, 'error'));
+        }
+      }
+    });
+  }
+
+  const btnRevert = modal.querySelector('#btn-revert-prospect');
+  if (btnRevert) {
+    btnRevert.addEventListener('click', async () => {
+      const result = await Swal.fire({
+        title: 'Revertir a Prospecto',
+        text: 'El prospecto volverá a su estado normal.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, revertir',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#10b981',
+        background: 'var(--surface-alt)',
+        color: 'var(--text-primary)'
+      });
+
+      if (result.isConfirmed) {
+        modal.remove();
+        try {
+          const { updateClientMaestro } = await import('../api.js');
+          await updateClientMaestro(client.id, { 
+            macro_estado: 'Prospecto', 
+            motivo_declinado: null 
+          });
+          import('../components/toast.js').then(m => m.showToast('Revertido con éxito', 'success'));
+          // Reload view
+          const container = document.getElementById('lista-clientes-movil');
+          if (container) {
+             _renderList(user, container);
+          }
+        } catch(e) {
+          import('../components/toast.js').then(m => m.showToast('Error al revertir: ' + e.message, 'error'));
+        }
+      }
+    });
+  }
 
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.getElementById('btn-prospecto-close').addEventListener('click', () => modal.remove());
