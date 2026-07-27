@@ -948,11 +948,8 @@ function _showProspectoModal(client, user, db) {
                <p style="font-size:0.75rem; color:#ef4444; font-weight:800; margin:0 0 4px 0; text-transform:uppercase;">Motivo de declinación</p>
                <p style="font-size:0.85rem; color:var(--text-secondary); margin:0;">${client.motivo_declinado || 'Sin motivo especificado'}</p>
              </div>
-             <button id="btn-revert-prospect" style="width:100%;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
+             <button id="btn-revert-prospect" style="width:100%;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:1rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
                <i class="fa-solid fa-rotate-left"></i> Revertir a Prospecto
-             </button>
-             <button id="btn-create-project" style="width:100%;background:var(--primary);color:#0f172a;border:none;border-radius:12px;padding:14px;font-size:0.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 8px 16px rgba(0,245,212,0.2);">
-               <i class="fa-solid fa-bolt"></i> Crear Proyecto (Aún declinado)
              </button>
             ` 
           : `
