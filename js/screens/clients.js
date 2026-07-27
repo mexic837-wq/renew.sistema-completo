@@ -156,7 +156,12 @@ export async function renderClients() {
         if (tabKey === 'kanban') {
           btn.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>Vista Kanban';
           btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
-        } else btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
+        } else if (tabKey === 'declinados') {
+          btn.textContent = 'Declinados';
+          btn.style.color = '#ef4444';
+        } else {
+          btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
+        }
       }
 
       // Remove old listeners by cloning
@@ -363,8 +368,14 @@ async function _renderList(user, container) {
   // --- NEW: Calculate and update tab counters ---
   let countProspectos = 0;
   let countClientes = 0;
+  let countDeclinados = 0;
 
   baseClientes.forEach(c => {
+      if (c.macro_estado === 'Declinado') {
+          countDeclinados++;
+          return;
+      }
+      
       const clientProjects = projectsByClient.get(c.id) || [];
       if (isTecnico) {
         const hasOpenProject = clientProjects.some(p => {
@@ -393,6 +404,8 @@ async function _renderList(user, container) {
 
   const btnPros = document.querySelector('[data-clients-tab="prospectos"]');
   const btnCli = document.querySelector('[data-clients-tab="clientes"]');
+  const btnDec = document.querySelector('[data-clients-tab="declinados"]');
+  
   if (btnPros) {
       if (isTecnico) btnPros.innerHTML = (t('clients_tab_prospects_tech') || 'Nuevas Citas') + ` <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
       else if (isCallCenterRole) btnPros.innerHTML = `Leads Pendientes <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
@@ -403,14 +416,19 @@ async function _renderList(user, container) {
       else if (isCallCenterRole) btnCli.innerHTML = `Mis Llamadas <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
       else btnCli.innerHTML = `Mis Clientes <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
   }
+  if (btnDec) {
+      btnDec.innerHTML = `Declinados <span style="font-size:0.8em;opacity:0.8">(${countDeclinados})</span>`;
+  }
   // ---------------------------------------------
 
   // Filter by tab (or merge for technician/call center)
   let filtered = [];
 
   if (isTecnico) {
-    // Show everything assigned to them, but filter by tab (Nuevas Citas vs Citas Cerradas)
     filtered = baseClientes.filter(c => {
+      if (currentClientsTab === 'declinados') return c.macro_estado === 'Declinado';
+      if (currentClientsTab !== 'kanban' && c.macro_estado === 'Declinado') return false;
+      
       const clientProjects = projectsByClient.get(c.id) || [];
       const hasOpenProject = clientProjects.some(p => {
         const isTerminal = p.estado === 'Completado' || p.fase_id === 'Completado' || p.fase_id === null;
@@ -424,31 +442,31 @@ async function _renderList(user, container) {
       if (currentClientsTab === 'prospectos') return hasOpenProject || clientProjects.length === 0;
       return hasClosedProject;
     });
-    // Sort by date (newest first)
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else if (isCallCenterRole) {
-    // CC sees only clients whose project is in their phase — already filtered above
-    filtered = baseClientes;
+    filtered = baseClientes.filter(c => {
+        if (currentClientsTab === 'declinados') return c.macro_estado === 'Declinado';
+        if (currentClientsTab !== 'kanban' && c.macro_estado === 'Declinado') return false;
+        return true;
+    });
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else {
     filtered = baseClientes.filter(c => {
+      if (currentClientsTab === 'declinados') return c.macro_estado === 'Declinado';
+      if (currentClientsTab !== 'kanban' && c.macro_estado === 'Declinado') return false;
+
       const clientProjects = projectsByClient.get(c.id) || [];
       if (currentClientsTab === 'prospectos') {
-        // A prospect = has NO active project in the selected pipeline.
-        // If a pipeline filter is active, check specifically for that pipeline.
-        // If no filter (Todos), check for any project at all.
         if (activePipelineObj) {
           const hasProjectInPipeline = clientProjects.some(p => String(p.pipeline_id) === String(activePipelineObj.id));
           return !hasProjectInPipeline;
         } else {
-          // Todos: show only clients with no projects at all
           return clientProjects.length === 0;
         }
       } else if (currentClientsTab === 'kanban') {
         return true;
       }
       
-      // Mis Clientes tab: has at least one project in the selected pipeline (or any if Todos)
       const hasProject = clientProjects.some(p => (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
       return hasProject;
     });
@@ -2388,10 +2406,14 @@ function _renderKanban(user, container, filteredClients, db) {
                     if (window.appNavigate) window.appNavigate('detail', projectId);
                     else window.location.hash = '#detail/' + projectId;
                 } else {
-                    // No project yet — open pipeline selector if possible
+                    // No project yet — check status
                     const client = filteredClients.find(c => c.id === clientId);
-                    if (client && typeof _showPipelineSelector === 'function') {
-                        _showPipelineSelector(client, user);
+                    if (client) {
+                        if (client.macro_estado === 'Declinado') {
+                            if (typeof _showClientDetails === 'function') _showClientDetails(client, user);
+                        } else if (typeof _showPipelineSelector === 'function') {
+                            _showPipelineSelector(client, user);
+                        }
                     }
                 }
             });
