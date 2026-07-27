@@ -362,9 +362,6 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
 
       <!-- Right Column -->
       <div style="flex: 1; min-width: 320px; display:flex; flex-direction:column; gap:24px;">
-        <!-- Archivos Globales -->
-        ${globalFilesHtml}
-
         <!-- Chat del Proyecto -->
         <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: calc(100vh - 200px); min-height: 400px; max-height: 650px;">
           <!-- Header -->
@@ -398,6 +395,9 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
             </div>
           </div>
         </div>
+        
+        <!-- Archivos Globales -->
+        ${globalFilesHtml}
       </div>
     </div>
   `;
