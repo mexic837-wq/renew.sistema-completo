@@ -95,6 +95,9 @@ window.addEventListener('message', async (e) => {
           }
           window._lastAutoCreateTime = now;
 
+          const businessSelection = formData.ca_business_section || formData.wo_business_section || 'Renew Water';
+          const resolvedDept = businessSelection === 'Home Improvment' ? 'Renew Home' : 'Renew Water';
+
           const newCliObj = { 
               nombre, 
               email, 
@@ -102,10 +105,10 @@ window.addEventListener('message', async (e) => {
               direccion: address, 
               dob, 
               state_id,
-              departamentos_activos: ['Renew Water']
+              departamentos_activos: [resolvedDept]
           };
-          // pipelineName defaults to "Renew Water" if Work Order, null if Credit App (just Prospect)
-          const pipelineToCreate = isWorkOrder ? 'Renew Water' : null;
+          // pipelineName defaults to resolvedDept if Work Order, null if Credit App (just Prospect)
+          const pipelineToCreate = isWorkOrder ? resolvedDept : null;
           const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: pipelineToCreate });
           
           if (newProyRes && newProyRes.id) {
