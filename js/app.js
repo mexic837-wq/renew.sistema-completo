@@ -95,7 +95,15 @@ window.addEventListener('message', async (e) => {
           }
           window._lastAutoCreateTime = now;
 
-          const newCliObj = { nombre, email, telefono: phone, direccion: address, dob, state_id };
+          const newCliObj = { 
+              nombre, 
+              email, 
+              telefono: phone, 
+              direccion: address, 
+              dob, 
+              state_id,
+              departamentos_activos: ['Renew Water']
+          };
           // pipelineName defaults to "Renew Water" if Work Order, null if Credit App (just Prospect)
           const pipelineToCreate = isWorkOrder ? 'Renew Water' : null;
           const newProyRes = await createDynamicDeal({ cliente: newCliObj, respuestas: {}, pipelineName: pipelineToCreate });
