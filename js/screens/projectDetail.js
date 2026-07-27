@@ -182,6 +182,32 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   const hideUndo = isWater && (curFidx >= 4 || curFidx === -1);
   const showUndoBtn = (isAdmin || (isResponsable && curFidx === 0)) && !hideUndo;
 
+  let globalFilesHtml = '';
+  let allGlobalFiles = [];
+  if (linkedCliente?.archivos) allGlobalFiles = allGlobalFiles.concat(linkedCliente.archivos);
+  if (deal.archivos) allGlobalFiles = allGlobalFiles.concat(deal.archivos);
+  
+  if (allGlobalFiles.length > 0) {
+      globalFilesHtml = `
+      <div class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
+        <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
+            <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin:0; font-weight:700; letter-spacing:0.5px;">Archivos Globales</h3>
+        </div>
+        <div style="padding:20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px; background:var(--bg);">
+            ` + allGlobalFiles.map(file => {
+                const isPdf = file.url.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+                const icon = isPdf ? 'fa-file-pdf' : 'fa-image';
+                const color = isPdf ? '#ef4444' : '#3b82f6';
+                return '<a href="' + file.url + '" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.borderColor=\'' + color + '\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+                    '<i class="fa-solid ' + icon + '" style="font-size:1.5rem; color:' + color + '; margin-bottom:8px;"></i>' +
+                    '<span style="font-size:0.65rem; color:var(--text-primary); font-weight:700; text-align:center; word-break:break-word; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + file.name + '">' + file.name + '</span>' +
+                '</a>';
+            }).join('') + `
+        </div>
+      </div>
+      `;
+  }
+
   screen.innerHTML = `
     <div class="screen-header slide-in-left" style="background:${pipeline.color}; border:none">
       <button class="back-btn" id="pd-back-btn2" style="color:#fff; background:rgba(255,255,255,0.2)">
@@ -326,33 +352,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       <!-- Right Column -->
       <div style="flex: 1; min-width: 320px; display:flex; flex-direction:column; gap:24px;">
         <!-- Archivos Globales -->
-        ${(() => {
-            let allFiles = [];
-            if(linkedCliente?.archivos) allFiles = allFiles.concat(linkedCliente.archivos);
-            if(deal.archivos) allFiles = allFiles.concat(deal.archivos);
-            if(allFiles.length === 0) return '';
-            
-            return `
-            <div class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
-              <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--surface-alt);">
-                  <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); margin:0; font-weight:700; letter-spacing:0.5px;">Archivos Globales</h3>
-              </div>
-              <div style="padding:20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px; background:var(--bg);">
-                  ${allFiles.map(file => {
-                      const isPdf = file.url.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
-                      const icon = isPdf ? 'fa-file-pdf' : 'fa-image';
-                      const color = isPdf ? '#ef4444' : '#3b82f6';
-                      return `
-                      <a href="${file.url}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--border)'">
-                          <i class="fa-solid ${icon}" style="font-size:1.5rem; color:${color}; margin-bottom:8px;"></i>
-                          <span style="font-size:0.65rem; color:var(--text-primary); font-weight:700; text-align:center; word-break:break-word; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${file.name}">${file.name}</span>
-                      </a>
-                      `;
-                  }).join('')}
-              </div>
-            </div>
-            `;
-        })()}
+        ${globalFilesHtml}
 
         <!-- Chat del Proyecto -->
         <div id="project-chat-card" class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden; display:flex; flex-direction:column; height: calc(100vh - 200px); min-height: 400px; max-height: 650px;">
