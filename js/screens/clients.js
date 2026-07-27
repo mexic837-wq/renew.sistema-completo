@@ -158,7 +158,6 @@ export async function renderClients() {
           btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
         } else if (tabKey === 'declinados') {
           btn.textContent = 'Declinados';
-          btn.style.color = '#ef4444';
         } else {
           btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
         }
