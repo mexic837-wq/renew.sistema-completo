@@ -3175,9 +3175,9 @@ window.renderView = async function renderView() {
   if(sr) { sr.classList.add('opacity-0', 'pointer-events-none'); sr.classList.remove('opacity-100', 'pointer-events-auto'); }
 
   if (state.activeView === 'constructor') {
-    if (UI.viewTitle) UI.viewTitle.textContent = "Workflow Constructor";
-    if (UI.viewDesc) UI.viewDesc.textContent = "Engineer the phases and dynamic fields for the RENEW Ecosystem.";
-    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> New Pipeline');
+    if (UI.viewTitle) UI.viewTitle.textContent = "Constructor de Flujos";
+    if (UI.viewDesc) UI.viewDesc.textContent = "Diseña las fases y campos dinámicos para el Ecosistema RENEW.";
+    setGlobalButton(true, '<i class="fa-solid fa-plus"></i> Nuevo Pipeline');
     renderConstructor();
   } 
   else if (state.activeView === 'roles') {
@@ -7007,7 +7007,7 @@ function renderConstructor() {
                 ${c.etiqueta}
                 ${c.es_opcional ? '<span class="px-1.5 py-0.5 rounded text-[8px] bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Opcional</span>' : ''}
             </p>
-            <p class="text-[8.5px] uppercase font-black text-gray-400 dark:text-gray-600 mt-0.5">Input: <span class="text-tealAccent/80">${c.tipo}</span></p>
+            <p class="text-[8.5px] uppercase font-black text-gray-400 dark:text-gray-600 mt-0.5">Entrada: <span class="text-tealAccent/80">${c.tipo}</span></p>
           </div>
         </div>
         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
@@ -7031,7 +7031,7 @@ function renderConstructor() {
             <div class="flex flex-col gap-1 pointer-events-auto">
               <div class="flex items-center gap-2">
                   <i class="fa-solid fa-grip text-gray-300 dark:text-gray-700 group-hover:text-tealAccent transition-colors text-xs pointer-events-auto"></i>
-                  <span class="bg-tealAccent/10 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/20 font-black text-[8px] uppercase tracking-[0.2em] w-fit">STATION ${f.orden}</span>
+                  <span class="bg-tealAccent/10 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/20 font-black text-[8px] uppercase tracking-[0.2em] w-fit">ESTACIÓN ${f.orden}</span>
               </div>
               <h3 class="font-black text-gray-900 dark:text-white text-[1.1rem] leading-none tracking-tighter mt-1 flex items-center gap-2">
                 ${f.nombre}
@@ -7043,7 +7043,7 @@ function renderConstructor() {
             <div class="flex gap-2 relative z-20">
               <button class="btn-delete-fase text-gray-300 dark:text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2 cursor-pointer" 
                       onclick="adminDeleteFase('${f.id}', event)" 
-                      title="Delete Station" style="pointer-events: auto !important;">
+                      title="Eliminar Estación" style="pointer-events: auto !important;">
                 <i class="fa-solid fa-trash-can text-sm" style="pointer-events: none;"></i>
               </button>
             </div>
@@ -7087,13 +7087,13 @@ function renderConstructor() {
 
         <div class="px-6 py-2 flex-1">
           <div class="space-y-1 min-h-[80px]">
-            ${camposHtml || '<div class="text-center py-6 text-gray-400 dark:text-gray-700 text-[9px] font-black uppercase tracking-widest border-2 border-dashed border-gray-100 dark:border-white/5 rounded-xl opacity-50">Empty</div>'}
+            ${camposHtml || '<div class="text-center py-6 text-gray-400 dark:text-gray-700 text-[9px] font-black uppercase tracking-widest border-2 border-dashed border-gray-100 dark:border-white/5 rounded-xl opacity-50">Vacío</div>'}
           </div>
         </div>
 
         <div class="p-6 pt-2">
           <button class="btn-add-campo w-full py-3 bg-gray-50 dark:bg-white/5 hover:bg-tealAccent text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-black rounded-xl flex justify-center items-center gap-2 transition-all font-black text-[9px] uppercase tracking-[0.2em] border border-gray-100 dark:border-white/5" data-faseid="${f.id}" data-fasenom="${f.nombre}">
-            <i class="fa-solid fa-plus text-[10px]"></i> Connect Field
+            <i class="fa-solid fa-plus text-[10px]"></i> Conectar Campo
           </button>
         </div>
       </div>
@@ -7111,7 +7111,7 @@ function renderConstructor() {
       ${fasesHtml}
       <div class="shrink-0 pt-0 px-2 flex items-center justify-center">
         <button id="btn-add-fase" class="border flex-col border-dashed border-gray-200 dark:border-white/10 hover:border-tealAccent/40 text-gray-400 dark:text-gray-600 hover:text-tealAccent rounded-3xl min-w-[240px] h-[160px] flex items-center justify-center gap-3 transition-all shrink-0 font-black text-sm uppercase tracking-widest group bg-white dark:bg-white/[0.01]">
-          <i class="fa-solid fa-plus group-hover:scale-125 transition-transform text-xl"></i> New Stage
+          <i class="fa-solid fa-plus group-hover:scale-125 transition-transform text-xl"></i> Nueva Etapa
         </button>
       </div>
     </div>
