@@ -1015,10 +1015,13 @@ function _showProspectoModal(client, user, db) {
     }
   });
 
-  modal.querySelector('#btn-create-project').addEventListener('click', () => {
-    modal.remove();
-    _showPipelineSelector(client, user);
-  });
+  const btnCreateProject = modal.querySelector('#btn-create-project');
+  if (btnCreateProject) {
+    btnCreateProject.addEventListener('click', () => {
+      modal.remove();
+      _showPipelineSelector(client, user);
+    });
+  }
 
   const btnDecline = modal.querySelector('#btn-decline-prospect');
   if (btnDecline) {
