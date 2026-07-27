@@ -342,12 +342,12 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                       const isPdf = file.url.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
                       const icon = isPdf ? 'fa-file-pdf' : 'fa-image';
                       const color = isPdf ? '#ef4444' : '#3b82f6';
-                      return \`
-                      <a href="\${file.url}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.borderColor='\${color}'" onmouseout="this.style.borderColor='var(--border)'">
-                          <i class="fa-solid \${icon}" style="font-size:1.5rem; color:\${color}; margin-bottom:8px;"></i>
-                          <span style="font-size:0.65rem; color:var(--text-primary); font-weight:700; text-align:center; word-break:break-word; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="\${file.name}">\${file.name}</span>
+                      return `
+                      <a href="${file.url}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--border)'">
+                          <i class="fa-solid ${icon}" style="font-size:1.5rem; color:${color}; margin-bottom:8px;"></i>
+                          <span style="font-size:0.65rem; color:var(--text-primary); font-weight:700; text-align:center; word-break:break-word; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${file.name}">${file.name}</span>
                       </a>
-                      \`;
+                      `;
                   }).join('')}
               </div>
             </div>
