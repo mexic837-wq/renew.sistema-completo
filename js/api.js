@@ -183,19 +183,8 @@ function applyPostProcessing(freshDB) {
                     deleteRecords('admin_campos_formulario', idsToDelete).catch(() => {});
                 }
                 
-                // Convert Financiera to Text if it was injected as Dropdown previously
-                const financierasToUpdate = freshDB.Admin_Campos_Formulario.filter(c => c.fase_id === phase1.id && c.etiqueta.toLowerCase().includes('financiera') && c.tipo !== 'Texto');
-                if (financierasToUpdate.length > 0) {
-                    financierasToUpdate.forEach(f => {
-                        f.tipo = 'Texto';
-                        f.opciones = '';
-                    });
-                    if (window._canSaveAutoFields) {
-                        saveGranular('admin_campos_formulario', financierasToUpdate).catch(() => {});
-                    } else {
-                        setTimeout(() => { saveGranular('admin_campos_formulario', financierasToUpdate).catch(() => {}); }, 6000);
-                    }
-                }
+                // (Removed) Convert Financiera to Text if it was injected as Dropdown previously
+                // We now allow the user to change it to Desplegable and add options.
 
                 // Update Método de Pago options if they still have the old names
                 const metodoPagoFields = freshDB.Admin_Campos_Formulario.filter(c => c.fase_id === phase1.id && (c.etiqueta.toLowerCase().includes('pago') || c.etiqueta.toLowerCase().includes('cash')));
