@@ -946,6 +946,16 @@ function _showProspectoModal(client, user, db) {
           </div>
         </div>
         
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+             <i class="fa-solid fa-location-dot" style="color:#ef4444; font-size:1rem;"></i>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Dirección</p>
+            <input type="text" id="prospecto-direccion" value="${client.direccion || ''}" placeholder="Añadir dirección..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--text-primary);font-size:0.9rem;font-weight:600;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid #ef4444'" onblur="this.style.borderBottom='1px solid transparent'">
+          </div>
+        </div>
+        
       </div>
 
       <!-- Notas -->
@@ -987,12 +997,14 @@ function _showProspectoModal(client, user, db) {
   const notesEl = modal.querySelector('#prospecto-notes');
   const telEl = modal.querySelector('#prospecto-telefono');
   const emailEl = modal.querySelector('#prospecto-email');
+  const dirEl = modal.querySelector('#prospecto-direccion');
   const saveBtn = modal.querySelector('#btn-save-notes');
 
   const checkChanges = () => {
     if (notesEl.value !== (client.notas || '') || 
         telEl.value.trim() !== (client.telefono || '').trim() ||
-        emailEl.value.trim() !== (client.email || '').trim()) {
+        emailEl.value.trim() !== (client.email || '').trim() ||
+        dirEl.value.trim() !== (client.direccion || '').trim()) {
       saveBtn.style.display = 'block';
     } else {
       saveBtn.style.display = 'none';
@@ -1002,20 +1014,23 @@ function _showProspectoModal(client, user, db) {
   notesEl.addEventListener('input', checkChanges);
   telEl.addEventListener('input', checkChanges);
   emailEl.addEventListener('input', checkChanges);
+  dirEl.addEventListener('input', checkChanges);
 
   saveBtn.addEventListener('click', async () => {
     const newNotes = notesEl.value;
     const newTel = telEl.value.trim();
     const newEmail = emailEl.value.trim();
+    const newDir = dirEl.value.trim();
     
     const saveOriginalHtml = saveBtn.innerHTML;
     saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     try {
       const { saveGranular } = await import('../api.js');
-      await saveGranular('clientes_maestro', [{ ...client, notas: newNotes, telefono: newTel, email: newEmail }]);
+      await saveGranular('clientes_maestro', [{ ...client, notas: newNotes, telefono: newTel, email: newEmail, direccion: newDir }]);
       client.notas = newNotes; // Update locally
       client.telefono = newTel;
       client.email = newEmail;
+      client.direccion = newDir;
       saveBtn.innerHTML = '¡Guardado!';
       saveBtn.style.background = '#10b981'; // Green
       import('../components/toast.js').then(m => m.showToast('Datos guardados', 'success'));
