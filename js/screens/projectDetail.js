@@ -244,9 +244,65 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
           
           let btnText = 'Ver';
           if (isClickable) {
-              const phaseCampos = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === f.id);
-              const requiredCampos = phaseCampos.filter(c => !c.es_opcional);
-              const numRequiredFilled = respuestas.filter(r => requiredCampos.some(c => String(c.id) === String(r.campo_id)) && r.valor && r.valor !== "No subido" && r.valor !== "No provisto").length;
+              const rawPhaseCampos = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === f.id);
+              const phaseCampos = [];
+              const seenPhaseLabels = new Set();
+              for (const c of rawPhaseCampos) {
+                  const lbl = (c.etiqueta || '').toLowerCase().trim();
+                  if (!seenPhaseLabels.has(lbl)) {
+                      seenPhaseLabels.add(lbl);
+                      phaseCampos.push(c);
+                  }
+              }
+
+              // Determine local isCash / isZelleOrCheque for this phase
+              let isCashLocal = false;
+              let isZelleOrChequeLocal = false;
+              const mPagoField = phaseCampos.find(pc => pc.etiqueta.toLowerCase().includes('método de pago') || pc.etiqueta.toLowerCase().includes('metodo de pago'));
+              if (mPagoField) {
+                  const mResp = respuestas.find(r => r.campo_id === mPagoField.id);
+                  if (mResp && mResp.valor) {
+                      const vLow = mResp.valor.trim().toLowerCase();
+                      if (['cash', 'efectivo (cash)', 'zelle', 'cheque'].includes(vLow)) isCashLocal = true;
+                      if (['zelle', 'cheque'].includes(vLow)) isZelleOrChequeLocal = true;
+                  }
+              }
+
+              const requiredCampos = phaseCampos.filter(c => {
+                  if (c.es_opcional) return false;
+                  const lbl = (c.etiqueta || '').toLowerCase();
+                  if (isCashLocal && (lbl.includes('aprobación') || lbl.includes('aprobacion') || lbl.includes('financiera') || c.tipo === 'Aplicación de Crédito')) return false;
+                  if (lbl.includes('comprobante') && !isZelleOrChequeLocal) return false;
+                  return true;
+              });
+
+              // Check if they are filled (using the auto-affiliation logic for prospect templates fallback)
+              const dbClient = (db.Clientes_Maestro || []).find(client => String(client.id) === String(deal.cliente_id));
+              const cliMeta = dbClient?.adjuntos_oficina || {};
+              const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
+              const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
+
+              let numRequiredFilled = 0;
+              for (const c of requiredCampos) {
+                  const r = respuestas.find(resp => resp.campo_id === c.id);
+                  let val = r ? r.valor : '';
+                  if (!val || val === 'No subido' || val === 'No provisto') {
+                      const lbl = (c.etiqueta || '').toLowerCase();
+                      if (c.tipo === 'Aplicación de Crédito' || lbl.includes('aplicación') || lbl.includes('aplicacion') || lbl.includes('credit')) {
+                          if (cliMeta.app_url) val = cliMeta.app_url;
+                      } else if (c.tipo === 'Orden de Trabajo' || lbl.includes('orden de trabajo') || lbl.includes('pozo')) {
+                          if (cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url) val = cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url;
+                      } else if (c.tipo === 'Contrato' || lbl.includes('contrato')) {
+                          if (cliMeta.contrato_url || cliMeta[`contrato_${prefix}_url`]) val = cliMeta[`contrato_${prefix}_url`] || cliMeta.contrato_url;
+                      } else if (c.tipo?.includes('Recibo') || (lbl.includes('recibo') && !lbl.includes('comprobante'))) {
+                          if (cliMeta.recibo_url || cliMeta.recibo_vendedor_url || cliMeta.recibo_tecnico_url) val = cliMeta.recibo_url || cliMeta.recibo_vendedor_url || cliMeta.recibo_tecnico_url;
+                      }
+                  }
+                  if (val && val !== 'No subido' && val !== 'No provisto') {
+                      numRequiredFilled++;
+                  }
+              }
+
               if (requiredCampos.length > 0 && numRequiredFilled < requiredCampos.length) {
                   btnText = 'Pending';
               }
@@ -2145,7 +2201,16 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
     const pipelines = await getAdminPipelines();
     const pipeline = pipelines.find(p => p.id === deal.pipeline_id) || { color: '#00f5d4' };
     const allCampos = await getAdminCampos();
-    const campos = allCampos.filter(c => c.fase_id === faseId);
+    const rawCampos = allCampos.filter(c => c.fase_id === faseId);
+    const campos = [];
+    const seenEtiquetas = new Set();
+    for (const c of rawCampos) {
+        const etLower = (c.etiqueta || '').toLowerCase().trim();
+        if (!seenEtiquetas.has(etLower)) {
+            seenEtiquetas.add(etLower);
+            campos.push(c);
+        }
+    }
     const respuestas = await getRespuestasByProyecto(dealId);
 
     // Build rows
@@ -2216,8 +2281,28 @@ window._previewFase = async function(faseId, faseNombreEnc, dealId) {
         return `<span style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">${val}</span>`;
     };
 
-    const rowsHtml = campos.length
-        ? campos.map(c => {
+    // Determine local isCash / isZelleOrCheque for this phase
+    let isCashLocal = false;
+    let isZelleOrChequeLocal = false;
+    const mPagoField = campos.find(pc => pc.etiqueta.toLowerCase().includes('método de pago') || pc.etiqueta.toLowerCase().includes('metodo de pago'));
+    if (mPagoField) {
+        const mResp = respuestas.find(r => r.campo_id === mPagoField.id);
+        if (mResp && mResp.valor) {
+            const vLow = mResp.valor.trim().toLowerCase();
+            if (['cash', 'efectivo (cash)', 'zelle', 'cheque'].includes(vLow)) isCashLocal = true;
+            if (['zelle', 'cheque'].includes(vLow)) isZelleOrChequeLocal = true;
+        }
+    }
+
+    const visibleCampos = campos.filter(c => {
+        const lbl = (c.etiqueta || '').toLowerCase();
+        if (isCashLocal && (lbl.includes('aprobación') || lbl.includes('aprobacion') || lbl.includes('financiera') || c.tipo === 'Aplicación de Crédito')) return false;
+        if (lbl.includes('comprobante') && !isZelleOrChequeLocal) return false;
+        return true;
+    });
+
+    const rowsHtml = visibleCampos.length
+        ? visibleCampos.map(c => {
             const resp = respuestas.find(r => r.campo_id === c.id);
             return `
             <div style="padding:14px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">
