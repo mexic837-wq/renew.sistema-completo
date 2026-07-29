@@ -8791,7 +8791,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     btnSave.textContent = 'Guardando...';
                     const updates = {};
                     phaseCampos.forEach(c => {
-                        if(c.tipo !== 'Archivo') {
+                        const isFileField = (c.tipo === 'Archivo' || c.tipo === 'Orden de Trabajo' || c.tipo === 'Aplicación de Crédito' || c.tipo === 'Contrato');
+                        if(!isFileField) {
                             const el = document.getElementById('dfd_'+c.id);
                             if(el) updates[c.id] = el.value;
                         }
@@ -8808,7 +8809,8 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                     btnAdv.textContent = 'Espere...';
                     const updates = {};
                     phaseCampos.forEach(c => {
-                        if(c.tipo !== 'Archivo') {
+                        const isFileField = (c.tipo === 'Archivo' || c.tipo === 'Orden de Trabajo' || c.tipo === 'Aplicación de Crédito' || c.tipo === 'Contrato');
+                        if(!isFileField) {
                             const el = document.getElementById('dfd_'+c.id);
                             if(el) updates[c.id] = el.value;
                         }
