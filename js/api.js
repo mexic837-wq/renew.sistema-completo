@@ -153,8 +153,8 @@ function applyPostProcessing(freshDB) {
                         id: 'cf_fin_' + Date.now(),
                         fase_id: phase1.id,
                         etiqueta: 'Financiera',
-                        tipo: 'Texto',
-                        opciones: '',
+                        tipo: 'Desplegable',
+                        opciones: 'Time Investment, NewSpring Acceptance, Foundation Finance Company, RFFC Financial, Wisetack, Pinnacle Finance, FirstCredit, FIGURE, Home Run Financing, Ygrene',
                         es_opcional: false,
                         orden: 1
                     };

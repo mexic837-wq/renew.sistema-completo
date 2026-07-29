@@ -1182,8 +1182,13 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
     const saved = existingResp.find(r => r.campo_id === c.id);
     const val = saved ? saved.valor : '';
 
-    if(c.tipo === 'Desplegable') {
-       const opts = (c.opciones || "").split(',').map(o => {
+    const isFinanciera = (c.etiqueta || '').toLowerCase().includes('financiera');
+    if(c.tipo === 'Desplegable' || isFinanciera) {
+       let optionsStr = c.opciones || "";
+       if (isFinanciera && !optionsStr.includes(',')) {
+           optionsStr = "Time Investment, NewSpring Acceptance, Foundation Finance Company, RFFC Financial, Wisetack, Pinnacle Finance, FirstCredit, FIGURE, Home Run Financing, Ygrene";
+       }
+       const opts = optionsStr.split(',').map(o => {
          const optVal = o.trim();
          const isSelected = val === optVal ? 'selected' : '';
          return `<option value="${optVal}" ${isSelected}>${optVal}</option>`;
