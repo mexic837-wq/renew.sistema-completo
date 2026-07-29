@@ -161,6 +161,21 @@ function applyPostProcessing(freshDB) {
                     freshDB.Admin_Campos_Formulario.splice(1, 0, newFinanciera); // Add after Método de Pago
                     injectedFields.push(newFinanciera);
                 }
+
+                const hasAppCredito = freshDB.Admin_Campos_Formulario.some(c => c.fase_id === phase1.id && (c.tipo === 'Aplicación de Crédito' || c.etiqueta.toLowerCase().includes('aplicación') || c.etiqueta.toLowerCase().includes('aplicacion')));
+                if (!hasAppCredito) {
+                    const newAppCredito = {
+                        id: 'cf_appcred_' + Date.now(),
+                        fase_id: phase1.id,
+                        etiqueta: 'Aplicación de Crédito',
+                        tipo: 'Aplicación de Crédito',
+                        opciones: '',
+                        es_opcional: false,
+                        orden: 1.5
+                    };
+                    freshDB.Admin_Campos_Formulario.splice(2, 0, newAppCredito);
+                    injectedFields.push(newAppCredito);
+                }
                 
                 if (injectedFields.length > 0) {
                     // Fire-and-forget save to backend
