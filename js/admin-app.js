@@ -4860,12 +4860,26 @@ window.renderView = async function renderView() {
 
             <div id="aca-file-group">
                <label class="aqua-label">${t('aca_field_file')}</label>
-               <input type="file" id="aca-file" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-4 focus:border-tealAccent focus:outline-none" accept=".mp4,.pdf,.doc,.docx">
+               <div class="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer mb-4 relative hover:border-tealAccent transition-colors" style="background:var(--surface-alt);">
+                 <input type="file" id="aca-file" accept=".mp4,.pdf,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="document.getElementById('aca-file-name').innerText = this.files[0] ? this.files[0].name : ''; document.getElementById('aca-file-name').style.display = this.files[0] ? 'block' : 'none';">
+                 <div class="pointer-events-none">
+                   <i class="fa-solid fa-cloud-arrow-up text-3xl text-tealAccent mb-2"></i>
+                   <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-bold text-tealAccent">Haz clic</span> o arrastra tu archivo aquí</p>
+                   <p id="aca-file-name" class="text-sm font-bold text-tealAccent mt-2 truncate" style="display:none;"></p>
+                 </div>
+               </div>
             </div>
 
             <div id="aca-thumb-wrap" class="mt-4 mb-4" style="display:none;">
               <label class="aqua-label">${t('aca_upload_label')}</label>
-              <input type="file" id="archivoMiniatura" class="w-full bg-bgLight dark:bg-bgDark transition-colors border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-gray-800 dark:text-white mb-6 focus:border-tealAccent focus:outline-none" accept="image/jpeg, image/png, image/webp">
+              <div class="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer mb-6 relative hover:border-tealAccent transition-colors" style="background:var(--surface-alt);">
+                <input type="file" id="archivoMiniatura" accept="image/jpeg, image/png, image/webp" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="document.getElementById('aca-thumb-name').innerText = this.files[0] ? this.files[0].name : ''; document.getElementById('aca-thumb-name').style.display = this.files[0] ? 'block' : 'none';">
+                <div class="pointer-events-none">
+                  <i class="fa-solid fa-image text-3xl text-tealAccent mb-2"></i>
+                  <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-bold text-tealAccent">Haz clic</span> o arrastra tu miniatura aquí</p>
+                  <p id="aca-thumb-name" class="text-sm font-bold text-tealAccent mt-2 truncate" style="display:none;"></p>
+                </div>
+              </div>
             </div>
 
             <label class="aqua-label">${t('aca_field_vis')}</label>
