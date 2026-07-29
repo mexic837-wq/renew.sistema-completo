@@ -4613,8 +4613,8 @@ window.renderView = async function renderView() {
     renderRendimientoGlobal();
   }
   else if (state.activeView === 'marketing') {
-    UI.viewTitle.textContent = "Intelligence: Email Engine";
-    UI.viewDesc.textContent = "Deploy automated email sequences synchronized with CRM signals.";
+    UI.viewTitle.textContent = t('auto_email_title');
+    UI.viewDesc.textContent = t('auto_email_desc');
     setGlobalButton(false);
     
     UI.canvas.innerHTML = `
@@ -4625,19 +4625,19 @@ window.renderView = async function renderView() {
               <i class="fa-solid fa-microchip text-2xl"></i>
             </div>
             <div>
-              <p class="aqua-label mb-1 uppercase text-[9px]">Target Engine Segment</p>
+              <p class="aqua-label mb-1 uppercase text-[9px]">${t('auto_target')}</p>
               <select id="mk-audiencia" class="bg-transparent border-none text-xl font-black text-gray-900 dark:text-white p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors">
-                <option value="Todos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Global Network</option>
-                <option value="Solar" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Solar Leads</option>
-                <option value="Water" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Water Leads</option>
-                <option value="clientes_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Manual Selection</option>
-                <option value="todos_trabajadores" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Internal Team</option>
-                <option value="trabajadores_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Collaborator Selection</option>
+                <option value="Todos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">${t('auto_target_all')}</option>
+                <option value="Solar" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">${t('auto_target_solar')}</option>
+                <option value="Water" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">${t('auto_target_water')}</option>
+                <option value="clientes_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">${t('auto_target_manual')}</option>
+                <option value="todos_trabajadores" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">${t('auto_target_team')}</option>
+                <option value="trabajadores_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">${t('auto_target_collab')}</option>
               </select>
             </div>
           </div>
           <div class="text-right">
-             <div class="px-4 py-2 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-black rounded-xl border border-gray-100 dark:border-white/10 uppercase tracking-[0.2em]">Engine Status: Standby</div>
+             <div class="px-4 py-2 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-black rounded-xl border border-gray-100 dark:border-white/10 uppercase tracking-[0.2em]">${t('auto_status')}</div>
           </div>
         </div>
 
@@ -4649,10 +4649,10 @@ window.renderView = async function renderView() {
 
         <div class="flex gap-4 pt-6">
            <button id="btn-add-paso" class="flex-1 py-4 bg-gray-50 dark:bg-white/5 hover:bg-tealAccent/10 text-gray-400 dark:text-gray-600 hover:text-tealAccent rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 border border-gray-100 dark:border-white/5">
-             <i class="fa-solid fa-plus-circle text-lg"></i> Add Sequence Step
+             <i class="fa-solid fa-plus-circle text-lg"></i> ${t('auto_btn_add')}
            </button>
            <button id="btn-enviar-campana" class="px-10 py-4 bg-tealAccent text-black rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 shadow-sm hover:shadow-teal-glow hover:scale-[1.02] active:scale-95">
-             <i class="fa-solid fa-bolt-lightning text-lg"></i> Ignite Engine
+             <i class="fa-solid fa-bolt-lightning text-lg"></i> ${t('auto_btn_ignite')}
            </button>
         </div>
       </div>

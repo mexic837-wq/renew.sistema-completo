@@ -313,6 +313,26 @@ const TRANSLATIONS = {
     mt_field_msg:       'Instrucciones / Texto',
     mt_field_image:     'Imagen de Referencia',
     mt_btn_pub:         'Publicar Reunión',
+
+    // ── Automatizaciones (Email) ───────────────────────────
+    auto_email_title:   'Intelligence: Motor de Email',
+    auto_email_desc:    'Despliega secuencias de correo automatizadas sincronizadas con señales del CRM.',
+    auto_target:        'Segmento Objetivo',
+    auto_target_all:    'Red Global',
+    auto_target_solar:  'Prospectos Renew Solar',
+    auto_target_water:  'Prospectos Renew Water',
+    auto_target_manual: 'Selección Manual',
+    auto_target_team:   'Equipo Interno',
+    auto_target_collab: 'Selección de Colaboradores',
+    auto_status:        'ESTADO DEL MOTOR: EN ESPERA',
+    auto_step_title:    'PASO DE SECUENCIA DE EMAIL',
+    auto_subject:       'ASUNTO',
+    auto_subject_ph:    'Ingresa un asunto de alto impacto...',
+    auto_schedule:      'PROGRAMACIÓN',
+    auto_body:          'CUERPO DEL MENSAJE',
+    auto_body_ph:       'Hola {{name}}, nos emociona...',
+    auto_btn_add:       'Agregar Paso a la Secuencia',
+    auto_btn_ignite:    'Activar Motor',
   },
 
   en: {
@@ -624,6 +644,26 @@ const TRANSLATIONS = {
     mt_field_msg:       'Instructions / Text',
     mt_field_image:     'Reference Image',
     mt_btn_pub:         'Publish Meeting',
+
+    // ── Automatizaciones (Email) ───────────────────────────
+    auto_email_title:   'Intelligence: Email Engine',
+    auto_email_desc:    'Deploy automated email sequences synchronized with CRM signals.',
+    auto_target:        'Target Engine Segment',
+    auto_target_all:    'Global Network',
+    auto_target_solar:  'Renew Solar Leads',
+    auto_target_water:  'Renew Water Leads',
+    auto_target_manual: 'Manual Selection',
+    auto_target_team:   'Internal Team',
+    auto_target_collab: 'Collaborator Selection',
+    auto_status:        'ENGINE STATUS: STANDBY',
+    auto_step_title:    'EMAIL SEQUENCE STEP',
+    auto_subject:       'SUBJECT LINE',
+    auto_subject_ph:    'Enter high-impact subject...',
+    auto_schedule:      'SEND SCHEDULE',
+    auto_body:          'MESSAGE BODY',
+    auto_body_ph:       'Hello {{name}}, we\'re thrilled to...',
+    auto_btn_add:       'Add Sequence Step',
+    auto_btn_ignite:    'Ignite Engine',
   }
 };
 
