@@ -1180,7 +1180,26 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
     const lockedStyle = isLocked ? 'opacity:0.6; cursor:not-allowed;' : '';
     
     const saved = existingResp.find(r => r.campo_id === c.id);
-    const val = saved ? saved.valor : '';
+    let val = saved ? saved.valor : '';
+
+    // Prospect Template Auto-Affiliation Logic
+    if (!val || val === 'No subido' || val === 'No provisto') {
+        const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(client => String(client.id) === String(deal.cliente_id));
+        const cliMeta = dbClient?.adjuntos_oficina || {};
+        const lbl = (c.etiqueta || '').toLowerCase();
+        
+        if (c.tipo === 'Aplicación de Crédito' || lbl.includes('aplicación') || lbl.includes('aplicacion') || lbl.includes('credit')) {
+            if (cliMeta.app_url) val = cliMeta.app_url;
+        } else if (c.tipo === 'Orden de Trabajo' || lbl.includes('orden de trabajo') || lbl.includes('pozo')) {
+            if (cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url) val = cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url;
+        } else if (c.tipo === 'Contrato' || lbl.includes('contrato')) {
+            const pip = window.cachedDB?.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
+            const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
+            if (cliMeta.contrato_url || cliMeta[`contrato_${prefix}_url`]) val = cliMeta[`contrato_${prefix}_url`] || cliMeta.contrato_url;
+        } else if (c.tipo?.includes('Recibo') || (lbl.includes('recibo') && !lbl.includes('comprobante'))) {
+            if (cliMeta.recibo_url || cliMeta.recibo_vendedor_url || cliMeta.recibo_tecnico_url) val = cliMeta.recibo_url || cliMeta.recibo_vendedor_url || cliMeta.recibo_tecnico_url;
+        }
+    }
 
     const isFinanciera = (c.etiqueta || '').toLowerCase().includes('financiera');
     if(c.tipo === 'Desplegable' || isFinanciera) {
