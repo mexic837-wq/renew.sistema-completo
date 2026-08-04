@@ -3742,8 +3742,10 @@ window.renderView = async function renderView() {
         };
 
         const statusConfig = {
+          'todos':    { label: 'Todos',     color: '#64748b' },
           'prospecto':{ label: 'Prospecto', color: '#f59e0b' },
-          'cliente':  { label: 'Cliente',   color: '#10b981' }
+          'cliente':  { label: 'Cliente',   color: '#10b981' },
+          'declinado':{ label: 'Declinados',color: '#ef4444' }
         };
 
         let activeDept = 'all';
@@ -3925,10 +3927,11 @@ window.renderView = async function renderView() {
           if (!addr) return;
           
           const deptKey = getDeptFromProject(p);
-          const combo = `${c.id}::${deptKey}::cliente`;
+          const stKey = c.macro_estado === 'Declinado' ? 'declinado' : 'cliente';
+          const combo = `${c.id}::${deptKey}::${stKey}`;
           if (!seenAdminCombo.has(combo)) {
             seenAdminCombo.add(combo);
-            adminCombos.push({ c, addr, deptKey, statusKey: 'cliente' });
+            adminCombos.push({ c, addr, deptKey, statusKey: stKey });
           }
         });
 
@@ -3972,12 +3975,13 @@ window.renderView = async function renderView() {
           
           const assignedDepts = getClientDepts(c);
           assignedDepts.forEach(deptKey => {
-            // If they are not already a cliente in this dept, they are a prospecto
-            if (!seenAdminCombo.has(`${c.id}::${deptKey}::cliente`)) {
-              const combo = `${c.id}::${deptKey}::prospecto`;
+            // If they are not already a cliente or declinado in this dept, they are a prospecto (or declinado)
+            if (!seenAdminCombo.has(`${c.id}::${deptKey}::cliente`) && !seenAdminCombo.has(`${c.id}::${deptKey}::declinado`)) {
+              const stKey = c.macro_estado === 'Declinado' ? 'declinado' : 'prospecto';
+              const combo = `${c.id}::${deptKey}::${stKey}`;
               if (!seenAdminCombo.has(combo)) {
                 seenAdminCombo.add(combo);
-                adminCombos.push({ c, addr, deptKey, statusKey: 'prospecto' });
+                adminCombos.push({ c, addr, deptKey, statusKey: stKey });
               }
             }
           });

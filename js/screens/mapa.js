@@ -148,10 +148,12 @@ export async function renderMiMapa() {
       ];
 
       // ── Status config ──────────────────────────────────────
+      // ── Status config ──────────────────────────────────────
       const STATUSES = [
         { key: 'todos',      label: 'Todos',      color: '#64748b' },
         { key: 'prospecto',  label: 'Prospectos', color: '#f97316' },
         { key: 'cliente',    label: 'Clientes',   color: '#22c55e' },
+        { key: 'declinado',  label: 'Declinados', color: '#ef4444' }
       ];
 
       // Each marker entry: { marker, deptKey, statusKey }
@@ -304,7 +306,12 @@ export async function renderMiMapa() {
         
         const deptKey = getDeptFromProject(p);
         if (!clientsToMap[c.id]) clientsToMap[c.id] = { c, address: addr, combos: new Set(), depts: new Set() };
-        clientsToMap[c.id].combos.add(`${deptKey}::cliente`);
+        
+        if (c.macro_estado === 'Declinado') {
+            clientsToMap[c.id].combos.add(`${deptKey}::declinado`);
+        } else {
+            clientsToMap[c.id].combos.add(`${deptKey}::cliente`);
+        }
         clientsToMap[c.id].depts.add(deptKey);
       });
 
@@ -332,9 +339,13 @@ export async function renderMiMapa() {
         
         depts.forEach(deptKey => {
             clientsToMap[c.id].depts.add(deptKey);
-            // If they are not already a 'cliente' in this dept, they are a 'prospecto'
-            if (!clientsToMap[c.id].combos.has(`${deptKey}::cliente`)) {
-                clientsToMap[c.id].combos.add(`${deptKey}::prospecto`);
+            // If they are not already a 'cliente' or 'declinado' in this dept, they are a 'prospecto' (or 'declinado')
+            if (!clientsToMap[c.id].combos.has(`${deptKey}::cliente`) && !clientsToMap[c.id].combos.has(`${deptKey}::declinado`)) {
+                if (c.macro_estado === 'Declinado') {
+                    clientsToMap[c.id].combos.add(`${deptKey}::declinado`);
+                } else {
+                    clientsToMap[c.id].combos.add(`${deptKey}::prospecto`);
+                }
             }
         });
       });
