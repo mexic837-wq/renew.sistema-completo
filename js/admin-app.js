@@ -1,4 +1,4 @@
-﻿import {
+import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,
   createAdminPipeline, createAdminFase, createAdminCampo, updateAdminCampo,
@@ -8082,7 +8082,6 @@ async function toggleDetailEditMode(id) {
                 
                 const updatedUsr = {
                     ...usr,
-                    roles_adicionales: null,
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     ver_catalogo,
                 ver_partners,
