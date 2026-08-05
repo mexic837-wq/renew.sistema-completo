@@ -465,7 +465,9 @@ function _buildPipelineChips(user, activeUnit) {
   const allClientes  = db.Clientes_Maestro || [];
   const allProyectos = db.Proyectos_Dinamicos || [];
   const userRole     = (user.rol || '').toLowerCase().trim();
-  const isHighRole   = ['admin', 'administrador', 'ceo', 'partner'].includes(userRole);
+  const arrAdic      = (user.roles_adicionales || []).map(r => r.toLowerCase().trim());
+  const allRoles     = [userRole, ...arrAdic];
+  const isHighRole   = allRoles.some(r => ['admin', 'administrador', 'ceo', 'partner'].includes(r));
 
   const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
   
@@ -497,7 +499,7 @@ function _buildPipelineChips(user, activeUnit) {
         const isTecnicoOfProject = userTecnicoProjectClientIds.has(String(c.id));
 
         // Supervisor logic
-        const isSupervisorOfRep = (userRole === 'supervisor' || userRole === 'supervisión') && 
+        const isSupervisorOfRep = allRoles.some(r => r === 'supervisor' || r === 'supervisión') && 
           (user.equipo_ids || []).some(id => 
             c.creador_id === id || 
             (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
@@ -577,14 +579,18 @@ export function _renderToolsForPipeline(user, activeUnit) {
 
   const db          = getDB();
   const userRole    = (user.rol || '').toLowerCase().trim();
-  const isTecnico   = /t[eé]cn[io]co/i.test(userRole);
-  const isAdmin     = ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(userRole);
-  const isVentas    = userRole.includes('vendedor') || userRole.includes('representante') || ['supervisor', 'supervisión', 'manager', 'partner'].includes(userRole);
-  let canInventory= [isTecnico, 'contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','partner'].some(r => typeof r === 'boolean' ? r : r === userRole);
+  const arrAdic     = (user.roles_adicionales || []).map(r => r.toLowerCase().trim());
+  const allRoles    = [userRole, ...arrAdic];
+  
+  const isTecnico   = allRoles.some(r => /t[eé]cn[io]co/i.test(r) || r === 'tecnico' || r === 'técnico');
+  const isAdmin     = allRoles.some(r => ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(r));
+  const isVentas    = allRoles.some(r => r.includes('vendedor') || r.includes('representante') || ['supervisor', 'supervisión', 'manager', 'partner'].includes(r));
+  const canInventoryRoles = ['contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','partner'];
+  let canInventory  = isTecnico || allRoles.some(r => canInventoryRoles.includes(r));
   if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
 
   const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador','manager', 'partner'];
-  let canWater = waterHighRoles.includes(userRole) || userRole.includes('call');
+  let canWater = allRoles.some(r => waterHighRoles.includes(r) || r.includes('call'));
   if (!canWater && (isVentas || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
     const hasWaterUnit = (user.unidades || []).includes('Renew Water');
@@ -606,8 +612,8 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
-      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico || userRole === 'manager')) ? {
-        name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
+      ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico || allRoles.includes('manager'))) ? {
+        name: isTecnico ? t('nav_clients_tech') : (allRoles.some(r => r.includes('call')) ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -634,7 +640,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
         action: () => window.appNavigate('mis-recibos'), delay: '0.15s', screen: 'mis-recibos'
       } : null,
-      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : (!(['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(userRole) && (user.sede || '').toLowerCase() === 'dallas') && !(userRole.includes('call') || /t[eé]cn[io]co/i.test(userRole)))) ? {
+      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : (!allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(r)) || (user.sede || '').toLowerCase() !== 'dallas') && !allRoles.some(r => r.includes('call') || /t[eé]cn[io]co/i.test(r))) ? {
         name: 'Lista de Precios', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#ec4899,#f43f5e)',
         iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899',

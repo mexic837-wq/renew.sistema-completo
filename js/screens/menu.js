@@ -13,20 +13,23 @@ export async function renderMenu() {
   if (!screen) return;
 
 
+  const arrAdic = user.roles_adicionales || [];
+  const allRoles = [user.rol, ...arrAdic].map(r => r ? r.trim() : '');
+
   const adminRoles = ['Admin', 'Administrador', 'Desarrollador', 'CEO'];
-  const isAdmin = adminRoles.includes(user.rol);
+  const isAdmin = allRoles.some(r => adminRoles.includes(r));
 
   // Roles que pueden ver el Inventario Real (técnicos y superiores)
-  const inventarioRoles = ['Técnico', 'Contabilidad', 'Procesador', 'CEO', 'Admin', 'Administrador', 'Desarrollador'];
-  const canSeeInventario = inventarioRoles.includes(user.rol);
+  const inventarioRoles = ['Técnico', 'Tecnico', 'Contabilidad', 'Procesador', 'CEO', 'Admin', 'Administrador', 'Desarrollador'];
+  const canSeeInventario = allRoles.some(r => inventarioRoles.includes(r) || /t[eé]cn[io]co/i.test(r));
 
   // ─ Acceso a formularios de Renew Water ─────────────────────────────
   // Admins/CEO y superiores siempre tienen acceso.
   // Vendedores: solo si tienen el pipeline Renew Water asignado en su perfil.
   const waterHighRoles = ['Admin', 'Administrador', 'Desarrollador', 'CEO', 'Supervisión', 'Contabilidad', 'Procesador'];
-  let canSeeWaterForms = waterHighRoles.includes(user.rol);
+  let canSeeWaterForms = allRoles.some(r => waterHighRoles.includes(r));
 
-  const isVentasUser = ['Vendedor', 'Representante de Ventas', 'Supervisor', 'Supervisión'].includes(user.rol);
+  const isVentasUser = allRoles.some(r => ['Vendedor', 'Representante de Ventas', 'Supervisor', 'Supervisión'].includes(r));
   if (!canSeeWaterForms && isVentasUser) {
     // Verificar si el vendedor tiene acceso al pipeline Renew Water
     try {
