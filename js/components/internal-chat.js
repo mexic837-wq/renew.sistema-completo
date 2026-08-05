@@ -25,7 +25,7 @@ export async function initChat() {
                     </div>
                     <div>
                         <h3 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Mensajes Internos</h3>
-                        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-bold tracking-widest uppercase mt-1">Colaboración en Tiempo Real</p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-bold tracking-widest uppercase mt-1">Chat en Tiempo Real</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
