@@ -22,7 +22,7 @@ export async function renderListaPrecios() {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Water';
   
   let basePriceKey = null;
-  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((user?.rol||'').toLowerCase()); 
+  const isAdmin = window.getUserRoles(user).some(r => ['admin','administrador','ceo','desarrollador'].includes(r)); 
   
   if (!isAdmin) {
     const rankInfo = computeUserRank(user.id, activeUnit, db);

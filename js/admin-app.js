@@ -7733,7 +7733,7 @@ async function toggleDetailEditMode(id) {
             let roleVal = window.getUserRoles(usr).join(", ") || 'Vendedor';
             if (roleVal === 'Supervisión') roleVal = 'Supervisor'; // Migration
             if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Manager'; // Migration
-            Array.from(rolEl.querySelectorAll('input')).forEach(cb => cb.checked = roleVal.includes(cb.value));
+            Array.from(rolEl.querySelectorAll('input')).forEach(cb => cb.checked = roleVal.toLowerCase().includes(cb.value.toLowerCase()));
             // No need to load roles_adicionales checkboxes — rol is now the source of truth.
             
             const equipoCont = document.getElementById('det-edit-equipo-container');
@@ -11408,7 +11408,7 @@ window.updateEditWorkerRankVisibility = function() {
 };
 
 document.addEventListener('change', (e) => {
-    if (e.target.id === 'det-edit-rol' || (e.target.classList && e.target.classList.contains('rol-adic-chk')) || (e.target.classList && e.target.classList.contains('pip-perm-chk'))) {
+    if (e.target.closest('#det-edit-rol') || (e.target.classList && e.target.classList.contains('rol-adic-chk')) || (e.target.classList && e.target.classList.contains('pip-perm-chk'))) {
         if (typeof window.updateEditWorkerRankVisibility === 'function') {
             window.updateEditWorkerRankVisibility();
         }
