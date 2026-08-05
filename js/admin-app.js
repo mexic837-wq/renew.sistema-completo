@@ -7730,7 +7730,7 @@ async function toggleDetailEditMode(id) {
             let roleVal = window.getUserRoles(usr).join(", ") || 'Vendedor';
             if (roleVal === 'Supervisión') roleVal = 'Supervisor'; // Migration
             if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Manager'; // Migration
-            rolEl.value = roleVal;
+            Array.from(rolEl.querySelectorAll('input')).forEach(cb => cb.checked = roleVal.includes(cb.value));
             // No need to load roles_adicionales checkboxes — rol is now the source of truth.
             
             const equipoCont = document.getElementById('det-edit-equipo-container');
@@ -8022,7 +8022,7 @@ async function toggleDetailEditMode(id) {
             const passEl = document.getElementById('det-edit-pass');
             const dobEl = document.getElementById('det-edit-dob');
             
-            const rol = rolEl ? Array.from(rolEl.selectedOptions || []).map(o => o.value).join(", ") : (window.getUserRoles(usr).join(", ") || 'Vendedor');
+            const rol = rolEl ? Array.from(rolEl.querySelectorAll('input:checked')).map(o => o.value).join(", ") : (window.getUserRoles(usr).join(", ") || 'Vendedor');
             const rankEl = document.getElementById('det-edit-rank');
             const rankSolarEl = document.getElementById('det-edit-rank-solar');
             const rango = rankEl ? rankEl.value : (usr.rango || 'auto');
@@ -8082,7 +8082,7 @@ async function toggleDetailEditMode(id) {
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     ver_catalogo,
                 ver_partners,
-                    rol: Array.from(document.getElementById('inp-usr-rol')?.selectedOptions || []).map(o => o.value),
+                    rol: Array.from(document.getElementById('det-edit-rol')?.querySelectorAll('input:checked') || []).map(o => o.value),
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
@@ -11220,7 +11220,7 @@ window.updateWorkerRankVisibility = function() {
     const equipoContainer = document.getElementById('container-usr-equipo');
     if (!rol) return;
 
-    const rolesVals = Array.from(rol.selectedOptions).map(o => (o.value || '').toLowerCase());
+    const rolesVals = Array.from(rol.querySelectorAll('input:checked')).map(o => (o.value || '').toLowerCase());
     
     const isVendedor = rolesVals.includes('vendedor') || rolesVals.includes('representante de ventas');
     const isProjectManager = rolesVals.includes('project manager');
@@ -11324,14 +11324,14 @@ window.updateEditWorkerRankVisibility = function() {
     const rankContainer = document.getElementById('det-edit-rank-container');
     const equipoCont = document.getElementById('det-edit-equipo-container');
     const pipesCont = document.getElementById('det-edit-pipelines-container');
-    const rolVal = (rol ? rol.value.toLowerCase() : '');
+    const rolesVals = rol ? Array.from(rol.querySelectorAll('input:checked')).map(cb=>cb.value.toLowerCase()) : [];
     const rolesAdicVals = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value.toLowerCase());
-    const allRoles = [rolVal, ...rolesAdicVals];
+    const allRoles = [...rolesVals, ...rolesAdicVals];
     const hasPipelines = allRoles.some(r => ['manager', 'project manager', 'vendedor', 'representante de ventas', 'supervisor', 'supervisión', 'técnico', 'tecnico', 'tecnicos', 'técnicos'].includes(r) || r.includes('call center'));
     if (rol && pipesCont) pipesCont.classList.toggle('hidden', !hasPipelines);
     if (rol && equipoCont) {
-        equipoCont.classList.toggle('hidden', rol.value !== 'Supervisor');
-        if (rol.value === 'Supervisor') {
+        equipoCont.classList.toggle('hidden', !rolesVals.includes('supervisor') && !rolesVals.includes('supervisión'));
+        if (rolesVals.includes('supervisor') || rolesVals.includes('supervisión')) {
             // Render equipo checkboxes if not rendered yet, but they are already rendered in showWorkerDetails.
             // If they change role to Supervisor from something else, we should ideally render them if empty.
             const equipoChks = document.getElementById('equipo-checkboxes');
@@ -11688,20 +11688,36 @@ window.populateRolesDropdowns = function() {
     const allRoles = window.getUserRoles(curUsr);
     const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
     
-    let optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    const generateCheckboxes = (rolesArray) => rolesArray.map(r => `
+        <label class="flex items-center gap-2 cursor-pointer w-full hover:bg-gray-50 p-1 rounded transition-colors">
+            <input type="checkbox" name="rol-checkbox" value="${r.nombre}" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300">
+            <span class="text-sm text-gray-700 font-medium">${r.nombre}</span>
+        </label>
+    `).join('');
+
+    let optionsHtml = generateCheckboxes(mergedRoles);
     
     if (isRestrictedManager) {
         const allowedRoles = ['manager', 'supervisor', 'call center', 'técnico', 'vendedor'];
-        optionsHtml = mergedRoles
-            .filter(r => allowedRoles.includes(r.nombre.toLowerCase()))
-            .map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+        optionsHtml = generateCheckboxes(mergedRoles.filter(r => allowedRoles.includes(r.nombre.toLowerCase())));
     }
+
+    const setCheckboxes = (container, valStr) => {
+        const vals = Array.isArray(valStr) ? valStr : (valStr || '').split(',').map(s => s.trim());
+        container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = vals.includes(cb.value);
+            cb.addEventListener('change', () => {
+                if (typeof window.updateWorkerRankVisibility === 'function') window.updateWorkerRankVisibility();
+                if (typeof window.updateEditWorkerRankVisibility === 'function') window.updateEditWorkerRankVisibility();
+            });
+        });
+    };
     
     const inpRol = document.getElementById('inp-usr-rol');
     if (inpRol) {
-        const val = inpRol.value;
+        const checked = Array.from(inpRol.querySelectorAll('input:checked')).map(cb => cb.value).join(', ');
         inpRol.innerHTML = optionsHtml;
-        if (val && (roles.some(r => r.nombre === val) || defaultRoles.includes(val))) inpRol.value = val;
+        setCheckboxes(inpRol, checked);
         if (typeof window.updateWorkerRankVisibility === 'function') {
             window.updateWorkerRankVisibility();
         }
@@ -11709,9 +11725,9 @@ window.populateRolesDropdowns = function() {
     
     const detRol = document.getElementById('det-edit-rol');
     if (detRol) {
-        const val = detRol.value;
+        const checked = Array.from(detRol.querySelectorAll('input:checked')).map(cb => cb.value).join(', ');
         detRol.innerHTML = optionsHtml;
-        if (val && (roles.some(r => r.nombre === val) || defaultRoles.includes(val))) detRol.value = val;
+        setCheckboxes(detRol, checked);
     }
 };
 
@@ -12441,7 +12457,7 @@ window.saveChatAccess = async function(cliente_id) {
   const detEditDept = document.getElementById('det-edit-dept');
   if (detEditRol) {
       detEditRol.addEventListener('change', () => {
-          const rolArray = Array.from(detEditRol.selectedOptions || []).map(o => o.value); const rol = rolArray.join(", ");
+          const rolArray = Array.from(detEditRol.querySelectorAll('input:checked')).map(o => o.value); const rol = rolArray.join(", ");
           const dept = detEditDept ? detEditDept.value : '';
           const roles_adic = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value);
           const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas' || roles_adic.includes('Vendedor') || roles_adic.includes('Representante de Ventas');
