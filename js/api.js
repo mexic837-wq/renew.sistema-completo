@@ -23,8 +23,22 @@ window.getUserRoles = function(user) {
   if (!user) return [];
   const rawRoles = [];
   if (user.rol) {
-    if (Array.isArray(user.rol)) rawRoles.push(...user.rol);
-    else if (typeof user.rol === 'string') rawRoles.push(...user.rol.split(',').map(s => s.trim()));
+    if (Array.isArray(user.rol)) {
+      rawRoles.push(...user.rol);
+    } else if (typeof user.rol === 'string') {
+      let strRol = user.rol.trim();
+      if (strRol.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(strRol);
+          if (Array.isArray(parsed)) rawRoles.push(...parsed);
+          else rawRoles.push(strRol);
+        } catch(e) {
+          rawRoles.push(...strRol.split(',').map(s => s.trim()));
+        }
+      } else {
+        rawRoles.push(...strRol.split(',').map(s => s.trim()));
+      }
+    }
   }
   // Fallback for legacy users who still have roles_adicionales in the DB
   if (Array.isArray(user.roles_adicionales)) {

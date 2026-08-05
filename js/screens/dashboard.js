@@ -637,14 +637,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
         action: () => window.appNavigate('mis-recibos'), delay: '0.15s', screen: 'mis-recibos'
       } : null,
-      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : (!allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(r)) || (user.sede || '').toLowerCase() !== 'dallas') && !allRoles.some(r => r.includes('call') || /t[eé]cn[io]co/i.test(r))) ? {
+      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : (isAdmin || allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(r)))) ? {
         name: 'Lista de Precios', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#ec4899,#f43f5e)',
         iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>`,
         action: () => window.appNavigate('lista-precios'), delay: '0.18s', screen: 'lista-precios'
       } : null,
-      (isAdmin || user.ver_catalogo) ? {
+      (isAdmin || user.ver_catalogo || allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(r))) ? {
         name: 'Catálogo', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#0ea5e9,#0284c7)',
         iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',
