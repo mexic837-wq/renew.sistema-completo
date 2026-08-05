@@ -1814,7 +1814,7 @@ function showProfileModal() {
       
       <!-- Acceso a Ecosistemas -->
       <div style="text-align:left; margin-bottom:32px">
-        <label style="font-size:.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px">Ecosistemas Autorizados</label>
+        <label style="font-size:.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px">Departamentos Autorizados</label>
         <div style="display:flex; justify-content:space-around">
           ${unitsHtml}
         </div>
