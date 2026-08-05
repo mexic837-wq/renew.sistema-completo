@@ -577,6 +577,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
 
   const db          = getDB();
   const allRoles    = window.getUserRoles(user);
+  const userRole    = allRoles.join(' ').toLowerCase();
   
   const isTecnico   = allRoles.some(r => /t[eé]cn[io]co/i.test(r) || r === 'tecnico' || r === 'técnico');
   const isAdmin     = allRoles.some(r => ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(r));

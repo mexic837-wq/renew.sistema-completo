@@ -265,6 +265,9 @@ async function _renderList(user, container) {
   // RBAC filter
   const activeUnit = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
 
+  const userRole = window.getUserRoles(user).join(' ').toLowerCase();
+  const userRolNorm = userRole;
+
   const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(r));
   const isCallCenterRole = window.getUserRoles(user).some(r => r.includes('call'));
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));

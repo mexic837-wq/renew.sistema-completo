@@ -7068,14 +7068,14 @@ function renderConstructor() {
                   <i class="fa-solid fa-user-astronaut text-[9px] text-tealAccent"></i>
                 </div>
                 <select class="sel-fase-rol bg-transparent border-none text-[9px] font-black text-gray-400 dark:text-gray-500 p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors uppercase tracking-[0.05em]" data-faseid="${f.id}">
-                  <option value="Representante de Ventas" ${window.getUserRoles(f).join(", ")_encargado === 'Representante de Ventas' || window.getUserRoles(f).join(", ")_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
-                  <option value="Técnico" ${window.getUserRoles(f).join(", ")_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
-                  <option value="Call Center" ${window.getUserRoles(f).join(", ")_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
-                  <option value="Supervisión" ${window.getUserRoles(f).join(", ")_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
-                  <option value="Manager" ${window.getUserRoles(f).join(", ")_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
-                  <option value="Administración" ${window.getUserRoles(f).join(", ")_encargado === 'Administración' || window.getUserRoles(f).join(", ")_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
-                  <option value="CEO" ${window.getUserRoles(f).join(", ")_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
-                  <option value="Asignación Específica" ${window.getUserRoles(f).join(", ")_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
+                  <option value="Representante de Ventas" ${f.rol_encargado === 'Representante de Ventas' || f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
+                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
+                  <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
+                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
+                  <option value="Manager" ${f.rol_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
+                  <option value="Administración" ${f.rol_encargado === 'Administración' || f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
+                  <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
+                  <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
                 </select>
               </div>
               <p class="bg-tealAccent/5 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/10 font-bold text-[8px] uppercase mb-0">N: ${cCampos.length}</p>
@@ -7089,7 +7089,7 @@ function renderConstructor() {
                   return `<div class="inline-block h-5 w-5 rounded-full ring-2 ring-white dark:ring-[#1a1a1a] bg-tealAccent flex items-center justify-center text-[7px] font-black text-white uppercase" title="${u.nombre}">${u.initials || u.nombre.substring(0,2)}</div>`;
                 }).join('')}
               </div>
-              ${window.getUserRoles(f).join(", ")_encargado === 'Asignación Específica' ? `
+              ${f.rol_encargado === 'Asignación Específica' ? `
               <button class="btn-assign-users text-[8px] font-black text-tealAccent hover:underline uppercase tracking-widest" data-faseid="${f.id}">
                 ${(f.usuarios_especificos || []).length > 0 ? 'Editar Usuarios' : '+ Asignar Usuarios'}
               </button>
