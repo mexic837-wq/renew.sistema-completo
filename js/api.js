@@ -1705,6 +1705,7 @@ export async function saveAdminWorker(worker) {
     unidades:                   Array.isArray(src.unidades) ? src.unidades : [],
     equipo_ids:                 Array.isArray(src.equipo_ids) ? src.equipo_ids : [],
     pipeline_ids:               Array.isArray(src.pipeline_ids) ? src.pipeline_ids : [],
+    roles_adicionales:          Array.isArray(src.roles_adicionales) ? src.roles_adicionales : [],
     tel_emergencia:             src.tel_emergencia             || null,
     contacto_emergencia_nombre: src.contacto_emergencia_nombre || null,
     direccion:                  src.direccion                  || null,
