@@ -608,22 +608,31 @@ export async function getDealsByUser(userId, pipelineName) {
     const u = allUsers.find(user => user.id === userId);
     
     const projects = db.Proyectos_Dinamicos || [];
+    
+    const uRol = u ? (u.rol || '').toLowerCase() : '';
+    const rAdic = u ? (u.roles_adicionales || []).map(r => r.toLowerCase()) : [];
+    const isAdminRole = (r) => r === 'admin' || r === 'administrador' || r === 'ceo';
+    const isUserAdmin = u && (isAdminRole(uRol) || rAdic.some(isAdminRole));
+
     const myProyectos = projects.filter(p => {
       if (!targetPipelineIds.includes(p.pipeline_id)) return false;
       
       // Admin sees everything
-      if (u && (u.rol === 'Admin' || u.rol === 'Administrador' || u.rol === 'CEO')) return true; 
+      if (isUserAdmin) return true; 
       
       // Creator ALWAYS sees their project
       if (p.responsable_id === userId) return true;
 
       // Workers assigned to the current phase see it
       const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id);
-      if (u && fase && fase.rol_encargado && u.rol && fase.rol_encargado.toLowerCase() === u.rol.toLowerCase()) {
-        if (p.asignado_a) {
-          if (p.asignado_a === u.id) return true;
-        } else {
-          return true;
+      if (u && fase && fase.rol_encargado) {
+        const encRol = fase.rol_encargado.toLowerCase();
+        if (uRol === encRol || rAdic.includes(encRol)) {
+          if (p.asignado_a) {
+            if (p.asignado_a === u.id) return true;
+          } else {
+            return true;
+          }
         }
       }
       return false;
@@ -635,9 +644,9 @@ export async function getDealsByUser(userId, pipelineName) {
       const faseOrden = fase.orden || 0;
       
       // Logic for locking: Locked if it's not your turn AND you're not an Admin
-      const isAdmin = u && (u.rol === 'Admin' || u.rol === 'Administrador' || u.rol === 'CEO');
-      const isMyTurn = u && fase && fase.rol_encargado === u.rol;
-      const isLocked = !isAdmin && !isMyTurn;
+      const encRol = (fase.rol_encargado || '').toLowerCase();
+      const isMyTurn = u && fase && (uRol === encRol || rAdic.includes(encRol));
+      const isLocked = !isUserAdmin && !isMyTurn;
 
       return {
         id: p.id,
@@ -803,8 +812,13 @@ export async function getDealById(dealId) {
   const cli = db.Clientes_Maestro.find(c => c.id === p.cliente_id) || {};
   const fase = db.Admin_Fases.find(f => f.id === p.fase_id) || {};
   const user = JSON.parse(localStorage.getItem('rs_user') || '{}');
-  const isAdmin = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
-  const isMyTurn = fase && fase.rol_encargado === user.rol;
+  const isAdminRole = (r) => ['admin', 'administrador', 'ceo'].includes((r || '').toLowerCase());
+  const rAdic = (user.roles_adicionales || []).map(r => r.toLowerCase());
+  const isAdmin = isAdminRole(user.rol) || rAdic.some(r => isAdminRole(r));
+  const isMyTurn = fase && (
+    (user.rol || '').toLowerCase() === (fase.rol_encargado || '').toLowerCase() || 
+    rAdic.includes((fase.rol_encargado || '').toLowerCase())
+  );
   const isLocked = !isAdmin && !isMyTurn;
 
   return { 
@@ -984,7 +998,10 @@ function _resolverDestinatarios(db, rol_encargado, vendedor_original_id) {
   }
 
   // Caso general: todos los trabajadores activos con ese rol (case-insensitive)
-  return workers.filter(u => u.rol && u.rol.toLowerCase() === rol_encargado.toLowerCase()).map(toContact);
+  return workers.filter(u => {
+    const roles = [(u.rol || ''), ...(u.roles_adicionales || [])].map(r => r.toLowerCase());
+    return roles.includes(rol_encargado.toLowerCase());
+  }).map(toContact);
 }
 
 // ─── DISPARADOR UNIVERSAL DE NOTIFICACIONES ──────────────────────────────────

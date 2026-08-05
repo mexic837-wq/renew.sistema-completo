@@ -1527,7 +1527,8 @@ function bindGlobalEvents() {
             try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
         })();
         const currentRol = (currentUser.rol || '').toLowerCase();
-        const canEdit = currentRol === 'ceo' || currentRol === 'admin' || currentRol === 'administrador';
+        const rolesAdic = (currentUser.roles_adicionales || []).map(r => r.toLowerCase());
+        const canEdit = currentRol === 'ceo' || currentRol === 'admin' || currentRol === 'administrador' || rolesAdic.includes('ceo') || rolesAdic.includes('admin') || rolesAdic.includes('administrador');
         if (!canEdit) {
             window.addNotification('Seguridad', 'Solo el CEO o Administrador pueden editar perfiles.', 'error');
             return;
@@ -3230,7 +3231,12 @@ window.renderView = async function renderView() {
     // --- ROLE-BASED FILTERING ---
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const role = currentUser.rol || '';
-    if (['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
+    const rAdic = currentUser.roles_adicionales || [];
+    const allRoles = [role, ...rAdic];
+    const isAdminRole = allRoles.some(r => ['CEO', 'Admin', 'Administrador'].includes(r));
+    const isRestrictedRole = allRoles.some(r => ['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión', 'Supervisor'].includes(r));
+
+    if (!isAdminRole && isRestrictedRole) {
         const hasAccessToUnit = (c) => {
             const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0 
                           ? c.departamentos_activos.join(' ').toLowerCase() 
@@ -3243,26 +3249,18 @@ window.renderView = async function renderView() {
         clientesFiltrados = clientesFiltrados.filter(c => {
             const hasUnit = hasAccessToUnit(c);
 
-            if (role === 'Manager de Ventas') {
+            // Give priority to less restricted roles if they have multiple
+            if (allRoles.includes('Manager de Ventas') || allRoles.includes('Manager')) {
                 return hasUnit;
-            } else if (role === 'Account Manager') {
+            } else if (allRoles.includes('Account Manager')) {
                 const acctId = c.account_manager_id || '';
                 return hasUnit && acctId === currentUser.id;
-            } else if (role === 'Supervisión') {
+            } else if (allRoles.includes('Supervisión') || allRoles.includes('Supervisor')) {
                 const vendorId = c.vendedor_asignado_id || c.creador_id || '';
                 const vendorUser = allWorkers.find(w => w.id === vendorId);
                 return vendorUser && vendorUser.supervisor_id === currentUser.id;
-            } else if (role === 'Manager') {
-                const subRol = currentUser.sub_rol || '';
-                if (subRol === 'Manager de Ventas') return hasUnit;
-                if (subRol === 'Account Manager') return hasUnit && c.account_manager_id === currentUser.id;
-                if (subRol === 'Supervisor') {
-                    const vendorId = c.vendedor_asignado_id || c.creador_id || '';
-                    const vendorUser = allWorkers.find(w => w.id === vendorId);
-                    return vendorUser && vendorUser.supervisor_id === currentUser.id;
-                }
-                return hasUnit; // Default PM fallback
             }
+            
             return true;
         });
     }
@@ -3844,7 +3842,12 @@ window.renderView = async function renderView() {
         // --- ROLE-BASED FILTERING FOR MAP ---
         const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
         const role = currentUser.rol || '';
-        if (['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión'].includes(role)) {
+        const rAdic = currentUser.roles_adicionales || [];
+        const allRoles = [role, ...rAdic];
+        const isAdminRole = allRoles.some(r => ['CEO', 'Admin', 'Administrador'].includes(r));
+        const isRestrictedRole = allRoles.some(r => ['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión', 'Supervisor'].includes(r));
+
+        if (!isAdminRole && isRestrictedRole) {
             const hasAccessToUnit = (c) => {
                 const depts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0 
                               ? c.departamentos_activos.join(' ').toLowerCase() 
@@ -3856,24 +3859,16 @@ window.renderView = async function renderView() {
 
             clientes = clientes.filter(c => {
                 const hasUnit = hasAccessToUnit(c);
-                if (role === 'Manager de Ventas') return hasUnit;
-                if (role === 'Account Manager') return hasUnit && c.account_manager_id === currentUser.id;
-                if (role === 'Supervisión') {
+                if (allRoles.includes('Manager de Ventas') || allRoles.includes('Manager')) {
+                    return hasUnit;
+                } else if (allRoles.includes('Account Manager')) {
+                    return hasUnit && c.account_manager_id === currentUser.id;
+                } else if (allRoles.includes('Supervisión') || allRoles.includes('Supervisor')) {
                     const vendorId = c.vendedor_asignado_id || c.creador_id || '';
                     const vendorUser = workers.find(w => w.id === vendorId);
                     return vendorUser && vendorUser.supervisor_id === currentUser.id;
                 }
-                if (role === 'Manager') {
-                    const subRol = currentUser.sub_rol || '';
-                    if (subRol === 'Manager de Ventas') return hasUnit;
-                    if (subRol === 'Account Manager') return hasUnit && c.account_manager_id === currentUser.id;
-                    if (subRol === 'Supervisor') {
-                        const vendorId = c.vendedor_asignado_id || c.creador_id || '';
-                        const vendorUser = workers.find(w => w.id === vendorId);
-                        return vendorUser && vendorUser.supervisor_id === currentUser.id;
-                    }
-                    return hasUnit; // Default PM fallback
-                }
+                
                 return true;
             });
             const allowedClientIds = new Set(clientes.map(c => c.id));
@@ -4234,7 +4229,8 @@ window.renderView = async function renderView() {
   else if (state.activeView === 'proveedores') {
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const rolName = (curUsr.rol || '').toLowerCase();
-    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rolName);
+    const allRoles = [rolName, ...(curUsr.roles_adicionales || []).map(r => r.toLowerCase())];
+    const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
     
     UI.viewTitle.textContent = "Partners Hub";
     UI.viewDesc.textContent = "Directorio oficial de proveedores y subcontratistas.";
@@ -4361,7 +4357,8 @@ window.renderView = async function renderView() {
     
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const rol = (currentUser.rol || '').toLowerCase();
-    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rol);
+    const allRoles = [rol, ...(currentUser.roles_adicionales || []).map(r => r.toLowerCase())];
+    const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
 
     let userPips = state.pipelines;
     
@@ -7462,7 +7459,7 @@ async function showWorkerDetail(id) {
     const equipoContainer = document.getElementById('det-usr-equipo-container');
     const equipoList = document.getElementById('det-usr-equipo-list');
     if (equipoContainer && equipoList) {
-        if (usr.rol === 'Supervisor') {
+        if (usr.rol === 'Supervisor' || (usr.roles_adicionales && usr.roles_adicionales.includes('Supervisor'))) {
             equipoContainer.classList.remove('hidden');
             if (usr.equipo_ids && usr.equipo_ids.length > 0) {
                 const db = getDB();
@@ -7578,7 +7575,9 @@ async function showWorkerDetail(id) {
         try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
     })();
     const currentRol = (currentUser.rol || '').toLowerCase();
-    const canEdit = currentRol === 'ceo' || currentRol === 'admin' || currentRol === 'administrador';
+    const rAdic = (currentUser.roles_adicionales || []).map(r => r.toLowerCase());
+    const isSuperRole = (r) => r === 'ceo' || r === 'admin' || r === 'administrador';
+    const canEdit = isSuperRole(currentRol) || rAdic.some(isSuperRole);
     if (UI.btnEditFromDetail) {
         UI.btnEditFromDetail.style.display = canEdit ? 'flex' : 'none';
     }
@@ -7775,11 +7774,14 @@ async function toggleDetailEditMode(id) {
             }
             
             if (pipesCont) {
-                pipesCont.classList.toggle('hidden', roleVal !== 'Manager');
                 const selectedPipes = usr.pipeline_ids || [];
                 document.querySelectorAll('.pm-pipeline-chk').forEach(chk => {
                     chk.checked = selectedPipes.includes(chk.value);
                 });
+            }
+            
+            if (typeof window.updateEditWorkerRankVisibility === 'function') {
+                window.updateEditWorkerRankVisibility();
             }
         }
         
@@ -8051,8 +8053,11 @@ async function toggleDetailEditMode(id) {
             const banco_cuenta = document.getElementById('det-edit-banco-cuenta')?.value.trim() || '';
             const banco_ruta   = document.getElementById('det-edit-banco-ruta')?.value.trim()   || '';
 
-            const equipo_ids = (rol === 'Supervisor') ? Array.from(document.querySelectorAll('.rep-equipo-chk:checked')).map(c => c.value) : [];
-            const pipeline_ids = (rol === 'Manager') ? Array.from(document.querySelectorAll('.pip-perm-chk:checked')).map(c => c.dataset.pip) : [];
+            const arrAdic = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value);
+            const isSup = rol === 'Supervisor' || arrAdic.includes('Supervisor');
+            const isMgr = rol === 'Manager' || arrAdic.includes('Manager') || rol === 'Manager de Ventas' || arrAdic.includes('Manager de Ventas');
+            const equipo_ids = isSup ? Array.from(document.querySelectorAll('.rep-equipo-chk:checked')).map(c => c.value) : [];
+            const pipeline_ids = isMgr ? Array.from(document.querySelectorAll('.pip-perm-chk:checked')).map(c => c.dataset.pip) : [];
 
             // Read pipeline permissions
             const checkedPips = Array.from(
@@ -11328,7 +11333,9 @@ window.updateEditWorkerRankVisibility = function() {
     const equipoCont = document.getElementById('det-edit-equipo-container');
     const pipesCont = document.getElementById('det-edit-pipelines-container');
     const rolVal = (rol ? rol.value.toLowerCase() : '');
-    const hasPipelines = ['manager', 'project manager', 'vendedor', 'representante de ventas', 'supervisor', 'supervisión'].includes(rolVal) || rolVal.includes('call center');
+    const rolesAdicVals = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value.toLowerCase());
+    const allRoles = [rolVal, ...rolesAdicVals];
+    const hasPipelines = allRoles.some(r => ['manager', 'project manager', 'vendedor', 'representante de ventas', 'supervisor', 'supervisión', 'técnico', 'tecnico', 'tecnicos', 'técnicos'].includes(r) || r.includes('call center'));
     if (rol && pipesCont) pipesCont.classList.toggle('hidden', !hasPipelines);
     if (rol && equipoCont) {
         equipoCont.classList.toggle('hidden', rol.value !== 'Supervisor');
@@ -11406,7 +11413,7 @@ window.updateEditWorkerRankVisibility = function() {
 };
 
 document.addEventListener('change', (e) => {
-    if (e.target.id === 'det-edit-rol' || (e.target.classList && e.target.classList.contains('pip-perm-chk'))) {
+    if (e.target.id === 'det-edit-rol' || (e.target.classList && e.target.classList.contains('rol-adic-chk')) || (e.target.classList && e.target.classList.contains('pip-perm-chk'))) {
         if (typeof window.updateEditWorkerRankVisibility === 'function') {
             window.updateEditWorkerRankVisibility();
         }
@@ -11687,7 +11694,8 @@ window.populateRolesDropdowns = function() {
 
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const rolName = (curUsr.rol || '').toLowerCase();
-    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(rolName);
+    const allRoles = [rolName, ...(curUsr.roles_adicionales || []).map(r => r.toLowerCase())];
+    const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
     
     let optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
     
