@@ -7663,6 +7663,9 @@ async function toggleDetailEditMode(id) {
     if (viewPanel) viewPanel.classList.add('hidden');
     if (editPanel) {
         editPanel.classList.remove('hidden');
+        if (typeof window.populateRolesDropdowns === 'function') {
+            window.populateRolesDropdowns();
+        }
         // Populate edit fields
         document.getElementById('det-edit-nombre').value = usr.nombre || '';
         document.getElementById('det-edit-apellido').value = usr.apellido || '';
