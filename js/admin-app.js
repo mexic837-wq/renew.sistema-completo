@@ -4663,8 +4663,8 @@ window.renderView = async function renderView() {
     `;
   }
   else if (state.activeView === 'whatsapp') {
-    UI.viewTitle.textContent = "Intelligence: WA Reactor";
-    UI.viewDesc.textContent = "Autonomous WhatsApp automation protocols for direct device infiltration.";
+    UI.viewTitle.textContent = "Automatizaciones: WhatsApp";
+    UI.viewDesc.textContent = "Configura y envía campañas o mensajes automatizados a través de WhatsApp.";
     setGlobalButton(false);
     
     UI.canvas.innerHTML = `
@@ -4675,19 +4675,19 @@ window.renderView = async function renderView() {
               <i class="fa-brands fa-whatsapp text-2xl"></i>
             </div>
             <div>
-              <p class="aqua-label mb-1 uppercase text-[9px]">WA Protocol Segment</p>
+              <p class="aqua-label mb-1 uppercase text-[9px]">Audiencia de WhatsApp</p>
               <select id="wa-audiencia" class="bg-transparent border-none text-xl font-black text-gray-900 dark:text-white p-0 focus:ring-0 cursor-pointer hover:text-green-400 transition-colors">
-                <option value="Todos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Global Network</option>
-                <option value="Solar" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Solar Leads</option>
-                <option value="Water" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Renew Water Leads</option>
-                <option value="clientes_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Manual Selection</option>
-                <option value="todos_trabajadores" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Internal Team</option>
-                <option value="trabajadores_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Collaborator Selection</option>
+                <option value="Todos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Red Global (Todos)</option>
+                <option value="Solar" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Leads Renew Solar</option>
+                <option value="Water" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Leads Renew Water</option>
+                <option value="clientes_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Selección Manual (Clientes)</option>
+                <option value="todos_trabajadores" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Equipo Interno (Todos)</option>
+                <option value="trabajadores_especificos" class="bg-white dark:bg-darkCard text-gray-900 dark:text-white">Selección Manual (Equipo)</option>
               </select>
             </div>
           </div>
           <div class="text-right">
-             <div class="px-4 py-2 bg-gray-50 dark:bg-white/5 text-green-500/60 text-[10px] font-black rounded-xl border border-gray-200 dark:border-white/10 uppercase tracking-[0.2em]">Reactor Active</div>
+             <div class="px-4 py-2 bg-gray-50 dark:bg-white/5 text-green-500/60 text-[10px] font-black rounded-xl border border-gray-200 dark:border-white/10 uppercase tracking-[0.2em]">Servicio Activo</div>
           </div>
         </div>
 
@@ -4699,10 +4699,10 @@ window.renderView = async function renderView() {
 
         <div class="flex gap-4 pt-6">
            <button id="btn-add-wa-paso" class="flex-1 py-4 bg-gray-50 dark:bg-white/5 hover:bg-green-500/10 text-gray-400 dark:text-gray-600 hover:text-green-500 rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 border border-gray-100 dark:border-white/5">
-             <i class="fa-solid fa-plus-circle text-lg"></i> Append Automation
+             <i class="fa-solid fa-plus-circle text-lg"></i> Añadir Paso
            </button>
            <button id="btn-enviar-wa-campana" class="px-10 py-4 bg-green-500 text-black rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[9px] flex items-center justify-center gap-3 shadow-sm hover:shadow-green-500/30 hover:scale-[1.02] active:scale-95">
-             <i class="fa-solid fa-satellite-dish text-lg"></i> Broadcast Signal
+             <i class="fa-solid fa-paper-plane text-lg"></i> Enviar Campaña
            </button>
         </div>
       </div>
@@ -5987,7 +5987,7 @@ function crearPasoWhatsAppHTML(index) {
           <div class="wa-step-idx w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-green-400 font-black text-sm">
             ${index}
           </div>
-          <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">WhatsApp Automation</h3>
+          <h3 class="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Automatización de WhatsApp</h3>
         </div>
         ${!isFirst ? `
         <button class="btn-eliminar-wa-paso text-red-500/50 hover:text-red-500 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100">
@@ -5997,13 +5997,13 @@ function crearPasoWhatsAppHTML(index) {
       </div>
 
       <div class="mb-6">
-        <p class="aqua-label text-green-400">Send Schedule</p>
+        <p class="aqua-label text-green-400">Fecha de Envío</p>
         <input type="datetime-local" class="wa-fecha-envio w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:border-green-500 outline-none font-bold transition-all">
       </div>
 
       <div class="mt-6">
-        <p class="aqua-label text-green-400">WhatsApp Message Content</p>
-        <textarea class="wa-cuerpo w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:border-green-500 outline-none font-medium h-32 resize-none transition-all" placeholder="Hello {{name}}, your request has been..."></textarea>
+        <p class="aqua-label text-green-400">Contenido del Mensaje</p>
+        <textarea class="wa-cuerpo w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:border-green-500 outline-none font-medium h-32 resize-none transition-all" placeholder="Hola {{name}}, tu solicitud ha sido..."></textarea>
       </div>
     </div>
   `;
