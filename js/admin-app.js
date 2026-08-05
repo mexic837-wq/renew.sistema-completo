@@ -8264,7 +8264,7 @@ function renderDiscussionHTML(discusion, pipelineColor, projectId = null) {
         
         const currentUser = getCurrentUser();
         const isMe = currentUser?.id === c.user_id;
-        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes(window.getUserRoles(currentUser?).join(" ").toLowerCase());
+        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes(window.getUserRoles(currentUser).join(" ").toLowerCase());
         const initials = ((c.user || '?')[0]).toUpperCase();
         const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
@@ -8320,7 +8320,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const respuestas = (db.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === p.id);
 
   const currentUser = getCurrentUser();
-  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes(window.getUserRoles(currentUser?).join(" ").toLowerCase());
+  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes(window.getUserRoles(currentUser).join(" ").toLowerCase());
   const isResponsable = currentUser?.id === p.responsable_id || currentUser?.id === p.asignado_a || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
   const canManageObservers = isAdmin || isResponsable;
   
