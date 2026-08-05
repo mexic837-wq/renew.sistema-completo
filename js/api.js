@@ -40,10 +40,6 @@ window.getUserRoles = function(user) {
       }
     }
   }
-  // Fallback for legacy users who still have roles_adicionales in the DB
-  if (Array.isArray(user.roles_adicionales)) {
-    rawRoles.push(...user.roles_adicionales);
-  }
   return [...new Set(rawRoles.filter(Boolean).map(r => r.toLowerCase().trim()))];
 };
 export function logout() {
