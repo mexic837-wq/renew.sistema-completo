@@ -25,7 +25,7 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
-import { renderDashboard } from './screens/dashboard.js?v=2';
+import { renderDashboard } from './screens/dashboard.js?v=3';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
@@ -45,7 +45,7 @@ import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
-import { _renderToolsForPipeline } from './screens/dashboard.js?v=2';
+import { _renderToolsForPipeline } from './screens/dashboard.js?v=3';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -636,7 +636,9 @@ export function updateNavHighlight(activeScreen) {
   
   const user = getCurrentUser();
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eÃ©]cn[io]co/i.test(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eǸ]cn[io]co/i.test(r));
+  const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'manager de ventas', 'supervisor', 'supervisin', 'project manager'].includes(r));
+  const isStrictTecnico = isTecnico && !isVendedor;
 
   // Global role classes for CSS
   document.body.classList.toggle('is-tecnico', !!isStrictTecnico);
@@ -1041,6 +1043,7 @@ function _sizeIframeScreen(screenId, iframeId) {
     window.addEventListener('resize', section._resizeHandler);
   }
 }
+
 
 
 
