@@ -11363,10 +11363,10 @@ window.updateEditWorkerRankVisibility = function() {
         return pipName.toLowerCase().includes('water') || pipName.toLowerCase().includes('agua');
     });
 
-    const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
-    const isProjectManager = rolVal === 'project manager';
-    const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión';
-    const isManager = rolVal === 'manager';
+    const isVendedor = rolesVals.includes('vendedor') || rolesVals.includes('representante de ventas');
+    const isProjectManager = rolesVals.includes('project manager');
+    const isSupervisor = rolesVals.includes('supervisor') || rolesVals.includes('supervisión');
+    const isManager = rolesVals.includes('manager');
 
     const rankSelect = document.getElementById('det-edit-rank');
     if (rankSelect) {
