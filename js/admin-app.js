@@ -12437,7 +12437,7 @@ window.saveChatAccess = async function(cliente_id) {
     // Refresh chat UI if needed
     initClientChat(db.Clientes_Maestro[cliIdx]);
 };
-\n
+
   const detEditRol = document.getElementById('det-edit-rol');
   const detEditDept = document.getElementById('det-edit-dept');
   if (detEditRol) {

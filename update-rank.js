@@ -66,7 +66,7 @@ const eventListener = `
 `;
 
 // Insert the event listeners at the end of the script
-js = js + "\\n" + eventListener;
+js = js + "\n" + eventListener;
 
 fs.writeFileSync('js/admin-app.js', js);
 console.log('Update complete');
