@@ -25,7 +25,7 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
-import { renderDashboard } from './screens/dashboard.js?v=5';
+import { renderDashboard } from './screens/dashboard.js?v=7';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
@@ -45,7 +45,7 @@ import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
-import { _renderToolsForPipeline } from './screens/dashboard.js?v=5';
+import { _renderToolsForPipeline } from './screens/dashboard.js?v=7';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -657,7 +657,7 @@ export function updateNavHighlight(activeScreen) {
   // Update nav labels with current language
   const navLabels = {
     'dashboard':    t('nav_home'),
-    'clients':      isStrictTecnico ? t('nav_clients_tech') : (isCallCenter ? 'Mis Llamadas' : t('nav_clients')),
+    'clients':      (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (isCallCenter ? 'Mis Llamadas' : t('nav_clients'))),
     'academy':      t('nav_academy'),
     'mi-equipo':    t('nav_team'),
     'menu':         t('nav_menu'),

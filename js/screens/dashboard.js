@@ -612,7 +612,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico || allRoles.includes('manager'))) ? {
-        name: isStrictTecnico ? t('nav_clients_tech') : (allRoles.some(r => r.includes('call')) ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
+        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (allRoles.some(r => r.includes('call')) ? 'Mis Llamadas' : 'Mis Clientes')), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -663,7 +663,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (true || userRole === 'manager')) ? {
-        name: isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Solar',
+        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes')), tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -700,7 +700,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : true) ? {
-        name: isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Home',
+        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes')), tag: 'Renew Home',
         gradient: 'linear-gradient(90deg,#a3d96b,#84cc16)',
         iconBg: 'rgba(163,217,107,0.12)', iconColor: '#a3d96b',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -762,6 +762,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
     'Plantillas':            'var(--bg-tool-credito)',
     'Inventario Real':       'var(--bg-tool-inventario)',
     'Mis Clientes':          'var(--bg-tool-clientes)',
+      'Clientes / Citas':      'var(--bg-tool-clientes)',
     'Mis Llamadas':          'var(--bg-tool-clientes)',
     'Gestión de Leads (Fase 1)': 'var(--bg-tool-callcenter)',
     'Mi Mapa':               'var(--bg-tool-mapa)',
