@@ -1,5 +1,5 @@
-/* ============================================================
-   RENEW SOLAR – app.js
+﻿/* ============================================================
+   RENEW SOLAR â€“ app.js
    SPA Router + Auth State
    ============================================================ */
 window.appNavigate = (screen, param) => navigate(screen, param);
@@ -89,7 +89,7 @@ window.addEventListener('message', async (e) => {
 
           const now = Date.now();
           if (window._lastAutoCreateTime && (now - window._lastAutoCreateTime < 10000)) {
-              console.warn('[APP] Evitando creación duplicada: la última creación fue hace menos de 10 segundos.');
+              console.warn('[APP] Evitando creaciÃ³n duplicada: la Ãºltima creaciÃ³n fue hace menos de 10 segundos.');
               showToast('Formulario ya procesado.', 'info');
               return;
           }
@@ -169,7 +169,7 @@ window.addEventListener('message', async (e) => {
       }
 
       const dynamicField = db.Admin_Campos_Formulario?.find(c => 
-        c.tipo === (isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito') && 
+        c.tipo === (isWorkOrder ? 'Orden de Trabajo' : 'AplicaciÃ³n de CrÃ©dito') && 
         c.fase_id === project?.fase_id
       );
       
@@ -178,7 +178,7 @@ window.addEventListener('message', async (e) => {
         flatResp[dynamicField.id] = 'Completado';
       }
 
-      // ── NEW: Update local Client Profile metadata immediately ──
+      // â”€â”€ NEW: Update local Client Profile metadata immediately â”€â”€
       if (targetClientId && pdfUrl) {
           const client = db.Clientes_Maestro?.find(c => c.id === targetClientId);
           const { saveGranular: sgLocal } = await import('./api.js');
@@ -208,7 +208,7 @@ window.addEventListener('message', async (e) => {
         syncKanbanActivity({
           proyecto_id: proyectoId,
           evento: 'FORMULARIO_COMPLETADO',
-          fase_nombre: isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito',
+          fase_nombre: isWorkOrder ? 'Orden de Trabajo' : 'AplicaciÃ³n de CrÃ©dito',
           responsable_id: (getCurrentUser())?.id
         });
       }
@@ -217,7 +217,7 @@ window.addEventListener('message', async (e) => {
       const advOptions = {};
       if (e.data.type === 'CREDIT_APP_SUBMITTED' && project) {
         const curFase = db.Admin_Fases?.find(f => f.id === project.fase_id);
-        if (curFase && curFase.nombre.toLowerCase().includes('aprobación')) {
+        if (curFase && curFase.nombre.toLowerCase().includes('aprobaciÃ³n')) {
           advOptions.preventAutoAdvance = true;
           advOptions.forceNotify = true;
         }
@@ -232,7 +232,7 @@ window.addEventListener('message', async (e) => {
           console.log(`[APP] No project for this submission. Saved as Prospecto.`);
       }
 
-      // ── WORK ORDER: persist schedule on project for later reference ───────
+      // â”€â”€ WORK ORDER: persist schedule on project for later reference â”€â”€â”€â”€â”€â”€â”€
       if (isWorkOrder && project && rawPayload?.instalacion) {
         try {
           const horarioOrden = rawPayload.instalacion.horario || '';
@@ -246,15 +246,15 @@ window.addEventListener('message', async (e) => {
           console.error('[APP] Error saving work order schedule:', woErr);
         }
       }
-      // ── END WORK ORDER SCHEDULE PERSISTENCE ─────────────────────────────
+      // â”€â”€ END WORK ORDER SCHEDULE PERSISTENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
       let successMsg = '';
       if (res.didAdvance) {
         successMsg = isWorkOrder 
-          ? 'Orden de Trabajo Procesada. Fase avanzada automáticamente.'
-          : 'Aplicación de Crédito Procesada. Fase avanzada automáticamente.';
+          ? 'Orden de Trabajo Procesada. Fase avanzada automÃ¡ticamente.'
+          : 'AplicaciÃ³n de CrÃ©dito Procesada. Fase avanzada automÃ¡ticamente.';
       } else if (advOptions.preventAutoAdvance) {
-        successMsg = 'Aplicación de Crédito enviada a Administración. Pendiente de aprobación.';
+        successMsg = 'AplicaciÃ³n de CrÃ©dito enviada a AdministraciÃ³n. Pendiente de aprobaciÃ³n.';
       } else {
         successMsg = 'Formulario guardado. Completa los campos restantes para avanzar.';
       }
@@ -325,7 +325,7 @@ window.addEventListener('message', async (e) => {
       }
 
       if (res.didAdvance) {
-        showToast('Contrato Procesado. Fase avanzada automáticamente.', 'success');
+        showToast('Contrato Procesado. Fase avanzada automÃ¡ticamente.', 'success');
         navigate('dashboard');
       } else {
         showToast('Contrato Guardado. Completa los campos restantes para avanzar.', 'info');
@@ -347,12 +347,12 @@ window.addEventListener('message', async (e) => {
 // getCurrentUser and logout moved to api.js to break circular dependency
 
 
-// ── Interceptor de Anuncios GLOBALES ──────────────────────────
+// â”€â”€ Interceptor de Anuncios GLOBALES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { saveDB, getDB } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
 
-// ── Test function para probar el webhook de WhatsApp directamente desde la consola ──
+// â”€â”€ Test function para probar el webhook de WhatsApp directamente desde la consola â”€â”€
 window.testWpWebhook = async function() {
   const WH = 'https://n8n.renewgroup.site/webhook/notifiaciones-generales';
   const payload = {
@@ -360,7 +360,7 @@ window.testWpWebhook = async function() {
     destinatario_nombre: "Test Usuario",
     destinatario_telefono: "",
     mensaje_directo: "Mensaje de prueba desde la consola.",
-    mensaje_admin: "[Notificación para Test] Mensaje de prueba desde la consola.",
+    mensaje_admin: "[NotificaciÃ³n para Test] Mensaje de prueba desde la consola.",
     link: "https://renewgroup.site/index.html#hub",
     timestamp: new Date().toISOString(),
     is_admin_only: false
@@ -387,7 +387,7 @@ window.verificarAnunciosNuevos = async function() {
 
   let unreadCount = 0;
 
-  // 1. Contar anuncios no leídos
+  // 1. Contar anuncios no leÃ­dos
   for (let an of anuncios) {
     let pertenece = false;
     if (an.audiencia === 'todos') {
@@ -409,7 +409,7 @@ window.verificarAnunciosNuevos = async function() {
     }
   }
 
-  // 2. Contar meetings no leídas
+  // 2. Contar meetings no leÃ­das
   // Use localStorage as primary source of truth (Supabase UUID columns reject custom string IDs)
   const localReadsKey = `rs_meeting_reads_${user.id}`;
   const localReadIds = JSON.parse(localStorage.getItem(localReadsKey) || '[]');
@@ -433,7 +433,7 @@ window.verificarAnunciosNuevos = async function() {
       }
   }
 
-  // 3. Contar mensajes internos no leídos (donde el usuario es mencionado)
+  // 3. Contar mensajes internos no leÃ­dos (donde el usuario es mencionado)
   const mensajes = db.mensajes_internos || [];
   let unreadChatCount = 0;
   for (let msg of mensajes) {
@@ -471,7 +471,7 @@ window.verificarAnunciosNuevos = async function() {
 // Check every 30 seconds
 setInterval(window.verificarAnunciosNuevos, 30000);
 
-// ── Router ──────────────────────────────────────────────────
+// â”€â”€ Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'plantilla-pozo', 'mis-adelantos'];
 
 export function navigate(screen, param = null) {
@@ -492,7 +492,7 @@ export function navigate(screen, param = null) {
   if (screen === 'partners' && user) {
     const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
     const hasPerm = user.permisos && user.permisos.app_partners;
-    if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisión')) && !hasPerm) {
+    if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisiÃ³n')) && !hasPerm) {
       import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
       navigate('dashboard');
       return;
@@ -636,10 +636,10 @@ export function updateNavHighlight(activeScreen) {
   
   const user = getCurrentUser();
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eÃ©]cn[io]co/i.test(r));
 
   // Global role classes for CSS
-  document.body.classList.toggle('is-tecnico', !!isTecnico);
+  document.body.classList.toggle('is-tecnico', !!isStrictTecnico);
   document.body.classList.toggle('is-callcenter', !!isCallCenter);
 
   // Force nav visibility if somehow hidden
@@ -655,7 +655,7 @@ export function updateNavHighlight(activeScreen) {
   // Update nav labels with current language
   const navLabels = {
     'dashboard':    t('nav_home'),
-    'clients':      isTecnico ? t('nav_clients_tech') : (isCallCenter ? 'Mis Llamadas' : t('nav_clients')),
+    'clients':      isStrictTecnico ? t('nav_clients_tech') : (isCallCenter ? 'Mis Llamadas' : t('nav_clients')),
     'academy':      t('nav_academy'),
     'mi-equipo':    t('nav_team'),
     'menu':         t('nav_menu'),
@@ -700,7 +700,7 @@ export function updateNavHighlight(activeScreen) {
 }
 
 
-// ── Hash-based navigation (back button support) ─────────────
+// â”€â”€ Hash-based navigation (back button support) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function handleHashChange() {
   const hash = window.location.hash.replace('#', '');
   if (!hash) {
@@ -834,7 +834,7 @@ function _ensureSidebarPopulated() {
   }
 }
 
-// ── Theme & Sidebar – registered ONCE at module level ──────
+// â”€â”€ Theme & Sidebar â€“ registered ONCE at module level â”€â”€â”€â”€â”€â”€
 const _applyTheme = (theme) => {
   if (theme === 'dark') {
     document.body.classList.add('dark-theme');
@@ -874,13 +874,13 @@ document.addEventListener('click', (e) => {
     _applyTheme(newTheme);
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
     import('./components/toast.js').then(m => m.showToast(
-      newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : '☀️ Modo Claro',
+      newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : 'â˜€ï¸ Modo Claro',
       'success'
     ));
   }
 });
 
-// ── Bootstrap ───────────────────────────────────────────────
+// â”€â”€ Bootstrap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener('DOMContentLoaded', async () => {
   await initDB(); // Sync with local server
   
@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (hash && SCREENS.includes(hash.split('/')[0])) {
     handleHashChange();
   } else {
-    // ── Deep Link Handler (from WhatsApp notifications) ──
+    // â”€â”€ Deep Link Handler (from WhatsApp notifications) â”€â”€
     const urlParams = new URLSearchParams(window.location.search);
     const deepProyecto = urlParams.get('deepProyecto');
     const deepCliente  = urlParams.get('deepCliente');
@@ -955,14 +955,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'menu':          renderMenu();            break;
       case 'inventory-tech':renderInventoryTech();   break;
       case 'clients':       renderClients();         break;
-      // detail: skip – would need dealId param
+      // detail: skip â€“ would need dealId param
     }
     // Always refresh nav labels
     updateNavHighlight(activeId);
-    showToast(localStorage.getItem('app_lang') === 'en' ? '🇺🇸 Language: English' : '🇪🇸 Idioma: Español', 'success');
+    showToast(localStorage.getItem('app_lang') === 'en' ? 'ðŸ‡ºðŸ‡¸ Language: English' : 'ðŸ‡ªðŸ‡¸ Idioma: EspaÃ±ol', 'success');
   });
 
-  // ── Background DB Sync: Re-render current screen ──────────
+  // â”€â”€ Background DB Sync: Re-render current screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   window.addEventListener('db_synced', () => {
     // Disabled to prevent the UI from fully reloading/flashing every 30 seconds
     /*
@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 1000); // Give it a second to look cool
 });
 
-// ── GLOBAL USER SYNC ─────────────────────────────────────────
+// â”€â”€ GLOBAL USER SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.addEventListener('user_updated', (e) => {
     const user = e.detail;
     const avatarBtn = document.getElementById('avatar-btn');
@@ -1041,5 +1041,6 @@ function _sizeIframeScreen(screenId, iframeId) {
     window.addEventListener('resize', section._resizeHandler);
   }
 }
+
 
 

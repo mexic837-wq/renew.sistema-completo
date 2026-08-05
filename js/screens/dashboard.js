@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    RENEW SOLAR \u2013 screens/dashboard.js
    ============================================================ */
 import { getDealsByUser, STAGE_CONFIG, formatDate, getAdminWorkers, getDB, getDeptArray, getCurrentUser, logout, isProjectFinished, getProjectDate } from '../api.js';
@@ -9,15 +9,15 @@ import { t } from '../i18n.js';
 import { initAdminBell, updateAdminBellBadge } from '../components/admin-notif-bell.js';
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ════════════════════════════════════════════════════════════
-//  RANK SYSTEM — Renew Water (add more pipelines later)
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  RANK SYSTEM â€” Renew Water (add more pipelines later)
 //  type: 'total' = all-time accumulated sales
 //        'monthly' = current month only (resets 1st of each month)
 //
 //  <i class="fa-solid fa-triangle-exclamation text-orange-500"></i>   UPDATE: Change 'minSales' for Iniciante and Junior once
 //               the user provides those numbers.
-// ════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ========================================================================================================================
 export const RANK_CONFIG = {
   'Renew Water': [
@@ -54,7 +54,7 @@ export function computeUserRank(userId, activeUnit, db) {
 
     if (targetRankName === 'No Aplica') {
       return {
-        cur: { name: 'No Aplica', emoji: '🚫', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)', border: 'rgba(156,163,175,0.25)', minSales: 0, type: 'total', priceKey: null },
+        cur: { name: 'No Aplica', emoji: 'ðŸš«', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)', border: 'rgba(156,163,175,0.25)', minSales: 0, type: 'total', priceKey: null },
         next: null,
         progress: { count: 'N/A', total: 0, pct: 100 },
         isManual: true,
@@ -110,7 +110,7 @@ export function computeUserRank(userId, activeUnit, db) {
     return d.getMonth() === curMonth && d.getFullYear() === curYear;
   }).length;
 
-  // Scan from lowest → highest, keep last qualifying rank
+  // Scan from lowest â†’ highest, keep last qualifying rank
   let rankIdx = 0;
   for (let i = 0; i < ranks.length; i++) {
     const count = ranks[i].type === 'monthly' ? totalMonth : totalAT;
@@ -138,7 +138,7 @@ function buildRankBannerHTML(rd, barId = 'rank-prog-bar') {
   if (isNoAplica) {
     return `
       <div style="background:rgba(156,163,175,0.1); border:1px solid rgba(156,163,175,0.25); border-radius:14px; padding:16px; text-align:center; margin-bottom:16px;">
-        <span style="font-size:1.2rem; display:block; margin-bottom:6px;">🚫</span>
+        <span style="font-size:1.2rem; display:block; margin-bottom:6px;">ðŸš«</span>
         <span style="font-size:.75rem; font-weight:900; color:#9ca3af; letter-spacing:-.2px;">SIN LISTA DE PRECIOS ASIGNADA</span>
         <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
            No tienes una lista de precios asignada o configurada.
@@ -149,9 +149,9 @@ function buildRankBannerHTML(rd, barId = 'rank-prog-bar') {
 
   const progressSection = `
     <div style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(0,245,212,.08));border:1px solid rgba(168,85,247,.3);border-radius:14px;padding:12px 14px;text-align:center;">
-      <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">🎉 ¡SIGUE ASÍ, EXCELENTE TRABAJO!</span>
+      <span style="font-size:.75rem;font-weight:900;color:#a855f7;letter-spacing:-.2px;">ðŸŽ‰ Â¡SIGUE ASÃ, EXCELENTE TRABAJO!</span>
       <div style="margin-top:6px; font-size:.58rem; color:var(--text-muted); font-style:italic;">
-        Has logrado ${displayCount} ${displayLabel}. ¡Sigue transformando vidas con Renew!
+        Has logrado ${displayCount} ${displayLabel}. Â¡Sigue transformando vidas con Renew!
       </div>
     </div>
   `;
@@ -200,14 +200,14 @@ export async function renderDashboard() {
 
   const isCC = user && window.getUserRoles(user).some(r => r.includes('call'));
 
-  // —— Destroy old charts ——————————————————————————————————\u2014
+  // â€”â€” Destroy old charts â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”\u2014
   if (window.rendimientoChartInstance?.destroy) { window.rendimientoChartInstance.destroy(); window.rendimientoChartInstance = null; }
   if (window.leaderboardChartInstance?.destroy) { window.leaderboardChartInstance.destroy(); window.leaderboardChartInstance = null; }
 
   screen.innerHTML = `
     <style>
-      /* —— Pipeline chip selector —— */
-      /* —— Pipeline chip selector —— */
+      /* â€”â€” Pipeline chip selector â€”â€” */
+      /* â€”â€” Pipeline chip selector â€”â€” */
       .pip-chips-row {
         display: flex; gap: 10px; padding: 0 16px;
         overflow-x: auto; scroll-snap-type: x mandatory;
@@ -233,7 +233,7 @@ export async function renderDashboard() {
         box-shadow: 0 4px 16px color-mix(in srgb, var(--pip-accent) 22%, transparent);
       }
       .pip-chip-logo {
-        /* natural landscape logo “ let width fill the chip, control height */
+        /* natural landscape logo â€œ let width fill the chip, control height */
         width: 72px; height: auto; max-height: 28px; object-fit: contain;
         filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
       }
@@ -242,7 +242,7 @@ export async function renderDashboard() {
         text-transform: uppercase; letter-spacing: 0.5px;
       }
       .pip-chip.active .pip-chip-badge { color: var(--pip-accent); }
-      /* —— Tool list (Academia-style full-width rectangles) —— */
+      /* â€”â€” Tool list (Academia-style full-width rectangles) â€”â€” */
       @keyframes toolIn {
         from { opacity: 0; transform: translateY(10px); }
         to   { opacity: 1; transform: translateY(0); }
@@ -313,7 +313,7 @@ export async function renderDashboard() {
         --bg-tool-default: linear-gradient(135deg, #0f172a, #1e293b);
       }
 
-      /* —— Desktop Proportions —— */
+      /* â€”â€” Desktop Proportions â€”â€” */
       @media (min-width: 768px) {
         .pip-chips-row {
           gap: 16px;
@@ -386,7 +386,7 @@ export async function renderDashboard() {
             <img src="assets/images/renew copia logo.png" alt="Equipo Renew" style="width: 130px; position: relative; z-index: 10; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));">
           </div>
           <h2 style="font-size: 2.2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 16px; letter-spacing: -0.5px;">Bienvenido al <span style="color: #00f5d4;">Portal de Ventas</span></h2>
-          <p style="color: var(--text-secondary); max-width: 550px; font-size: 1.15rem; line-height: 1.6; margin-bottom: 30px;">El centro de operaciones del Equipo Renew para llevar tu rendimiento al siguiente nivel. Selecciona una herramienta del menú lateral para comenzar tu jornada.</p>
+          <p style="color: var(--text-secondary); max-width: 550px; font-size: 1.15rem; line-height: 1.6; margin-bottom: 30px;">El centro de operaciones del Equipo Renew para llevar tu rendimiento al siguiente nivel. Selecciona una herramienta del menÃº lateral para comenzar tu jornada.</p>
           
           <div class="flex gap-4" style="justify-content: center;">
             <button onclick="document.querySelector('[data-target=\\'tab-rendimiento\\']').click()" style="background: rgba(0,245,212,0.1); color: #00f5d4; border: 1px solid rgba(0,245,212,0.3); padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: all 0.2s hover:bg-opacity-20 hover:scale-105; cursor: pointer;">
@@ -479,7 +479,7 @@ function _buildPipelineChips(user, activeUnit) {
         const fase = allFases.find(f => f.id === p.fase_id);
         if (fase) {
           const rolFase = (fase.rol_encargado || '').toLowerCase();
-          if (rolFase.includes('tecnico') || rolFase.includes('técnico')) {
+          if (rolFase.includes('tecnico') || rolFase.includes('tÃ©cnico')) {
             userTecnicoProjectClientIds.add(String(p.cliente_id));
           }
         }
@@ -497,7 +497,7 @@ function _buildPipelineChips(user, activeUnit) {
         const isTecnicoOfProject = userTecnicoProjectClientIds.has(String(c.id));
 
         // Supervisor logic
-        const isSupervisorOfRep = allRoles.some(r => r === 'supervisor' || r === 'supervisión') && 
+        const isSupervisorOfRep = allRoles.some(r => r === 'supervisor' || r === 'supervisiÃ³n') && 
           (user.equipo_ids || []).some(id => 
             c.creador_id === id || 
             (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
@@ -579,14 +579,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const allRoles    = window.getUserRoles(user);
   const userRole    = allRoles.join(' ').toLowerCase();
   
-  const isTecnico   = allRoles.some(r => /t[eé]cn[io]co/i.test(r) || r === 'tecnico' || r === 'técnico');
+  const isTecnico   = allRoles.some(r => /t[eÃ©]cn[io]co/i.test(r) || r === 'tecnico' || r === 'tÃ©cnico');
   const isAdmin     = allRoles.some(r => ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(r));
-  const isVentas    = allRoles.some(r => r.includes('vendedor') || r.includes('representante') || ['supervisor', 'supervisión', 'manager', 'partner'].includes(r));
+  const isVentas    = allRoles.some(r => r.includes('vendedor') || r.includes('representante') || ['supervisor', 'supervisiÃ³n', 'manager', 'partner'].includes(r));
   const canInventoryRoles = ['contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','partner'];
   let canInventory  = isTecnico || allRoles.some(r => canInventoryRoles.includes(r));
   if (user.permisos && 'app_inventario' in user.permisos) canInventory = user.permisos.app_inventario;
 
-  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisión','finanzas','contabilidad','procesador','manager', 'partner'];
+  const waterHighRoles = ['admin','administrador','desarrollador','ceo','supervisiÃ³n','finanzas','contabilidad','procesador','manager', 'partner'];
   let canWater = allRoles.some(r => waterHighRoles.includes(r) || r.includes('call'));
   if (!canWater && (isVentas || isTecnico)) {
     const waterPip = (db.Admin_Pipelines || []).find(p => (p.nombre||'').toLowerCase().includes('water'));
@@ -603,14 +603,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const TOOLS = {
     'Renew Water': [
       ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (isAdmin || userRole.includes('call'))) ? {
-        name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
+        name: 'GestiÃ³n de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico || allRoles.includes('manager'))) ? {
-        name: isTecnico ? t('nav_clients_tech') : (allRoles.some(r => r.includes('call')) ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
+        name: isStrictTecnico ? t('nav_clients_tech') : (allRoles.some(r => r.includes('call')) ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -637,15 +637,15 @@ export function _renderToolsForPipeline(user, activeUnit) {
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
         action: () => window.appNavigate('mis-recibos'), delay: '0.15s', screen: 'mis-recibos'
       } : null,
-      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : (isAdmin || allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(r)))) ? {
+      ((user.permisos && 'app_precios' in user.permisos) ? user.permisos.app_precios : (isAdmin || allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisiÃ³n'].includes(r)))) ? {
         name: 'Lista de Precios', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#ec4899,#f43f5e)',
         iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>`,
         action: () => window.appNavigate('lista-precios'), delay: '0.18s', screen: 'lista-precios'
       } : null,
-      (isAdmin || user.ver_catalogo || allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisión'].includes(r))) ? {
-        name: 'Catálogo', tag: 'Renew Water',
+      (isAdmin || user.ver_catalogo || allRoles.some(r => ['manager', 'representante de ventas', 'vendedor', 'supervisor', 'supervisiÃ³n'].includes(r))) ? {
+        name: 'CatÃ¡logo', tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#0ea5e9,#0284c7)',
         iconBg: 'rgba(14,165,233,0.12)', iconColor: '#0ea5e9',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`,
@@ -654,14 +654,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
     ],
     'Renew Solar': [
       ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (isAdmin || userRole.includes('call'))) ? {
-        name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
+        name: 'GestiÃ³n de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (true || userRole === 'manager')) ? {
-        name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Solar',
+        name: isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -691,14 +691,14 @@ export function _renderToolsForPipeline(user, activeUnit) {
     ],
     'Renew Home': [
       ((user.permisos && 'app_callcenter' in user.permisos) ? user.permisos.app_callcenter : (isAdmin || userRole.includes('call'))) ? {
-        name: 'Gestión de Leads (Fase 1)', tag: 'Call Center',
+        name: 'GestiÃ³n de Leads (Fase 1)', tag: 'Call Center',
         gradient: 'linear-gradient(90deg,#00f5d4,#00bbf9)',
         iconBg: 'rgba(0,245,212,0.12)', iconColor: '#00f5d4',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : true) ? {
-        name: isTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Home',
+        name: isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes'), tag: 'Renew Home',
         gradient: 'linear-gradient(90deg,#a3d96b,#84cc16)',
         iconBg: 'rgba(163,217,107,0.12)', iconColor: '#a3d96b',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -761,7 +761,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
     'Inventario Real':       'var(--bg-tool-inventario)',
     'Mis Clientes':          'var(--bg-tool-clientes)',
     'Mis Llamadas':          'var(--bg-tool-clientes)',
-    'Gestión de Leads (Fase 1)': 'var(--bg-tool-callcenter)',
+    'GestiÃ³n de Leads (Fase 1)': 'var(--bg-tool-callcenter)',
     'Mi Mapa':               'var(--bg-tool-mapa)',
     'Calendario':         'var(--bg-tool-calendario)',
     'Renew OS (Admin)':      'var(--bg-tool-admin)',
@@ -803,7 +803,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         <div style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
           ${tool.icon}
         </div>
-        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${tool.name.replace(' (Admin)', '').replace('Gestión de Leads (Fase 1)', 'Leads').replace('Mis ', '').replace(' de Pagos', '').replace('Lista de Precios', 'Lista')}</span>
+        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${tool.name.replace(' (Admin)', '').replace('GestiÃ³n de Leads (Fase 1)', 'Leads').replace('Mis ', '').replace(' de Pagos', '').replace('Lista de Precios', 'Lista')}</span>
       </a>
     `).join('');
 
@@ -939,7 +939,7 @@ async function initRendimientoChart(user) {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
   
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eÃ©]cn[io]co/i.test(r));
   const userProjects = allProjects.filter(p => {
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
     const isAssignedVendor = (cli.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
@@ -1047,12 +1047,12 @@ async function initRendimientoChart(user) {
     }
   });
 
-  const timeLabel = timeFilter === 'mes' ? 'Este Mes' : (timeFilter === 'anio' ? 'Este Año' : 'Total');
-    const titleLabel = timeFilter === 'mes' ? 'DEL MES' : (timeFilter === 'anio' ? 'DEL AÑO' : 'GLOBALES');
+  const timeLabel = timeFilter === 'mes' ? 'Este Mes' : (timeFilter === 'anio' ? 'Este AÃ±o' : 'Total');
+    const titleLabel = timeFilter === 'mes' ? 'DEL MES' : (timeFilter === 'anio' ? 'DEL AÃ‘O' : 'GLOBALES');
     
-    if (isTecnico) {
+    if (isStrictTecnico) {
       quickStatsEl.innerHTML = `
-        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÍSTICAS RÁPIDAS ${titleLabel}</label>
+        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÃSTICAS RÃPIDAS ${titleLabel}</label>
         <div style="display:flex; gap:12px">
           <div style="flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Citas Asignadas</p>
@@ -1068,7 +1068,7 @@ async function initRendimientoChart(user) {
       `;
     } else {
       quickStatsEl.innerHTML = `
-        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÍSTICAS RÁPIDAS ${titleLabel}</label>
+        <label style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px; margin-top: 10px;">ESTADÃSTICAS RÃPIDAS ${titleLabel}</label>
         <div style="display:flex; gap:12px">
           <div style="flex:1; background:rgba(255,255,255,0.03); backdrop-filter: blur(10px); padding:20px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px; font-weight: 500;">Tasa de Cierre</p>
@@ -1085,11 +1085,11 @@ async function initRendimientoChart(user) {
     }
   }
 
-  // —— Rank Banner in Rendimiento tab ———————————————————————————————
+  // â€”â€” Rank Banner in Rendimiento tab â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
   const rankBannerRend = document.getElementById('rank-banner-rendimiento');
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
   if (rankBannerRend) {
-    if (isTecnico || isCallCenter) {
+    if (isStrictTecnico || isCallCenter) {
       rankBannerRend.style.display = 'none';
     } else {
       const rankData = computeUserRank(user.id, activeUnit, db);
@@ -1108,7 +1108,7 @@ async function initRendimientoChart(user) {
   window.rendimientoChartInstance = new Chart(ctx.getContext('2d'), {
     type: 'doughnut',
     data: {
-      labels: [isTecnico ? 'Completadas' : 'Ventas', isTecnico ? 'Pendientes' : 'En Proceso'],
+      labels: [isStrictTecnico ? 'Completadas' : 'Ventas', isStrictTecnico ? 'Pendientes' : 'En Proceso'],
       datasets: [
         {
           data: [closedMonth, pendientes],
@@ -1520,7 +1520,7 @@ async function initLeaderboardChart(user) {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
 
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eÃ©]cn[io]co/i.test(r));
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
 
   const projectCountByUserId = {};
@@ -1551,7 +1551,7 @@ async function initLeaderboardChart(user) {
     // Credit goes to tecnico if tecnico, otherwise to the assigned vendor in client OR the project creator
     let targetUserId = null;
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-    if (isTecnico) {
+    if (isStrictTecnico) {
       targetUserId = p.tecnico_id;
     } else {
       targetUserId = (cli.vendedor_asignado_id || '').split(',')[0].trim() || (p.responsable_id || '').split(',')[0].trim();
@@ -1569,7 +1569,7 @@ async function initLeaderboardChart(user) {
     const isWHighRole = window.getUserRoles(w).some(r => ['admin', 'administrador', 'ceo'].includes(r));
     const hasUnitAccess = isWHighRole || (w.unidades && w.unidades.some(u => u.toLowerCase() === activeUnit.toLowerCase() || activeUnit.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
     
-    const isWTecnico = window.getUserRoles(w).some(r => /t[eé]cn[io]co/i.test(r));
+    const isWTecnico = window.getUserRoles(w).some(r => /t[eÃ©]cn[io]co/i.test(r));
     const isWVendedor = window.getUserRoles(w).some(r => r.includes('vendedor') || r.includes('representante'));
     const isWCall = window.getUserRoles(w).some(r => r.includes('call'));
 
@@ -1580,7 +1580,7 @@ async function initLeaderboardChart(user) {
     }
 
     let shouldInclude = false;
-    if (isTecnico) {
+    if (isStrictTecnico) {
         shouldInclude = isWTecnico || w.id === user.id;
     } else if (isCallCenter) {
         shouldInclude = isWCall || w.id === user.id;
@@ -1615,7 +1615,7 @@ async function initLeaderboardChart(user) {
     return;
   }
 
-  // —— Avatar helper ——
+  // â€”â€” Avatar helper â€”â€”
   const avatar = (obj, sz, ring = '') => {
     const ringStyle = ring ? `padding:3px;background:${ring};` : '';
     if (obj.foto) {
@@ -1626,7 +1626,7 @@ async function initLeaderboardChart(user) {
     return `<div style="border-radius:50%;${ringStyle}flex-shrink:0;"><div style="width:${sz}px;height:${sz}px;border-radius:50%;background:linear-gradient(135deg,${bg},${bg}cc);display:flex;align-items:center;justify-content:center;font-weight:900;color:white;font-size:${Math.round(sz * 0.38)}px;letter-spacing:-0.5px;border:2px solid rgba(255,255,255,0.15);">${obj.initials}</div></div>`;
   };
 
-  // —— Podium config ——
+  // â€”â€” Podium config â€”â€”
   const medals = [
     { emoji: '\uD83D\uDC51', gradient: 'linear-gradient(135deg,#fef08a,#eab308)', glow: 'rgba(234,179,8,0.5)', color: '#eab308', textColor: '#fde047', height: 110, avatarSize: 72 },
     { emoji: '\uD83E\uDD48', gradient: 'linear-gradient(135deg,#e2e8f0,#94a3b8)', glow: 'rgba(148,163,184,0.4)', color: '#94a3b8', textColor: '#cbd5e1', height: 80, avatarSize: 58 },
@@ -1636,15 +1636,15 @@ async function initLeaderboardChart(user) {
   const top3 = leaderboardData.slice(0, 3);
 
   let podiumCards = '';
-  const isAdminView = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'project manager', 'manager de ventas', 'account manager', 'supervisión'].includes(r));
+  const isAdminView = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'project manager', 'manager de ventas', 'account manager', 'supervisiÃ³n'].includes(r));
   
   podiumOrder.forEach(idx => {
     if (!top3[idx]) return;
     const p = top3[idx];
     const m = medals[idx];
     const rank = idx + 1;
-    const salesLabel = isTecnico ? 'Citas' : (isCallCenter ? 'Leads' : t('lb_sales'));
-    const hiddenLabel = isTecnico ? 'Citas Ocultas' : (isCallCenter ? 'Leads Ocultos' : 'Ventas Ocultas');
+    const salesLabel = isStrictTecnico ? 'Citas' : (isCallCenter ? 'Leads' : t('lb_sales'));
+    const hiddenLabel = isStrictTecnico ? 'Citas Ocultas' : (isCallCenter ? 'Leads Ocultos' : 'Ventas Ocultas');
     const displaySales = p.isMe || isAdminView ? `${p.sales} ${salesLabel}` : hiddenLabel;
     podiumCards += `
       <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:120px;padding:0 4px;">
@@ -1702,7 +1702,7 @@ async function initLeaderboardChart(user) {
   tab.innerHTML = `
     <div style="margin-bottom:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-        <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
+        <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isStrictTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
       </div>
       <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${activeUnit} \u00B7 Desde Junio 2026</p>
     </div>
@@ -1728,7 +1728,7 @@ function showProfileModal() {
   overlay.style.inset = '0';
   overlay.style.zIndex = '1000';
   
-  // —— Load pipelines dynamically from admin DB ——————————————
+  // â€”â€” Load pipelines dynamically from admin DB â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
   const db = getDB();
   const adminPipelines = (db.Admin_Pipelines || []);
 
@@ -1890,3 +1890,4 @@ window.addEventListener('themechange', () => {
     else initRendimientoChart(user);
   }
 });
+
