@@ -1,15 +1,15 @@
-﻿/* ============================================================
-   RENEW OS â€“ screens/catalogo.js
-   Pantalla "CatÃ¡logo" (PresentaciÃ³n a clientes)
+/* ============================================================
+   RENEW OS – screens/catalogo.js
+   Pantalla "Catálogo" (Presentación a clientes)
    ============================================================ */
 import { getListaPrecios, getCatalogos, getDB } from '../api.js';
 import { getCurrentUser, navigate } from '../app.js';
 import { computeUserRank, RANK_CONFIG } from './dashboard.js';
 
 function formatPrice(val) {
-  if (val == null || val === '') return 'â€”';
+  if (val == null || val === '') return '—';
   const n = Number(val);
-  if (isNaN(n)) return 'â€”';
+  if (isNaN(n)) return '—';
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -22,8 +22,9 @@ export async function renderCatalogo() {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Water';
   
   let basePriceKey = null;
-  const isAdmin = window.getUserRoles(user).some(r => ['admin','administrador','ceo','desarrollador'].includes(r));
-  const isVentas = window.getUserRoles(user).some(r => ['vendedor','representante de ventas','asesor','analista','manager de ventas', 'supervisor', 'supervisin', 'project manager'].includes(r));
+  const isAdmin = window.getUserRoles(user).some(r => ['admin','administrador','ceo','desarrollador'].includes(r)); 
+  const isVentas = window.getUserRoles(user).some(r => ['vendedor','representante de ventas','asesor','analista','manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r)); 
+  
   if (!isAdmin && !isVentas && user.ver_catalogo !== true && user.ver_catalogo !== 'true') {
     const rankInfo = computeUserRank(user.id, activeUnit, db);
     if (rankInfo && rankInfo.isNoAplica) {
@@ -34,14 +35,14 @@ export async function renderCatalogo() {
               <i class="fa-solid fa-arrow-left text-xl"></i>
             </button>
             <div class="dash-greeting" style="text-align:center;">
-              <h1 style="margin:0; font-size:1.3rem;">CatÃ¡logo</h1>
+              <h1 style="margin:0; font-size:1.3rem;">Catálogo</h1>
             </div>
           </div>
         </div>
         <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
           <i class="fas fa-lock" style="font-size: 3.5rem; opacity: 0.2; margin-bottom: 16px;"></i>
           <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Acceso Restringido</p>
-          <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes acceso al catÃ¡logo en este momento. Por favor, contacta a administraciÃ³n si crees que esto es un error.</p>
+          <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes acceso al catálogo en este momento. Por favor, contacta a administración si crees que esto es un error.</p>
         </div>
       `;
       setTimeout(() => {
@@ -79,8 +80,8 @@ export async function renderCatalogo() {
           <i class="fa-solid fa-arrow-left text-xl"></i>
         </button>
         <div class="dash-greeting" style="text-align:center;">
-          <div class="greeting-time" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--primary); font-weight:800;">ðŸ’§ Renew Water</div>
-          <h1 style="margin:0; font-size:1.3rem;">CatÃ¡logo</h1>
+          <div class="greeting-time" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--primary); font-weight:800;">💧 Renew Water</div>
+          <h1 style="margin:0; font-size:1.3rem;">Catálogo</h1>
           <p style="font-size:0.75rem; color:var(--text-muted); margin:4px 0 0;">Usa esto para presentar opciones a tus clientes</p>
         </div>
       </div>
@@ -90,7 +91,7 @@ export async function renderCatalogo() {
     <div style="padding:12px 16px 0;">
       <div style="position:relative; margin-bottom:12px;">
         <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem;"></i>
-        <input type="text" id="catalogo-search" placeholder="Buscar producto o cÃ³digo..."
+        <input type="text" id="catalogo-search" placeholder="Buscar producto o código..."
           style="width:100%; padding:13px 16px 13px 42px; border-radius:16px; border:1px solid var(--border); background:var(--surface-alt); color:var(--text-primary); font-size:0.9rem; outline:none; box-sizing:border-box;">
       </div>
 
@@ -246,7 +247,7 @@ export async function renderCatalogo() {
           <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--text-muted);">
             <i class="fas fa-box-open" style="font-size:3.5rem; opacity:0.2; margin-bottom:16px;"></i>
             <p style="font-weight:700; font-size:1rem;">Sin productos</p>
-            <p style="font-size:0.82rem; opacity:0.7;">Intenta con otros tÃ©rminos.</p>
+            <p style="font-size:0.82rem; opacity:0.7;">Intenta con otros términos.</p>
           </div>
         `;
         return;
@@ -257,7 +258,7 @@ export async function renderCatalogo() {
       grid.innerHTML = filtered.map((p, i) => {
         const imgHTML = p.foto_url
           ? `<img src="${p.foto_url}" class="precio-card-img" alt="${p.nombre}" loading="lazy">`
-          : `<div class="precio-card-img-placeholder">ðŸ’§</div>`;
+          : `<div class="precio-card-img-placeholder">💧</div>`;
 
         const savedPrice = customPrices[p.id];
         const displayPrice = savedPrice !== undefined ? savedPrice : (p.precio_minimo || p[activePriceKey] || p.precio_full || 0);
@@ -268,7 +269,7 @@ export async function renderCatalogo() {
             <div class="precio-card-body">
               ${p.categoria ? `<div class="precio-cat-badge">${p.categoria}</div>` : ''}
               <p class="precio-name">${p.nombre}</p>
-              <p class="precio-code">COD: ${p.codigo || 'â€”'}</p>
+              <p class="precio-code">COD: ${p.codigo || '—'}</p>
               <div class="precio-price-row">
                 <div>
                   <div class="precio-price-label">Precio</div>
@@ -337,7 +338,7 @@ export async function renderCatalogo() {
   }
 }
 
-// â”€â”€ Product Detail Responsive Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Product Detail Responsive Modal ──────────────────────────
 function _showProductDetail(prod, priceKey, isAdmin) {
   const existing = document.getElementById('modal-catalogo-detail');
   if (existing) existing.remove();
@@ -376,7 +377,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
 
   const imgContent = prod.foto_url
     ? `<img src="${prod.foto_url}" alt="${prod.nombre}">`
-    : `<div class="detail-placeholder">ðŸ’§</div>`;
+    : `<div class="detail-placeholder">💧</div>`;
 
   const modal = document.createElement('div');
   modal.id = 'modal-catalogo-detail';
@@ -395,18 +396,18 @@ function _showProductDetail(prod, priceKey, isAdmin) {
             </div>
             
             <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
-              ${prod.garantia ? `<div style="padding:10px 16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:14px;font-size:0.75rem;font-weight:700;color:#10b981;display:flex;align-items:center;gap:8px;"><i class="fas fa-shield-alt"></i>GarantÃ­a: ${prod.garantia}</div>` : ''}
+              ${prod.garantia ? `<div style="padding:10px 16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:14px;font-size:0.75rem;font-weight:700;color:#10b981;display:flex;align-items:center;gap:8px;"><i class="fas fa-shield-alt"></i>Garantía: ${prod.garantia}</div>` : ''}
               ${prod.unidad ? `<div style="padding:10px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:14px;font-size:0.75rem;font-weight:700;color:#f59e0b;display:flex;align-items:center;gap:8px;"><i class="fas fa-box"></i>Unidad: ${prod.unidad}</div>` : ''}
             </div>
           </div>
 
-          <!-- Columna Derecha: InformaciÃ³n -->
+          <!-- Columna Derecha: Información -->
           <div class="product-detail-right">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
               <div style="flex:1; min-width:0;">
                 ${prod.categoria ? `<div style="font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#0ea5e9;margin-bottom:6px;">${prod.categoria}</div>` : ''}
                 <h2 style="font-size:1.6rem;font-weight:900;color:var(--text-primary);margin:0;line-height:1.1;">${prod.nombre}</h2>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:8px 0 0;font-weight:700;letter-spacing:1px;">COD: ${prod.codigo || 'â€”'}</p>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:8px 0 0;font-weight:700;letter-spacing:1px;">COD: ${prod.codigo || '—'}</p>
               </div>
               <button id="btn-close-catalogo-modal" style="background:var(--surface-alt);border:none;border-radius:14px;width:40px;height:40px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:16px;transition:0.2s;" onmouseover="this.style.color='#fff';this.style.background='#ef444450'" onmouseout="this.style.color='var(--text-muted)';this.style.background='var(--surface-alt)'">
                 <i class="fas fa-times"></i>
@@ -423,7 +424,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
               ` : ''}
               ${prod.boton ? `
                 <div style="background:var(--surface-alt); padding:8px 16px; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column;">
-                  <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">BotÃ³n</span>
+                  <span style="font-size:0.55rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Botón</span>
                   <span style="font-size:0.85rem; color:var(--text-primary); font-weight:800;">${prod.boton}</span>
                 </div>
               ` : ''}
@@ -450,7 +451,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
 
               ${prod.pdf_url ? `
                 <button onclick="window.open('${prod.pdf_url}', '_blank')" style="width:100%; padding:16px; background:#ef444410; border:2px solid #ef444430; border-radius:18px; color:#ef4444; font-size:0.9rem; font-weight:900; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; transition:0.2s; text-transform:uppercase; letter-spacing:1px;" onmouseover="this.style.background='#ef444420'" onmouseout="this.style.background='#ef444410'">
-                  <i class="fa-solid fa-file-pdf"></i> CatÃ¡logo TÃ©cnico (PDF)
+                  <i class="fa-solid fa-file-pdf"></i> Catálogo Técnico (PDF)
                 </button>
               ` : ''}
             </div>
@@ -500,4 +501,3 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.getElementById('btn-close-catalogo-modal').addEventListener('click', () => modal.remove());
 }
-

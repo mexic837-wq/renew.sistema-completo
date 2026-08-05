@@ -1,5 +1,5 @@
-﻿/* ============================================================
-   RENEW SOLAR â€“ app.js
+/* ============================================================
+   RENEW SOLAR – app.js
    SPA Router + Auth State
    ============================================================ */
 window.appNavigate = (screen, param) => navigate(screen, param);
@@ -25,7 +25,7 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
-import { renderDashboard } from './screens/dashboard.js?v=3';
+import { renderDashboard } from './screens/dashboard.js?v=5';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
@@ -45,7 +45,7 @@ import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
-import { _renderToolsForPipeline } from './screens/dashboard.js?v=3';
+import { _renderToolsForPipeline } from './screens/dashboard.js?v=5';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -89,7 +89,7 @@ window.addEventListener('message', async (e) => {
 
           const now = Date.now();
           if (window._lastAutoCreateTime && (now - window._lastAutoCreateTime < 10000)) {
-              console.warn('[APP] Evitando creaciÃ³n duplicada: la Ãºltima creaciÃ³n fue hace menos de 10 segundos.');
+              console.warn('[APP] Evitando creación duplicada: la última creación fue hace menos de 10 segundos.');
               showToast('Formulario ya procesado.', 'info');
               return;
           }
@@ -169,7 +169,7 @@ window.addEventListener('message', async (e) => {
       }
 
       const dynamicField = db.Admin_Campos_Formulario?.find(c => 
-        c.tipo === (isWorkOrder ? 'Orden de Trabajo' : 'AplicaciÃ³n de CrÃ©dito') && 
+        c.tipo === (isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito') && 
         c.fase_id === project?.fase_id
       );
       
@@ -178,7 +178,7 @@ window.addEventListener('message', async (e) => {
         flatResp[dynamicField.id] = 'Completado';
       }
 
-      // â”€â”€ NEW: Update local Client Profile metadata immediately â”€â”€
+      // ── NEW: Update local Client Profile metadata immediately ──
       if (targetClientId && pdfUrl) {
           const client = db.Clientes_Maestro?.find(c => c.id === targetClientId);
           const { saveGranular: sgLocal } = await import('./api.js');
@@ -208,7 +208,7 @@ window.addEventListener('message', async (e) => {
         syncKanbanActivity({
           proyecto_id: proyectoId,
           evento: 'FORMULARIO_COMPLETADO',
-          fase_nombre: isWorkOrder ? 'Orden de Trabajo' : 'AplicaciÃ³n de CrÃ©dito',
+          fase_nombre: isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito',
           responsable_id: (getCurrentUser())?.id
         });
       }
@@ -217,7 +217,7 @@ window.addEventListener('message', async (e) => {
       const advOptions = {};
       if (e.data.type === 'CREDIT_APP_SUBMITTED' && project) {
         const curFase = db.Admin_Fases?.find(f => f.id === project.fase_id);
-        if (curFase && curFase.nombre.toLowerCase().includes('aprobaciÃ³n')) {
+        if (curFase && curFase.nombre.toLowerCase().includes('aprobación')) {
           advOptions.preventAutoAdvance = true;
           advOptions.forceNotify = true;
         }
@@ -232,7 +232,7 @@ window.addEventListener('message', async (e) => {
           console.log(`[APP] No project for this submission. Saved as Prospecto.`);
       }
 
-      // â”€â”€ WORK ORDER: persist schedule on project for later reference â”€â”€â”€â”€â”€â”€â”€
+      // ── WORK ORDER: persist schedule on project for later reference ───────
       if (isWorkOrder && project && rawPayload?.instalacion) {
         try {
           const horarioOrden = rawPayload.instalacion.horario || '';
@@ -246,15 +246,15 @@ window.addEventListener('message', async (e) => {
           console.error('[APP] Error saving work order schedule:', woErr);
         }
       }
-      // â”€â”€ END WORK ORDER SCHEDULE PERSISTENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── END WORK ORDER SCHEDULE PERSISTENCE ─────────────────────────────
 
       let successMsg = '';
       if (res.didAdvance) {
         successMsg = isWorkOrder 
-          ? 'Orden de Trabajo Procesada. Fase avanzada automÃ¡ticamente.'
-          : 'AplicaciÃ³n de CrÃ©dito Procesada. Fase avanzada automÃ¡ticamente.';
+          ? 'Orden de Trabajo Procesada. Fase avanzada automáticamente.'
+          : 'Aplicación de Crédito Procesada. Fase avanzada automáticamente.';
       } else if (advOptions.preventAutoAdvance) {
-        successMsg = 'AplicaciÃ³n de CrÃ©dito enviada a AdministraciÃ³n. Pendiente de aprobaciÃ³n.';
+        successMsg = 'Aplicación de Crédito enviada a Administración. Pendiente de aprobación.';
       } else {
         successMsg = 'Formulario guardado. Completa los campos restantes para avanzar.';
       }
@@ -325,7 +325,7 @@ window.addEventListener('message', async (e) => {
       }
 
       if (res.didAdvance) {
-        showToast('Contrato Procesado. Fase avanzada automÃ¡ticamente.', 'success');
+        showToast('Contrato Procesado. Fase avanzada automáticamente.', 'success');
         navigate('dashboard');
       } else {
         showToast('Contrato Guardado. Completa los campos restantes para avanzar.', 'info');
@@ -347,12 +347,12 @@ window.addEventListener('message', async (e) => {
 // getCurrentUser and logout moved to api.js to break circular dependency
 
 
-// â”€â”€ Interceptor de Anuncios GLOBALES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Interceptor de Anuncios GLOBALES ──────────────────────────
 import { saveDB, getDB } from './api.js';
 window.getDB = getDB;
 window.saveDB = saveDB;
 
-// â”€â”€ Test function para probar el webhook de WhatsApp directamente desde la consola â”€â”€
+// ── Test function para probar el webhook de WhatsApp directamente desde la consola ──
 window.testWpWebhook = async function() {
   const WH = 'https://n8n.renewgroup.site/webhook/notifiaciones-generales';
   const payload = {
@@ -360,7 +360,7 @@ window.testWpWebhook = async function() {
     destinatario_nombre: "Test Usuario",
     destinatario_telefono: "",
     mensaje_directo: "Mensaje de prueba desde la consola.",
-    mensaje_admin: "[NotificaciÃ³n para Test] Mensaje de prueba desde la consola.",
+    mensaje_admin: "[Notificación para Test] Mensaje de prueba desde la consola.",
     link: "https://renewgroup.site/index.html#hub",
     timestamp: new Date().toISOString(),
     is_admin_only: false
@@ -387,7 +387,7 @@ window.verificarAnunciosNuevos = async function() {
 
   let unreadCount = 0;
 
-  // 1. Contar anuncios no leÃ­dos
+  // 1. Contar anuncios no leídos
   for (let an of anuncios) {
     let pertenece = false;
     if (an.audiencia === 'todos') {
@@ -409,7 +409,7 @@ window.verificarAnunciosNuevos = async function() {
     }
   }
 
-  // 2. Contar meetings no leÃ­das
+  // 2. Contar meetings no leídas
   // Use localStorage as primary source of truth (Supabase UUID columns reject custom string IDs)
   const localReadsKey = `rs_meeting_reads_${user.id}`;
   const localReadIds = JSON.parse(localStorage.getItem(localReadsKey) || '[]');
@@ -433,7 +433,7 @@ window.verificarAnunciosNuevos = async function() {
       }
   }
 
-  // 3. Contar mensajes internos no leÃ­dos (donde el usuario es mencionado)
+  // 3. Contar mensajes internos no leídos (donde el usuario es mencionado)
   const mensajes = db.mensajes_internos || [];
   let unreadChatCount = 0;
   for (let msg of mensajes) {
@@ -471,7 +471,7 @@ window.verificarAnunciosNuevos = async function() {
 // Check every 30 seconds
 setInterval(window.verificarAnunciosNuevos, 30000);
 
-// â”€â”€ Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Router ──────────────────────────────────────────────────
 const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'plantilla-pozo', 'mis-adelantos'];
 
 export function navigate(screen, param = null) {
@@ -492,7 +492,7 @@ export function navigate(screen, param = null) {
   if (screen === 'partners' && user) {
     const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
     const hasPerm = user.permisos && user.permisos.app_partners;
-    if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisiÃ³n')) && !hasPerm) {
+    if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisión')) && !hasPerm) {
       import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
       navigate('dashboard');
       return;
@@ -636,8 +636,8 @@ export function updateNavHighlight(activeScreen) {
   
   const user = getCurrentUser();
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eǸ]cn[io]co/i.test(r));
-  const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'manager de ventas', 'supervisor', 'supervisin', 'project manager'].includes(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
+  const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
   const isStrictTecnico = isTecnico && !isVendedor;
 
   // Global role classes for CSS
@@ -672,7 +672,7 @@ export function updateNavHighlight(activeScreen) {
 
     // Hide 'Nuevo' for call_center or tecnico
     if (item.classList.contains('nav-item-plus')) {
-        item.style.display = (isCallCenter || isTecnico) ? 'none' : 'flex';
+        item.style.display = (isCallCenter || isStrictTecnico) ? 'none' : 'flex';
     }
 
     // Check permissions for specific static nav items
@@ -702,7 +702,7 @@ export function updateNavHighlight(activeScreen) {
 }
 
 
-// â”€â”€ Hash-based navigation (back button support) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Hash-based navigation (back button support) ─────────────
 function handleHashChange() {
   const hash = window.location.hash.replace('#', '');
   if (!hash) {
@@ -836,7 +836,7 @@ function _ensureSidebarPopulated() {
   }
 }
 
-// â”€â”€ Theme & Sidebar â€“ registered ONCE at module level â”€â”€â”€â”€â”€â”€
+// ── Theme & Sidebar – registered ONCE at module level ──────
 const _applyTheme = (theme) => {
   if (theme === 'dark') {
     document.body.classList.add('dark-theme');
@@ -876,13 +876,13 @@ document.addEventListener('click', (e) => {
     _applyTheme(newTheme);
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
     import('./components/toast.js').then(m => m.showToast(
-      newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : 'â˜€ï¸ Modo Claro',
+      newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i> Modo Oscuro' : '☀️ Modo Claro',
       'success'
     ));
   }
 });
 
-// â”€â”€ Bootstrap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Bootstrap ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await initDB(); // Sync with local server
   
@@ -896,7 +896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (hash && SCREENS.includes(hash.split('/')[0])) {
     handleHashChange();
   } else {
-    // â”€â”€ Deep Link Handler (from WhatsApp notifications) â”€â”€
+    // ── Deep Link Handler (from WhatsApp notifications) ──
     const urlParams = new URLSearchParams(window.location.search);
     const deepProyecto = urlParams.get('deepProyecto');
     const deepCliente  = urlParams.get('deepCliente');
@@ -957,14 +957,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'menu':          renderMenu();            break;
       case 'inventory-tech':renderInventoryTech();   break;
       case 'clients':       renderClients();         break;
-      // detail: skip â€“ would need dealId param
+      // detail: skip – would need dealId param
     }
     // Always refresh nav labels
     updateNavHighlight(activeId);
-    showToast(localStorage.getItem('app_lang') === 'en' ? 'ðŸ‡ºðŸ‡¸ Language: English' : 'ðŸ‡ªðŸ‡¸ Idioma: EspaÃ±ol', 'success');
+    showToast(localStorage.getItem('app_lang') === 'en' ? '🇺🇸 Language: English' : '🇪🇸 Idioma: Español', 'success');
   });
 
-  // â”€â”€ Background DB Sync: Re-render current screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Background DB Sync: Re-render current screen ──────────
   window.addEventListener('db_synced', () => {
     // Disabled to prevent the UI from fully reloading/flashing every 30 seconds
     /*
@@ -991,7 +991,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 1000); // Give it a second to look cool
 });
 
-// â”€â”€ GLOBAL USER SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── GLOBAL USER SYNC ─────────────────────────────────────────
 window.addEventListener('user_updated', (e) => {
     const user = e.detail;
     const avatarBtn = document.getElementById('avatar-btn');
@@ -1043,7 +1043,5 @@ function _sizeIframeScreen(screenId, iframeId) {
     window.addEventListener('resize', section._resizeHandler);
   }
 }
-
-
 
 
