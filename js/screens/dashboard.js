@@ -579,7 +579,9 @@ export function _renderToolsForPipeline(user, activeUnit) {
   const allRoles    = window.getUserRoles(user);
   const userRole    = allRoles.join(' ').toLowerCase();
   
-  const isTecnico   = allRoles.some(r => /t[eÃ©]cn[io]co/i.test(r) || r === 'tecnico' || r === 'tÃ©cnico');
+  const isTecnico = allRoles.some(r => /t[eǸ]cn[io]co/i.test(r) || r === 'tecnico' || r === 'tǸcnico');
+  const isVendedor = allRoles.some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisin', 'project manager'].includes(r));
+  const isStrictTecnico = isTecnico && !isVendedor;
   const isAdmin     = allRoles.some(r => ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(r));
   const isVentas    = allRoles.some(r => r.includes('vendedor') || r.includes('representante') || ['supervisor', 'supervisiÃ³n', 'manager', 'partner'].includes(r));
   const canInventoryRoles = ['contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','partner'];
@@ -939,7 +941,9 @@ async function initRendimientoChart(user) {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
   
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eÃ©]cn[io]co/i.test(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eǸ]cn[io]co/i.test(r));
+  const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisin', 'project manager'].includes(r));
+  const isStrictTecnico = isTecnico && !isVendedor;
   const userProjects = allProjects.filter(p => {
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
     const isAssignedVendor = (cli.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
@@ -1520,7 +1524,9 @@ async function initLeaderboardChart(user) {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
 
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eÃ©]cn[io]co/i.test(r));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eǸ]cn[io]co/i.test(r));
+  const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisin', 'project manager'].includes(r));
+  const isStrictTecnico = isTecnico && !isVendedor;
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
 
   const projectCountByUserId = {};
@@ -1890,4 +1896,7 @@ window.addEventListener('themechange', () => {
     else initRendimientoChart(user);
   }
 });
+
+
+
 
