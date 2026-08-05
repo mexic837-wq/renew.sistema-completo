@@ -1,4 +1,4 @@
-import {
+﻿import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,
   createAdminPipeline, createAdminFase, createAdminCampo, updateAdminCampo,
@@ -11676,14 +11676,19 @@ window.populateRolesDropdowns = function() {
     const db = getDB();
     const roles = db.Admin_Roles || [];
 
-    // Fallback en caso de que Admin_Roles esté vacío
+        // Fallback en caso de que Admin_Roles esté vacío
     const defaultRoles = [
-        'CEO', 'Admin', 'Manager', 'Supervisor',
-        'Call Center', 'Técnico', 'Vendedor'
+        'CEO', 'Admin', 'Manager', 'Project Manager', 'Supervisor',
+        'Call Center', 'Técnico', 'Vendedor', 'Representante de Ventas', 'Analista', 'Asesor'
     ];
 
-    // Use all roles from DB, fallback to defaultRoles if DB is empty
-    const mergedRoles = roles.length > 0 ? roles : defaultRoles.map(dr => ({ nombre: dr }));
+    // Combinar DB con defaultRoles para no perder roles importantes
+    const mergedRoles = [...roles];
+    defaultRoles.forEach(dr => {
+        if (!mergedRoles.find(r => (r.nombre || '').toLowerCase() === dr.toLowerCase())) {
+            mergedRoles.push({ nombre: dr });
+        }
+    });
 
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const allRoles = window.getUserRoles(curUsr);
@@ -12477,3 +12482,4 @@ window.saveChatAccess = async function(cliente_id) {
           }
       });
   }
+
