@@ -7724,12 +7724,24 @@ async function toggleDetailEditMode(id) {
         const sipIdEl = document.getElementById('det-edit-sip-id');
         if (sipIdEl) sipIdEl.value = usr.zadarma_sip_id || '';
         
+        const adicChks = document.querySelectorAll('.rol-adic-chk');
+        if (adicChks.length > 0) {
+            const arrAdic = usr.roles_adicionales || [];
+            adicChks.forEach(chk => {
+                chk.checked = arrAdic.includes(chk.value);
+            });
+        }
+        
         const rolEl = document.getElementById('det-edit-rol');
         if (rolEl) {
             let roleVal = usr.rol || 'Vendedor';
             if (roleVal === 'Supervisión') roleVal = 'Supervisor'; // Migration
             if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Manager'; // Migration
             rolEl.value = roleVal;
+            const rolesAdic = usr.roles_adicionales || [];
+            document.querySelectorAll('.rol-adic-chk').forEach(chk => {
+                chk.checked = rolesAdic.includes(chk.value);
+            });
             
             const equipoCont = document.getElementById('det-edit-equipo-container');
             const pipesCont = document.getElementById('det-edit-pipelines-container');
@@ -7740,7 +7752,7 @@ async function toggleDetailEditMode(id) {
                 const equipoChks = document.getElementById('equipo-checkboxes');
                 if (equipoChks) {
                     equipoChks.innerHTML = '';
-                    const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas');
+                    const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas' || (w.roles_adicionales && (w.roles_adicionales.includes('Vendedor') || w.roles_adicionales.includes('Representante de Ventas'))));
                     const selectedIds = usr.equipo_ids || [];
                     vendedores.forEach(vend => {
                         const lbl = document.createElement('label');
@@ -8074,6 +8086,7 @@ async function toggleDetailEditMode(id) {
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     ver_catalogo,
                 ver_partners,
+                    roles_adicionales: Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value),
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
@@ -8742,7 +8755,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                   </div>
                 `;
               } else if (c.tipo === 'Técnico') {
-                const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico');
+                const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico' || (w.roles_adicionales && (w.roles_adicionales.includes('Técnico') || w.roles_adicionales.includes('Tecnico'))));
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
@@ -11324,7 +11337,7 @@ window.updateEditWorkerRankVisibility = function() {
             // If they change role to Supervisor from something else, we should ideally render them if empty.
             const equipoChks = document.getElementById('equipo-checkboxes');
             if (equipoChks && equipoChks.children.length === 0) {
-                const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas');
+                const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas' || (w.roles_adicionales && (w.roles_adicionales.includes('Vendedor') || w.roles_adicionales.includes('Representante de Ventas'))));
                 vendedores.forEach(vend => {
                     const lbl = document.createElement('label');
                     lbl.className = 'flex items-center gap-2 cursor-pointer';
@@ -11441,7 +11454,7 @@ window.openInviteModal = function() {
         
         const platformLinkApp = "https://renewgroup.site";
         const platformLinkAdmin = "https://renewgroup.site";
-        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
+        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico' || (user.roles_adicionales && (user.roles_adicionales.includes('Vendedor') || user.roles_adicionales.includes('Representante de Ventas') || user.roles_adicionales.includes('Técnico')));
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
         const msg = `¡Hola ${user.nombre}! 
@@ -12424,3 +12437,27 @@ window.saveChatAccess = async function(cliente_id) {
     // Refresh chat UI if needed
     initClientChat(db.Clientes_Maestro[cliIdx]);
 };
+\n
+  const detEditRol = document.getElementById('det-edit-rol');
+  const detEditDept = document.getElementById('det-edit-dept');
+  if (detEditRol) {
+      detEditRol.addEventListener('change', () => {
+          const rol = detEditRol.value;
+          const dept = detEditDept ? detEditDept.value : '';
+          const roles_adic = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value);
+          const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas' || roles_adic.includes('Vendedor') || roles_adic.includes('Representante de Ventas');
+          const isWater = dept && dept.toLowerCase().includes('water');
+          const editRankContainer = document.getElementById('det-edit-rank-container');
+          if (editRankContainer) {
+              editRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
+          }
+      });
+  }
+  if (detEditDept) {
+      detEditDept.addEventListener('input', () => {
+          if (detEditRol) {
+              const evt = new Event('change');
+              detEditRol.dispatchEvent(evt);
+          }
+      });
+  }

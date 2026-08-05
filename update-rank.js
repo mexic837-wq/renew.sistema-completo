@@ -25,7 +25,7 @@ const inlineLogic = `
     // Hide rank if not (Vendedor/Representante de Ventas + Water)
     const viewRankContainer = document.getElementById('det-view-rank-container');
     const editRankContainer = document.getElementById('det-edit-rank-container');
-    const isVendedor = usr.rol === 'Vendedor' || usr.rol === 'Representante de Ventas';
+    const isVendedor = usr.rol === 'Vendedor' || usr.rol === 'Representante de Ventas' || (usr.roles_adicionales && (usr.roles_adicionales.includes('Vendedor') || usr.roles_adicionales.includes('Representante de Ventas')));
     const isWater = usr.departamento && usr.departamento.toLowerCase().includes('water');
     if (viewRankContainer) {
         viewRankContainer.style.display = (isVendedor && isWater) ? 'block' : 'none';
@@ -46,7 +46,8 @@ const eventListener = `
       detEditRol.addEventListener('change', () => {
           const rol = detEditRol.value;
           const dept = detEditDept ? detEditDept.value : '';
-          const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas';
+          const roles_adic = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value);
+          const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas' || roles_adic.includes('Vendedor') || roles_adic.includes('Representante de Ventas');
           const isWater = dept && dept.toLowerCase().includes('water');
           const editRankContainer = document.getElementById('det-edit-rank-container');
           if (editRankContainer) {

@@ -1818,6 +1818,18 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="CEO">CEO</option><option value="Admin">Administración</option><option value="Manager">Manager</option><option value="Supervisor">Supervisor</option><option value="Call Center">Call Center</option><option value="Procesador">Oficina</option><option value="Técnico">Técnicos</option><option value="Vendedor">Representante de Ventas</option></select></div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Roles Adicionales</label>
+                                <div id="det-edit-roles-secundarios" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white max-h-24 overflow-y-auto" style="display:flex; flex-direction:column; gap:6px;">
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Vendedor" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Representante de Ventas</label>
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Técnico" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Técnico</label>
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Supervisor" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Supervisor</label>
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Call Center" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Call Center</label>
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Procesador" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Oficina (Procesador)</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
                             <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rango (Water)</label><select id="det-edit-rank" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="no_aplica">No Aplica</option><option value="oficina">Oficina</option><option value="novato">Novato (5 ventas)</option><option value="iniciante">Iniciante (15 ventas)</option><option value="junior">Junior (15 ventas)</option><option value="vendedor">Vendedor (12 ventas)</option><option value="analista">Analista (mantener 15 ventas x mes)</option></select></div>
                             <div id="det-edit-rank-solar-container" class="hidden"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rango (Solar)</label><select id="det-edit-rank-solar" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="no_aplica">No Aplica</option><option value="novato">NOVATO 2.50</option><option value="iniciante">INICIANTE 2.45</option><option value="junior">JUNIOR 2.40</option><option value="vendedor">VENDEDOR 2.30</option><option value="asesor">ASESOR 2.20</option></select></div>
                         </div>

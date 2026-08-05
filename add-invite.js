@@ -97,7 +97,7 @@ window.openInviteModal = function() {
         
         const platformLinkApp = "https://renewgroup.site/index.html";
         const platformLinkAdmin = "https://renewgroup.site/admin.html";
-        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico';
+        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico' || (user.roles_adicionales && (user.roles_adicionales.includes('Vendedor') || user.roles_adicionales.includes('Representante de Ventas') || user.roles_adicionales.includes('Técnico')));
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
         const msg = \`¡Hola \${user.nombre}! <i class="fa-solid fa-handshake"></i>\\n\\nTe damos la bienvenida al equipo Renew. A continuación, te compartimos tus credenciales de acceso a nuestra plataforma.\\n\\n<i class="fa-solid fa-link"></i> Enlace de acceso: \${mainLink}\\n✉️ Usuario: \${user.email}\\n🔑 Contraseña: \${user.pass}\\n\\nSi tienes alguna duda, no dudes en contactar al administrador.\\n¡Éxitos!\`;
