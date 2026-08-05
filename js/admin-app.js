@@ -8082,6 +8082,7 @@ async function toggleDetailEditMode(id) {
                 
                 const updatedUsr = {
                     ...usr,
+                    roles_adicionales: null,
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     ver_catalogo,
                 ver_partners,
@@ -11681,11 +11682,8 @@ window.populateRolesDropdowns = function() {
         'Call Center', 'Técnico', 'Vendedor'
     ];
 
-    // Clean up: only show the requested default roles
-    const mergedRoles = defaultRoles.map(dr => {
-        const existing = roles.find(r => r.nombre.toLowerCase() === dr.toLowerCase());
-        return existing || { nombre: dr };
-    });
+    // Use all roles from DB, fallback to defaultRoles if DB is empty
+    const mergedRoles = roles.length > 0 ? roles : defaultRoles.map(dr => ({ nombre: dr }));
 
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
     const allRoles = window.getUserRoles(curUsr);
