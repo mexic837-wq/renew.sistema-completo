@@ -11676,18 +11676,16 @@ window.populateRolesDropdowns = function() {
     const db = getDB();
     const roles = db.Admin_Roles || [];
 
-        // Fallback en caso de que Admin_Roles esté vacío
+            // Fallback en caso de que Admin_Roles esté vacío
     const defaultRoles = [
-        'CEO', 'Admin', 'Manager', 'Project Manager', 'Supervisor',
-        'Call Center', 'Técnico', 'Vendedor', 'Representante de Ventas', 'Analista', 'Asesor'
+        'CEO', 'Admin', 'Manager', 'Supervisor',
+        'Call Center', 'Técnico', 'Vendedor'
     ];
 
-    // Combinar DB con defaultRoles para no perder roles importantes
-    const mergedRoles = [...roles];
-    defaultRoles.forEach(dr => {
-        if (!mergedRoles.find(r => (r.nombre || '').toLowerCase() === dr.toLowerCase())) {
-            mergedRoles.push({ nombre: dr });
-        }
+    // Clean up: only show the requested default roles
+    const mergedRoles = defaultRoles.map(dr => {
+        const existing = roles.find(r => (r.nombre || '').toLowerCase() === dr.toLowerCase());
+        return existing || { nombre: dr };
     });
 
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
@@ -12482,4 +12480,5 @@ window.saveChatAccess = async function(cliente_id) {
           }
       });
   }
+
 
