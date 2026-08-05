@@ -209,8 +209,7 @@ export async function renderRendimientoGlobal() {
 
     // Role-based ecosystem tab filtering
     const usr = JSON.parse(localStorage.getItem('rs_user') || '{}');
-    const userRole = (usr.rol || '').toLowerCase();
-    const isRestrictedManager = ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(userRole);
+    const isRestrictedManager = window.getUserRoles(usr).some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
     
     let allowedEcos = ['Solar', 'Home', 'Water', 'Group'];
     if (isRestrictedManager && usr.unidades && usr.unidades.length > 0) {

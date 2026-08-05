@@ -549,7 +549,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                           </div>
                           <div>
                               <div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);">${w.nombre}</div>
-                              <div style="font-size:0.7rem;color:var(--text-muted);">${w.rol}</div>
+                              <div style="font-size:0.7rem;color:var(--text-muted);">${window.getUserRoles(w).join(', ')}</div>
                           </div>
                       </div>
                       <button class="add-obs-btn" data-id="${w.id}" style="background:${pipeline.color}15;color:${pipeline.color};border:none;padding:6px 12px;border-radius:8px;font-size:0.7rem;font-weight:800;">Añadir</button>
@@ -1524,7 +1524,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      } else if (c.tipo === 'Técnico') {
        // Cargar técnicos desde la DB
        const allUsers = getDB()?.Usuarios || [];
-       const technicians = allUsers.filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico' || (w.roles_adicionales && (w.roles_adicionales.includes('Técnico') || w.roles_adicionales.includes('Tecnico'))));
+       const technicians = allUsers.filter(w => window.getUserRoles(w).some(r => /t[eé]cn[io]co/i.test(r)));
        const opts = technicians.map(w => {
          const name = `${w.nombre} ${w.apellido || ''}`.trim();
          return `<option value="${w.id}" ${val === w.id ? 'selected' : ''}>${name}</option>`;
@@ -1948,7 +1948,7 @@ window._abrirReciboModal = async function(campoId, tipo, dealId) {
   const user = getCurrentUser() || {};
   const deal = (db.Proyectos_Dinamicos || []).find(p => p.id === dealId) || {};
   const cli  = (db.Clientes_Maestro || []).find(c => c.id === deal.cliente_id) || {};
-  const tecnicoAsignado = (db.Usuarios || []).find(u => (u.rol === "tecnico" || u.rol === "técnico" || (u.roles_adicionales && (u.roles_adicionales.includes("tecnico") || u.roles_adicionales.includes("técnico") || u.roles_adicionales.includes("Técnico") || u.roles_adicionales.includes("Tecnico")))) && (u.id === deal.tecnico_id || u.id === deal.asignado_a));
+  const tecnicoAsignado = (db.Usuarios || []).find(u => window.getUserRoles(u).some(r => /t[eé]cn[io]co/i.test(r)) && (u.id === deal.tecnico_id || u.id === deal.asignado_a));
   
   const tecnicoNom = tecnicoAsignado ? (tecnicoAsignado.nombre + " " + (tecnicoAsignado.apellido || "")) : "";
   const vendedorNom = (user.nombre || "") + " " + (user.apellido || "");

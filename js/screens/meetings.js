@@ -18,12 +18,11 @@ export function renderMeetings() {
   // Filter by audience
   const meetings = rawMeetings.filter(mt => {
       if (!mt.audiencia_tags || mt.audiencia_tags.length === 0 || mt.audiencia_tags.includes('todos')) return true;
-      const userRole = (user.rol || '').toLowerCase();
       const userPipes = (user.unidades || []).map(p => p.toLowerCase());
       
       return mt.audiencia_tags.some(tag => {
           const t = tag.toLowerCase();
-          return userRole === t || userPipes.includes(t);
+          return window.getUserRoles(user).some(r => r === t) || userPipes.includes(t);
       });
   });
 

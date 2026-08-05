@@ -552,7 +552,7 @@ async function init() {
       // Deep Linking Logic
       if (hash && hash.startsWith('#crmDetail?id=')) {
           const allowedRoles = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'];
-          if (allowedRoles.includes(user.rol)) {
+          if (allowedRoles.includes(window.getUserRoles(user).join(", "))) {
               const qs = hash.split('?')[1];
               const params = new URLSearchParams(qs);
               const clientId = params.get('id');
@@ -783,7 +783,7 @@ const updateAdminNavLabels = () => {
 
     // Role-based visibility for HRHub and Call Center
     const usr = JSON.parse(localStorage.getItem('rs_user') || '{}');
-    const rol = (usr.rol || '').toLowerCase();
+    const rol = window.getUserRoles(usr).join(" ").toLowerCase();
     
     if (['project manager', 'manager de ventas', 'account manager', 'manager', 'supervisión'].includes(rol)) {
         document.querySelectorAll('#admin-nav a[data-view="hrhub"], #admin-nav a[data-view="roles"], #admin-nav a[data-view="inventario"]').forEach(el => {
@@ -1464,7 +1464,11 @@ function bindGlobalEvents() {
         UI.inpUsrApe.value = usr.apellido || '';
         UI.inpUsrEmail.value = usr.email || '';
         const phonePartsUsr = (usr.telefono || '').split(' ');
-        UI.inpUsrRol.value = usr.rol || 'novato';
+        const roles = window.getUserRoles(usr);
+        if (roles.length === 0) roles.push('novato');
+        Array.from(UI.inpUsrRol.options).forEach(opt => {
+            opt.selected = roles.includes(opt.value);
+        });
         if(UI.inpUsrDept) UI.inpUsrDept.value = usr.department || '';
         if(UI.inpUsrSede) {
             const savedSede = (usr.sede || '').toLowerCase();
@@ -1526,9 +1530,7 @@ function bindGlobalEvents() {
         const currentUser = (() => {
             try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
         })();
-        const currentRol = (currentUser.rol || '').toLowerCase();
-        const rolesAdic = (currentUser.roles_adicionales || []).map(r => r.toLowerCase());
-        const canEdit = currentRol === 'ceo' || currentRol === 'admin' || currentRol === 'administrador' || rolesAdic.includes('ceo') || rolesAdic.includes('admin') || rolesAdic.includes('administrador');
+        const canEdit = window.getUserRoles(currentUser).some(r => ['ceo', 'admin', 'administrador'].includes(r));
         if (!canEdit) {
             window.addNotification('Seguridad', 'Solo el CEO o Administrador pueden editar perfiles.', 'error');
             return;
@@ -1705,7 +1707,9 @@ function bindGlobalEvents() {
       const workers = await getAdminWorkers();
       const existing = id ? workers.find(w => w.id === id) : null;
 
-      const newUsr = {
+        const selectedRoles = Array.from(UI.inpUsrRol.selectedOptions || []).map(o => o.value);
+        
+        const newUsr = {
         id: id || crypto.randomUUID(),
         nombre: UI.inpUsrNom.value.trim(),
         apellido: UI.inpUsrApe.value.trim(),
@@ -1715,15 +1719,15 @@ function bindGlobalEvents() {
         telefono: (document.getElementById('sel-usr-cc') ? document.getElementById('sel-usr-cc').value + ' ' : '') + UI.inpUsrTel.value.trim(),
         dob: UI.inpUsrDob.value,
         initials: initials,
-        rol: UI.inpUsrRol.value,
+        rol: selectedRoles,
         rango: document.getElementById('inp-usr-rank').value,
         rango_solar: document.getElementById('inp-usr-rank-solar') ? document.getElementById('inp-usr-rank-solar').value : 'no_aplica',
         department: UI.inpUsrDept ? UI.inpUsrDept.value.trim() : '',
         sede: UI.inpUsrSede ? UI.inpUsrSede.value : 'orlando',
         password: UI.inpUsrPass.value.trim(),
         unidades: checkedPips,
-        equipo_ids: (UI.inpUsrRol.value === 'Supervisor') ? Array.from(document.querySelectorAll('.usr-equipo-chk:checked')).map(c => c.value) : [],
-        pipeline_ids: (UI.inpUsrRol.value === 'Manager') ? Array.from(document.querySelectorAll('.usr-pip-chk:checked')).map(c => c.dataset.pip) : [],
+        equipo_ids: selectedRoles.includes('Supervisor') ? Array.from(document.querySelectorAll('.usr-equipo-chk:checked')).map(c => c.value) : [],
+        pipeline_ids: selectedRoles.includes('Manager') ? Array.from(document.querySelectorAll('.usr-pip-chk:checked')).map(c => c.dataset.pip) : [],
         is_suspended: existing ? (existing.is_suspended || false) : false,
         banco_nombre: document.getElementById('inp-usr-banco-nombre')?.value.trim() || '',
         banco_cuenta: document.getElementById('inp-usr-banco-cuenta')?.value.trim() || '',
@@ -3230,11 +3234,9 @@ window.renderView = async function renderView() {
     
     // --- ROLE-BASED FILTERING ---
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
-    const role = currentUser.rol || '';
-    const rAdic = currentUser.roles_adicionales || [];
-    const allRoles = [role, ...rAdic];
-    const isAdminRole = allRoles.some(r => ['CEO', 'Admin', 'Administrador'].includes(r));
-    const isRestrictedRole = allRoles.some(r => ['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión', 'Supervisor'].includes(r));
+    const allRoles = window.getUserRoles(currentUser);
+    const isAdminRole = allRoles.some(r => ['ceo', 'admin', 'administrador'].includes(r));
+    const isRestrictedRole = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'supervisor'].includes(r));
 
     if (!isAdminRole && isRestrictedRole) {
         const hasAccessToUnit = (c) => {
@@ -3841,11 +3843,9 @@ window.renderView = async function renderView() {
 
         // --- ROLE-BASED FILTERING FOR MAP ---
         const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
-        const role = currentUser.rol || '';
-        const rAdic = currentUser.roles_adicionales || [];
-        const allRoles = [role, ...rAdic];
-        const isAdminRole = allRoles.some(r => ['CEO', 'Admin', 'Administrador'].includes(r));
-        const isRestrictedRole = allRoles.some(r => ['Manager', 'Manager de Ventas', 'Account Manager', 'Supervisión', 'Supervisor'].includes(r));
+        const allRoles = window.getUserRoles(currentUser);
+        const isAdminRole = allRoles.some(r => ['ceo', 'admin', 'administrador'].includes(r));
+        const isRestrictedRole = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'supervisor'].includes(r));
 
         if (!isAdminRole && isRestrictedRole) {
             const hasAccessToUnit = (c) => {
@@ -4150,7 +4150,7 @@ window.renderView = async function renderView() {
 
     if (window.globalSearchQuery) {
         items = items.filter(u => {
-            const searchStr = window.normalizeSearchString(`${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${u.rol || ''} ${u.email || ''} ${u.telefono || ''}`);
+            const searchStr = window.normalizeSearchString(`${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${window.getUserRoles(u).join(", ") || ''} ${u.email || ''} ${u.telefono || ''}`);
             return searchStr.includes(window.globalSearchQuery);
         });
     }
@@ -4160,7 +4160,7 @@ window.renderView = async function renderView() {
         const safeApellido = u.apellido || '';
         const initial = u.initials || (safeNombre[0] || '?');
         const dept = u.department || 'Renew Group';
-        const rol = (u.rol || 'Vendedor').toLowerCase().includes('vendedor') ? 'Representante de Ventas' : (u.rol || 'Colaborador');
+        const rol = (window.getUserRoles(u).join(" ") || "Vendedor").toLowerCase().includes('vendedor') ? 'Representante de Ventas' : (window.getUserRoles(u).join(", ") || 'Colaborador');
         const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-16 h-16 rounded-full object-cover border-2 border-tealAccent/20 shadow-lg group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-16 h-16 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-xl border-2 border-tealAccent/20&quot;>${initial}</div>';">` : `<div class="w-16 h-16 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-xl border-2 border-tealAccent/20">${initial}</div>`;
         
         return `
@@ -4228,8 +4228,7 @@ window.renderView = async function renderView() {
   }
   else if (state.activeView === 'proveedores') {
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
-    const rolName = (curUsr.rol || '').toLowerCase();
-    const allRoles = [rolName, ...(curUsr.roles_adicionales || []).map(r => r.toLowerCase())];
+    const allRoles = window.getUserRoles(curUsr);
     const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
     
     UI.viewTitle.textContent = "Partners Hub";
@@ -4356,8 +4355,7 @@ window.renderView = async function renderView() {
     setGlobalButton(false);
     
     const currentUser = JSON.parse(localStorage.getItem('rs_user') || '{}');
-    const rol = (currentUser.rol || '').toLowerCase();
-    const allRoles = [rol, ...(currentUser.roles_adicionales || []).map(r => r.toLowerCase())];
+    const allRoles = window.getUserRoles(currentUser);
     const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
 
     let userPips = state.pipelines;
@@ -5703,7 +5701,7 @@ window.renderView = async function renderView() {
                     nuevoAnuncio.estado_lecturas = todosTra.filter(w => {
                     if (isAll) return true;
                     const matchesPipe = audTags.some(tag => (w.unidades || []).includes(tag));
-                    const matchesRole = audTags.some(tag => (w.rol || '').toLowerCase() === tag.toLowerCase());
+                    const matchesRole = audTags.some(tag => window.getUserRoles(w).join(" ").toLowerCase() === tag.toLowerCase());
                     const matchesUser = audTags.includes(`user_${w.id}`);
                     return matchesPipe || matchesRole || matchesUser;
                   }).map(w => ({
@@ -6370,7 +6368,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
               let mappedWorkers = workers.map(w => {
                   const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-                  const rol = w.rol || 'Sin rol';
+                  const rol = window.getUserRoles(w).join(", ") || 'Sin rol';
                   const email = w.email || '';
                   const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
                   
@@ -6488,7 +6486,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
         if (btnEliminar) {
             const u = getCurrentUser();
             if (u) {
-                const r1 = (u.rol || '').toLowerCase().trim();
+                const r1 = window.getUserRoles(u).join(" ").toLowerCase().trim();
                 const r2 = (u.rango || '').toLowerCase().trim();
                 const allowedRoles = ['admin', 'administrador', 'ceo', 'ceo-renew', 'súper admin', 'gerente'];
                 if (allowedRoles.includes(r1) || allowedRoles.includes(r2)) {
@@ -7070,14 +7068,14 @@ function renderConstructor() {
                   <i class="fa-solid fa-user-astronaut text-[9px] text-tealAccent"></i>
                 </div>
                 <select class="sel-fase-rol bg-transparent border-none text-[9px] font-black text-gray-400 dark:text-gray-500 p-0 focus:ring-0 cursor-pointer hover:text-tealAccent transition-colors uppercase tracking-[0.05em]" data-faseid="${f.id}">
-                  <option value="Representante de Ventas" ${f.rol_encargado === 'Representante de Ventas' || f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
-                  <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
-                  <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
-                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
-                  <option value="Manager" ${f.rol_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
-                  <option value="Administración" ${f.rol_encargado === 'Administración' || f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
-                  <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
-                  <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
+                  <option value="Representante de Ventas" ${window.getUserRoles(f).join(", ")_encargado === 'Representante de Ventas' || window.getUserRoles(f).join(", ")_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
+                  <option value="Técnico" ${window.getUserRoles(f).join(", ")_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
+                  <option value="Call Center" ${window.getUserRoles(f).join(", ")_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
+                  <option value="Supervisión" ${window.getUserRoles(f).join(", ")_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
+                  <option value="Manager" ${window.getUserRoles(f).join(", ")_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
+                  <option value="Administración" ${window.getUserRoles(f).join(", ")_encargado === 'Administración' || window.getUserRoles(f).join(", ")_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
+                  <option value="CEO" ${window.getUserRoles(f).join(", ")_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
+                  <option value="Asignación Específica" ${window.getUserRoles(f).join(", ")_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>
                 </select>
               </div>
               <p class="bg-tealAccent/5 text-tealAccent px-2 py-0.5 rounded border border-tealAccent/10 font-bold text-[8px] uppercase mb-0">N: ${cCampos.length}</p>
@@ -7091,7 +7089,7 @@ function renderConstructor() {
                   return `<div class="inline-block h-5 w-5 rounded-full ring-2 ring-white dark:ring-[#1a1a1a] bg-tealAccent flex items-center justify-center text-[7px] font-black text-white uppercase" title="${u.nombre}">${u.initials || u.nombre.substring(0,2)}</div>`;
                 }).join('')}
               </div>
-              ${f.rol_encargado === 'Asignación Específica' ? `
+              ${window.getUserRoles(f).join(", ")_encargado === 'Asignación Específica' ? `
               <button class="btn-assign-users text-[8px] font-black text-tealAccent hover:underline uppercase tracking-widest" data-faseid="${f.id}">
                 ${(f.usuarios_especificos || []).length > 0 ? 'Editar Usuarios' : '+ Asignar Usuarios'}
               </button>
@@ -7202,7 +7200,7 @@ async function openFaseUserPicker(faseId) {
         <div class="w-8 h-8 rounded-full bg-tealAccent flex items-center justify-center text-[10px] font-black text-white uppercase">${u.initials || u.nombre.substring(0,2)}</div>
         <div>
           <p class="text-[11px] font-bold text-gray-800 dark:text-white leading-tight">${u.nombre} ${u.apellido || ''}</p>
-          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">${u.rol || 'Sin Rol'}</p>
+          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">${window.getUserRoles(u).join(", ") || 'Sin Rol'}</p>
         </div>
       </div>
       <input type="checkbox" class="fase-user-check w-5 h-5 rounded border-gray-300 text-tealAccent focus:ring-tealAccent" value="${u.id}" ${assigned.includes(u.id) ? 'checked' : ''}>
@@ -7393,7 +7391,7 @@ async function showWorkerDetail(id) {
     document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
     document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
     document.getElementById('det-usr-email').textContent = usr.email || '-';
-    document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+    document.getElementById('det-usr-rol').textContent = window.getUserRoles(usr).join(", ") || '-';
     // Update Rank Display
     let usrRango = usr.rango || 'auto';
     if (usrRango === 'novato') usrRango = 'auto'; // Legacy migration
@@ -7432,7 +7430,7 @@ async function showWorkerDetail(id) {
     const editRankContainer = document.getElementById('det-edit-rank-container');
     const editRankSolarContainer = document.getElementById('det-edit-rank-solar-container');
 
-    const rolLower = (usr.rol || '').toLowerCase();
+    const rolLower = window.getUserRoles(usr).join(" ").toLowerCase();
     const hasRank = rolLower.includes('vendedor') || rolLower.includes('representante') || rolLower.includes('supervisor') || rolLower.includes('manager') || rolLower.includes('project manager') || rolLower.includes('call center');
     if (viewRankContainer) {
         viewRankContainer.style.display = hasRank ? 'block' : 'none';
@@ -7459,7 +7457,7 @@ async function showWorkerDetail(id) {
     const equipoContainer = document.getElementById('det-usr-equipo-container');
     const equipoList = document.getElementById('det-usr-equipo-list');
     if (equipoContainer && equipoList) {
-        if (usr.rol === 'Supervisor' || (usr.roles_adicionales && usr.roles_adicionales.includes('Supervisor'))) {
+        if (window.getUserRoles(usr).includes('supervisor')) {
             equipoContainer.classList.remove('hidden');
             if (usr.equipo_ids && usr.equipo_ids.length > 0) {
                 const db = getDB();
@@ -7535,7 +7533,7 @@ async function showWorkerDetail(id) {
             ${renderDocBtn('contrato', 'Contrato', (usr.contrato_url || usr.contratoUrl), 'fa-file-signature')}
             ${state.activeView === 'hrhub' ? `
             <div class="doc-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-purple-200 cursor-pointer transition-all hover:border-purple-400 hover:bg-purple-50/50 min-h-[90px]"
-              onclick="window._verRecibosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}','${(usr.rol||'')}')">
+              onclick="window._verRecibosWorker('${id}','${(usr.nombre||'')} ${(usr.apellido||'')}','${(window.getUserRoles(usr).join(", ") ||'')}')">
               <i class="fa-solid fa-receipt text-xl text-purple-400 group-hover:text-purple-600 transition-colors mb-2"></i>
               <p class="text-[9px] font-black text-purple-400 group-hover:text-purple-600 uppercase tracking-widest">Recibos</p>
             </div>
@@ -7552,7 +7550,7 @@ async function showWorkerDetail(id) {
     // Toggle RRHH-only sections based on current view
     const isRRHHView = window.location.hash.includes('rrhh') || window.location.hash.includes('hrhub') || window.location.hash.includes('equipo') || window.location.hash.includes('usuarios') || ['rrhh', 'hrhub', 'equipo', 'usuarios'].includes(state.activeView);
     const currentUserForView = (() => { try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; } })();
-    const currentRolForView = (currentUserForView.rol || '').toLowerCase();
+    const currentRolForView = window.getUserRoles(currentUserForView).join(" ").toLowerCase();
     const isManagerView = currentRolForView === 'manager' || currentRolForView === 'manager de ventas';
     const rrhhOnlyContainer = document.getElementById('det-usr-rrhh-only');
     if (rrhhOnlyContainer) {
@@ -7574,10 +7572,7 @@ async function showWorkerDetail(id) {
     const currentUser = (() => {
         try { return JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch(e) { return {}; }
     })();
-    const currentRol = (currentUser.rol || '').toLowerCase();
-    const rAdic = (currentUser.roles_adicionales || []).map(r => r.toLowerCase());
-    const isSuperRole = (r) => r === 'ceo' || r === 'admin' || r === 'administrador';
-    const canEdit = isSuperRole(currentRol) || rAdic.some(isSuperRole);
+    const canEdit = window.getUserRoles(currentUser).some(r => ['ceo', 'admin', 'administrador'].includes(r));
     if (UI.btnEditFromDetail) {
         UI.btnEditFromDetail.style.display = canEdit ? 'flex' : 'none';
     }
@@ -7723,24 +7718,20 @@ async function toggleDetailEditMode(id) {
         const sipIdEl = document.getElementById('det-edit-sip-id');
         if (sipIdEl) sipIdEl.value = usr.zadarma_sip_id || '';
         
+        // Note: roles_adicionales is now obsolete; rol is stored as a JSON array.
+        // The checkbox section below is kept for backward-compat display only.
         const adicChks = document.querySelectorAll('.rol-adic-chk');
         if (adicChks.length > 0) {
-            const arrAdic = usr.roles_adicionales || [];
-            adicChks.forEach(chk => {
-                chk.checked = arrAdic.includes(chk.value);
-            });
+            adicChks.forEach(chk => { chk.checked = false; });
         }
         
         const rolEl = document.getElementById('det-edit-rol');
         if (rolEl) {
-            let roleVal = usr.rol || 'Vendedor';
+            let roleVal = window.getUserRoles(usr).join(", ") || 'Vendedor';
             if (roleVal === 'Supervisión') roleVal = 'Supervisor'; // Migration
             if (roleVal === 'Manager de Ventas' || roleVal === 'Account Manager') roleVal = 'Manager'; // Migration
             rolEl.value = roleVal;
-            const rolesAdic = usr.roles_adicionales || [];
-            document.querySelectorAll('.rol-adic-chk').forEach(chk => {
-                chk.checked = rolesAdic.includes(chk.value);
-            });
+            // No need to load roles_adicionales checkboxes — rol is now the source of truth.
             
             const equipoCont = document.getElementById('det-edit-equipo-container');
             const pipesCont = document.getElementById('det-edit-pipelines-container');
@@ -7751,7 +7742,7 @@ async function toggleDetailEditMode(id) {
                 const equipoChks = document.getElementById('equipo-checkboxes');
                 if (equipoChks) {
                     equipoChks.innerHTML = '';
-                    const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas' || (w.roles_adicionales && (w.roles_adicionales.includes('Vendedor') || w.roles_adicionales.includes('Representante de Ventas'))));
+                    const vendedores = workers.filter(w => window.getUserRoles(w).some(r => ['vendedor', 'representante de ventas'].includes(r)));
                     const selectedIds = usr.equipo_ids || [];
                     vendedores.forEach(vend => {
                         const lbl = document.createElement('label');
@@ -8002,7 +7993,7 @@ async function toggleDetailEditMode(id) {
             document.getElementById('det-usr-nombre').textContent = usr.nombre || '-';
             document.getElementById('det-usr-apellido').textContent = usr.apellido || '-';
             document.getElementById('det-usr-email').textContent = usr.email || '-';
-            document.getElementById('det-usr-rol').textContent = usr.rol || '-';
+            document.getElementById('det-usr-rol').textContent = window.getUserRoles(usr).join(", ") || '-';
             document.getElementById('det-usr-dept').textContent = usr.department || 'Grupo Renew';
             document.getElementById('det-usr-tel').textContent = usr.telefono || '-';
             if (document.getElementById('det-usr-sip-id')) document.getElementById('det-usr-sip-id').textContent = usr.zadarma_sip_id || '-';
@@ -8031,7 +8022,7 @@ async function toggleDetailEditMode(id) {
             const passEl = document.getElementById('det-edit-pass');
             const dobEl = document.getElementById('det-edit-dob');
             
-            const rol = rolEl ? rolEl.value : (usr.rol || 'Vendedor');
+            const rol = rolEl ? Array.from(rolEl.selectedOptions || []).map(o => o.value).join(", ") : (window.getUserRoles(usr).join(", ") || 'Vendedor');
             const rankEl = document.getElementById('det-edit-rank');
             const rankSolarEl = document.getElementById('det-edit-rank-solar');
             const rango = rankEl ? rankEl.value : (usr.rango || 'auto');
@@ -8091,7 +8082,7 @@ async function toggleDetailEditMode(id) {
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     ver_catalogo,
                 ver_partners,
-                    roles_adicionales: Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value),
+                    rol: Array.from(document.getElementById('inp-usr-rol')?.selectedOptions || []).map(o => o.value),
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,
                     foto: state.currentUsrFoto, 
@@ -8225,7 +8216,7 @@ function updateSidebarUser() {
         const avatarEl = document.getElementById('footer-user-avatar');
 
         if (nameEl) nameEl.textContent = `${user.nombre} ${user.apellido || ''}`.trim();
-        if (roleEl) roleEl.textContent = user.rol || 'Staff';
+        if (roleEl) roleEl.textContent = window.getUserRoles(user).join(", ") || 'Staff';
         if (avatarEl) {
             if (user.foto) {
                 avatarEl.style.backgroundImage = `url(${user.foto})`;
@@ -8273,7 +8264,7 @@ function renderDiscussionHTML(discusion, pipelineColor, projectId = null) {
         
         const currentUser = getCurrentUser();
         const isMe = currentUser?.id === c.user_id;
-        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes((currentUser?.rol || '').toLowerCase());
+        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes(window.getUserRoles(currentUser?).join(" ").toLowerCase());
         const initials = ((c.user || '?')[0]).toUpperCase();
         const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
@@ -8329,7 +8320,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
   const respuestas = (db.Respuestas_Dinamicas || []).filter(r => r.proyecto_id === p.id);
 
   const currentUser = getCurrentUser();
-  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes((currentUser?.rol || '').toLowerCase());
+  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes(window.getUserRoles(currentUser?).join(" ").toLowerCase());
   const isResponsable = currentUser?.id === p.responsable_id || currentUser?.id === p.asignado_a || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
   const canManageObservers = isAdmin || isResponsable;
   
@@ -8760,7 +8751,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                   </div>
                 `;
               } else if (c.tipo === 'Técnico') {
-                const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico' || (w.roles_adicionales && (w.roles_adicionales.includes('Técnico') || w.roles_adicionales.includes('Tecnico'))));
+                const technicians = (window.state?.workers || allWorkers).filter(w => window.getUserRoles(w).some(r => /t[eé]cn[io]co/i.test(r)));
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
@@ -8931,7 +8922,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       const pr = (db.Proyectos_Dinamicos || []).find(x => x.id === projectId);
       if (!pr) return;
       const allW = db.Usuarios || [];
-      const techs = allW.filter(w => w.rol && (w.rol.includes('Tecnico') || w.rol.includes('Técnico')));
+      const techs = allW.filter(w => window.getUserRoles(w).some(r => r.includes("tecnico") || r.includes("técnico")));
       
       const div = document.createElement('div');
       div.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
@@ -9008,7 +8999,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                           </div>
                           <div>
                               <div class="text-xs font-bold text-gray-800">${w.nombre} ${w.apellido||''}</div>
-                              <div class="text-[10px] text-gray-500">${w.rol}</div>
+                              <div class="text-[10px] text-gray-500">${window.getUserRoles(w).join(", ")}</div>
                           </div>
                       </div>
                       <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">Añadir</button>
@@ -9650,7 +9641,7 @@ async function showClientDetail(id) {
 
         filteredWorkers.forEach(w => {
             const name = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-            const opt = `<option value="${w.id}">${name} (${w.rol || 'Staff'})</option>`;
+            const opt = `<option value="${w.id}">${name} (${window.getUserRoles(w).join(", ") || 'Staff'})</option>`;
             selAssigned.innerHTML += opt;
             if (selEditAssigned) selEditAssigned.innerHTML += opt;
         });
@@ -9694,7 +9685,7 @@ async function showClientDetail(id) {
         selAmAssigned.innerHTML = '<option value="">Sin Asignar</option>';
         
         const amWorkers = workers.filter(w => {
-            const r = (w.rol || '').toLowerCase();
+            const r = window.getUserRoles(w).join(" ").toLowerCase();
             const sub = (w.sub_rol || '').toLowerCase();
             return r === 'account manager' || sub === 'account manager';
         });
@@ -10772,7 +10763,7 @@ async function renderListaPreciosAdmin() {
   const allProducts = db.Water_Productos || [];
   
   const currentUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
-  const rolName = (currentUsr.rol || '').toLowerCase();
+  const rolName = window.getUserRoles(currentUsr).join(" ").toLowerCase();
   const isAdminPriceList = ['admin', 'administrador', 'ceo', 'desarrollador'].includes(rolName);
   const isRestrictedManager = !isAdminPriceList;
 
@@ -11229,13 +11220,14 @@ window.updateWorkerRankVisibility = function() {
     const equipoContainer = document.getElementById('container-usr-equipo');
     if (!rol) return;
 
-    const rolVal = (rol.value || '').toLowerCase();
-    const isVendedor = rolVal === 'vendedor' || rolVal === 'representante de ventas';
-    const isProjectManager = rolVal === 'project manager';
-    const isManager = rolVal === 'manager';
-    const isSupervisor = rolVal === 'supervisor' || rolVal === 'supervisión' || rolVal === 'supervisión';
-    const isCallCenter = rolVal.includes('call center');
-    const isTecnico = rolVal === 'técnico' || rolVal === 'tecnico';
+    const rolesVals = Array.from(rol.selectedOptions).map(o => (o.value || '').toLowerCase());
+    
+    const isVendedor = rolesVals.includes('vendedor') || rolesVals.includes('representante de ventas');
+    const isProjectManager = rolesVals.includes('project manager');
+    const isManager = rolesVals.includes('manager');
+    const isSupervisor = rolesVals.includes('supervisor') || rolesVals.includes('supervisión') || rolesVals.includes('supervision');
+    const isCallCenter = rolesVals.some(r => r.includes('call center'));
+    const isTecnico = rolesVals.includes('técnico') || rolesVals.includes('tecnico');
     
     const hasPipelines = isProjectManager || isSupervisor || isVendedor || isCallCenter || isManager || isTecnico;
 
@@ -11295,7 +11287,7 @@ window.updateWorkerRankVisibility = function() {
             if (chksCont && chksCont.children.length === 0) {
                 const db = getDB();
                 const vendedores = (db.Usuarios || []).filter(w => {
-                    const r = (w.rol || '').toLowerCase();
+                    const r = window.getUserRoles(w).join(" ").toLowerCase();
                     return r === 'vendedor' || r === 'representante de ventas';
                 });
                 vendedores.forEach(vend => {
@@ -11344,7 +11336,7 @@ window.updateEditWorkerRankVisibility = function() {
             // If they change role to Supervisor from something else, we should ideally render them if empty.
             const equipoChks = document.getElementById('equipo-checkboxes');
             if (equipoChks && equipoChks.children.length === 0) {
-                const vendedores = workers.filter(w => w.rol === 'Vendedor' || w.rol === 'Representante de Ventas' || (w.roles_adicionales && (w.roles_adicionales.includes('Vendedor') || w.roles_adicionales.includes('Representante de Ventas'))));
+                const vendedores = workers.filter(w => window.getUserRoles(w).some(r => ['vendedor', 'representante de ventas'].includes(r)));
                 vendedores.forEach(vend => {
                     const lbl = document.createElement('label');
                     lbl.className = 'flex items-center gap-2 cursor-pointer';
@@ -11443,7 +11435,7 @@ window.openInviteModal = function() {
     users.sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')).forEach(u => {
         const opt = document.createElement('option');
         opt.value = u.id;
-        opt.textContent = `${u.nombre} ${u.apellido || ''} - ${u.rol}`;
+        opt.textContent = `${u.nombre} ${u.apellido || ''} - ${window.getUserRoles(u).join(", ")}`;
         select.appendChild(opt);
     });
     
@@ -11461,7 +11453,7 @@ window.openInviteModal = function() {
         
         const platformLinkApp = "https://renewgroup.site";
         const platformLinkAdmin = "https://renewgroup.site";
-        const isWorkerApp = user.rol === 'Vendedor' || user.rol === 'Representante de Ventas' || user.rol === 'Técnico' || (user.roles_adicionales && (user.roles_adicionales.includes('Vendedor') || user.roles_adicionales.includes('Representante de Ventas') || user.roles_adicionales.includes('Técnico')));
+        const isWorkerApp = window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'técnico', 'tecnico'].includes(r));
         const mainLink = isWorkerApp ? platformLinkApp : platformLinkAdmin;
         
         const msg = `¡Hola ${user.nombre}! 
@@ -11693,8 +11685,7 @@ window.populateRolesDropdowns = function() {
     });
 
     const curUsr = JSON.parse(localStorage.getItem('rs_user') || '{}');
-    const rolName = (curUsr.rol || '').toLowerCase();
-    const allRoles = [rolName, ...(curUsr.roles_adicionales || []).map(r => r.toLowerCase())];
+    const allRoles = window.getUserRoles(curUsr);
     const isRestrictedManager = allRoles.some(r => ['manager', 'manager de ventas', 'account manager', 'supervisión', 'project manager'].includes(r));
     
     let optionsHtml = mergedRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
@@ -12031,7 +12022,7 @@ async function initClientChat(cli) {
     const user = getCurrentUser();
     if (!user) return;
     
-    const role = user.rol || '';
+    const role = window.getUserRoles(user).join(", ") || '';
     const isAdminOrCEO = ['admin', 'administrador', 'ceo'].includes(role.toLowerCase());
     const isCEO = role.toLowerCase() === 'ceo';
     const isAllowedManager = Array.isArray(cli.chat_managers) && cli.chat_managers.includes(user.id);
@@ -12084,8 +12075,8 @@ window.editCliChatMsg = async (msgId, clientId, content) => {
             const db = getDB();
             const cli = (db.Clientes_Maestro || []).find(c => c.id === clientId);
             const messages = await getInternalMessages(clientId);
-            const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes((user.rol || '').toLowerCase());
-            renderClientChat(cli, messages, user, (user.rol||'').toLowerCase()==='ceo', isAdminOrCEO, isAdminOrCEO);
+            const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes(window.getUserRoles(user).join(" ").toLowerCase());
+            renderClientChat(cli, messages, user, window.getUserRoles(user).join(" ").toLowerCase()==='ceo', isAdminOrCEO, isAdminOrCEO);
         } catch (e) {
             console.error(e);
             showToast('Error al editar', 'error');
@@ -12103,8 +12094,8 @@ window.deleteCliChatMsg = async (msgId, clientId) => {
         const db = getDB();
         const cli = (db.Clientes_Maestro || []).find(c => c.id === clientId);
         const messages = await getInternalMessages(clientId);
-        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes((user.rol || '').toLowerCase());
-        renderClientChat(cli, messages, user, (user.rol||'').toLowerCase()==='ceo', isAdminOrCEO, isAdminOrCEO);
+        const isAdminOrCEO = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'].includes(window.getUserRoles(user).join(" ").toLowerCase());
+        renderClientChat(cli, messages, user, window.getUserRoles(user).join(" ").toLowerCase()==='ceo', isAdminOrCEO, isAdminOrCEO);
     } catch (e) {
         console.error(e);
         showToast('Error al eliminar', 'error');
@@ -12325,7 +12316,7 @@ function showCliChatMentions(query, atIndex, inputEl) {
             </div>
             <div>
                 <p class="text-xs font-black text-gray-800">${u.nombre} ${u.apellido || ''}</p>
-                <p class="text-[9px] text-gray-400 uppercase font-bold">${u.rol || 'Miembro'}</p>
+                <p class="text-[9px] text-gray-400 uppercase font-bold">${window.getUserRoles(u).join(", ") || 'Miembro'}</p>
             </div>
         </div>
     `).join('');
@@ -12393,7 +12384,7 @@ window.openChatAccessModal = async function(cliente_id) {
     if (!cli) return;
     
     const allWorkers = await getAdminWorkers();
-    const managers = allWorkers.filter(w => ['manager', 'supervisor'].includes((w.rol || '').toLowerCase().trim()));
+    const managers = allWorkers.filter(w => ['manager', 'supervisor'].includes(window.getUserRoles(w).join(" ").toLowerCase().trim()));
     const currentAllowed = cli.chat_managers || [];
     
     const html = `
@@ -12411,7 +12402,7 @@ window.openChatAccessModal = async function(cliente_id) {
                         <input type="checkbox" value="${m.id}" class="chat-manager-checkbox w-4 h-4 text-tealAccent rounded" ${currentAllowed.includes(m.id) ? 'checked' : ''}>
                         <div>
                             <p class="text-sm font-bold text-gray-800">${m.nombre} ${m.apellido || ''}</p>
-                            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black">${m.rol}</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black">${window.getUserRoles(m).join(", ")}</p>
                         </div>
                     </label>
                 `).join('')}
@@ -12450,7 +12441,7 @@ window.saveChatAccess = async function(cliente_id) {
   const detEditDept = document.getElementById('det-edit-dept');
   if (detEditRol) {
       detEditRol.addEventListener('change', () => {
-          const rol = detEditRol.value;
+          const rolArray = Array.from(detEditRol.selectedOptions || []).map(o => o.value); const rol = rolArray.join(", ");
           const dept = detEditDept ? detEditDept.value : '';
           const roles_adic = Array.from(document.querySelectorAll('.rol-adic-chk:checked')).map(c => c.value);
           const isVendedor = rol === 'Vendedor' || rol === 'Representante de Ventas' || roles_adic.includes('Vendedor') || roles_adic.includes('Representante de Ventas');

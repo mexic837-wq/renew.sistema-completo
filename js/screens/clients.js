@@ -21,7 +21,7 @@ export async function renderClients() {
   try {
     const container = document.getElementById('lista-clientes-movil');
     const user = getCurrentUser();
-    const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
+    const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
     if (!container) return;
 
     // ── Populate header greeting & avatar ───────────────────
@@ -92,8 +92,7 @@ export async function renderClients() {
     // ── Render Department Pills ──────────────────────────────
     const deptContainer = document.getElementById('clients-dept-filter');
     if (deptContainer) {
-      const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-      const isHighRole = ['admin', 'administrador', 'ceo'].includes(userRolNorm);
+      const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo'].includes(r));
       const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || ['Renew Solar']);
       
       const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
@@ -135,8 +134,7 @@ export async function renderClients() {
 
     // ── Wire up tab switching ─────────────────────────────────
     document.querySelectorAll('[data-clients-tab]').forEach(btn => {
-      const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-      const isCallCenter = userRolNorm.includes('call');
+      const isCallCenter = window.getUserRoles(user).some(r => r.includes('call'));
 
       // Update tab labels
       if (isTecnico) {
@@ -267,10 +265,9 @@ async function _renderList(user, container) {
   // RBAC filter
   const activeUnit = activeDeptFilter === 'Todos' ? null : activeDeptFilter;
 
-  const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-  const isHighRole = ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(userRolNorm);
-  const isCallCenterRole = userRolNorm.includes('call');
-  const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
+  const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(r));
+  const isCallCenterRole = window.getUserRoles(user).some(r => r.includes('call'));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
 
   // Pre-map projects by client to fix O(N*M) performance issue
   const projectsByClient = new Map();
@@ -557,7 +554,7 @@ async function _renderList(user, container) {
     if (rolEncargado && !['vendedor', 'representante'].some(r => rolEncargado.toLowerCase().includes(r))) {
 
       // Helper: find the first worker matching a role (case-insensitive)
-      const findByRol = (rolStr) => allWorkers.find(u => u.rol && u.rol.toLowerCase().includes(rolStr.toLowerCase()));
+      const findByRol = (rolStr) => allWorkers.find(u => window.getUserRoles(u).some(r => r.includes(rolStr.toLowerCase())));
       const workerName = (u) => u ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : '';
 
       let nombre = '';
@@ -1306,12 +1303,11 @@ function _showPipelineSelector(client, user) {
   const allPipelines = db.Admin_Pipelines || [];
 
   // Filter pipelines the user has access to via their authorized units (unidades)
-  const userRole = (user.rol || '').toLowerCase();
-  const isHighRole = ['admin', 'administrador', 'ceo'].includes(userRole);
+  const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo'].includes(r));
   const userUnidades = user.unidades || [];
   const availablePipelines = allPipelines.filter(pip => {
     if (isHighRole) return true;
-    if (userRole === 'project manager' || userRole === 'supervisor' || userRole === 'supervisión') {
+    if (window.getUserRoles(user).some(r => ['project manager', 'supervisor', 'supervisión'].includes(r))) {
         const allowedIds = user.pipeline_ids || [];
         return allowedIds.includes(String(pip.id));
     }
@@ -1340,8 +1336,7 @@ function _showPipelineSelector(client, user) {
       const nameB = `${b.nombre || ''} ${b.apellido || ''}`.trim().toLowerCase();
       return nameA.localeCompare(nameB);
     });
-  const userRoleNorm = (user.rol || '').toLowerCase();
-  const isActuallyAdmin = ['admin', 'administrador', 'ceo', 'manager'].includes(userRoleNorm);
+  const isActuallyAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager'].includes(r));
 
   const repsHTML = `
     <div style="margin-bottom: 20px;">

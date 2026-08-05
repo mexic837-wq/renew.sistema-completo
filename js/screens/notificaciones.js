@@ -53,7 +53,7 @@ export async function renderNotificaciones() {
       const tags = mt.audiencia_tags || [mt.audiencia || 'Todos'];
       const isAll = tags.includes('todos') || tags.includes('Todos');
       if (isAll) return true;
-      const matchesRole = tags.some(tag => tag.toLowerCase() === (user.rol || '').toLowerCase());
+      const matchesRole = tags.some(tag => window.getUserRoles(user).some(r => r === tag.toLowerCase()));
       const pipelinePerms = user.pipeline_perms || [];
       const matchesPipe = tags.some(tag => pipelinePerms.includes(tag) || (user.unidades || []).includes(tag));
       const matchesUser = tags.includes(`user_${user.id}`);

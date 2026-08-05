@@ -99,7 +99,7 @@ export function renderLogin() {
       localStorage.setItem('rs_user', JSON.stringify(user));
       
       // Admin Redirection
-      if (['Admin', 'Manager'].includes(user.rol)) {
+      if (window.getUserRoles(user).some(r => ['admin', 'manager'].includes(r))) {
         window.location.href = 'admin.html';
         return;
       }

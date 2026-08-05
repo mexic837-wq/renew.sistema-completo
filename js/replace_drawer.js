@@ -373,7 +373,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
           </div>
         \\\`;
       } else if (c.tipo === 'Técnico') {
-        const technicians = (window.state?.workers || allWorkers).filter(w => w.rol === 'Técnico' || w.rol === 'Tecnico' || (w.roles_adicionales && (w.roles_adicionales.includes('Técnico') || w.roles_adicionales.includes('Tecnico'))));
+        const technicians = (window.state?.workers || allWorkers).filter(w => window.getUserRoles(w).some(r => /t[eé]cn[io]co/i.test(r)));
         fieldHtml = \\\`
           <div style="margin-bottom:8px;">
             <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">

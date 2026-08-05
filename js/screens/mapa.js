@@ -113,9 +113,8 @@ export async function renderMiMapa() {
       const userClientIds = new Set(userProjects.map(p => p.cliente_id));
       const allClientProjectIds = new Set(allProys.map(p => p.cliente_id));
 
-      const userRole = (user.rol || '').toLowerCase();
-      const isAdmin = ['admin', 'administrador', 'ceo', 'desenvolvedor', 'master'].includes(userRole);
-      const isSupervisor = (userRole === 'supervisor' || userRole === 'supervisión');
+      const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor', 'master'].includes(r));
+      const isSupervisor = window.getUserRoles(user).some(r => r === 'supervisor' || r === 'supervisión');
       const teamIds = user.equipo_ids || [];
 
       const myClients = isAdmin ? allClients : allClients.filter(c =>

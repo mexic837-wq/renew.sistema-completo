@@ -70,7 +70,7 @@ export function renderHub() {
   }, 100);
 
 
-  if (user.rol === 'Admin') {
+  if (window.getUserRoles(user).some(r => r === 'admin')) {
     // Moved to mobile footer menu
   }
 

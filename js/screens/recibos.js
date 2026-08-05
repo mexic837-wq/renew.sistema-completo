@@ -125,8 +125,7 @@ export function renderMisRecibos() {
     const deptContainer = document.getElementById('recibos-dept-filter');
     if (!deptContainer) return;
     
-    const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-    const isHighRole = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRolNorm);
+    const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
     const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || []);
     
     const depts = ['Todos', ...units.map(u => u.replace('Renew ', ''))];
@@ -210,8 +209,7 @@ export function renderMisRecibos() {
     const query = (document.getElementById('recibos-search')?.value || '').toLowerCase().trim();
     const db = window.getDB ? window.getDB() : { Clientes_Maestro: [] };
     
-    const userRolNorm = (user && user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-    const isHighRole = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRolNorm);
+    const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
     const units = isHighRole ? ['Renew Solar', 'Renew Water', 'Renew Home'] : (user.unidades || []);
     const allowedDepts = units.map(u => u.replace('Renew ', '').toLowerCase());
     

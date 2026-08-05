@@ -1460,9 +1460,9 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="aqua-label">Rol / Cargo</label>
-                    <select id="inp-usr-rol" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
+                <div class="col-span-2">
+                    <label class="aqua-label">Roles / Cargos</label>
+                    <select id="inp-usr-rol" multiple class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none" style="min-height: 100px;">
                         <!-- Se llena dinámicamente desde Admin_Roles -->
                     </select>
                 </div>
@@ -1816,17 +1816,18 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cargo / Rol</label><select id="det-edit-rol" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="CEO">CEO</option><option value="Admin">Administración</option><option value="Manager">Manager</option><option value="Supervisor">Supervisor</option><option value="Call Center">Call Center</option><option value="Procesador">Oficina</option><option value="Técnico">Técnicos</option><option value="Vendedor">Representante de Ventas</option></select></div>
-                            <div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Roles Adicionales</label>
-                                <div id="det-edit-roles-secundarios" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white max-h-24 overflow-y-auto" style="display:flex; flex-direction:column; gap:6px;">
-                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Vendedor" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Representante de Ventas</label>
-                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Técnico" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Técnico</label>
-                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Supervisor" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Supervisor</label>
-                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Call Center" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Call Center</label>
-                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Procesador" class="w-4 h-4 rounded rol-adic-chk text-tealAccent focus:ring-tealAccent"> Oficina (Procesador)</label>
-                                </div>
+                        <div class="mb-4">
+                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Roles / Cargos</label>
+                                <select id="det-edit-rol" multiple class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white" style="min-height: 100px;">
+                                    <option value="CEO">CEO</option>
+                                    <option value="Admin">Administración</option>
+                                    <option value="Manager">Manager</option>
+                                    <option value="Supervisor">Supervisor</option>
+                                    <option value="Call Center">Call Center</option>
+                                    <option value="Procesador">Oficina</option>
+                                    <option value="Técnico">Técnicos</option>
+                                    <option value="Vendedor">Representante de Ventas</option>
+                                </select>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-4">

@@ -19,6 +19,19 @@ export function getCurrentUser() {
   }
   return user;
 }
+window.getUserRoles = function(user) {
+  if (!user) return [];
+  const rawRoles = [];
+  if (user.rol) {
+    if (Array.isArray(user.rol)) rawRoles.push(...user.rol);
+    else if (typeof user.rol === 'string') rawRoles.push(...user.rol.split(',').map(s => s.trim()));
+  }
+  // Fallback for legacy users who still have roles_adicionales in the DB
+  if (Array.isArray(user.roles_adicionales)) {
+    rawRoles.push(...user.roles_adicionales);
+  }
+  return [...new Set(rawRoles.filter(Boolean).map(r => r.toLowerCase().trim()))];
+};
 export function logout() {
   localStorage.removeItem('rs_user');
   if (window.appNavigate) window.appNavigate('login');

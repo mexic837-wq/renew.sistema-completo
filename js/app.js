@@ -418,7 +418,7 @@ window.verificarAnunciosNuevos = async function() {
       const tags = mt.audiencia_tags || [mt.audiencia || 'Todos'];
       const isAll = tags.includes('todos') || tags.includes('Todos');
       if (isAll) return true;
-      const matchesRole = tags.some(tag => tag.toLowerCase() === (user.rol || '').toLowerCase());
+      const matchesRole = tags.some(tag => window.getUserRoles(user).some(r => r === tag.toLowerCase()));
       const pipelinePerms = user.pipeline_perms || [];
       const matchesPipe = tags.some(tag => pipelinePerms.includes(tag) || (user.unidades || []).some(u => u.toLowerCase() === tag.toLowerCase() || tag.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
       return matchesRole || matchesPipe;
@@ -483,17 +483,16 @@ export function navigate(screen, param = null) {
   }
 
   // RBAC Guard
-  if (screen === 'new-client' && user && user.rol && user.rol.toLowerCase().includes('call')) {
+  if (screen === 'new-client' && user && window.getUserRoles(user).some(r => r.includes('call'))) {
     import('./components/toast.js').then(m => m.showToast('Acceso denegado: Rol Call Center', 'error'));
     navigate('call-center');
     return;
   }
 
   if (screen === 'partners' && user) {
-    const userRole = (user.rol || '').toLowerCase();
-    const isAdmin = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRole);
+    const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
     const hasPerm = user.permisos && user.permisos.app_partners;
-    if (!isAdmin && !userRole.includes('representante') && !userRole.includes('vendedor') && !userRole.includes('supervisor') && !userRole.includes('supervisión') && !hasPerm) {
+    if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisión')) && !hasPerm) {
       import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
       navigate('dashboard');
       return;
@@ -636,8 +635,8 @@ export function updateNavHighlight(activeScreen) {
   if (!bNav) return;
   
   const user = getCurrentUser();
-  const isCallCenter = user && (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim().includes('call');
-  const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
+  const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
 
   // Global role classes for CSS
   document.body.classList.toggle('is-tecnico', !!isTecnico);
@@ -723,7 +722,7 @@ function handleHashChange() {
     }
 
     // RBAC Guard
-    if (screen === 'new-client' && user && (user.rol === 'call_center' || user.role === 'call_center')) {
+    if (screen === 'new-client' && user && window.getUserRoles(user).some(r => r === 'call center' || r === 'call_center')) {
       navigate('dashboard');
       return;
     }

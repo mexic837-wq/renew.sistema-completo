@@ -198,7 +198,7 @@ export async function renderDashboard() {
   const screen = document.getElementById('screen-dashboard');
   let activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
 
-  const isCC = user && user.rol && user.rol.toLowerCase().includes('call');
+  const isCC = user && window.getUserRoles(user).some(r => r.includes('call'));
 
   // —— Destroy old charts ——————————————————————————————————\u2014
   if (window.rendimientoChartInstance?.destroy) { window.rendimientoChartInstance.destroy(); window.rendimientoChartInstance = null; }
@@ -464,9 +464,7 @@ function _buildPipelineChips(user, activeUnit) {
   const allPipelines = db.Admin_Pipelines || [];
   const allClientes  = db.Clientes_Maestro || [];
   const allProyectos = db.Proyectos_Dinamicos || [];
-  const userRole     = (user.rol || '').toLowerCase().trim();
-  const arrAdic      = (user.roles_adicionales || []).map(r => r.toLowerCase().trim());
-  const allRoles     = [userRole, ...arrAdic];
+  const allRoles     = window.getUserRoles(user);
   const isHighRole   = allRoles.some(r => ['admin', 'administrador', 'ceo', 'partner'].includes(r));
 
   const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
@@ -578,9 +576,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
   // but we still want to populate the desktop sidebar, so we don't return early.
 
   const db          = getDB();
-  const userRole    = (user.rol || '').toLowerCase().trim();
-  const arrAdic     = (user.roles_adicionales || []).map(r => r.toLowerCase().trim());
-  const allRoles    = [userRole, ...arrAdic];
+  const allRoles    = window.getUserRoles(user);
   
   const isTecnico   = allRoles.some(r => /t[eé]cn[io]co/i.test(r) || r === 'tecnico' || r === 'técnico');
   const isAdmin     = allRoles.some(r => ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(r));
@@ -942,7 +938,7 @@ async function initRendimientoChart(user) {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
   
-  const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
   const userProjects = allProjects.filter(p => {
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
     const isAssignedVendor = (cli.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
@@ -1090,7 +1086,7 @@ async function initRendimientoChart(user) {
 
   // —— Rank Banner in Rendimiento tab ———————————————————————————————
   const rankBannerRend = document.getElementById('rank-banner-rendimiento');
-  const isCallCenter = user && (user.rol || '').toLowerCase().includes('call');
+  const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
   if (rankBannerRend) {
     if (isTecnico || isCallCenter) {
       rankBannerRend.style.display = 'none';
@@ -1523,8 +1519,8 @@ async function initLeaderboardChart(user) {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
 
-  const isTecnico = user && /t[eé]cn[io]co/i.test(user.rol || '');
-  const isCallCenter = user && (user.rol || '').toLowerCase().includes('call');
+  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+  const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
 
   const projectCountByUserId = {};
   const now = new Date();
@@ -1569,12 +1565,12 @@ async function initLeaderboardChart(user) {
   const leaderboardData = [];
   workers.forEach(w => {
     const count = projectCountByUserId[w.id] || 0;
-    const isWHighRole = ['admin', 'administrador', 'ceo'].includes((w.rol || '').toLowerCase());
+    const isWHighRole = window.getUserRoles(w).some(r => ['admin', 'administrador', 'ceo'].includes(r));
     const hasUnitAccess = isWHighRole || (w.unidades && w.unidades.some(u => u.toLowerCase() === activeUnit.toLowerCase() || activeUnit.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
     
-    const isWTecnico = /t[eé]cn[io]co/i.test(w.rol || '');
-    const isWVendedor = (w.rol || '').toLowerCase().includes('vendedor') || (w.rol || '').toLowerCase().includes('representante');
-    const isWCall = (w.rol || '').toLowerCase().includes('call');
+    const isWTecnico = window.getUserRoles(w).some(r => /t[eé]cn[io]co/i.test(r));
+    const isWVendedor = window.getUserRoles(w).some(r => r.includes('vendedor') || r.includes('representante'));
+    const isWCall = window.getUserRoles(w).some(r => r.includes('call'));
 
     if (window.lbLocationFilter === 'Ciudad' && user.sede) {
         const wSede = (w.sede || '').toLowerCase();
@@ -1639,7 +1635,7 @@ async function initLeaderboardChart(user) {
   const top3 = leaderboardData.slice(0, 3);
 
   let podiumCards = '';
-  const isAdminView = ['admin', 'administrador', 'ceo', 'project manager', 'manager de ventas', 'account manager', 'supervisión'].includes((user.rol || '').toLowerCase());
+  const isAdminView = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'project manager', 'manager de ventas', 'account manager', 'supervisión'].includes(r));
   
   podiumOrder.forEach(idx => {
     if (!top3[idx]) return;
@@ -1761,7 +1757,7 @@ function showProfileModal() {
   }
 
   // Admins and CEOs have access to all pipelines automatically
-  const isHighRole = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+  const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo'].includes(r));
 
   const unitsHtml = allUnits.map(u => {
     const hasUnit = isHighRole || (user.unidades && user.unidades.some(un => un.toLowerCase() === u.name.toLowerCase() || u.name.toLowerCase().includes(un.toLowerCase().replace('renew ', '').trim())));
@@ -1781,7 +1777,7 @@ function showProfileModal() {
   }).join('');
 
   const fullName = `${user.nombre} ${user.apellido}`;
-  const rol = user.rol || 'Representante de Ventas';
+  const rol = window.getUserRoles(user)[0] || 'Representante de Ventas';
   const roleColor = rol.toLowerCase() === 'admin' ? 'badge-red' : 'badge-green';
 
   overlay.innerHTML = `
@@ -1888,7 +1884,7 @@ window.addEventListener('themechange', () => {
     if (window.rendimientoChartInstance) {
       window.rendimientoChartInstance.destroy();
     }
-    const isCC = user && user.rol && user.rol.toLowerCase().includes('call');
+    const isCC = user && window.getUserRoles(user).some(r => r.includes('call'));
     if (isCC) initCCRendimientoChart(user);
     else initRendimientoChart(user);
   }

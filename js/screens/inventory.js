@@ -16,7 +16,7 @@ export function renderInventoryTech(dealId = null) {
   if (!screen) return;
 
   const user = getCurrentUser();
-  const isAdmin = user && ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión'].includes(user.rol);
+  const isAdmin = user && window.getUserRoles(user).some(r => ['admin', 'ceo', 'ceo-renew', 'supervisión'].includes(r));
 
   // Initial State: Paso 1
   screen.innerHTML = `

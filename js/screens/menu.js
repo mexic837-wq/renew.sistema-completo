@@ -3,6 +3,7 @@
    Full-screen Main Menu Section
    ============================================================ */
 import { getCurrentUser, logout, uploadFile, saveGranular, getDB } from '../api.js';
+// getUserRoles is a global helper defined in api.js (window.getUserRoles)
 // Removed import from ../app.js to break circular dependency
 import { t, getLang, setLang, langSwitcherHTML } from '../i18n.js';
 import { showToast } from '../components/toast.js';
@@ -13,23 +14,22 @@ export async function renderMenu() {
   if (!screen) return;
 
 
-  const arrAdic = user.roles_adicionales || [];
-  const allRoles = [user.rol, ...arrAdic].map(r => r ? r.trim() : '');
+  const allRoles = window.getUserRoles(user);
 
-  const adminRoles = ['Admin', 'Administrador', 'Desarrollador', 'CEO'];
+  const adminRoles = ['admin', 'administrador', 'desarrollador', 'ceo'];
   const isAdmin = allRoles.some(r => adminRoles.includes(r));
 
   // Roles que pueden ver el Inventario Real (técnicos y superiores)
-  const inventarioRoles = ['Técnico', 'Tecnico', 'Contabilidad', 'Procesador', 'CEO', 'Admin', 'Administrador', 'Desarrollador'];
+  const inventarioRoles = ['técnico', 'tecnico', 'contabilidad', 'procesador', 'ceo', 'admin', 'administrador', 'desarrollador'];
   const canSeeInventario = allRoles.some(r => inventarioRoles.includes(r) || /t[eé]cn[io]co/i.test(r));
 
   // ─ Acceso a formularios de Renew Water ─────────────────────────────
   // Admins/CEO y superiores siempre tienen acceso.
   // Vendedores: solo si tienen el pipeline Renew Water asignado en su perfil.
-  const waterHighRoles = ['Admin', 'Administrador', 'Desarrollador', 'CEO', 'Supervisión', 'Contabilidad', 'Procesador'];
+  const waterHighRoles = ['admin', 'administrador', 'desarrollador', 'ceo', 'supervisión', 'contabilidad', 'procesador'];
   let canSeeWaterForms = allRoles.some(r => waterHighRoles.includes(r));
 
-  const isVentasUser = allRoles.some(r => ['Vendedor', 'Representante de Ventas', 'Supervisor', 'Supervisión'].includes(r));
+  const isVentasUser = allRoles.some(r => ['vendedor', 'representante de ventas', 'supervisor', 'supervisión'].includes(r));
   if (!canSeeWaterForms && isVentasUser) {
     // Verificar si el vendedor tiene acceso al pipeline Renew Water
     try {
@@ -290,7 +290,7 @@ function mostrarModalCuenta(user) {
           </div>
           <div>
             <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Rol Organizacional</p>
-            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${(user.rol || '').toLowerCase().includes('vendedor') ? 'Representante de Ventas' : user.rol}</p>
+            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${window.getUserRoles(user).some(r => r.includes('vendedor')) ? 'Representante de Ventas' : (window.getUserRoles(user)[0] || 'N/A')}</p>
           </div>
         </div>
 

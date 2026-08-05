@@ -279,7 +279,7 @@ export async function renderMiCalendario() {
         const db = getDB();
         const data = db.calendario_eventos || [];
         // Admin / CEO roles see ALL events regardless of participation
-        const isAdminRole = ['admin', 'administrador', 'ceo', 'gerente', 'súper admin', 'super admin'].includes((user.rol || '').toLowerCase()) ||
+        const isAdminRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'gerente', 'súper admin', 'super admin'].includes(r)) ||
                             ['admin', 'administrador', 'ceo', 'gerente', 'súper admin', 'super admin'].includes((user.rango || '').toLowerCase());
 
         const userEvents = isAdminRole ? data : data.filter(ev => {
@@ -480,7 +480,7 @@ export async function renderMiCalendario() {
 
                     let mappedWorkers = workers.map(w => {
                         const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-                        const rol = w.rol || 'Sin rol';
+                        const rol = window.getUserRoles(w)[0] || 'Sin rol';
                         const email = w.email || '';
                         const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
                         
@@ -546,7 +546,7 @@ export async function renderMiCalendario() {
         
         btnEditar.classList.remove('hidden');
         // Only admin/CEO can delete events
-        const canDelete = user && ['admin', 'administrador', 'ceo'].some(r => (user.rol || '').toLowerCase().replace(/_/g,' ').trim().includes(r));
+        const canDelete = user && window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo'].includes(r));
         if (canDelete) {
           btnEliminar.classList.remove('hidden');
         } else {
@@ -596,7 +596,7 @@ export async function renderMiCalendario() {
             if(colabWrapper) colabWrapper.classList.add('nuclear-hidden');
             
             btnEditar.classList.add('hidden');
-            if (user && ['Admin', 'Súper Admin', 'Gerente', 'Administrador'].includes(user.rango || user.rol)) {
+            if (user && window.getUserRoles(user).some(r => ['admin', 'súper admin', 'gerente', 'administrador'].includes(r))) {
                 btnEliminar.classList.remove('hidden');
             } else {
                 btnEliminar.classList.add('hidden');

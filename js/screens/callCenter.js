@@ -102,7 +102,7 @@ export async function renderCallCenter() {
   screen.innerHTML = buildLoadingSkeleton();
 
   // Fetch leads assigned to this operator (Admins can see all)
-  const isAdmin = user.rol === 'Admin' || user.rol === 'admin';
+  const isAdmin = window.getUserRoles(user).some(r => ['admin', 'ceo', 'administrador'].includes(r));
   const operador_query = isAdmin ? null : user.id;
   const todos      = await getProspectos(operador_query);
   

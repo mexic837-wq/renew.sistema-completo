@@ -7,7 +7,7 @@ import { getCurrentUser } from '../app.js';
 
 export function renderPlantillas() {
     const user = getCurrentUser();
-    const isAdmin = user && ['admin', 'Admin', 'CEO', 'CEO-RENEW', 'Supervisión', 'Supervision'].includes(user.rol);
+    const isAdmin = user && window.getUserRoles(user).some(r => ['admin', 'ceo', 'ceo-renew', 'supervisión', 'supervision'].includes(r));
     const screen = document.getElementById('screen-plantillas');
     if (!screen) return;
 

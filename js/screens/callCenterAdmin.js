@@ -217,7 +217,7 @@ async function loadOperators() {
         console.log('[CC-ADMIN] Users fetched:', users.length);
         
         // Filter case-insensitive and trim
-        const operators = users.filter(u => u.rol && u.rol.trim().toLowerCase() === 'call center');
+        const operators = users.filter(u => window.getUserRoles(u).some(r => r === 'call center'));
         console.log('[CC-ADMIN] Call Center operators found:', operators.length);
         
         sel.innerHTML = '<option value="">Selección Automática</option>';
@@ -341,7 +341,7 @@ window.adminEditCCLead = async (id, currentOpId) => {
         console.log('[CC-EDIT] All Users fetched:', users.length);
         console.log('[CC-EDIT] Roles found:', [...new Set(users.map(u => u.rol))]);
         
-        const operators = users.filter(u => u.rol && u.rol.trim().toLowerCase() === 'call center');
+        const operators = users.filter(u => window.getUserRoles(u).some(r => r === 'call center'));
         console.log('[CC-EDIT] Call Center operators found:', operators.length);
         
         operators.forEach(op => {

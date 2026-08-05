@@ -36,7 +36,7 @@ export function renderAcademy() {
   const dbLocal = getDB();
   const allContent = dbLocal.academiaContent || [];
 
-  const isHighRole = ['admin', 'administrador', 'ceo'].includes((user.rol || '').toLowerCase());
+  const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo'].includes(r));
   const units = isHighRole ? ['Renew Solar', 'Renew Water'] : (user.unidades || ['Renew Solar']).filter(u => u === 'Renew Solar' || u === 'Renew Water');
   let depts = units.map(u => u.replace('Renew ', ''));
   if (depts.length === 0) depts = ['Solar']; // Fallback
