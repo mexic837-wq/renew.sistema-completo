@@ -418,9 +418,31 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const filterByVendors = vendorIds && vendorIds.length > 0;
 
     // ── 1. Filter clients by ecosystem [+ vendor] ─────────────────────────────
-    const ecoClients = (isGroup ? clients : clients.filter(c =>
-        (c.departamento || '').toLowerCase().includes(ecosystemLower)
-    )).filter(c => {
+    const ecoClients = (isGroup ? clients : clients.filter(c => {
+        const activeKeyword = ecosystemLower.replace('renew ', '').trim();
+        const hasModernDepts = Array.isArray(c.departamentos_activos) && c.departamentos_activos.length > 0;
+        let clientDepts = [];
+        if (hasModernDepts) {
+            clientDepts = c.departamentos_activos.map(d => d.toLowerCase().trim());
+        } else {
+            let fallback = c.departamento || c.empresa || '';
+            if (fallback) {
+                clientDepts = fallback.includes(',') ? fallback.split(',').map(s=>s.trim().toLowerCase()) : [fallback.trim().toLowerCase()];
+            }
+        }
+        
+        if (hasModernDepts) {
+            return clientDepts.some(d => d.includes(activeKeyword));
+        } else {
+            const legacyDept = (c.departamento || c.empresa || '').toLowerCase().trim();
+            const isGeneric = !legacyDept || legacyDept === 'lead (nuevo)' || legacyDept === '-' || legacyDept === 'renew' || legacyDept === 'renew group';
+            if (clientDepts.length === 0 && isGeneric) return activeKeyword === 'solar';
+            
+            const matchesActive = clientDepts.some(d => d.includes(activeKeyword));
+            const matchesLegacy = !isGeneric && legacyDept.includes(activeKeyword);
+            return matchesActive || matchesLegacy;
+        }
+    })).filter(c => {
         if (!filterByVendors) return true;
         return vendorIds.includes(String(c.vendedor_asignado_id));
     });
