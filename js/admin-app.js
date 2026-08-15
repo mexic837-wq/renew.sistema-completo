@@ -7073,6 +7073,7 @@ function renderConstructor() {
                   <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
                   <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
                   <option value="Manager" ${f.rol_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
+                  <option value="Encargado del Proyecto" ${f.rol_encargado === 'Encargado del Proyecto' || f.rol_encargado === 'Project Manager' ? 'selected' : ''}>Encargado del Proyecto</option>
                   <option value="Administración" ${f.rol_encargado === 'Administración' || f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
                   <option value="CEO" ${f.rol_encargado === 'CEO' ? 'selected' : ''}>CEO</option>
                   <option value="Asignación Específica" ${f.rol_encargado === 'Asignación Específica' ? 'selected' : ''}>Asignación Específica</option>

@@ -1877,7 +1877,8 @@ export async function getDealsByUser(userId, pipelineName) {
         // 2. Check by role assignment
         if (fase.rol_encargado) {
           const faseRolNorm = fase.rol_encargado.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-          const isMyTurn = userRolNorm === faseRolNorm || (userRolNorm.includes('call') && faseRolNorm.includes('call'));
+          const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(u.id)) || String(p.creador_id) === String(u.id);
+          const isMyTurn = userRolNorm === faseRolNorm || (userRolNorm.includes('call') && faseRolNorm.includes('call')) || (faseRolNorm === 'encargado del proyecto' && (isResponsable || userRolNorm === 'project manager'));
           
           if (isMyTurn) {
             if (p.asignado_a) {
@@ -1900,7 +1901,8 @@ export async function getDealsByUser(userId, pipelineName) {
       const faseRolNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
       const faseOrden = fase.orden || 0;
       
-      const isMyTurn = userRolNorm === faseRolNorm || (userRolNorm.includes('call') && faseRolNorm.includes('call'));
+      const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(u.id)) || String(p.creador_id) === String(u.id);
+      const isMyTurn = userRolNorm === faseRolNorm || (userRolNorm.includes('call') && faseRolNorm.includes('call')) || (faseRolNorm === 'encargado del proyecto' && (isResponsable || userRolNorm === 'project manager'));
       const isLocked = !isAdminUser && !isMyTurn;
 
       return {
@@ -2137,7 +2139,8 @@ export async function getDealById(dealId) {
   
   const specificUsers = fase.usuarios_especificos || [];
   const rolEncargadoNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-  const isMyTurn = userRolNorm === rolEncargadoNorm || (userRolNorm.includes('call') && rolEncargadoNorm.includes('call')) || specificUsers.includes(user.id);
+  const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) || String(p.creador_id) === String(user.id);
+  const isMyTurn = userRolNorm === rolEncargadoNorm || (userRolNorm.includes('call') && rolEncargadoNorm.includes('call')) || specificUsers.includes(user.id) || (rolEncargadoNorm === 'encargado del proyecto' && (isResponsable || userRolNorm === 'project manager'));
   const isLocked = !isAdmin && !isMyTurn;
 
   return { 
@@ -2507,6 +2510,23 @@ function _resolverDestinatarios(db, fase, vendedor_original_id, proyecto = null)
       const creador = workers.find(u => u.id === vendedor_original_id);
       if (creador && !destinatarios.some(d => d.id === creador.id)) {
         destinatarios.push(toContact(creador));
+      }
+    } else if (rol_encargado === 'Encargado del Proyecto') {
+      if (proyecto) {
+        const respIds = (proyecto.responsable_id || '').split(',').map(id=>id.trim()).filter(Boolean);
+        if (respIds.length > 0) {
+          respIds.forEach(rid => {
+            const rUser = workers.find(u => String(u.id) === rid);
+            if (rUser && !destinatarios.some(d => d.id === rUser.id)) {
+              destinatarios.push(toContact(rUser));
+            }
+          });
+        } else if (proyecto.creador_id) {
+          const creador = workers.find(u => String(u.id) === String(proyecto.creador_id));
+          if (creador && !destinatarios.some(d => d.id === creador.id)) {
+            destinatarios.push(toContact(creador));
+          }
+        }
       }
     } else if (rol_encargado === 'Técnico' || rol_encargado === 'Tecnico') {
       if (proyecto && proyecto.tecnico_id) {
