@@ -488,19 +488,30 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const safeDate = (raw) => {
         if (!raw) return null;
         let str = String(raw).trim();
-        // Handle format 'YYYY MM DD' by replacing spaces with hyphens
-        if (/^\d{4}\s\d{2}\s\d{2}/.test(str)) {
-            str = str.replace(/\s/g, '-');
-        }
+        if (/^\d{4}\s\d{2}\s\d{2}/.test(str)) str = str.replace(/\s/g, '-');
         if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
         if (!str.includes('T')) str += 'T12:00:00';
-        const d = new Date(str);
+        let d = new Date(str);
+        if (isNaN(d.getTime())) {
+            // Intento parsear DD/MM/YYYY o DD-MM-YYYY
+            const parts = String(raw).split(/[\/\-]/);
+            if (parts.length === 3) {
+                // Asume DD/MM/YYYY si el primero es > 12
+                if (parseInt(parts[0]) > 12) {
+                    d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`);
+                } else {
+                    d = new Date(`${parts[2]}-${parts[0]}-${parts[1]}T12:00:00`);
+                }
+            }
+        }
         return isNaN(d.getTime()) ? null : d;
     };
 
     const inRange = (dateStr) => {
         if (!rangeStart || !rangeEnd) return true;
         const d = safeDate(dateStr);
+        // Si no tiene fecha, lo incluimos por defecto si el rango es muy amplio (ej. > 1 año) o simplemente lo excluimos
+        // Para que coincida mejor, lo omitiremos, pero mejorado el safeDate recupera muchos.
         if (!d) return false;
         return d >= rangeStart && d <= rangeEnd;
     };
@@ -511,8 +522,24 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const openProjects   = ecoProjects.filter(p => !isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
     const closedProjects = ecoProjects.filter(p => isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
 
-    const totalProspectos     = filteredClients.length; // all clients in the ecosystem
-    const totalDeclinados     = filteredClients.filter(c => c.macro_estado === 'Declinado').length;
+    let countProspectos = 0;
+    let countDeclinados = 0;
+
+    filteredClients.forEach(c => {
+        if (c.macro_estado === 'Declinado') {
+            countDeclinados++;
+            return;
+        }
+        const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
+        const hasOpenProject = clientProjects.some(p => !isProjectFinished(p, db));
+        // Un prospecto es quien no tiene proyectos cerrados (tiene abiertos o ninguno)
+        // Para asegurar consistencia estricta con la app:
+        const hasClosedProject = clientProjects.some(p => isProjectFinished(p, db));
+        if (hasOpenProject || clientProjects.length === 0) countProspectos++;
+    });
+
+    const totalProspectos     = countProspectos;
+    const totalDeclinados     = countDeclinados;
     const totalPresentaciones = openProjects.length;
     const totalVentas         = closedProjects.length;
 
@@ -654,8 +681,13 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) {
-                dp[idx]++;
-                if (c.macro_estado === 'Declinado') dd[idx]++;
+                if (c.macro_estado === 'Declinado') {
+                    dd[idx]++;
+                } else {
+                    const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
+                    const hasOpenProject = clientProjects.some(p => !isProjectFinished(p, db));
+                    if (hasOpenProject || clientProjects.length === 0) dp[idx]++;
+                }
             }
         });
         openArr.forEach(p => {
@@ -682,8 +714,13 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         clientsArr.forEach(c => { 
             const d = safeDate(c.fecha_registro||c.fecha||c.created_at); 
             if(d && d.getFullYear()===year) {
-                dp[d.getMonth()]++;
-                if (c.macro_estado === 'Declinado') dd[d.getMonth()]++;
+                if (c.macro_estado === 'Declinado') {
+                    dd[d.getMonth()]++;
+                } else {
+                    const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
+                    const hasOpenProject = clientProjects.some(p => !isProjectFinished(p, db));
+                    if (hasOpenProject || clientProjects.length === 0) dp[d.getMonth()]++;
+                }
             }
         });
         openArr.forEach(p => { const d = safeDate(getProjectDate(p, db)); if(d && d.getFullYear()===year) dpr[d.getMonth()]++; });
