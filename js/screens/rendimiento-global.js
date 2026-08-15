@@ -510,9 +510,9 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const inRange = (dateStr) => {
         if (!rangeStart || !rangeEnd) return true;
         const d = safeDate(dateStr);
-        // Si no tiene fecha, lo incluimos por defecto si el rango es muy amplio (ej. > 1 año) o simplemente lo excluimos
-        // Para que coincida mejor, lo omitiremos, pero mejorado el safeDate recupera muchos.
-        if (!d) return false;
+        // Si no tiene fecha (ej. "Reciente"), lo incluimos por defecto para que no se vuelva invisible
+        // en los reportes globales.
+        if (!d) return true;
         return d >= rangeStart && d <= rangeEnd;
     };
 
@@ -531,11 +531,8 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             return;
         }
         const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
-        const hasOpenProject = clientProjects.some(p => !isProjectFinished(p, db));
-        // Un prospecto es quien no tiene proyectos cerrados (tiene abiertos o ninguno)
-        // Para asegurar consistencia estricta con la app:
-        const hasClosedProject = clientProjects.some(p => isProjectFinished(p, db));
-        if (hasOpenProject || clientProjects.length === 0) countProspectos++;
+        // Lógica estricta de la App: Si no tiene proyectos en el ecosistema actual, es Prospecto.
+        if (clientProjects.length === 0) countProspectos++;
     });
 
     const totalProspectos     = countProspectos;
@@ -685,8 +682,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                     dd[idx]++;
                 } else {
                     const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
-                    const hasOpenProject = clientProjects.some(p => !isProjectFinished(p, db));
-                    if (hasOpenProject || clientProjects.length === 0) dp[idx]++;
+                    if (clientProjects.length === 0) dp[idx]++;
                 }
             }
         });
@@ -718,8 +714,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                     dd[d.getMonth()]++;
                 } else {
                     const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
-                    const hasOpenProject = clientProjects.some(p => !isProjectFinished(p, db));
-                    if (hasOpenProject || clientProjects.length === 0) dp[d.getMonth()]++;
+                    if (clientProjects.length === 0) dp[d.getMonth()]++;
                 }
             }
         });
