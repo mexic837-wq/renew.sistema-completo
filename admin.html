@@ -12,11 +12,30 @@
     <script src="js/security-guard.js"></script>
     <script src="js/zadarma.js"></script>
     <script>
-        // â”€â”€ GLOBAL SECURITY GUARD â”€â”€
+        // ── GLOBAL SECURITY GUARD ──
         (function() {
             var user = JSON.parse(localStorage.getItem('rs_user'));
-            var allowed = ['Admin', 'admin', 'CEO', 'CEO-RENEW', 'Supervisión', 'Manager', 'manager'];
-            if (!user || !allowed.includes(user.rol)) {
+            var allowed = ['admin', 'administrador', 'administrator', 'ceo', 'ceo-renew', 'supervisión', 'supervisor', 'manager', 'project manager', 'manager de ventas'];
+            
+            function hasAllowedRole(u) {
+                if (!u || !u.rol) return false;
+                var roles = [];
+                if (Array.isArray(u.rol)) {
+                    roles = u.rol;
+                } else if (typeof u.rol === 'string') {
+                    if (u.rol.trim().startsWith('[')) {
+                        try { roles = JSON.parse(u.rol); } catch(e) { roles = u.rol.split(','); }
+                    } else {
+                        roles = u.rol.split(',');
+                    }
+                }
+                for (var i = 0; i < roles.length; i++) {
+                    if (allowed.includes(roles[i].trim().toLowerCase())) return true;
+                }
+                return false;
+            }
+
+            if (!user || !hasAllowedRole(user)) {
                 document.write(`
                 <html>
                 <head>

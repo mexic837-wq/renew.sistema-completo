@@ -490,7 +490,7 @@ export function navigate(screen, param = null) {
   }
 
   if (screen === 'partners' && user) {
-    const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
+    const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'administrator', 'ceo', 'desenvolvedor', 'manager', 'project manager', 'manager de ventas'].includes(r));
     const hasPerm = user.permisos && user.permisos.app_partners;
     if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisión')) && !hasPerm) {
       import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
