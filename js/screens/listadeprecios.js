@@ -22,43 +22,41 @@ export async function renderListaPrecios() {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Water';
   
   let basePriceKey = null;
-  const isAdmin = window.getUserRoles(user).some(r => ['admin','administrador','ceo','desarrollador'].includes(r)); 
-  const isVentas = window.getUserRoles(user).some(r => ['vendedor','representante de ventas','asesor','analista','manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r)); 
+  const isAdmin = window.getUserRoles(user).some(r => ['admin','administrador','administrator','ceo','desarrollador'].includes(r)); 
   
-  if (!isAdmin && !isVentas) {
-    const rankInfo = computeUserRank(user.id, activeUnit, db);
-    if (rankInfo && rankInfo.isNoAplica) {
-      screen.innerHTML = `
-        <div class="dash-header" style="padding-bottom:12px;">
-          <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
-            <button id="btn-precios-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-              <i class="fa-solid fa-arrow-left text-xl"></i>
-            </button>
-            <div class="dash-greeting" style="text-align:center;">
-              <h1 style="margin:0; font-size:1.3rem;">Lista de Precios</h1>
-            </div>
+  const rankInfo = computeUserRank(user.id, activeUnit, db);
+  
+  if (!isAdmin && rankInfo && rankInfo.isNoAplica) {
+    screen.innerHTML = `
+      <div class="dash-header" style="padding-bottom:12px;">
+        <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
+          <button id="btn-precios-back" style="position:absolute; left:0; background:none; border:none; color:var(--text); padding:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-arrow-left text-xl"></i>
+          </button>
+          <div class="dash-greeting" style="text-align:center;">
+            <h1 style="margin:0; font-size:1.3rem;">Lista de Precios</h1>
           </div>
         </div>
-        <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
-          <i class="fas fa-lock" style="font-size: 3.5rem; opacity: 0.2; margin-bottom: 16px;"></i>
-          <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Acceso Restringido</p>
-          <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes una lista de precios asignada en este momento. Por favor, contacta a administración si crees que esto es un error.</p>
-        </div>
-      `;
-      setTimeout(() => {
-        document.getElementById('btn-precios-back')?.addEventListener('click', () => {
-          if (window.appNavigate) window.appNavigate('menu');
-          else navigate('menu');
-        });
-      }, 0);
-      return;
-    }
+      </div>
+      <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+        <i class="fas fa-lock" style="font-size: 3.5rem; opacity: 0.2; margin-bottom: 16px;"></i>
+        <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Acceso Restringido</p>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes una lista de precios asignada en este momento. Por favor, contacta a administración si crees que esto es un error.</p>
+      </div>
+    `;
+    setTimeout(() => {
+      document.getElementById('btn-precios-back')?.addEventListener('click', () => {
+        if (window.appNavigate) window.appNavigate('menu');
+        else navigate('menu');
+      });
+    }, 0);
+    return;
+  }
 
-    if (rankInfo && rankInfo.cur && rankInfo.cur.priceKey) {
-      basePriceKey = rankInfo.cur.priceKey;
-    } else {
-      basePriceKey = 'precio_subvende'; // fallback
-    }
+  if (rankInfo && rankInfo.cur && rankInfo.cur.priceKey) {
+    basePriceKey = rankInfo.cur.priceKey;
+  } else {
+    basePriceKey = 'precio_subvende'; // fallback
   }
   
   let activePriceKey = basePriceKey || 'precio_vendedor';
