@@ -261,7 +261,7 @@ function mostrarModalCuenta(user) {
         </div>
         <div style="margin-top:12px;">
            <h3 style="margin:0; font-size:1.4rem; font-weight:900; color:var(--text-primary);">${user.nombre} ${user.apellido}</h3>
-           <span style="display:inline-block; margin-top:4px; padding:4px 12px; background:var(--primary); color:var(--bg); border-radius:100px; font-size:0.65rem; font-weight:950; text-transform:uppercase; letter-spacing:1px;">${rank}</span>
+           ${rank.toLowerCase() === 'no_aplica' || rank.toLowerCase() === 'no aplica' ? '' : `<span style="display:inline-block; margin-top:4px; padding:4px 12px; background:var(--primary); color:var(--bg); border-radius:100px; font-size:0.65rem; font-weight:950; text-transform:uppercase; letter-spacing:1px;">${rank}</span>`}
         </div>
       </div>
 
