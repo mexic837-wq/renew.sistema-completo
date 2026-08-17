@@ -248,8 +248,11 @@ function mostrarModalCuenta(user) {
       
       <div style="text-align:center; margin-top:-50px; position:relative; z-index:2;">
         <div style="position:relative; width:100px; height:100px; margin:0 auto;">
-          <div style="width:100px; height:100px; border-radius:30px; background:var(--surface); border:4px solid var(--surface); overflow:hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
-            <img id="user-avatar-img" src="${avatar}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='assets/images/default-avatar.png'">
+          <div style="width:100px; height:100px; border-radius:30px; background:var(--surface); border:4px solid var(--surface); overflow:hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2); position:relative;">
+            <div id="user-avatar-fallback" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text-muted); font-size:40px; z-index:1;">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <img id="user-avatar-img" src="${avatar}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:2;" onerror="this.style.display='none'">
           </div>
           <label for="input-avatar" style="position:absolute; bottom:-5px; right:-5px; width:36px; height:36px; border-radius:12px; background:var(--primary); color:var(--bg); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border:3px solid var(--surface);">
             <i class="fa-solid fa-camera" style="font-size:14px;"></i>
@@ -338,7 +341,10 @@ function mostrarModalCuenta(user) {
         
         // 2. Update current UI
         const img = modal.querySelector('#user-avatar-img');
-        if (img) img.src = photoUrl;
+        if (img) {
+          img.src = photoUrl;
+          img.style.display = 'block';
+        }
 
         // 3. Update User in DB
         const updatedUser = { ...user, foto: photoUrl };
