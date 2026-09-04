@@ -276,6 +276,9 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                   const lbl = (c.etiqueta || '').toLowerCase();
                   if (lbl.includes('pozo')) return false; // La plantilla de pozo es opcional
 
+                  // Los campos de nota u observaciones son opcionales y no dejan la fase en Pending
+                  if (lbl.includes('nota') || lbl.includes('observaci') || lbl.includes('comentario')) return false;
+
                   // Para la primera fase de Water (Aprobación), solo evaluamos la Aplicación de Crédito
                   if (isAprobacionWater) {
                       if (isCashLocal) return false;
