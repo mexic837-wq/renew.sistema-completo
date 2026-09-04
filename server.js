@@ -2041,7 +2041,7 @@ app.post('/api/generar-orden', async (req, res) => {
                         const { error: uErr } = await supabase.from('clientes_maestro')
                             .update({ 
                                 adjuntos_oficina: adjuntos,
-                                contrato_water_url: finalUrl 
+                                orden_trabajo_url: finalUrl 
                             })
                             .eq('id', cliId);
                         
@@ -2050,6 +2050,11 @@ app.post('/api/generar-orden', async (req, res) => {
                         } else {
                             console.log(`[SUCCESS] Cliente ${cliId} vinculado correctamente con Orden de Trabajo: ${finalUrl}`);
                         }
+
+                        // Actualizar también en el proyecto dinámico
+                        await supabase.from('proyectos_dinamicos')
+                            .update({ orden_trabajo_url: finalUrl })
+                            .eq('id', proy.id);
                     } else {
                         console.warn(`[PDF-SYNC-ORDEN] <i class="fa-solid fa-triangle-exclamation text-orange-500"></i> No se pudo vincular el documento. El ID "${proyId}" no fue encontrado en Supabase.`);
                     }

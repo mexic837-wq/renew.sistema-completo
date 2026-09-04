@@ -96,9 +96,11 @@ function collectWorkOrderData(formEl) {
   data._tipo      = 'orden_trabajo';
   data._timestamp = new Date().toISOString();
 
-  // ── Vincular con Proyecto ──
+  // ── Vincular con Proyecto y Cliente ──
   const urlParams = new URLSearchParams(window.location.search);
-  data.proyectoId = urlParams.get('proyectoId') || null;
+  const selectedProjId = document.getElementById('wo_selected_project_id')?.value;
+  data.proyectoId = selectedProjId || urlParams.get('proyectoId') || null;
+  data.clienteId = window._currentWOClienteId || null;
 
   return data;
 }
@@ -249,8 +251,9 @@ async function handleWorkOrderSubmit(e) {
       const proyectoIdFromUrl = urlParams.get('proyectoId');
       const proyectoIdFromSelector = document.getElementById('wo_selected_project_id')?.value || null;
       const proyectoId = proyectoIdFromSelector || proyectoIdFromUrl;
-      if (proyectoId) {
-        window.parent.postMessage({ type: 'WORK_ORDER_SUBMITTED', proyectoId, formData: payload, pdfUrl: pdfUrl }, '*');
+      const clienteId = window._currentWOClienteId || null;
+      if (proyectoId || clienteId) {
+        window.parent.postMessage({ type: 'WORK_ORDER_SUBMITTED', proyectoId, clienteId, formData: payload, pdfUrl: pdfUrl }, '*');
       }
     } else {
       let errorMsg = `HTTP ${response.status}`;
@@ -373,6 +376,7 @@ function renderWOClientSearchResults(results) {
 
 async function setWOClient(client) {
   // Save selected client/project info
+  window._currentWOClienteId = client.id || null;
   const hiddenProy = document.getElementById('wo_selected_project_id');
   if (hiddenProy) hiddenProy.value = client.proyectoId || client.id;
 
@@ -405,6 +409,7 @@ async function setWOClient(client) {
 
 window.setNewWOClient = function() {
   // Continue without linking to a project
+  window._currentWOClienteId = null;
   const selectedName = document.getElementById('wo-client-selected-name');
   if (selectedName) selectedName.textContent = 'Sin proyecto vinculado';
   const searchArea = document.getElementById('wo-client-search-area');
@@ -415,6 +420,7 @@ window.setNewWOClient = function() {
 };
 
 window.resetWOClientSelection = function() {
+  window._currentWOClienteId = null;
   const hiddenProy = document.getElementById('wo_selected_project_id');
   if (hiddenProy) hiddenProy.value = '';
   const selectedName = document.getElementById('wo-client-selected-name');
@@ -439,6 +445,7 @@ async function autoFillWorkOrderFromProject(id) {
     const { proyecto, cliente } = await response.json();
     if (!cliente) return;
 
+    window._currentWOClienteId = cliente.id || null;
     console.log(`[AUTOFILL-WO] Rellenando datos del cliente: ${cliente.nombre}`);
     
     const setVal = (id, val) => {

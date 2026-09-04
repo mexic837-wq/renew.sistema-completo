@@ -327,6 +327,7 @@ export function renderPlantillaPozo(proyIdParam = null) {
               if (!client.adjuntos_oficina || Array.isArray(client.adjuntos_oficina)) client.adjuntos_oficina = {};
               client.adjuntos_oficina.plantilla_pozo_url = finalPdfUrl;
               client.adjuntos_oficina.ultima_pozo_fecha = new Date().toISOString();
+              client.plantilla_pozo_url = finalPdfUrl;
               const { saveGranular } = await import('../api.js');
               await saveGranular('clientes_maestro', [client]);
           }
@@ -337,6 +338,7 @@ export function renderPlantillaPozo(proyIdParam = null) {
           const db = getDB();
           const project = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(linkedProyectoId));
           if (project) {
+              project.orden_trabajo_url = finalPdfUrl;
               const dynamicField = db.Admin_Campos_Formulario?.find(c => 
                   c.tipo === 'Orden de Trabajo' && String(c.fase_id) === String(project.fase_id)
               );

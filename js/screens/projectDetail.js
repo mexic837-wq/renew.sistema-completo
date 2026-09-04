@@ -286,20 +286,33 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               for (const c of requiredCampos) {
                   const r = respuestas.find(resp => resp.campo_id === c.id);
                   let val = r ? r.valor : '';
-                  if (!val || val === 'No subido' || val === 'No provisto') {
-                      const lbl = (c.etiqueta || '').toLowerCase();
+                  const lbl = (c.etiqueta || '').toLowerCase();
+                  const isWorkOrderField = c.tipo === 'Orden de Trabajo' || lbl.includes('orden de trabajo') || lbl.includes('pozo');
+
+                  if (!val || val === 'No subido' || val === 'No provisto' || val === 'NO' || val === 'no') {
                       if (c.tipo === 'Aplicación de Crédito' || lbl.includes('aplicación') || lbl.includes('aplicacion') || lbl.includes('credit')) {
                           if (cliMeta.app_url) val = cliMeta.app_url;
-                      } else if (c.tipo === 'Orden de Trabajo' || lbl.includes('orden de trabajo') || lbl.includes('pozo')) {
-                          if (cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url) val = cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url;
+                      } else if (isWorkOrderField) {
+                          if (cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url) {
+                              val = cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url;
+                          }
                       } else if (c.tipo === 'Contrato' || lbl.includes('contrato')) {
                           if (cliMeta.contrato_url || cliMeta[`contrato_${prefix}_url`]) val = cliMeta[`contrato_${prefix}_url`] || cliMeta.contrato_url;
                       } else if (c.tipo?.includes('Recibo') || (lbl.includes('recibo') && !lbl.includes('comprobante'))) {
                           if (cliMeta.recibo_url || cliMeta.recibo_vendedor_url || cliMeta.recibo_tecnico_url) val = cliMeta.recibo_url || cliMeta.recibo_vendedor_url || cliMeta.recibo_tecnico_url;
                       }
                   }
-                  if (val && val !== 'No subido' && val !== 'No provisto') {
-                      numRequiredFilled++;
+
+                  if (isWorkOrderField) {
+                      // Si se respondió NO o no hay archivo/URL real, NO suma como completado para mantenerse PENDING
+                      const hasDoc = (val && (val.startsWith('http') || val.startsWith('/api/'))) || cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url;
+                      if (hasDoc && val !== 'NO' && val !== 'no') {
+                          numRequiredFilled++;
+                      }
+                  } else {
+                      if (val && val !== 'No subido' && val !== 'No provisto') {
+                          numRequiredFilled++;
+                      }
                   }
               }
 
@@ -1317,61 +1330,108 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         </div>
        `;
     } else if (c.tipo === 'Orden de Trabajo') {
-       const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(c => String(c.id) === String(deal.cliente_id));
-       const cliMetadata = dbClient?.adjuntos_oficina || {};
-       const actualPdfUrl = (val && val.startsWith('http')) ? val : (cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url);
-       const isDone = !!(val && val !== 'No subido' && val !== 'No provisto') || !!actualPdfUrl;
-       html = `
-        <div style="margin-bottom:16px;">
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
-          ${isDone ? `
-            <div style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
-              <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <span style="color:#0d9488; font-size:0.85rem; font-weight:700;">Orden de Trabajo / Pozo Completada</span>
-              ${actualPdfUrl ? `<button onclick="window.open('${actualPdfUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
-            </div>
-          ` : `
-            <div style="margin-bottom: 12px;">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Qué tipo de trabajo es?</label>
-                <select id="wo-tipo-trabajo-${c.id}" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-[#0d9488] focus:border-[#0d9488] block p-3 font-medium transition-colors" onchange="
-                    const val = this.value;
-                    const btnOrden = document.getElementById('wo-btn-orden-${c.id}');
-                    const btnPozo = document.getElementById('wo-btn-pozo-${c.id}');
-                    
-                    if (val === 'pozo') {
-                        btnOrden.style.display = 'none';
-                        btnPozo.style.display = 'block';
-                    } else if (val === 'orden') {
-                        btnOrden.style.display = 'block';
-                        btnPozo.style.display = 'none';
-                    } else if (val === 'ambos') {
-                        btnOrden.style.display = 'block';
-                        btnPozo.style.display = 'block';
-                    } else {
-                        btnOrden.style.display = 'none';
-                        btnPozo.style.display = 'none';
-                    }
-                ">
-                    <option value="" disabled selected>Elegir...</option>
-                    <option value="orden">Orden de Trabajo Estándar</option>
-                    <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
-                    <option value="ambos">Ambos (Orden de Trabajo y Pozo)</option>
-                </select>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <button type="button" id="wo-btn-orden-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');" ${disabledAttr}>
-                  Llenar Orden de Trabajo
-                </button>
-                <button type="button" id="wo-btn-pozo-${c.id}" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" ${disabledAttr}>
-                  Llenar Plantilla de Pozo
-                </button>
-            </div>
-          `}
-          <input type="hidden" id="df_${c.id}" value="${actualPdfUrl || val || 'Completado en Formulario Externo'}" />
-        </div>
-       `;
+        const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(cli => String(cli.id) === String(deal.cliente_id));
+        const cliMetadata = dbClient?.adjuntos_oficina || {};
+        const actualPdfUrl = (val && (val.startsWith('http') || val.startsWith('/api/'))) 
+            ? val 
+            : (cliMetadata.orden_trabajo_url || cliMetadata.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url || null);
+        const hasRealOrder = !!actualPdfUrl;
+
+        let selectedChoice = '';
+        if (hasRealOrder) {
+            selectedChoice = 'SI';
+        } else if (val === 'NO' || val === 'no') {
+            selectedChoice = 'NO';
+        } else if (val === 'SI' || val === 'si') {
+            selectedChoice = 'SI';
+        }
+
+        html = `
+         <div style="margin-bottom:16px;">
+           <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">${c.etiqueta}</label>
+           
+           <div style="margin-bottom: 12px;">
+             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Se realizó la orden de trabajo?</label>
+             <select id="wo-realizo-orden-${c.id}" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-[#0d9488] focus:border-[#0d9488] block p-3 font-medium transition-colors" ${disabledAttr} onchange="
+                 const selVal = this.value;
+                 const detectedBox = document.getElementById('wo-status-detected-${c.id}');
+                 const missingBox = document.getElementById('wo-status-missing-${c.id}');
+                 const noBox = document.getElementById('wo-status-no-${c.id}');
+                 const hiddenInp = document.getElementById('df_${c.id}');
+                 const hasOrder = ${hasRealOrder ? 'true' : 'false'};
+                 const pdfUrl = '${actualPdfUrl || ''}';
+
+                 if (selVal === 'SI') {
+                     if (noBox) noBox.style.display = 'none';
+                     if (hasOrder) {
+                         if (detectedBox) detectedBox.style.display = 'flex';
+                         if (missingBox) missingBox.style.display = 'none';
+                         if (hiddenInp) hiddenInp.value = pdfUrl || 'SI';
+                     } else {
+                         if (detectedBox) detectedBox.style.display = 'none';
+                         if (missingBox) missingBox.style.display = 'block';
+                         if (hiddenInp) hiddenInp.value = 'SI_SIN_DOC';
+                     }
+                 } else if (selVal === 'NO') {
+                     if (detectedBox) detectedBox.style.display = 'none';
+                     if (missingBox) missingBox.style.display = 'none';
+                     if (noBox) noBox.style.display = 'block';
+                     if (hiddenInp) hiddenInp.value = 'NO';
+                 } else {
+                     if (detectedBox) detectedBox.style.display = 'none';
+                     if (missingBox) missingBox.style.display = 'none';
+                     if (noBox) noBox.style.display = 'none';
+                     if (hiddenInp) hiddenInp.value = '';
+                 }
+             ">
+                 <option value="" disabled ${!selectedChoice ? 'selected' : ''}>Elegir...</option>
+                 <option value="SI" ${selectedChoice === 'SI' ? 'selected' : ''}>SI</option>
+                 <option value="NO" ${selectedChoice === 'NO' ? 'selected' : ''}>NO</option>
+             </select>
+           </div>
+
+           <!-- Estado SI: Detectada con éxito -->
+           <div id="wo-status-detected-${c.id}" style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:${selectedChoice === 'SI' && hasRealOrder ? 'flex' : 'none'}; align-items:center; gap:12px; margin-top:8px;">
+             <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+             </div>
+             <div>
+               <span style="color:#0d9488; font-size:0.85rem; font-weight:700; display:block;">Orden de Trabajo / Plantilla Detectada</span>
+               <span style="color:#64748b; font-size:0.75rem;">Guardada en el perfil del cliente</span>
+             </div>
+             ${actualPdfUrl ? `<button type="button" onclick="window.open('${actualPdfUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+           </div>
+
+           <!-- Estado SI: Advertencia de NO encontrada y accesos directos -->
+           <div id="wo-status-missing-${c.id}" style="background:#fef3c7; border:1px solid #f59e0b40; border-radius:12px; padding:14px 16px; display:${selectedChoice === 'SI' && !hasRealOrder ? 'block' : 'none'}; margin-top:8px;">
+             <div style="display:flex; align-items:center; gap:8px; color:#b45309; font-size:0.8rem; font-weight:800; margin-bottom:6px;">
+               <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+               <span>No se encontró Orden de Trabajo en el perfil</span>
+             </div>
+             <p style="font-size:0.75rem; color:#78350f; margin:0 0 10px 0; line-height:1.4;">
+               Seleccionaste que <strong>SI</strong> se realizó, pero no existe ninguna Orden de Trabajo o Plantilla en el perfil del cliente. Debes generarla para poder avanzar de fase:
+             </p>
+             <div style="display:flex; flex-direction:column; gap:8px;">
+                 <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0d9488; font-size:0.8rem;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');" ${disabledAttr}>
+                   <i class="fa-solid fa-wrench mr-1"></i> Llenar Orden de Trabajo
+                 </button>
+                 <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0284c7; font-size:0.8rem;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" ${disabledAttr}>
+                   <i class="fa-solid fa-water mr-1"></i> Llenar Plantilla de Pozo
+                 </button>
+             </div>
+           </div>
+
+           <!-- Estado NO: Información de que quedará PENDING -->
+           <div id="wo-status-no-${c.id}" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:12px; padding:10px 14px; display:${selectedChoice === 'NO' ? 'block' : 'none'}; margin-top:8px;">
+             <p style="font-size:0.75rem; color:#475569; margin:0; display:flex; align-items:center; gap:6px;">
+               <i class="fa-solid fa-circle-info text-blue-500"></i>
+               <span>Puedes avanzar a la siguiente fase, pero esta etapa quedará registrada como <strong>Pending</strong>.</span>
+             </p>
+           </div>
+
+           <input type="hidden" id="df_${c.id}" value="${hasRealOrder ? actualPdfUrl : (selectedChoice === 'NO' ? 'NO' : '')}" />
+         </div>
+        `;
     } else if (c.tipo === 'Contrato') {
         const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
         const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
@@ -1617,54 +1677,98 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           }
       }
       if (isWorkOrderPhase && !hasWorkOrderField) {
-          const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(c => String(c.id) === String(deal.cliente_id));
+          const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(cli => String(cli.id) === String(deal.cliente_id));
           const cliMetadata = dbClient?.adjuntos_oficina || {};
-          const hasMetadata = !!(cliMetadata.plantilla_pozo_url || cliMetadata.orden_trabajo_url);
-          const isDone = existingResp.some(r => r.valor && (r.valor.startsWith('http') || r.valor.startsWith('/api/')) && (db.Admin_Campos_Formulario.find(c => c.id === r.campo_id)?.tipo === 'Orden de Trabajo')) || hasMetadata;
-          if (!isDone) {
-            extraHtml += `
-              <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
-                <div class="field-group" style="margin-bottom: 12px;">
-                    <label>¿Qué tipo de trabajo es?</label>
-                    <div class="input-wrap select-wrap no-icon">
-                        <select id="wo-tipo-trabajo-extra" onchange="
-                            const val = this.value;
-                            const btnOrden = document.getElementById('wo-btn-orden-extra');
-                            const btnPozo = document.getElementById('wo-btn-pozo-extra');
-                            
-                            if (val === 'pozo') {
-                                btnOrden.style.display = 'none';
-                                btnPozo.style.display = 'block';
-                            } else if (val === 'orden') {
-                                btnOrden.style.display = 'block';
-                                btnPozo.style.display = 'none';
-                            } else if (val === 'ambos') {
-                                btnOrden.style.display = 'block';
-                                btnPozo.style.display = 'block';
-                            } else {
-                                btnOrden.style.display = 'none';
-                                btnPozo.style.display = 'none';
-                            }
-                        ">
-                            <option value="" disabled selected>Elegir...</option>
-                            <option value="orden">Orden de Trabajo Estándar</option>
-                            <option value="pozo">Es Pozo (Plantilla de Pozo)</option>
-                            <option value="ambos">Ambos (Orden de Trabajo y Pozo)</option>
-                        </select>
-                    </div>
+          const actualPdfUrl = cliMetadata.orden_trabajo_url || cliMetadata.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url || null;
+          const hasRealOrder = !!actualPdfUrl;
+
+          extraHtml += `
+            <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
+              <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Acción Requerida para ${actFase.nombre}</p>
+              <div class="field-group" style="margin-bottom: 12px;">
+                  <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">¿Se realizó la orden de trabajo?</label>
+                  <div class="input-wrap select-wrap no-icon">
+                      <select id="wo-realizo-orden-extra" onchange="
+                          const selVal = this.value;
+                          const detectedBox = document.getElementById('wo-status-detected-extra');
+                          const missingBox = document.getElementById('wo-status-missing-extra');
+                          const noBox = document.getElementById('wo-status-no-extra');
+                          const hiddenInp = document.getElementById('df_wo_extra');
+                          const hasOrder = ${hasRealOrder ? 'true' : 'false'};
+                          const pdfUrl = '${actualPdfUrl || ''}';
+
+                          if (selVal === 'SI') {
+                              if (noBox) noBox.style.display = 'none';
+                              if (hasOrder) {
+                                  if (detectedBox) detectedBox.style.display = 'flex';
+                                  if (missingBox) missingBox.style.display = 'none';
+                                  if (hiddenInp) hiddenInp.value = pdfUrl || 'SI';
+                              } else {
+                                  if (detectedBox) detectedBox.style.display = 'none';
+                                  if (missingBox) missingBox.style.display = 'block';
+                                  if (hiddenInp) hiddenInp.value = 'SI_SIN_DOC';
+                              }
+                          } else if (selVal === 'NO') {
+                              if (detectedBox) detectedBox.style.display = 'none';
+                              if (missingBox) missingBox.style.display = 'none';
+                              if (noBox) noBox.style.display = 'block';
+                              if (hiddenInp) hiddenInp.value = 'NO';
+                          } else {
+                              if (detectedBox) detectedBox.style.display = 'none';
+                              if (missingBox) missingBox.style.display = 'none';
+                              if (noBox) noBox.style.display = 'none';
+                              if (hiddenInp) hiddenInp.value = '';
+                          }
+                      ">
+                          <option value="" disabled ${!hasRealOrder ? 'selected' : ''}>Elegir...</option>
+                          <option value="SI" ${hasRealOrder ? 'selected' : ''}>SI</option>
+                          <option value="NO">NO</option>
+                      </select>
+                  </div>
+              </div>
+
+              <!-- Estado SI: Detectada -->
+              <div id="wo-status-detected-extra" style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:${hasRealOrder ? 'flex' : 'none'}; align-items:center; gap:12px; margin-top:8px;">
+                <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
+                <div>
+                  <span style="color:#0d9488; font-size:0.85rem; font-weight:700; display:block;">Orden de Trabajo / Plantilla Detectada</span>
+                  <span style="color:#64748b; font-size:0.75rem;">Guardada en el perfil del cliente</span>
+                </div>
+                ${actualPdfUrl ? `<button type="button" onclick="window.open('${actualPdfUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+              </div>
+
+              <!-- Estado SI: Advertencia de NO encontrada -->
+              <div id="wo-status-missing-extra" style="background:#fef3c7; border:1px solid #f59e0b40; border-radius:12px; padding:14px 16px; display:none; margin-top:8px;">
+                <div style="display:flex; align-items:center; gap:8px; color:#b45309; font-size:0.8rem; font-weight:800; margin-bottom:6px;">
+                  <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+                  <span>No se encontró Orden de Trabajo en el perfil</span>
+                </div>
+                <p style="font-size:0.75rem; color:#78350f; margin:0 0 10px 0; line-height:1.4;">
+                  Seleccionaste que <strong>SI</strong> se realizó, pero no existe ninguna Orden de Trabajo o Plantilla en el perfil del cliente. Debes generarla para poder avanzar de fase:
+                </p>
                 <div style="display:flex; flex-direction:column; gap:8px;">
-                    <button type="button" id="wo-btn-orden-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');">
-                      Llenar Orden de Trabajo
+                    <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0d9488; font-size:0.8rem;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');">
+                      <i class="fa-solid fa-wrench mr-1"></i> Llenar Orden de Trabajo
                     </button>
-                    <button type="button" id="wo-btn-pozo-extra" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#0d9488; display:none;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');">
-                      Llenar Plantilla de Pozo
+                    <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0284c7; font-size:0.8rem;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');">
+                      <i class="fa-solid fa-water mr-1"></i> Llenar Plantilla de Pozo
                     </button>
                 </div>
               </div>
-            `;
-          }
+
+              <!-- Estado NO: Información de que quedará PENDING -->
+              <div id="wo-status-no-extra" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:12px; padding:10px 14px; display:none; margin-top:8px;">
+                <p style="font-size:0.75rem; color:#475569; margin:0; display:flex; align-items:center; gap:6px;">
+                  <i class="fa-solid fa-circle-info text-blue-500"></i>
+                  <span>Puedes avanzar a la siguiente fase, pero esta etapa quedará registrada como <strong>Pending</strong>.</span>
+                </p>
+              </div>
+
+              <input type="hidden" id="df_wo_extra" value="${hasRealOrder ? actualPdfUrl : ''}" />
+            </div>
+          `;
       }
       if (isContractPhase && !hasContractField) {
           const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
@@ -1740,6 +1844,39 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         if (missingFields.length > 0) {
           showToast(`<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Faltan datos del cliente: ${missingFields.join(', ')}. Completa el perfil antes de avanzar.`, 'error');
           return;
+        }
+
+        // ── VALIDACIÓN DE ORDEN DE TRABAJO (SI/NO) ──
+        const isWaterPip = (pipeline?.nombre || '').toLowerCase().includes('water');
+        const isWoPhase = (actFase?.nombre || '').toLowerCase().includes('orden de trabajo');
+        const woField = campos.find(c => c.tipo === 'Orden de Trabajo');
+
+        if (isWaterPip && isWoPhase) {
+          const selectEl = woField ? document.getElementById(`wo-realizo-orden-${woField.id}`) : document.getElementById('wo-realizo-orden-extra');
+          const choice = selectEl ? selectEl.value : '';
+
+          if (!choice) {
+            showToast('<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Por favor selecciona si se realizó la orden de trabajo (SI o NO).', 'warning');
+            if (selectEl) selectEl.focus();
+            return;
+          }
+
+          if (choice === 'SI') {
+            const dbLocal = typeof getDB !== 'undefined' ? getDB() : (window.cachedDB || {});
+            const dbCli = (dbLocal.Clientes_Maestro || []).find(cl => String(cl.id) === String(deal.cliente_id));
+            const cliMeta = dbCli?.adjuntos_oficina || {};
+            const existsPdf = !!(cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbCli?.orden_trabajo_url || dbCli?.plantilla_pozo_url || deal.orden_trabajo_url);
+
+            if (!existsPdf) {
+              showToast('<i class="fa-solid fa-circle-xmark text-red-500"></i> Seleccionaste que SI se realizó la orden de trabajo, pero no existe ninguna en el perfil del cliente. Debes generarla antes de avanzar.', 'error');
+              const missingBox = woField ? document.getElementById(`wo-status-missing-${woField.id}`) : document.getElementById('wo-status-missing-extra');
+              if (missingBox) {
+                missingBox.style.display = 'block';
+                missingBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+              return;
+            }
+          }
         }
 
         const resp = {};

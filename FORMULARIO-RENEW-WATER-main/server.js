@@ -342,15 +342,40 @@ app.post('/api/generar-orden', async (req, res) => {
         const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
         finalUrl = publicUrl.replace('api-renew', 'files-renew').replace('/storage/v1/', '/');
         
-        // 2. Actualizar la nueva columna en clientes_maestro (orden_trabajo_url)
-        if (datos.proyectoId) {
-            const { error: dbError } = await supabase
-              .from('clientes_maestro')
-              .update({ orden_trabajo_url: finalUrl }) // Asumimos que esta columna existe o puede recibirlo si hay update dinamico, pero en Supabase debe existir.
-              .eq('id', datos.proyectoId);
-            
-            if (dbError) console.error('[DB UPDATE ERROR]', dbError);
-            else console.log(`[SUPABASE] Cliente ${datos.proyectoId} actualizado con orden de trabajo: ${finalUrl}`);
+        // 2. Actualizar en clientes_maestro y proyectos_dinamicos
+        if (datos.proyectoId || datos.clienteId) {
+            try {
+                let cliId = datos.clienteId;
+                let proyId = datos.proyectoId;
+
+                if (!cliId && proyId) {
+                    const { data: proy } = await supabase.from('proyectos_dinamicos').select('id, cliente_id').eq('id', proyId).single();
+                    if (proy && proy.cliente_id) {
+                        cliId = proy.cliente_id;
+                    }
+                }
+
+                if (cliId) {
+                    const { data: cli } = await supabase.from('clientes_maestro').select('adjuntos_oficina').eq('id', cliId).single();
+                    let adj = cli?.adjuntos_oficina;
+                    if (!adj || Array.isArray(adj)) adj = {};
+                    adj.orden_trabajo_url = finalUrl;
+                    adj.ultima_orden_fecha = new Date().toISOString();
+
+                    await supabase.from('clientes_maestro')
+                        .update({ orden_trabajo_url: finalUrl, adjuntos_oficina: adj })
+                        .eq('id', cliId);
+                    console.log(`[SUPABASE] Cliente ${cliId} actualizado con orden de trabajo: ${finalUrl}`);
+                }
+
+                if (proyId) {
+                    await supabase.from('proyectos_dinamicos')
+                        .update({ orden_trabajo_url: finalUrl })
+                        .eq('id', proyId);
+                }
+            } catch (errSync) {
+                console.error('[SUPABASE SYNC ERROR]', errSync);
+            }
         }
     }
 

@@ -175,12 +175,17 @@ window.addEventListener('message', async (e) => {
       
       if (dynamicField && project) {
         console.log(`[APP] Mapping form to field: ${dynamicField.id} (${dynamicField.etiqueta})`);
-        flatResp[dynamicField.id] = 'Completado';
+        flatResp[dynamicField.id] = pdfUrl || 'Completado';
+      }
+
+      // ── Resolve client ID from project if not provided ──
+      if (!targetClientId && project?.cliente_id) {
+          targetClientId = project.cliente_id;
       }
 
       // ── NEW: Update local Client Profile metadata immediately ──
       if (targetClientId && pdfUrl) {
-          const client = db.Clientes_Maestro?.find(c => c.id === targetClientId);
+          const client = db.Clientes_Maestro?.find(c => String(c.id) === String(targetClientId));
           const { saveGranular: sgLocal } = await import('./api.js');
           
           if (client) {
@@ -189,6 +194,7 @@ window.addEventListener('message', async (e) => {
               if (isWorkOrder) {
                   client.adjuntos_oficina.orden_trabajo_url = pdfUrl;
                   client.adjuntos_oficina.ultima_orden_fecha = new Date().toISOString();
+                  client.orden_trabajo_url = pdfUrl;
               } else {
                   client.adjuntos_oficina.app_url = pdfUrl;
                   client.adjuntos_oficina.ultima_credit_fecha = new Date().toISOString();
@@ -199,6 +205,7 @@ window.addEventListener('message', async (e) => {
           
           if (project) {
               console.log(`[APP] Syncing PDF URL to local project: ${project.id}`);
+              if (isWorkOrder) project.orden_trabajo_url = pdfUrl;
               await sgLocal('proyectos_dinamicos', [project]);
           }
       }
@@ -260,7 +267,11 @@ window.addEventListener('message', async (e) => {
       }
         
       showToast(successMsg, 'success');
-      navigate('dashboard');
+      if (proyectoId) {
+        navigate('detail', proyectoId);
+      } else {
+        navigate('dashboard');
+      }
     } catch(err) {
       console.error('[APP ERROR]', err);
       showToast('Error procesando formulario: ' + err.message, 'error');
