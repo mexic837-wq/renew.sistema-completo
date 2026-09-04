@@ -1484,7 +1484,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
              ">
                Llenar Contrato
              </button>
-           `}
+            `)}
            <input type="hidden" id="df_${c.id}" value="${val || 'Completado en Formulario Externo'}" />
          </div>
         `;
