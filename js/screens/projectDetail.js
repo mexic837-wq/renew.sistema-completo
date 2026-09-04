@@ -268,10 +268,20 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                   }
               }
 
+              const isWater = (pipeline.nombre || '').toLowerCase().includes('water');
+              const isAprobacionWater = isWater && (i === 0 || (f.nombre || '').toLowerCase().includes('aprobaci'));
+
               const requiredCampos = phaseCampos.filter(c => {
                   if (c.es_opcional) return false;
                   const lbl = (c.etiqueta || '').toLowerCase();
                   if (lbl.includes('pozo')) return false; // La plantilla de pozo es opcional
+
+                  // Para la primera fase de Water (Aprobación), solo evaluamos la Aplicación de Crédito
+                  if (isAprobacionWater) {
+                      if (isCashLocal) return false;
+                      return c.tipo === 'Aplicación de Crédito' || lbl.includes('aplicaci') || lbl.includes('credit');
+                  }
+
                   if (isCashLocal && (lbl.includes('aprobación') || lbl.includes('aprobacion') || lbl.includes('financiera') || c.tipo === 'Aplicación de Crédito')) return false;
                   if (lbl.includes('comprobante') && !isZelleOrChequeLocal) return false;
                   return true;
@@ -292,7 +302,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
 
                   if (!val || val === 'No subido' || val === 'No provisto' || val === 'NO' || val === 'no') {
                       if (c.tipo === 'Aplicación de Crédito' || lbl.includes('aplicación') || lbl.includes('aplicacion') || lbl.includes('credit')) {
-                          if (cliMeta.app_url) val = cliMeta.app_url;
+                          if (cliMeta.app_url || dbClient?.app_url || deal.app_url) val = cliMeta.app_url || dbClient?.app_url || deal.app_url;
                       } else if (isWorkOrderField) {
                           if (cliMeta.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url) {
                               val = cliMeta.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url;
@@ -317,7 +327,19 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                   }
               }
 
-              if (requiredCampos.length > 0 && numRequiredFilled < requiredCampos.length) {
+              if (isAprobacionWater) {
+                  // En la fase de Aprobación de Water, solo queda Pending si NO hay aplicación de crédito completada
+                  if (!isCashLocal) {
+                      const hasCreditApp = !!(cliMeta.app_url || dbClient?.app_url || deal.app_url || respuestas.some(r => {
+                          const fld = phaseCampos.find(pc => pc.id === r.campo_id);
+                          const fldLbl = (fld?.etiqueta || '').toLowerCase();
+                          return (fld?.tipo === 'Aplicación de Crédito' || fldLbl.includes('aplicaci') || fldLbl.includes('credit')) && r.valor && r.valor !== 'No subido' && r.valor !== 'No provisto';
+                      }));
+                      if (!hasCreditApp) {
+                          btnText = 'Pending';
+                      }
+                  }
+              } else if (requiredCampos.length > 0 && numRequiredFilled < requiredCampos.length) {
                   btnText = 'Pending';
               }
           }
