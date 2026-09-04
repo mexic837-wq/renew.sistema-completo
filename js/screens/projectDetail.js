@@ -271,6 +271,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               const requiredCampos = phaseCampos.filter(c => {
                   if (c.es_opcional) return false;
                   const lbl = (c.etiqueta || '').toLowerCase();
+                  if (lbl.includes('pozo')) return false; // La plantilla de pozo es opcional
                   if (isCashLocal && (lbl.includes('aprobación') || lbl.includes('aprobacion') || lbl.includes('financiera') || c.tipo === 'Aplicación de Crédito')) return false;
                   if (lbl.includes('comprobante') && !isZelleOrChequeLocal) return false;
                   return true;
@@ -287,14 +288,14 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                   const r = respuestas.find(resp => resp.campo_id === c.id);
                   let val = r ? r.valor : '';
                   const lbl = (c.etiqueta || '').toLowerCase();
-                  const isWorkOrderField = c.tipo === 'Orden de Trabajo' || lbl.includes('orden de trabajo') || lbl.includes('pozo');
+                  const isWorkOrderField = c.tipo === 'Orden de Trabajo' || lbl.includes('orden de trabajo');
 
                   if (!val || val === 'No subido' || val === 'No provisto' || val === 'NO' || val === 'no') {
                       if (c.tipo === 'Aplicación de Crédito' || lbl.includes('aplicación') || lbl.includes('aplicacion') || lbl.includes('credit')) {
                           if (cliMeta.app_url) val = cliMeta.app_url;
                       } else if (isWorkOrderField) {
-                          if (cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url) {
-                              val = cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url;
+                          if (cliMeta.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url) {
+                              val = cliMeta.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url;
                           }
                       } else if (c.tipo === 'Contrato' || lbl.includes('contrato')) {
                           if (cliMeta.contrato_url || cliMeta[`contrato_${prefix}_url`]) val = cliMeta[`contrato_${prefix}_url`] || cliMeta.contrato_url;
@@ -304,9 +305,9 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                   }
 
                   if (isWorkOrderField) {
-                      // Si se respondió NO o no hay archivo/URL real, NO suma como completado para mantenerse PENDING
-                      const hasDoc = (val && (val.startsWith('http') || val.startsWith('/api/'))) || cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url;
-                      if (hasDoc && val !== 'NO' && val !== 'no') {
+                      // Solo la Orden de Trabajo es obligatoria; si se respondió NO o no hay Orden de Trabajo real, queda PENDING
+                      const hasOrderDoc = (val && (val.startsWith('http') || val.startsWith('/api/')) && !val.toLowerCase().includes('pozo')) || cliMeta.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url;
+                      if (hasOrderDoc && val !== 'NO' && val !== 'no') {
                           numRequiredFilled++;
                       }
                   } else {
@@ -1332,10 +1333,11 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
     } else if (c.tipo === 'Orden de Trabajo') {
         const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(cli => String(cli.id) === String(deal.cliente_id));
         const cliMetadata = dbClient?.adjuntos_oficina || {};
-        const actualPdfUrl = (val && (val.startsWith('http') || val.startsWith('/api/'))) 
+        const ordenTrabajoUrl = (val && (val.startsWith('http') || val.startsWith('/api/')) && !val.toLowerCase().includes('pozo')) 
             ? val 
-            : (cliMetadata.orden_trabajo_url || cliMetadata.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url || null);
-        const hasRealOrder = !!actualPdfUrl;
+            : (cliMetadata.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url || null);
+        const plantillaPozoUrl = cliMetadata.plantilla_pozo_url || dbClient?.plantilla_pozo_url || null;
+        const hasRealOrder = !!ordenTrabajoUrl;
 
         let selectedChoice = '';
         if (hasRealOrder) {
@@ -1359,7 +1361,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                  const noBox = document.getElementById('wo-status-no-${c.id}');
                  const hiddenInp = document.getElementById('df_${c.id}');
                  const hasOrder = ${hasRealOrder ? 'true' : 'false'};
-                 const pdfUrl = '${actualPdfUrl || ''}';
+                 const pdfUrl = '${ordenTrabajoUrl || ''}';
 
                  if (selVal === 'SI') {
                      if (noBox) noBox.style.display = 'none';
@@ -1391,32 +1393,51 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
            </div>
 
            <!-- Estado SI: Detectada con éxito -->
-           <div id="wo-status-detected-${c.id}" style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:${selectedChoice === 'SI' && hasRealOrder ? 'flex' : 'none'}; align-items:center; gap:12px; margin-top:8px;">
-             <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+           <div id="wo-status-detected-${c.id}" style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:${selectedChoice === 'SI' && hasRealOrder ? 'flex' : 'none'}; flex-direction:column; gap:10px; margin-top:8px;">
+             <div style="display:flex; align-items:center; gap:12px; width:100%;">
+               <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+               </div>
+               <div>
+                 <span style="color:#0d9488; font-size:0.85rem; font-weight:700; display:block;">Orden de Trabajo Detectada <span style="background:#0d948820; color:#0d9488; font-size:0.65rem; padding:1px 6px; border-radius:4px; margin-left:4px;">Obligatorio ✓</span></span>
+                 <span style="color:#64748b; font-size:0.75rem;">Guardada en el perfil del cliente</span>
+               </div>
+               ${ordenTrabajoUrl ? `<button type="button" onclick="window.open('${ordenTrabajoUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
              </div>
-             <div>
-               <span style="color:#0d9488; font-size:0.85rem; font-weight:700; display:block;">Orden de Trabajo / Plantilla Detectada</span>
-               <span style="color:#64748b; font-size:0.75rem;">Guardada en el perfil del cliente</span>
-             </div>
-             ${actualPdfUrl ? `<button type="button" onclick="window.open('${actualPdfUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+
+             ${plantillaPozoUrl ? `
+               <div style="display:flex; align-items:center; gap:12px; width:100%; border-top:1px dashed #0d948830; padding-top:8px;">
+                 <div style="background:#0284c720; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                   <i class="fa-solid fa-water text-sky-600" style="font-size:12px;"></i>
+                 </div>
+                 <div>
+                   <span style="color:#0284c7; font-size:0.8rem; font-weight:700; display:block;">Plantilla de Pozo <span style="background:#0284c720; color:#0284c7; font-size:0.65rem; padding:1px 6px; border-radius:4px; margin-left:4px;">Opcional ✓</span></span>
+                 </div>
+                 <button type="button" onclick="window.open('${plantillaPozoUrl}')" style="margin-left:auto; background:#0284c7; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF Pozo</button>
+               </div>
+             ` : `
+               <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-top:1px dashed #0d948830; padding-top:8px;">
+                 <span style="font-size:0.72rem; color:#64748b;"><i class="fa-solid fa-circle-info text-sky-500 mr-1"></i> Plantilla de Pozo (Opcional): no requerida</span>
+                 <button type="button" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" style="background:#0284c715; color:#0284c7; border:1px solid #0284c740; padding:4px 8px; border-radius:6px; font-size:0.68rem; font-weight:bold; cursor:pointer" ${disabledAttr}>+ Llenar Pozo (Opcional)</button>
+               </div>
+             `}
            </div>
 
            <!-- Estado SI: Advertencia de NO encontrada y accesos directos -->
            <div id="wo-status-missing-${c.id}" style="background:#fef3c7; border:1px solid #f59e0b40; border-radius:12px; padding:14px 16px; display:${selectedChoice === 'SI' && !hasRealOrder ? 'block' : 'none'}; margin-top:8px;">
              <div style="display:flex; align-items:center; gap:8px; color:#b45309; font-size:0.8rem; font-weight:800; margin-bottom:6px;">
                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
-               <span>No se encontró Orden de Trabajo en el perfil</span>
+               <span>Falta la Orden de Trabajo (Obligatoria)</span>
              </div>
              <p style="font-size:0.75rem; color:#78350f; margin:0 0 10px 0; line-height:1.4;">
-               Seleccionaste que <strong>SI</strong> se realizó, pero no existe ninguna Orden de Trabajo o Plantilla en el perfil del cliente. Debes generarla para poder avanzar de fase:
+               Seleccionaste que <strong>SI</strong> se realizó, pero aún no existe la <strong>Orden de Trabajo</strong> en el perfil del cliente. Es el único documento obligatorio para poder avanzar de fase (la de pozo es opcional):
              </p>
              <div style="display:flex; flex-direction:column; gap:8px;">
-                 <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0d9488; font-size:0.8rem;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');" ${disabledAttr}>
-                   <i class="fa-solid fa-wrench mr-1"></i> Llenar Orden de Trabajo
+                 <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0d9488; font-size:0.8rem; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');" ${disabledAttr}>
+                   <i class="fa-solid fa-wrench"></i> Llenar Orden de Trabajo <span style="background:rgba(255,255,255,0.25); padding:1px 6px; border-radius:4px; font-size:0.65rem; font-weight:800; text-transform:uppercase;">Obligatorio</span>
                  </button>
-                 <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0284c7; font-size:0.8rem;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" ${disabledAttr}>
-                   <i class="fa-solid fa-water mr-1"></i> Llenar Plantilla de Pozo
+                 <button type="button" class="w-full text-sky-700 font-bold py-2 rounded-xl border border-sky-300 bg-sky-50 hover:bg-sky-100 transition-colors" style="font-size:0.8rem; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" ${disabledAttr}>
+                   <i class="fa-solid fa-water"></i> Llenar Plantilla de Pozo <span style="color:#64748b; font-size:0.65rem; font-weight:normal;">(Opcional)</span>
                  </button>
              </div>
            </div>
@@ -1429,7 +1450,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
              </p>
            </div>
 
-           <input type="hidden" id="df_${c.id}" value="${hasRealOrder ? actualPdfUrl : (selectedChoice === 'NO' ? 'NO' : '')}" />
+           <input type="hidden" id="df_${c.id}" value="${hasRealOrder ? ordenTrabajoUrl : (selectedChoice === 'NO' ? 'NO' : '')}" />
          </div>
         `;
     } else if (c.tipo === 'Contrato') {
@@ -1679,8 +1700,9 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       if (isWorkOrderPhase && !hasWorkOrderField) {
           const dbClient = (window.cachedDB?.Clientes_Maestro || []).find(cli => String(cli.id) === String(deal.cliente_id));
           const cliMetadata = dbClient?.adjuntos_oficina || {};
-          const actualPdfUrl = cliMetadata.orden_trabajo_url || cliMetadata.plantilla_pozo_url || dbClient?.orden_trabajo_url || dbClient?.plantilla_pozo_url || deal.orden_trabajo_url || null;
-          const hasRealOrder = !!actualPdfUrl;
+          const ordenTrabajoUrl = cliMetadata.orden_trabajo_url || dbClient?.orden_trabajo_url || deal.orden_trabajo_url || null;
+          const plantillaPozoUrl = cliMetadata.plantilla_pozo_url || dbClient?.plantilla_pozo_url || null;
+          const hasRealOrder = !!ordenTrabajoUrl;
 
           extraHtml += `
             <div style="margin-top:16px; padding-top:16px; border-top:1px dashed #e2e8f0;">
@@ -1695,7 +1717,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                           const noBox = document.getElementById('wo-status-no-extra');
                           const hiddenInp = document.getElementById('df_wo_extra');
                           const hasOrder = ${hasRealOrder ? 'true' : 'false'};
-                          const pdfUrl = '${actualPdfUrl || ''}';
+                          const pdfUrl = '${ordenTrabajoUrl || ''}';
 
                           if (selVal === 'SI') {
                               if (noBox) noBox.style.display = 'none';
@@ -1728,32 +1750,51 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
               </div>
 
               <!-- Estado SI: Detectada -->
-              <div id="wo-status-detected-extra" style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:${hasRealOrder ? 'flex' : 'none'}; align-items:center; gap:12px; margin-top:8px;">
-                <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <div id="wo-status-detected-extra" style="background:#0d948815; border:1px solid #0d948840; border-radius:12px; padding:12px 16px; display:${hasRealOrder ? 'flex' : 'none'}; flex-direction:column; gap:10px; margin-top:8px;">
+                <div style="display:flex; align-items:center; gap:12px; width:100%;">
+                  <div style="background:#0d948820; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <span style="color:#0d9488; font-size:0.85rem; font-weight:700; display:block;">Orden de Trabajo Detectada <span style="background:#0d948820; color:#0d9488; font-size:0.65rem; padding:1px 6px; border-radius:4px; margin-left:4px;">Obligatorio ✓</span></span>
+                    <span style="color:#64748b; font-size:0.75rem;">Guardada en el perfil del cliente</span>
+                  </div>
+                  ${ordenTrabajoUrl ? `<button type="button" onclick="window.open('${ordenTrabajoUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
                 </div>
-                <div>
-                  <span style="color:#0d9488; font-size:0.85rem; font-weight:700; display:block;">Orden de Trabajo / Plantilla Detectada</span>
-                  <span style="color:#64748b; font-size:0.75rem;">Guardada en el perfil del cliente</span>
-                </div>
-                ${actualPdfUrl ? `<button type="button" onclick="window.open('${actualPdfUrl}')" style="margin-left:auto; background:#0d9488; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
+
+                ${plantillaPozoUrl ? `
+                  <div style="display:flex; align-items:center; gap:12px; width:100%; border-top:1px dashed #0d948830; padding-top:8px;">
+                    <div style="background:#0284c720; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                      <i class="fa-solid fa-water text-sky-600" style="font-size:12px;"></i>
+                    </div>
+                    <div>
+                      <span style="color:#0284c7; font-size:0.8rem; font-weight:700; display:block;">Plantilla de Pozo <span style="background:#0284c720; color:#0284c7; font-size:0.65rem; padding:1px 6px; border-radius:4px; margin-left:4px;">Opcional ✓</span></span>
+                    </div>
+                    <button type="button" onclick="window.open('${plantillaPozoUrl}')" style="margin-left:auto; background:#0284c7; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF Pozo</button>
+                  </div>
+                ` : `
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-top:1px dashed #0d948830; padding-top:8px;">
+                    <span style="font-size:0.72rem; color:#64748b;"><i class="fa-solid fa-circle-info text-sky-500 mr-1"></i> Plantilla de Pozo (Opcional): no requerida</span>
+                    <button type="button" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');" style="background:#0284c715; color:#0284c7; border:1px solid #0284c740; padding:4px 8px; border-radius:6px; font-size:0.68rem; font-weight:bold; cursor:pointer">+ Llenar Pozo (Opcional)</button>
+                  </div>
+                `}
               </div>
 
               <!-- Estado SI: Advertencia de NO encontrada -->
               <div id="wo-status-missing-extra" style="background:#fef3c7; border:1px solid #f59e0b40; border-radius:12px; padding:14px 16px; display:none; margin-top:8px;">
                 <div style="display:flex; align-items:center; gap:8px; color:#b45309; font-size:0.8rem; font-weight:800; margin-bottom:6px;">
                   <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
-                  <span>No se encontró Orden de Trabajo en el perfil</span>
+                  <span>Falta la Orden de Trabajo (Obligatoria)</span>
                 </div>
                 <p style="font-size:0.75rem; color:#78350f; margin:0 0 10px 0; line-height:1.4;">
-                  Seleccionaste que <strong>SI</strong> se realizó, pero no existe ninguna Orden de Trabajo o Plantilla en el perfil del cliente. Debes generarla para poder avanzar de fase:
+                  Seleccionaste que <strong>SI</strong> se realizó, pero aún no existe la <strong>Orden de Trabajo</strong> en el perfil del cliente. Es el único documento obligatorio para poder avanzar de fase (la de pozo es opcional):
                 </p>
                 <div style="display:flex; flex-direction:column; gap:8px;">
-                    <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0d9488; font-size:0.8rem;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');">
-                      <i class="fa-solid fa-wrench mr-1"></i> Llenar Orden de Trabajo
+                    <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0d9488; font-size:0.8rem; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="const iframe = document.getElementById('iframe-work-order'); if (iframe) iframe.src = 'FORMULARIO-RENEW-WATER-main/index.html?tab=workorder&proyectoId=${deal.id}'; if (window.appNavigate) window.appNavigate('work-order');">
+                      <i class="fa-solid fa-wrench"></i> Llenar Orden de Trabajo <span style="background:rgba(255,255,255,0.25); padding:1px 6px; border-radius:4px; font-size:0.65rem; font-weight:800; text-transform:uppercase;">Obligatorio</span>
                     </button>
-                    <button type="button" class="w-full text-white font-bold py-2.5 rounded-xl shadow hover:opacity-90 transition-opacity" style="background:#0284c7; font-size:0.8rem;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');">
-                      <i class="fa-solid fa-water mr-1"></i> Llenar Plantilla de Pozo
+                    <button type="button" class="w-full text-sky-700 font-bold py-2 rounded-xl border border-sky-300 bg-sky-50 hover:bg-sky-100 transition-colors" style="font-size:0.8rem; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="if (window.appNavigate) window.appNavigate('plantilla-pozo', '${deal.id}');">
+                      <i class="fa-solid fa-water"></i> Llenar Plantilla de Pozo <span style="color:#64748b; font-size:0.65rem; font-weight:normal;">(Opcional)</span>
                     </button>
                 </div>
               </div>
@@ -1766,7 +1807,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                 </p>
               </div>
 
-              <input type="hidden" id="df_wo_extra" value="${hasRealOrder ? actualPdfUrl : ''}" />
+              <input type="hidden" id="df_wo_extra" value="${hasRealOrder ? ordenTrabajoUrl : ''}" />
             </div>
           `;
       }
@@ -1865,10 +1906,10 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             const dbLocal = typeof getDB !== 'undefined' ? getDB() : (window.cachedDB || {});
             const dbCli = (dbLocal.Clientes_Maestro || []).find(cl => String(cl.id) === String(deal.cliente_id));
             const cliMeta = dbCli?.adjuntos_oficina || {};
-            const existsPdf = !!(cliMeta.orden_trabajo_url || cliMeta.plantilla_pozo_url || dbCli?.orden_trabajo_url || dbCli?.plantilla_pozo_url || deal.orden_trabajo_url);
+            const existsWo = !!(cliMeta.orden_trabajo_url || dbCli?.orden_trabajo_url || deal.orden_trabajo_url);
 
-            if (!existsPdf) {
-              showToast('<i class="fa-solid fa-circle-xmark text-red-500"></i> Seleccionaste que SI se realizó la orden de trabajo, pero no existe ninguna en el perfil del cliente. Debes generarla antes de avanzar.', 'error');
+            if (!existsWo) {
+              showToast('<i class="fa-solid fa-circle-xmark text-red-500"></i> La Orden de Trabajo es obligatoria para poder avanzar cuando seleccionas SI. Debes generarla primero.', 'error');
               const missingBox = woField ? document.getElementById(`wo-status-missing-${woField.id}`) : document.getElementById('wo-status-missing-extra');
               if (missingBox) {
                 missingBox.style.display = 'block';
