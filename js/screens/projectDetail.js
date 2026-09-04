@@ -1865,7 +1865,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         </div>
       ` : ''}
       
-      <h3 class="text-lg font-bold text-gray-800 mb-2">${isLocked ? 'Fase en Proceso' : `Acción: Llenar ${actFase.nombre}`}</h3>
+      <h3 class="text-lg font-bold text-gray-800 mb-2">${isLocked ? 'Fase en Proceso' : actFase.nombre}</h3>
       <p class="text-xs text-gray-500 mb-6" id="phase-status-desc">
         ${isLocked ? `Esta etapa debe ser completada por <strong>${deal.rol_fase}</strong>. Puedes ver los avances aquí.` : 
           'Puedes llenar los campos que necesites y avanzar cuando estés listo.'}
