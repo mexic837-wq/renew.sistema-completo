@@ -2465,14 +2465,19 @@ function bindGlobalEvents() {
           // UPDATE existing campo
           await updateAdminCampo(editId, etq, tipo, opc, es_opcional);
           delete UI.modCam.dataset.editCampoId;
+          showToast('Campo actualizado exitosamente', 'success');
         } else {
           // CREATE new campo
           await createAdminCampo(fn, etq, tipo, opc, es_opcional);
+          showToast('Campo creado exitosamente', 'success');
         }
         window.closeModals();
         if (chkOpcional) chkOpcional.checked = false; // reset
         await loadData();
         await renderView();
+      } catch (err) {
+        console.error('Error al guardar campo:', err);
+        showToast(err.message || 'Error al guardar el campo. Intenta de nuevo.', 'error');
       } finally {
         UI.btnSaveCam.innerHTML = originalText;
         UI.btnSaveCam.disabled = false;

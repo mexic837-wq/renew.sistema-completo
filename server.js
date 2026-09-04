@@ -1213,7 +1213,15 @@ app.post('/api/upsert', async (req, res) => {
         // ── STRIP VIRTUAL FIELDS ──
         // Some tables have computed/virtual fields that only exist in memory, not in Supabase.
         let sanitizedRecords = records;
-        if (table === 'proyectos_dinamicos') {
+        if (table === 'admin_campos_formulario') {
+            sanitizedRecords = records.map(c => ({
+                id: c.id,
+                fase_id: c.fase_id,
+                etiqueta: c.etiqueta,
+                tipo: c.tipo,
+                opciones: c.opciones || ''
+            }));
+        } else if (table === 'proyectos_dinamicos') {
             sanitizedRecords = records.map(({ 
                 asignado_a,
                 direccion, nombre_cliente, telefono_cliente, email_cliente, email, telefono, etapa, fase_orden, total_fases, zip, licencia, id_photo, ...rest 

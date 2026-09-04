@@ -652,10 +652,16 @@ export async function saveGranular(table, records) {
   // Strip them at the source so they never reach the server regardless of code path.
   let sanitized = records;
   if (table === 'admin_campos_formulario') {
-    sanitized = records.map(({ es_opcional, orden, opciones, ...rest }) => {
-        let baseOpciones = (opciones || '').split('|META|')[0];
-        const metaStr = JSON.stringify({ es_opcional: !!es_opcional, orden });
-        return { ...rest, opciones: `${baseOpciones}|META|${metaStr}` };
+    sanitized = records.map(c => {
+        let baseOpciones = (c.opciones || '').split('|META|')[0];
+        const metaStr = JSON.stringify({ es_opcional: !!c.es_opcional, orden: c.orden });
+        return {
+            id: c.id,
+            fase_id: c.fase_id,
+            etiqueta: c.etiqueta,
+            tipo: c.tipo,
+            opciones: `${baseOpciones}|META|${metaStr}`
+        };
     });
   } else if (table === 'proyectos_dinamicos') {
     sanitized = records.map(({ 
@@ -721,11 +727,35 @@ export async function saveGranular(table, records) {
         }
     }
 
-    const res = await fetch(`${API_BASE}/upsert`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table, records: sanitized })
-    });
+    let res;
+    let lastErr = null;
+    const maxRetries = 2; // Up to 3 attempts total
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        res = await fetch(`${API_BASE}/upsert`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table, records: sanitized })
+        });
+
+        // If gateway/server error (502, 503, 504), wait and retry
+        if ([502, 503, 504].includes(res.status) && attempt < maxRetries) {
+          console.warn(`[saveGranular] Intento ${attempt + 1} falló con HTTP ${res.status}. Reintentando en ${(attempt + 1) * 800}ms...`);
+          await new Promise(r => setTimeout(r, (attempt + 1) * 800));
+          continue;
+        }
+        break;
+      } catch (netErr) {
+        lastErr = netErr;
+        if (attempt < maxRetries) {
+          console.warn(`[saveGranular] Intento ${attempt + 1} falló por red (${netErr.message}). Reintentando...`);
+          await new Promise(r => setTimeout(r, (attempt + 1) * 800));
+          continue;
+        }
+        throw new Error(`Error de conexión con el servidor: ${netErr.message}`);
+      }
+    }
 
     // ── SIDE EFFECT: Sync Receipt Uploads to Client Profile ──
     if (table === 'respuestas_dinamicas' && records.length > 0) {
@@ -763,8 +793,20 @@ export async function saveGranular(table, records) {
         }
       }
     }
-    if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
+    if (!res || !res.ok) {
+        let errorData = {};
+        try {
+            errorData = await res.json();
+        } catch (_) {
+            if (res?.status === 502) {
+                errorData = { error: 'El servidor se encuentra temporalmente ocupado o reiniciando (502 Bad Gateway). Intenta de nuevo en unos segundos.' };
+            } else if (res?.status === 503 || res?.status === 504) {
+                errorData = { error: `Servidor no disponible temporalmente (${res?.status}). Intenta de nuevo.` };
+            } else {
+                const txt = await res?.text?.().catch(() => '') || '';
+                errorData = { error: txt.slice(0, 150) || `Error ${res?.status || 'desconocido'} al guardar en ${table}` };
+            }
+        }
         console.error(`[Granular Save Error] ${table}:`, errorData);
         throw new Error(errorData.error || `Error al guardar en ${table}`);
     }
