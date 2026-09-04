@@ -1523,7 +1523,11 @@ async function initLeaderboardChart(user) {
   const db = getDB();
   const allProjects = db.Proyectos_Dinamicos || [];
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
-  const pipeline = (db.Admin_Pipelines || []).find(pip => pip.nombre === activeUnit);
+  const activeKey = activeUnit.toLowerCase().replace('renew', '').trim(); // 'solar', 'water', 'home'
+  const pipeline = (db.Admin_Pipelines || []).find(pip => {
+    const pNom = (pip.nombre || '').toLowerCase();
+    return pNom === activeUnit.toLowerCase() || (activeKey && pNom.includes(activeKey));
+  });
 
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
   const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
@@ -1531,43 +1535,51 @@ async function initLeaderboardChart(user) {
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
 
   const projectCountByUserId = {};
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
 
   window.lbLocationFilter = 'General';
 
   allProjects.forEach(p => {
-    if (pipeline && p.pipeline_id !== pipeline.id) return;
-    
-    const isFinished = isProjectFinished(p, db);
-    const shouldCount = isCallCenter ? true : isFinished;
-    if (!shouldCount) return;
-
-    const dateToUse = getProjectDate(p, db);
-    if (!dateToUse) return;
-
-    let dStr = String(dateToUse).trim();
-    if (dStr.includes(' ') && !dStr.includes('T')) dStr = dStr.replace(' ', 'T');
-    if (!dStr.includes('T')) dStr += 'T12:00:00';
-    const pDate = new Date(dStr);
-    
-    const juneFirst = new Date('2026-06-01T00:00:00');
-    if (isNaN(pDate.getTime()) || pDate < juneFirst) return;
-    
-    // Credit goes to tecnico if tecnico, otherwise to the assigned vendor in client OR the project creator
-    let targetUserId = null;
-    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
-    if (isStrictTecnico) {
-      targetUserId = p.tecnico_id;
-    } else {
-      targetUserId = (cli.vendedor_asignado_id || '').split(',')[0].trim() || (p.responsable_id || '').split(',')[0].trim();
+    // Filtrar por unidad activa
+    if (pipeline) {
+      if (String(p.pipeline_id) !== String(pipeline.id)) return;
+    } else if (activeKey) {
+      const pPip = (db.Admin_Pipelines || []).find(pip => String(pip.id) === String(p.pipeline_id));
+      const pPipNom = (pPip?.nombre || '').toLowerCase();
+      if (!pPipNom.includes(activeKey)) return;
     }
     
-    if (!targetUserId) return;
+    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
+    if (cli.macro_estado === 'Declinado' || p.estado === 'Declinado') return;
 
-    if (!projectCountByUserId[targetUserId]) projectCountByUserId[targetUserId] = 0;
-    projectCountByUserId[targetUserId]++;
+    if (isStrictTecnico) {
+      const isFinished = isProjectFinished(p, db);
+      if (!isFinished) return;
+      const targetUserId = p.tecnico_id;
+      if (targetUserId) {
+        projectCountByUserId[targetUserId] = (projectCountByUserId[targetUserId] || 0) + 1;
+      }
+    } else {
+      // Asignar venta al representante
+      let repId = (cli.vendedor_asignado_id || '').split(',')[0].trim() 
+               || (cli.responsable_id || '').split(',')[0].trim() 
+               || (cli.creador_id || '').split(',')[0].trim() 
+               || (p.responsable_id || '').split(',')[0].trim() 
+               || (p.asignado_a || '').split(',')[0].trim() 
+               || (p.creador_id || '').split(',')[0].trim();
+
+      // Si repId viene como nombre o no coincide con UUID, buscar por nombre
+      if (!repId || !workers.some(w => String(w.id) === String(repId))) {
+        const repName = (cli.vendedor_asignado_nombre || repId || '').trim().toLowerCase();
+        if (repName) {
+          const match = workers.find(w => `${w.nombre || ''} ${w.apellido || ''}`.trim().toLowerCase() === repName || (w.nombre || '').toLowerCase() === repName);
+          if (match) repId = match.id;
+        }
+      }
+
+      if (repId) {
+        projectCountByUserId[repId] = (projectCountByUserId[repId] || 0) + 1;
+      }
+    }
   });
 
   const leaderboardData = [];
