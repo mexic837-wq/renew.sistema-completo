@@ -1124,6 +1124,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
 
   const actFase = fases[curFidx];
   const isLocked = deal.is_locked;
+  const isWaterPipeline = (pipeline?.nombre || '').toLowerCase().includes('water');
   const allCampos = db.Admin_Campos_Formulario.filter(c => c.fase_id === actFase.id);
   const campos = [];
   const seenEtiquetas = new Set();
@@ -1185,7 +1186,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             Llenar Orden de Trabajo
           </button>
         ` : ''}
-        ${!isLocked && isContract ? `
+        ${!isLocked && isContract && !isWaterPipeline ? `
           <button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity mb-3" style="background:#f59e0b" id="btn-go-contract">
             Llenar Contrato
           </button>
@@ -1200,7 +1201,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             Avanzar a la Siguiente Fase ${isCreditAppFilled ? '(App de Crédito completada)' : ''}
           </button>
         ` : ''}
-        ${!isLocked && !isWorkOrder && !isContract && (!isCreditApp || (isCreditApp && isCreditAppFilled)) ? `<button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:${pipeline.color};" id="btn-advance-empty">Avanzar a la Siguiente Fase</button>` : ''}
+        ${!isLocked && !isWorkOrder && (!isContract || isWaterPipeline) && (!isCreditApp || (isCreditApp && isCreditAppFilled)) ? `<button class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:${pipeline.color};" id="btn-advance-empty">Avanzar a la Siguiente Fase</button>` : ''}
       </div>`;
       
     if (!isLocked) {
@@ -1214,7 +1215,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           });
         }
       }
-      if (isContract) {
+      if (isContract && !isWaterPipeline) {
         const btnGoC = document.getElementById('btn-go-contract');
         if (btnGoC) {
           btnGoC.addEventListener('click', () => {
@@ -1455,6 +1456,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
         `;
     } else if (c.tipo === 'Contrato') {
         const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
+        const isWater = (pip.nombre || pipeline?.nombre || '').toLowerCase().includes('water');
         const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
         
         // Check both project responses and client metadata
@@ -1474,7 +1476,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
                <span style="color:#f59e0b; font-size:0.85rem; font-weight:700;">Contrato Firmado y Guardado</span>
                ${(finalUrl && finalUrl.startsWith('http')) ? `<button onclick="window.open('${finalUrl}')" style="margin-left:auto; background:#f59e0b; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver PDF</button>` : ''}
              </div>
-           ` : `
+           ` : (isWater ? '' : `
              <button type="button" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity" style="background:#f59e0b" ${disabledAttr} onclick="
                const iframe = document.getElementById('iframe-contract-app');
                if (iframe) iframe.src = 'CONTRATO-RENEW-WATER/index.html?tab=contract&v=${Date.now()}&proyectoId=${deal.id}&pipeline=${encodeURIComponent(pipeline.nombre)}';
@@ -1829,7 +1831,7 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
             </div>
           `;
       }
-      if (isContractPhase && !hasContractField) {
+      if (isContractPhase && !hasContractField && !isWaterPipeline) {
           const pip = db.Admin_Pipelines?.find(p => p.id === deal.pipeline_id) || {};
           const prefix = (pip.nombre || '').toLowerCase().includes('solar') ? 'solar' : 'water';
           
