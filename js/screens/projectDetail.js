@@ -242,7 +242,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
           const isActive = !isCompleted && i === curFidx;
           const isClickable = isDone || isActive;
           
-          let btnText = 'Ver';
+          let btnText = isDone ? 'Completado (Ver)' : 'Ver';
           if (isClickable) {
               const rawPhaseCampos = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === f.id);
               const phaseCampos = [];
