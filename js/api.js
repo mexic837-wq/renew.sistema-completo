@@ -255,6 +255,33 @@ function applyPostProcessing(freshDB) {
                         }
                     }
                 }
+
+                // Migrate "Fecha y Hora de Instalación" to "Fecha de Instalación" (tipo: 'Fecha') in Water pipeline
+                const camposInstalacion = freshDB.Admin_Campos_Formulario.filter(c => {
+                    const lbl = (c.etiqueta || '').toLowerCase();
+                    return (lbl.includes('fecha y hora de instalaci') || lbl.includes('fecha y hora de la instalaci')) ||
+                           (lbl.includes('instalaci') && (c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora'));
+                });
+                if (camposInstalacion.length > 0) {
+                    let changed = false;
+                    camposInstalacion.forEach(c => {
+                        if (c.etiqueta.toLowerCase().includes('hora')) {
+                            c.etiqueta = 'Fecha de Instalación';
+                            changed = true;
+                        }
+                        if (c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora') {
+                            c.tipo = 'Fecha';
+                            changed = true;
+                        }
+                    });
+                    if (changed) {
+                        if (window._canSaveAutoFields) {
+                            saveGranular('admin_campos_formulario', camposInstalacion).catch(() => {});
+                        } else {
+                            setTimeout(() => { saveGranular('admin_campos_formulario', camposInstalacion).catch(() => {}); }, 7500);
+                        }
+                    }
+                }
             }
         }
     }

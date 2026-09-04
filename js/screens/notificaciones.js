@@ -380,10 +380,10 @@ export async function renderNotificaciones() {
                       const respuestas = db.Respuestas_Dinamicas || [];
                       const campos = db.Admin_Campos_Formulario || [];
                       
-                      // Buscar respuesta para este proyecto cuyo campo sea de tipo FechaHora
+                      // Buscar respuesta para este proyecto cuyo campo sea de tipo Fecha o FechaHora
                       const respHorario = respuestas.find(r => 
                           r.proyecto_id === item.originalData.id && 
-                          campos.some(c => c.id === r.campo_id && (c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora'))
+                          campos.some(c => c.id === r.campo_id && (c.tipo === 'Fecha' || c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora' || (c.etiqueta || '').toLowerCase().includes('instalaci')))
                       );
                       if (respHorario && respHorario.valor && respHorario.valor !== 'No provisto' && respHorario.valor !== 'No subido') {
                           horarioAsignado = respHorario.valor;

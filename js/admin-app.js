@@ -8791,12 +8791,23 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                   </div>
                 `;
               } else {
+                const isInstalacionField = (c.etiqueta || '').toLowerCase().includes('instalaci');
+                let inputType = c.tipo === 'Número' ? 'number' : (c.tipo==='Fecha'?'date':(c.tipo==='FechaHora'?'datetime-local':'text'));
+                let displayVal = val || '';
+                let displayEtiqueta = c.etiqueta;
+
+                if (isInstalacionField) {
+                  inputType = 'date';
+                  if (displayVal.includes('T')) displayVal = displayVal.split('T')[0];
+                  if (displayEtiqueta.toLowerCase().includes('hora')) displayEtiqueta = 'Fecha de Instalación';
+                }
+
                 fieldHtml = `
                   <div style="margin-bottom:8px;">
                     <label style="display:block; font-size:9px; font-weight:800; color:#64748b; margin-bottom:4px; text-transform:uppercase;">
-                      ${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
+                      ${displayEtiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic;">(Opcional)</span>' : ''}
                     </label>
-                    <input type="${c.tipo === 'Número' ? 'number' : (c.tipo==='Fecha'?'date':(c.tipo==='FechaHora'?'datetime-local':'text'))}" id="dfd_${c.id}" value="${val}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc; color-scheme: light;">
+                    <input type="${inputType}" id="dfd_${c.id}" value="${displayVal}" style="width:100%; padding:6px 10px; border-radius:6px; font-size:11px; border:1px solid #e2e8f0; outline:none; background:#f8fafc; color-scheme: light;">
                   </div>
                 `;
               }

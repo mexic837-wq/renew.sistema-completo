@@ -1619,21 +1619,34 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
          </div>
        `;
      } else if (c.tipo === 'FechaHora' || c.tipo === 'Fecha y Hora') {
-       html = `
-         <div class="input-wrap no-icon">
-           <input type="datetime-local" id="df_${c.id}" value="${val}" ${disabledAttr}
-                  style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
-                  onclick="this.showPicker ? this.showPicker() : ''">
-         </div>
-       `;
+        const isInstalacionField = (c.etiqueta || '').toLowerCase().includes('instalaci');
+        if (isInstalacionField) {
+          const dateVal = (val || '').includes('T') ? val.split('T')[0] : (val || '');
+          html = `
+            <div class="input-wrap no-icon">
+              <input type="date" id="df_${c.id}" value="${dateVal}" ${disabledAttr}
+                     style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
+                     onclick="this.showPicker ? this.showPicker() : ''">
+            </div>
+          `;
+        } else {
+          html = `
+            <div class="input-wrap no-icon">
+              <input type="datetime-local" id="df_${c.id}" value="${val}" ${disabledAttr}
+                     style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
+                     onclick="this.showPicker ? this.showPicker() : ''">
+            </div>
+          `;
+        }
      } else if (c.tipo === 'Fecha') {
-       html = `
-         <div class="input-wrap no-icon">
-           <input type="date" id="df_${c.id}" value="${val}" ${disabledAttr}
-                  style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
-                  onclick="this.showPicker ? this.showPicker() : ''">
-         </div>
-       `;
+        const dateVal = (val || '').includes('T') ? val.split('T')[0] : (val || '');
+        html = `
+          <div class="input-wrap no-icon">
+            <input type="date" id="df_${c.id}" value="${dateVal}" ${disabledAttr}
+                   style="${lockedStyle}; width:100%; padding:12px 14px; border-radius:12px; font-size:0.9rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); color:var(--text-primary);"
+                   onclick="this.showPicker ? this.showPicker() : ''">
+          </div>
+        `;
      } else {
        html = `<div class="input-wrap no-icon"><input type="${c.tipo==='Número'?'number':'text'}" id="df_${c.id}" class="w-full" placeholder="${c.etiqueta}..." value="${val}" ${disabledAttr} style="${lockedStyle}"></div>`;
      }
@@ -1652,10 +1665,15 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
      
      const hideWrapperStr = isHidden ? 'display:none;' : '';
      
+     let displayLabel = c.etiqueta;
+     if (labelLower.includes('instalaci') && labelLower.includes('hora')) {
+         displayLabel = 'Fecha de Instalación';
+     }
+     
      if (c.tipo === 'Archivo' || c.tipo === 'Aplicación de Crédito' || c.tipo === 'Contrato' || c.tipo === 'Orden de Trabajo') {
          return `<div style="${hideWrapperStr}">${html}</div>`;
      } else {
-         return `<div class="field-group" style="${hideWrapperStr}"><label>${c.etiqueta} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic; font-size:0.85em; color:var(--text-muted);">(Opcional)</span>' : ''}</label>${html}</div>`;
+         return `<div class="field-group" style="${hideWrapperStr}"><label>${displayLabel} ${c.es_opcional ? '<span style="text-transform:none; font-weight:normal; font-style:italic; font-size:0.85em; color:var(--text-muted);">(Opcional)</span>' : ''}</label>${html}</div>`;
      }
   }).join('');
 
