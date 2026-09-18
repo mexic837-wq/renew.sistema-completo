@@ -212,14 +212,85 @@
         pointer-events: none !important;
     }
 
-    /* Move up on mobile to avoid overlapping bottom nav */
+    /* Mobile Optimization for Zadarma WebRTC Widget */
+    #btn-toggle-zadarma {
+        display: none;
+    }
+
     @media (max-width: 767px) {
-        body.in-call-center #z-widget-root,
-        body.in-call-center .z-widget,
-        body.in-call-center iframe[src*="zadarma"],
-        body.in-call-center div[id^="zdrm"],
-        body.in-call-center div[class*="zdrm"] {
-            bottom: 75px !important;
+        /* Hide widget by default on mobile in call-center so it never blocks cards */
+        body.in-call-center:not(.zadarma-open) iframe[src*="zadarma"], 
+        body.in-call-center:not(.zadarma-open) div[id*="zadarma"], 
+        body.in-call-center:not(.zadarma-open) div[class*="zadarma"],
+        body.in-call-center:not(.zadarma-open) div[id^="zdrm"],
+        body.in-call-center:not(.zadarma-open) div[class*="zdrm"],
+        body.in-call-center:not(.zadarma-open) #z-widget-root,
+        body.in-call-center:not(.zadarma-open) .z-widget {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* Show when toggled open */
+        body.in-call-center.zadarma-open iframe[src*="zadarma"], 
+        body.in-call-center.zadarma-open div[id*="zadarma"], 
+        body.in-call-center.zadarma-open div[class*="zadarma"],
+        body.in-call-center.zadarma-open div[id^="zdrm"],
+        body.in-call-center.zadarma-open div[class*="zdrm"],
+        body.in-call-center.zadarma-open #z-widget-root,
+        body.in-call-center.zadarma-open .z-widget {
+            display: block !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            bottom: 135px !important;
+            right: 12px !important;
+            max-width: calc(100vw - 24px) !important;
+            border-radius: 18px !important;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.75) !important;
+            animation: zadarmaSlideUp 0.25s ease !important;
+        }
+
+        /* Floating action button: Sleek, compact and out of the way */
+        body.in-call-center #btn-toggle-zadarma {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            z-index: 1000000;
+            background: linear-gradient(135deg, #00dfbf, #05d564);
+            color: #000;
+            border: none;
+            border-radius: 9999px;
+            padding: 10px 18px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            box-shadow: 0 6px 22px rgba(0, 223, 191, 0.45);
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.in-call-center #btn-toggle-zadarma:active {
+            transform: scale(0.93);
+        }
+
+        body.in-call-center.zadarma-open #btn-toggle-zadarma {
+            background: #ef4444;
+            color: #fff;
+            box-shadow: 0 6px 22px rgba(239, 68, 68, 0.45);
+        }
+    }
+
+    @keyframes zadarmaSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
     }
   </style>
@@ -1079,7 +1150,14 @@
           </div>
       </div>
   </div>
-    <!-- ── Archivos principales de la aplicación ── -->
+
+  <!-- Botón flotante para abrir/cerrar teclado Zadarma en móvil -->
+  <button id="btn-toggle-zadarma" onclick="window.toggleZadarmaWidget()" title="Abrir teclado de llamadas" aria-label="Teclado Zadarma">
+    <i class="fa-solid fa-phone" id="zadarma-fab-icon"></i>
+    <span id="zadarma-fab-text">Teclado</span>
+  </button>
+
+  <!-- ── Archivos principales de la aplicación ── -->
   <script type="module" src="./js/api.js?v=61"></script>
   <script type="module" src="./js/app.js?v=1007"></script>
 

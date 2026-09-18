@@ -614,6 +614,11 @@ export function navigate(screen, param = null) {
         document.body.classList.add('in-call-center');
     } else {
         document.body.classList.remove('in-call-center');
+        document.body.classList.remove('zadarma-open');
+        const zIcon = document.getElementById('zadarma-fab-icon');
+        const zText = document.getElementById('zadarma-fab-text');
+        if (zIcon) zIcon.className = 'fa-solid fa-phone';
+        if (zText) zText.textContent = 'Teclado';
     }
     
     if (bNav) {
@@ -817,6 +822,11 @@ function handleHashChange() {
           document.body.classList.add('in-call-center');
       } else {
           document.body.classList.remove('in-call-center');
+          document.body.classList.remove('zadarma-open');
+          const zIcon = document.getElementById('zadarma-fab-icon');
+          const zText = document.getElementById('zadarma-fab-text');
+          if (zIcon) zIcon.className = 'fa-solid fa-phone';
+          if (zText) zText.textContent = 'Teclado';
       }
       if (bNav) bNav.style.display = 'flex';
     }

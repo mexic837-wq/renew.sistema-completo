@@ -52,6 +52,7 @@ window.zadarmaCall = async (phone) => {
         }
 
         if (data.status === 'success') {
+            if (window.openZadarmaWidget) window.openZadarmaWidget();
             if (window.showToast) window.showToast('✅ Llamada en curso. Contesta tu teléfono Zadarma.', 'success');
             else alert('Llamada en curso. Contesta tu teléfono Zadarma.');
         } else {
@@ -128,4 +129,20 @@ window.initZadarmaWebRTC = async () => {
     } catch(err) {
         console.error('[Zadarma WebRTC] Initialization failed:', err);
     }
+};
+
+window.toggleZadarmaWidget = () => {
+    const isOpen = document.body.classList.toggle('zadarma-open');
+    const icon = document.getElementById('zadarma-fab-icon');
+    const text = document.getElementById('zadarma-fab-text');
+    if (icon) icon.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-phone';
+    if (text) text.textContent = isOpen ? 'Cerrar' : 'Teclado';
+};
+
+window.openZadarmaWidget = () => {
+    document.body.classList.add('zadarma-open');
+    const icon = document.getElementById('zadarma-fab-icon');
+    const text = document.getElementById('zadarma-fab-text');
+    if (icon) icon.className = 'fa-solid fa-xmark';
+    if (text) text.textContent = 'Cerrar';
 };
