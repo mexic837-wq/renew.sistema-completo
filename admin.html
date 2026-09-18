@@ -671,14 +671,10 @@
           backdrop-filter: blur(10px);
       }
 
-      /* Zadarma WebRTC Widget Z-Index Fix */
-      iframe[src*="zadarma"], 
-      div[id*="zadarma"], 
-      div[class*="zadarma"],
-      div[id^="zdrm"],
-      div[class*="zdrm"],
+      /* Zadarma WebRTC Widget Root Container Z-Index */
+      #zdrmWPhI,
       #z-widget-root,
-      .z-widget {
+      iframe[src*="zadarma"] {
           z-index: 999999 !important;
       }
     </style>
@@ -3107,22 +3103,22 @@
         const fixZadarmaZIndex = (node) => {
           if (node.nodeType !== 1) return;
           
-          const isZadarma = (
+          const isZadarmaRoot = (
             (node.tagName === 'IFRAME' && (node.src || '').includes('zadarma')) ||
-            (node.id && node.id.includes('zdrm')) ||
-            (node.className && typeof node.className === 'string' && node.className.includes('zdrm'))
+            node.id === 'zdrmWPhI' ||
+            node.id === 'z-widget-root'
           );
 
-          if (isZadarma) {
+          if (isZadarmaRoot) {
             node.style.setProperty('z-index', '999999', 'important');
           }
 
           if (node.querySelector) {
-            const zadarmaChildren = node.querySelectorAll('iframe[src*="zadarma"], [id*="zdrm"], [class*="zdrm"]');
-            zadarmaChildren.forEach(child => {
-               child.style.setProperty('z-index', '999999', 'important');
-               if (child.parentElement && child.parentElement !== document.body) {
-                   child.parentElement.style.setProperty('z-index', '999999', 'important');
+            const zadarmaRoots = node.querySelectorAll('iframe[src*="zadarma"], #zdrmWPhI, #z-widget-root');
+            zadarmaRoots.forEach(root => {
+               root.style.setProperty('z-index', '999999', 'important');
+               if (root.parentElement && root.parentElement !== document.body) {
+                   root.parentElement.style.setProperty('z-index', '999999', 'important');
                }
             });
           }

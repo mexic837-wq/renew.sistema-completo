@@ -188,25 +188,17 @@
       display: none !important; /* Chrome/Safari/Webkit */
     }
 
-    /* Zadarma WebRTC Widget Z-Index Fix & Visibility */
-    iframe[src*="zadarma"], 
-    div[id*="zadarma"], 
-    div[class*="zadarma"],
-    div[id^="zdrm"],
-    div[class*="zdrm"],
+    /* Zadarma WebRTC Widget Root Container Z-Index & Visibility */
+    #zdrmWPhI,
     #z-widget-root,
-    .z-widget {
+    iframe[src*="zadarma"] {
         z-index: 999999 !important;
     }
 
     /* Hide globally unless on call-center screen */
-    body:not(.in-call-center) iframe[src*="zadarma"], 
-    body:not(.in-call-center) div[id*="zadarma"], 
-    body:not(.in-call-center) div[class*="zadarma"],
-    body:not(.in-call-center) div[id^="zdrm"],
-    body:not(.in-call-center) div[class*="zdrm"],
+    body:not(.in-call-center) #zdrmWPhI,
     body:not(.in-call-center) #z-widget-root,
-    body:not(.in-call-center) .z-widget {
+    body:not(.in-call-center) iframe[src*="zadarma"] {
         display: none !important;
         opacity: 0 !important;
         pointer-events: none !important;
@@ -219,35 +211,33 @@
 
     @media (max-width: 767px) {
         /* Hide widget by default on mobile in call-center so it never blocks cards */
-        body.in-call-center:not(.zadarma-open) iframe[src*="zadarma"], 
-        body.in-call-center:not(.zadarma-open) div[id*="zadarma"], 
-        body.in-call-center:not(.zadarma-open) div[class*="zadarma"],
-        body.in-call-center:not(.zadarma-open) div[id^="zdrm"],
-        body.in-call-center:not(.zadarma-open) div[class*="zdrm"],
+        body.in-call-center:not(.zadarma-open) #zdrmWPhI,
         body.in-call-center:not(.zadarma-open) #z-widget-root,
-        body.in-call-center:not(.zadarma-open) .z-widget {
+        body.in-call-center:not(.zadarma-open) iframe[src*="zadarma"] {
             display: none !important;
             opacity: 0 !important;
             pointer-events: none !important;
         }
 
-        /* Show when toggled open */
-        body.in-call-center.zadarma-open iframe[src*="zadarma"], 
-        body.in-call-center.zadarma-open div[id*="zadarma"], 
-        body.in-call-center.zadarma-open div[class*="zadarma"],
-        body.in-call-center.zadarma-open div[id^="zdrm"],
-        body.in-call-center.zadarma-open div[class*="zdrm"],
+        /* Show when toggled open: ONLY target the root container #zdrmWPhI */
+        body.in-call-center.zadarma-open #zdrmWPhI,
         body.in-call-center.zadarma-open #z-widget-root,
-        body.in-call-center.zadarma-open .z-widget {
+        body.in-call-center.zadarma-open iframe[src*="zadarma"] {
             display: block !important;
             opacity: 1 !important;
             pointer-events: auto !important;
-            bottom: 135px !important;
+            position: fixed !important;
+            bottom: 140px !important;
             right: 12px !important;
-            max-width: calc(100vw - 24px) !important;
-            border-radius: 18px !important;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.75) !important;
+            margin-bottom: 0 !important;
+            margin-right: 0 !important;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.6));
             animation: zadarmaSlideUp 0.25s ease !important;
+        }
+
+        /* Responsive width adjustments for Zadarma container on mobile */
+        #zdrmWPhI .zdrm-webphone {
+            max-width: calc(100vw - 24px) !important;
         }
 
         /* Floating action button: Sleek, compact and out of the way */
@@ -1171,25 +1161,24 @@
       const fixZadarmaZIndex = (node) => {
         if (node.nodeType !== 1) return;
         
-        // Check if the node itself is a Zadarma element
-        const isZadarma = (
+        // ONLY target top-level Zadarma containers, NEVER interior children
+        const isZadarmaRoot = (
           (node.tagName === 'IFRAME' && (node.src || '').includes('zadarma')) ||
-          (node.id && node.id.includes('zdrm')) ||
-          (node.className && typeof node.className === 'string' && node.className.includes('zdrm'))
+          node.id === 'zdrmWPhI' ||
+          node.id === 'z-widget-root'
         );
 
-        if (isZadarma) {
+        if (isZadarmaRoot) {
           node.style.setProperty('z-index', '999999', 'important');
         }
 
-        // Check children
+        // Check if root was added inside a wrapper
         if (node.querySelector) {
-          const zadarmaChildren = node.querySelectorAll('iframe[src*="zadarma"], [id*="zdrm"], [class*="zdrm"]');
-          zadarmaChildren.forEach(child => {
-             child.style.setProperty('z-index', '999999', 'important');
-             // Also fix the parent wrapper to ensure it breaks out of stacking contexts
-             if (child.parentElement && child.parentElement !== document.body) {
-                 child.parentElement.style.setProperty('z-index', '999999', 'important');
+          const zadarmaRoots = node.querySelectorAll('iframe[src*="zadarma"], #zdrmWPhI, #z-widget-root');
+          zadarmaRoots.forEach(root => {
+             root.style.setProperty('z-index', '999999', 'important');
+             if (root.parentElement && root.parentElement !== document.body) {
+                 root.parentElement.style.setProperty('z-index', '999999', 'important');
              }
           });
         }
