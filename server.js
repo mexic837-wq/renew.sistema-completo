@@ -2156,6 +2156,80 @@ async function asignarLeadAMejorAgente(lead, offset = 0) {
     return agente;
 }
 
+// ── CRON: Procesar cola + limpiar expirados (cada 2 min) ────
+setInterval(async () => {
+    try {
+        const now = new Date().toISOString();
+
+        // 1. Limpiar leads con confirmacion_pendiente expirados (timeout server-side)
+        const { data: expirados } = await supabase
+            .from('call_center_prospectos')
+            .select('id, operador_id, intentos_reasignacion')
+            .eq('estado', 'confirmacion_pendiente')
+            .lt('fecha_expiracion', now);
+
+        if (expirados && expirados.length > 0) {
+            for (const lead of expirados) {
+                const intentos = (lead.intentos_reasignacion || 0) + 1;
+                const siguiente = await asignarLeadAMejorAgente(lead, intentos);
+
+                if (siguiente && siguiente.id !== lead.operador_id) {
+                    await supabase.from('call_center_prospectos').update({
+                        estado: 'confirmacion_pendiente',
+                        operador_id: siguiente.id,
+                        operador_nombre: `${siguiente.nombre || ''} ${siguiente.apellido || ''}`.trim(),
+                        intentos_reasignacion: intentos,
+                        fecha_asignacion: now,
+                        fecha_expiracion: new Date(Date.now() + 60 * 1000).toISOString(),
+                    }).eq('id', lead.id);
+                    console.log(`[CC-CRON] Lead ${lead.id} expirado → reasignado a ${siguiente.nombre}`);
+                } else {
+                    await supabase.from('call_center_prospectos').update({
+                        estado: 'en_espera',
+                        prioridad: 1,
+                        operador_id: null,
+                        operador_nombre: null,
+                        intentos_reasignacion: intentos,
+                        fecha_asignacion: null,
+                        fecha_expiracion: null,
+                    }).eq('id', lead.id);
+                    console.log(`[CC-CRON] Lead ${lead.id} expirado → cola de espera (prioridad alta)`);
+                }
+            }
+        }
+
+        // 2. Procesar cola de espera
+        const { data: cola } = await supabase
+            .from('call_center_prospectos')
+            .select('*')
+            .eq('estado', 'en_espera')
+            .order('prioridad', { ascending: false })
+            .order('fecha_creacion', { ascending: true });
+
+        if (cola && cola.length > 0) {
+            let assigned = 0;
+            for (const lead of cola) {
+                const agente = await asignarLeadAMejorAgente(lead, 0);
+                if (!agente) break;
+                await supabase.from('call_center_prospectos').update({
+                    estado: 'confirmacion_pendiente',
+                    operador_id: agente.id,
+                    operador_nombre: `${agente.nombre || ''} ${agente.apellido || ''}`.trim(),
+                    fecha_asignacion: now,
+                    fecha_expiracion: new Date(Date.now() + 60 * 1000).toISOString(),
+                }).eq('id', lead.id);
+                await supabase.from('usuarios')
+                    .update({ ultima_asignacion_cc: now })
+                    .eq('id', agente.id);
+                assigned++;
+            }
+            if (assigned > 0) console.log(`[CC-CRON] ${assigned} lead(s) asignados desde cola de espera`);
+        }
+    } catch (err) {
+        console.error('[CC-CRON] Error:', err.message);
+    }
+}, 2 * 60 * 1000); // Cada 2 minutos
+
 // GET: Usuarios (para asignaciones manuales en Call Center)
 app.get('/api/usuarios', async (req, res) => {
     try {
@@ -2231,11 +2305,31 @@ app.post('/api/cc-prospectos', async (req, res) => {
         }
 
         const resultados = [];
-        const summary = { asignados: 0, en_espera: 0, distribution: {} };
+        const summary = { asignados: 0, en_espera: 0, duplicados: 0, distribution: {} };
 
         for (let idx = 0; idx < leadsIn.length; idx++) {
             const lead = leadsIn[idx];
             const leadId = 'cc_' + Date.now().toString(36) + '_' + idx;
+
+            // ── Detección de duplicados por teléfono ──
+            const cleanTel = (lead.telefono || '').replace(/\D/g, '').slice(-10);
+            if (cleanTel.length >= 7) {
+                const { data: existentes } = await supabase
+                    .from('call_center_prospectos')
+                    .select('id, telefono, estado')
+                    .in('estado', ['pendiente', 'confirmacion_pendiente', 'en_espera']);
+                
+                const isDuplicate = (existentes || []).some(e => 
+                    (e.telefono || '').replace(/\D/g, '').slice(-10) === cleanTel
+                );
+                
+                if (isDuplicate) {
+                    console.log(`[CC-PROSPECTOS] Lead ${lead.nombre || lead.telefono} omitido — teléfono duplicado (${cleanTel})`);
+                    resultados.push({ id: leadId, nombre: lead.nombre, telefono: lead.telefono, estado: 'duplicado', _skipped: true });
+                    summary.duplicados++;
+                    continue;
+                }
+            }
 
             let agente = null;
             let manualAssignment = false;
@@ -2315,15 +2409,19 @@ app.post('/api/cc-prospectos', async (req, res) => {
             resultados.push(nuevoLead);
         }
 
-        // Batch insert
-        const { data, error } = await supabase
-            .from('call_center_prospectos')
-            .insert(resultados)
-            .select();
+        // Batch insert (excluding duplicates)
+        const leadsToInsert = resultados.filter(r => !r._skipped);
+        let data = [];
+        if (leadsToInsert.length > 0) {
+            const { data: inserted, error } = await supabase
+                .from('call_center_prospectos')
+                .insert(leadsToInsert)
+                .select();
+            if (error) throw error;
+            data = inserted || [];
+        }
 
-        if (error) throw error;
-
-        console.log(`[CC-PROSPECTOS] ${leadsIn.length} leads procesados — Asignados: ${summary.asignados}, En espera: ${summary.en_espera}`, summary.distribution);
+        console.log(`[CC-PROSPECTOS] ${leadsIn.length} leads procesados — Asignados: ${summary.asignados}, En espera: ${summary.en_espera}, Duplicados: ${summary.duplicados}`, summary.distribution);
         res.json({ success: true, total: leadsIn.length, ...summary, data });
 
     } catch (e) {

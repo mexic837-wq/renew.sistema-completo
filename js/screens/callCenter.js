@@ -104,6 +104,7 @@ export async function renderCallCenter() {
   // Fetch leads assigned to this operator (Admins can see all)
   const isAdmin = window.getUserRoles(user).some(r => ['admin', 'ceo', 'administrador'].includes(r));
   const operador_query = isAdmin ? null : user.id;
+  _ccState.isAdmin = isAdmin;
   const todos      = await getProspectos(operador_query);
   
   // Nuevos estados del algoritmo
@@ -186,6 +187,30 @@ function renderFase1(screen, user) {
   // EVENTS
   screen.onclick = (e) => handleFase1Click(screen, user, e);
   startCountdownTick(screen);
+
+  // ── AUTO-POLLING: Refresca prospectos cada 15s ──────────
+  if (screen._ccPollInterval) clearInterval(screen._ccPollInterval);
+  screen._ccPollInterval = setInterval(async () => {
+    if (_ccState.fase !== 1) return;
+    const operador_query = _ccState.isAdmin ? null : user.id;
+    const fresh = await getProspectos(operador_query);
+    const freshPending = fresh.filter(p => ['pendiente','confirmacion_pendiente'].includes(p.estado) || !p.estado);
+    
+    const oldIds = new Set(_ccState.prospectos.map(p => p.id));
+    const newLeads = freshPending.filter(p => !oldIds.has(p.id));
+    
+    if (newLeads.length > 0 || freshPending.length !== _ccState.prospectos.length) {
+      _ccState.prospectos = freshPending;
+      _ccState.rechazados = fresh.filter(p => p.estado === 'rechazado');
+      _ccState.enEspera = fresh.filter(p => p.estado === 'en_espera');
+      renderFase1(screen, user);
+      
+      if (newLeads.length > 0) {
+        showToast(`\u00a1${newLeads.length} nuevo(s) prospecto(s)!`, 'success');
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      }
+    }
+  }, 15000);
 }
 
 function buildFase1Card(p, index) {
@@ -324,6 +349,8 @@ async function handleFase1Click(screen, user, e) {
     _ccState.activeId = id;
     // Confirma la aceptación: estado pasa a 'pendiente' (activo)
     await patchProspecto(id, { accion: 'aceptar' });
+    // Trigger queue processing since an agent just freed capacity
+    fetch('/api/cc-prospectos/procesar-cola', { method: 'POST' }).catch(() => {});
     renderFase2(screen, user, { ...pros, estado: 'pendiente' });
     return;
   }
@@ -589,6 +616,9 @@ function renderFase2(screen, user, prospecto) {
         });
 
         const { cliente, vendedor } = await crearLeadEnCRM(prospecto, selectedEco, notas, user);
+
+        // Trigger queue processing since operator completed a lead
+        fetch('/api/cc-prospectos/procesar-cola', { method: 'POST' }).catch(() => {});
 
         // Remove from prospectos list
         _ccState.prospectos = _ccState.prospectos.filter(p => p.id !== prospecto.id);

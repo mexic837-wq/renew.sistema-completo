@@ -10,9 +10,34 @@ export async function renderCallCenterAdmin() {
                     <h2 class="text-4xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-2">Call Center Leads</h2>
                     <p class="text-[12px] uppercase tracking-[0.2em] font-bold text-gray-500">Gestión de prospectos del Call Center y carga manual</p>
                 </div>
-                <button id="btn-add-cc-lead" class="btn-premium">
-                    <i class="fa-solid fa-user-plus text-lg"></i> Añadir Lead Call Center
-                </button>
+                <div class="flex items-center gap-3">
+                    <button id="btn-process-queue" class="px-4 py-3 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all" title="Procesar leads en cola de espera">
+                        <i class="fa-solid fa-arrows-rotate mr-1"></i> Procesar Cola
+                    </button>
+                    <button id="btn-add-cc-lead" class="btn-premium">
+                        <i class="fa-solid fa-user-plus text-lg"></i> Añadir Lead Call Center
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Badges -->
+            <div id="cc-stats-bar" class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
+                    <p class="text-2xl font-black text-gray-900 dark:text-white" id="cc-stat-total">-</p>
+                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">Total Leads</p>
+                </div>
+                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
+                    <p class="text-2xl font-black text-yellow-500" id="cc-stat-espera">-</p>
+                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">En Espera</p>
+                </div>
+                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
+                    <p class="text-2xl font-black text-blue-500" id="cc-stat-pendientes">-</p>
+                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">Pendientes</p>
+                </div>
+                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
+                    <p class="text-2xl font-black text-green-500" id="cc-stat-aceptados">-</p>
+                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">Aceptados</p>
+                </div>
             </div>
 
             <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-light-card flex-1">
@@ -169,6 +194,32 @@ export async function renderCallCenterAdmin() {
     closeBtn.onclick = closeModal;
     cancelBtn.onclick = closeModal;
 
+    // Process queue button
+    const processQueueBtn = document.getElementById('btn-process-queue');
+    if (processQueueBtn) {
+        processQueueBtn.onclick = async () => {
+            processQueueBtn.disabled = true;
+            processQueueBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Procesando...';
+            try {
+                const res = await fetch('/api/cc-prospectos/procesar-cola', { method: 'POST' });
+                const data = await res.json();
+                showToast(`Cola procesada: ${data.procesados || 0} asignados, ${data.en_cola || 0} en espera`, 'success');
+                await loadCCLeads();
+            } catch (err) {
+                showToast('Error al procesar cola', 'error');
+            } finally {
+                processQueueBtn.disabled = false;
+                processQueueBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate mr-1"></i> Procesar Cola';
+            }
+        };
+    }
+
+    // Auto-refresh every 30 seconds
+    if (window._ccAdminRefreshInterval) clearInterval(window._ccAdminRefreshInterval);
+    window._ccAdminRefreshInterval = setInterval(() => {
+        loadCCLeads();
+    }, 30000);
+
     form.onsubmit = async (e) => {
         e.preventDefault();
         const btnSave = document.getElementById('btn-save-cc');
@@ -238,6 +289,16 @@ async function loadCCLeads() {
         const res = await fetch('/api/cc-prospectos');
         const data = await res.json();
         
+        // Update stats badges
+        const statTotal = document.getElementById('cc-stat-total');
+        const statEspera = document.getElementById('cc-stat-espera');
+        const statPendientes = document.getElementById('cc-stat-pendientes');
+        const statAceptados = document.getElementById('cc-stat-aceptados');
+        if (statTotal) statTotal.textContent = data.length;
+        if (statEspera) statEspera.textContent = data.filter(l => l.estado === 'en_espera').length;
+        if (statPendientes) statPendientes.textContent = data.filter(l => ['pendiente', 'confirmacion_pendiente'].includes(l.estado)).length;
+        if (statAceptados) statAceptados.textContent = data.filter(l => l.estado === 'aceptado').length;
+
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-gray-500 text-xs uppercase tracking-widest">No hay leads en el sistema</td></tr>';
             return;
