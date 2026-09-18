@@ -231,7 +231,7 @@ function buildFase1Card(p, index) {
     ? `<div class="cc-countdown" data-id="${p.id}" data-expires="${expiresAt}"
             style="display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:3px 10px;margin-bottom:8px;">
          <span style="font-size:10px;">⏱</span>
-         <span class="cc-timer-val" style="font-size:10px;font-weight:900;color:#f59e0b;">Confirmar en <b>${secsLeft}s</b></span>
+         <span class="cc-timer-val" style="font-size:10px;font-weight:900;color:#f59e0b;">Aceptar en <b>${secsLeft}s</b></span>
        </div>`
     : '';
 
@@ -296,7 +296,7 @@ function startCountdownTick(screen) {
       const exp     = parseInt(el.dataset.expires);
       const secsLeft = Math.max(0, Math.round((exp - Date.now()) / 1000));
       const valEl   = el.querySelector('.cc-timer-val');
-      if (valEl) valEl.innerHTML = `Confirmar en <b>${secsLeft}s</b>`;
+      if (valEl) valEl.innerHTML = `Aceptar en <b>${secsLeft}s</b>`;
       if (secsLeft === 0) {
         // Timeout — rechazar automáticamente via el servidor
         const id = el.dataset.id;
@@ -520,13 +520,26 @@ function renderFase2(screen, user, prospecto) {
       <!-- CONTENT -->
       <div style="flex:1;padding:16px;overflow-y:auto;padding-bottom:140px;">
 
-        <!-- Resumen del prospecto -->
+        <!-- Resumen del prospecto con opciones de Llamada e Historial -->
         <div style="background:rgba(0,245,212,0.04);border:1px solid rgba(0,245,212,0.15);border-radius:16px;padding:16px;margin-bottom:20px;">
-          <p style="font-size:9px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;">Prospecto seleccionado</p>
-          <p style="font-size:17px;font-weight:900;color:var(--text);margin:0 0 6px;">${nombre}</p>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--text-secondary);"><i class="fa-solid fa-phone"></i> ${tel}</span>
-            <span style="font-size:11px;color:var(--text-secondary);"><i class="fa-solid fa-location-dot"></i> ${dir}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+            <div>
+              <p style="font-size:9px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 4px;">Prospecto seleccionado</p>
+              <p style="font-size:18px;font-weight:900;color:var(--text);margin:0 0 2px;">${nombre}</p>
+            </div>
+            <!-- Acciones de llamada e historial -->
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-cc-call" data-tel="${tel}" style="background:rgba(0,245,212,0.15);color:var(--primary);border:1px solid rgba(0,245,212,0.3);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;">
+                <i class="fa-solid fa-mobile-screen"></i> Llamar
+              </button>
+              <button class="btn-cc-historial" data-id="${prospecto.id}" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;">
+                <i class="fa-solid fa-headphones"></i> Historial
+              </button>
+            </div>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;padding-top:8px;border-top:1px solid rgba(0,245,212,0.1);">
+            <span style="font-size:12px;color:var(--text);font-weight:700;"><i class="fa-solid fa-phone" style="color:var(--primary);margin-right:4px;"></i> ${tel}</span>
+            <span style="font-size:12px;color:var(--text-secondary);"><i class="fa-solid fa-location-dot" style="margin-right:4px;"></i> ${dir}</span>
           </div>
         </div>
 
@@ -552,7 +565,7 @@ function renderFase2(screen, user, prospecto) {
           </label>
           <textarea id="cc-notas-input" rows="4" placeholder="Ej: Tiene panel viejo, interesado en financiamiento, llamar tarde..."
                     style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;font-size:13px;color:var(--text-primary);resize:none;font-family:inherit;box-sizing:border-box;outline:none;transition:border-color 0.2s;"
-                    onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+                    onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">${prospecto.notas_pre || ''}</textarea>
         </div>
       </div>
 
@@ -580,6 +593,45 @@ function renderFase2(screen, user, prospecto) {
       const idx = _ccState.prospectos.findIndex(p => p.id === prospecto.id);
       if (idx === -1) _ccState.prospectos.unshift(prospecto);
       renderFase1(screen, user);
+      return;
+    }
+
+    // Call via Zadarma
+    const btnCall = e.target.closest('.btn-cc-call');
+    if (btnCall) {
+      const tel = btnCall.dataset.tel;
+      if (window.adminZadarmaCall) {
+        window.adminZadarmaCall(tel);
+      } else if (window.zadarmaCall) {
+        window.zadarmaCall(tel);
+      } else {
+        showToast('Zadarma API no cargada', 'error');
+      }
+      return;
+    }
+
+    // Call history
+    const btnHist = e.target.closest('.btn-cc-historial');
+    if (btnHist) {
+      const id = btnHist.dataset.id;
+      const oldHtml = btnHist.innerHTML;
+      btnHist.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      btnHist.disabled = true;
+      try {
+        const res = await fetch(`/api/cc-prospectos/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (window.showZadarmaHistory) window.showZadarmaHistory(data.historial_llamadas || []);
+          else alert('No hay historial disponible');
+        } else {
+          showToast('Error al cargar historial', 'error');
+        }
+      } catch (err) {
+        showToast('Error de conexión', 'error');
+      } finally {
+        btnHist.innerHTML = oldHtml;
+        btnHist.disabled = false;
+      }
       return;
     }
 
