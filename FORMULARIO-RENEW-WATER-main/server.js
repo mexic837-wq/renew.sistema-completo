@@ -363,7 +363,7 @@ app.post('/api/generar-orden', async (req, res) => {
                     adj.ultima_orden_fecha = new Date().toISOString();
 
                     await supabase.from('clientes_maestro')
-                        .update({ orden_trabajo_url: finalUrl, adjuntos_oficina: adj })
+                        .update({ adjuntos_oficina: adj })
                         .eq('id', cliId);
                     console.log(`[SUPABASE] Cliente ${cliId} actualizado con orden de trabajo: ${finalUrl}`);
                 }

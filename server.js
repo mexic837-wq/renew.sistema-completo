@@ -2048,8 +2048,7 @@ app.post('/api/generar-orden', async (req, res) => {
                         
                         const { error: uErr } = await supabase.from('clientes_maestro')
                             .update({ 
-                                adjuntos_oficina: adjuntos,
-                                orden_trabajo_url: finalUrl 
+                                adjuntos_oficina: adjuntos
                             })
                             .eq('id', cliId);
                         

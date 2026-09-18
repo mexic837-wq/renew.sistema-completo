@@ -65,7 +65,7 @@ function showToast(msg, type = 'success', duration = APP_CONFIG.toastDuration) {
 
   toast.className = '';
   icon.innerHTML = type === 'success' ? '<i class="fa-solid fa-check text-green-500"></i>' : '<i class="fa-solid fa-xmark text-red-500"></i>';
-  text.textContent = msg;
+  text.innerHTML = msg;
   toast.classList.add(type, 'show');
 
   clearTimeout(toast._hideTimer);
