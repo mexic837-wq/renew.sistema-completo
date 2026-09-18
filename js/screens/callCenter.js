@@ -500,7 +500,9 @@ function renderFase2(screen, user, prospecto) {
       <!-- HEADER FASE 2 -->
       <div style="background:var(--surface);padding:20px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
         <div style="display:flex;align-items:center;gap:12px;">
-          <button id="btn-cc-back" style="width:36px;height:36px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0;">←</button>
+          <button id="btn-cc-back" title="Volver a la lista de prospectos" style="width:38px;height:38px;border-radius:50%;background:rgba(0,245,212,0.12);border:1.5px solid rgba(0,245,212,0.35);color:var(--primary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;flex-shrink:0;transition:all 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
           <div>
             <p style="font-size:9px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.14em;margin:0;">FASE 2 · DATOS EXTRAS</p>
             <h1 style="font-size:17px;font-weight:900;color:var(--text);margin:0;line-height:1.2;">Aceptado – Completar Info</h1>
