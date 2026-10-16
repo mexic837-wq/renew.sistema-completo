@@ -273,7 +273,7 @@ export async function renderListaPrecios() {
               <div class="precio-price-row">
                 <div>
                   <div class="precio-price-label">${isAdmin ? `Precio ${activePriceKey.replace('precio_','').charAt(0).toUpperCase() + activePriceKey.replace('precio_','').slice(1)}` : 'Tu Precio'}</div>
-                  <div class="precio-price-value">${formatPrice(p[activePriceKey])}</div>
+                  <div class="precio-price-value">${formatPrice(p[activePriceKey] ?? (activePriceKey === 'precio_dealer' ? p.solo_equipo_grande : null))}</div>
                 </div>
                 <div style="width:32px; height:32px; border-radius:10px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
                   <i class="fas fa-chevron-right" style="font-size:0.75rem;"></i>
@@ -302,7 +302,8 @@ export async function renderListaPrecios() {
         { label: 'Representante',  key: 'precio_vendedor' },
         { label: 'Junior',    key: 'precio_junior' },
         { label: 'Iniciante', key: 'precio_iniciante' },
-        { label: 'Novato',  key: 'precio_subvende' }
+        { label: 'Novato',  key: 'precio_subvende' },
+        { label: 'Dealer',  key: 'precio_dealer' }
       ];
 
       function renderRankTabs() {
@@ -343,7 +344,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   const existing = document.getElementById('modal-precio-detail');
   if (existing) existing.remove();
 
-  const price = priceKey ? prod[priceKey] : null;
+  const price = priceKey ? (prod[priceKey] ?? (priceKey === 'precio_dealer' ? prod.solo_equipo_grande : null)) : null;
 
   // Build rank prices table if admin
   const allRanks = [
@@ -353,6 +354,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
     { label: 'Representante',     key: 'precio_vendedor' },
     { label: 'Analista',     key: 'precio_analista' },
     { label: 'Oficina/Admin', key: 'precio_oficina' },
+    { label: 'Dealer',       key: 'precio_dealer' },
   ];
 
   const ranksHTML = isAdmin ? `
@@ -362,7 +364,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
         ${allRanks.map(r => `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.03);">
             <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">${r.label}</span>
-            <span style="font-size:0.95rem; font-weight:900; color:var(--text-primary);">${formatPrice(prod[r.key])}</span>
+            <span style="font-size:0.95rem; font-weight:900; color:var(--text-primary);">${formatPrice(prod[r.key] ?? (r.key === 'precio_dealer' ? prod.solo_equipo_grande : null))}</span>
           </div>
         `).join('')}
       </div>

@@ -302,7 +302,8 @@ export async function renderCatalogo() {
         { label: 'Representante',  key: 'precio_vendedor' },
         { label: 'Junior',    key: 'precio_junior' },
         { label: 'Iniciante', key: 'precio_iniciante' },
-        { label: 'Novato',  key: 'precio_subvende' }
+        { label: 'Novato',  key: 'precio_subvende' },
+        { label: 'Dealer',  key: 'precio_dealer' }
       ];
 
       function renderRankTabs() {
@@ -343,7 +344,7 @@ function _showProductDetail(prod, priceKey, isAdmin) {
   const existing = document.getElementById('modal-catalogo-detail');
   if (existing) existing.remove();
 
-  const price = priceKey ? prod[priceKey] : null;
+  const price = priceKey ? (prod[priceKey] ?? (priceKey === 'precio_dealer' ? prod.solo_equipo_grande : null)) : null;
 
   const customPrices = JSON.parse(localStorage.getItem('catalogo_custom_prices') || '{}');
   const initialPrice = customPrices[prod.id] !== undefined ? customPrices[prod.id] : (prod.precio_minimo || price || prod.precio_full || 0);

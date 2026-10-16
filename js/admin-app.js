@@ -362,6 +362,7 @@ window.handleGlobalAdd = async () => {
             document.getElementById('inp-prec-vendedor').value = '';
             document.getElementById('inp-prec-analista').value = '';
             document.getElementById('inp-prec-oficina').value = '';
+            if (document.getElementById('inp-prec-dealer')) document.getElementById('inp-prec-dealer').value = '';
             document.getElementById('inp-prec-full').value = '';
             document.getElementById('inp-prec-iniciante').value = '';
             document.getElementById('inp-prec-min').value = '';
@@ -7426,7 +7427,8 @@ async function showWorkerDetail(id) {
             'representante': 'Vendedor',
             'vendedor': 'Vendedor',
             'analista': 'Analista',
-            'oficina': 'Oficina/Admin'
+            'oficina': 'Oficina/Admin',
+            'dealer': 'Dealer'
         };
         displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
     }
@@ -7655,7 +7657,8 @@ async function toggleDetailEditMode(id) {
                 'representante': 'Vendedor',
                 'vendedor': 'Vendedor',
                 'analista': 'Analista',
-                'oficina': 'Oficina/Admin'
+                'oficina': 'Oficina/Admin',
+                'dealer': 'Dealer'
             };
             displayRank = (rankMap[displayRank] || displayRank) + ' (Manual)';
         }
@@ -10793,7 +10796,8 @@ async function renderListaPreciosAdmin() {
     'subvende': 'Novato',
     'vendedor': 'Vendedor',
     'analista': 'Analista',
-    'oficina': 'Oficina/Admin'
+    'oficina': 'Oficina/Admin',
+    'dealer': 'Dealer'
   };
 
   if (isRestrictedManager) {
@@ -10838,6 +10842,10 @@ async function renderListaPreciosAdmin() {
         isHidden = 'display:none;';
     }
 
+    const activeRankPrice = activeRank === 'dealer'
+      ? (p.precio_dealer ?? p.solo_equipo_grande ?? 0)
+      : (p['precio_' + activeRank] || 0);
+
     return `
     <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group precios-table-row" data-search="${searchData}" style="${isHidden}">
       <td class="px-6 py-4 whitespace-nowrap">
@@ -10866,7 +10874,7 @@ async function renderListaPreciosAdmin() {
         </div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-[10px] font-bold text-tealAccent">
-        $${(p['precio_' + activeRank] || 0).toLocaleString()}
+        $${activeRankPrice.toLocaleString()}
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <div class="flex items-center gap-2">
@@ -10894,7 +10902,7 @@ async function renderListaPreciosAdmin() {
       <div class="flex flex-col xl:flex-row justify-between xl:items-center mb-6 gap-6">
           <div class="flex flex-col gap-3">
               <h2 class="text-xl font-black text-white uppercase tracking-tighter">Gestión de Precios</h2>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit">
                  ${Object.entries(rankLabels).map(([key, label]) => `
                     <button class="precios-rank-tab px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
                         ${label}
@@ -11006,6 +11014,7 @@ window.editListaPrecio = function(id) {
     setVal('inp-prec-vendedor', p.precio_vendedor);
     setVal('inp-prec-analista', p.precio_analista);
     setVal('inp-prec-oficina', p.precio_oficina);
+    setVal('inp-prec-dealer', p.precio_dealer ?? p.solo_equipo_grande);
     setVal('inp-prec-full', p.precio_full);
     setVal('inp-prec-grande', p.solo_equipo_grande);
     setVal('inp-prec-min', p.precio_minimo);
@@ -11158,6 +11167,8 @@ window.savePrecio = async function() {
         return el ? el.value : '';
     };
 
+    const dealerVal = getNumVal('inp-prec-dealer');
+
     const producto = {
         id: id || null,
         nombre: getStrVal('inp-prec-nombre'),
@@ -11173,8 +11184,9 @@ window.savePrecio = async function() {
         precio_vendedor: getNumVal('inp-prec-vendedor'),
         precio_analista: getNumVal('inp-prec-analista'),
         precio_oficina: getNumVal('inp-prec-oficina'),
+        precio_dealer: dealerVal,
         precio_full: getNumVal('inp-prec-full'),
-        solo_equipo_grande: getNumVal('inp-prec-grande'),
+        solo_equipo_grande: dealerVal || getNumVal('inp-prec-grande'),
         precio_minimo: getNumVal('inp-prec-min'),
         precio_maximo: getNumVal('inp-prec-max'),
         unidad: getStrVal('inp-prec-unidad'),

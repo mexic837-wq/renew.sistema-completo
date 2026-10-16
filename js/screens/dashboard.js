@@ -50,7 +50,19 @@ export function computeUserRank(userId, activeUnit, db) {
     else if (targetRankVal === 'asesor') targetRankName = 'Asesor';
     else if (targetRankVal === 'analista') targetRankName = 'Analista';
     else if (targetRankVal === 'oficina') targetRankName = 'Oficina';
+    else if (targetRankVal === 'dealer') targetRankName = 'Dealer';
     else if (targetRankVal === 'no_aplica') targetRankName = 'No Aplica';
+
+    if (targetRankName === 'Dealer') {
+      return {
+        cur: { name: 'Dealer', emoji: '<i class="fa-solid fa-handshake"></i>', color: '#a855f7', bg: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.25)', minSales: 0, type: 'total', priceKey: 'precio_dealer' },
+        next: null,
+        progress: { count: 'N/A', total: 0, pct: 100 },
+        isManual: true,
+        totalAT: 0,
+        totalMonth: 0
+      };
+    }
 
     if (targetRankName === 'No Aplica') {
       return {

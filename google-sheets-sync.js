@@ -2,7 +2,7 @@ const { google } = require('googleapis');
 const path = require('path');
 
 const SHEET_ID = '18fw_U53uO4HSZB1bzyC9re8Y9QsQztc4YYWA5Ri4RS4';
-const RANGE = 'LISTA UNIFICADA!A1:N1000'; // Assuming data doesn't exceed 1000 rows
+const RANGE = 'LISTA UNIFICADA!A1:O1000'; // Assuming data doesn't exceed 1000 rows
 
 async function syncPreciosFromSheets(supabase) {
     try {
@@ -24,19 +24,19 @@ async function syncPreciosFromSheets(supabase) {
             return { success: false, error: 'No data found' };
         }
 
-        // Estructura de columnas basada en la imagen:
-        // A: vacío
-        // B: CODIGO (index 1)
-        // C: PRODUCTO (index 2)
-        // D: MEDIDA (index 3)
-        // E: BOTON (index 4)
-        // F: COLOR (index 5)
-        // G: OFICINA (index 6)
-        // H: ANALISTA (index 7)
-        // I: VENDEDOR (index 8)
-        // J: JUNIOR (index 9)
-        // K: INICIANTE (index 10)
-        // L: NOVATO (index 11)
+        // Estructura de columnas en LISTA UNIFICADA:
+        // A: CODIGO (index 0)
+        // B: PRODUCTO (index 1)
+        // C: MEDIDA (index 2)
+        // D: BOTON (index 3)
+        // E: COLOR (index 4)
+        // F: OFICINA (index 5)
+        // G: ANALISTA (index 6)
+        // H: VENDEDOR (index 7)
+        // I: JUNIOR (index 8)
+        // J: INICIANTE (index 9)
+        // K: NOVATO (index 10)
+        // L: DEALER (index 11)
         // M: PRECIO MIN (index 12)
         // N: PRECIO MAX (index 13)
 
@@ -50,14 +50,14 @@ async function syncPreciosFromSheets(supabase) {
 
             const codigo = row[0] ? row[0].trim() : '';
             
-            // Detectar si es una fila de categoría (ej: "LINEA RENEW ECONÓMICA")
+            // Detectar si es una fila de categoría (ej: "LÍNEA RENEW ECONÓMICA")
             // Ahora CODIGO es row[0], PRODUCTO es row[1], OFICINA es row[5]
             if (codigo && !row[1] && !row[5]) {
                 currentCategory = codigo;
                 continue;
             }
 
-            if (!codigo) continue; // Si no hay código, ignorar
+            if (!codigo || !row[1]) continue; // Si no hay código o producto, ignorar
 
             const parsePrice = (val) => {
                 if (!val) return 0;
@@ -66,6 +66,8 @@ async function syncPreciosFromSheets(supabase) {
                 const num = parseFloat(cleaned);
                 return isNaN(num) ? 0 : num;
             };
+
+            const precioDealer = parsePrice(row[11]);
 
             const producto = {
                 codigo: codigo,
@@ -79,8 +81,10 @@ async function syncPreciosFromSheets(supabase) {
                 precio_junior: parsePrice(row[8]),
                 precio_iniciante: parsePrice(row[9]),
                 precio_subvende: parsePrice(row[10]),
-                precio_minimo: parsePrice(row[11]),
-                precio_maximo: parsePrice(row[12]),
+                precio_dealer: precioDealer,
+                solo_equipo_grande: precioDealer,
+                precio_minimo: parsePrice(row[12]),
+                precio_maximo: parsePrice(row[13]),
                 categoria: currentCategory,
                 sede: 'todas',
                 es_activo: true,
@@ -100,12 +104,6 @@ async function syncPreciosFromSheets(supabase) {
         console.log(`[GoogleSheets Sync] Se parsearon ${finalUniqueProductsToUpsert.length} productos únicos (de ${productsToUpsert.length} filas leídas).`);
 
         if (finalUniqueProductsToUpsert.length > 0) {
-            // Sincronizar con Supabase
-            // Como upsert por defecto requiere matching en la Primary Key (id),
-            // primero debemos obtener los productos actuales para mapear los ids por codigo,
-            // o usar 'codigo' como constraint si está configurado en Supabase (difícil saberlo sin ver el schema).
-            // Lo más seguro es buscar el ID si existe, o generar uno si no existe.
-
             const { data: existingProducts, error: fetchErr } = await supabase
                 .from('water_productos')
                 .select('id, codigo, foto_url');
@@ -136,9 +134,19 @@ async function syncPreciosFromSheets(supabase) {
                 return p;
             });
 
-            const { error: upsertErr } = await supabase
+            let { error: upsertErr } = await supabase
                 .from('water_productos')
                 .upsert(finalPayload, { onConflict: 'id' });
+
+            // Si la tabla en Supabase aún no tiene la columna precio_dealer, guardamos usando solo_equipo_grande como respaldo
+            if (upsertErr && upsertErr.message && upsertErr.message.includes('precio_dealer')) {
+                console.warn('[GoogleSheets Sync] Columna precio_dealer no existe en DB, usando solo_equipo_grande como respaldo...');
+                const fallbackPayload = finalPayload.map(({ precio_dealer, ...rest }) => rest);
+                const retryRes = await supabase
+                    .from('water_productos')
+                    .upsert(fallbackPayload, { onConflict: 'id' });
+                upsertErr = retryRes.error;
+            }
 
             if (upsertErr) {
                 console.error('[GoogleSheets Sync] Error upserting to Supabase:', upsertErr);

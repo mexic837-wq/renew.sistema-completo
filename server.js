@@ -276,6 +276,7 @@ app.get('/api/db', async (req, res) => {
                 precio_vendedor: p.precio_vendedor  ?? null,
                 precio_analista: p.precio_analista  ?? null,
                 precio_oficina:  p.precio_oficina   ?? null,
+                precio_dealer:   p.precio_dealer    ?? p.solo_equipo_grande ?? null,
                 precio_full:     p.precio_full      ?? null,
                 solo_equipo_grande: p.solo_equipo_grande ?? null,
                 precio_minimo:   p.precio_minimo    ?? null,
@@ -1282,13 +1283,25 @@ app.post('/api/upsert', async (req, res) => {
         } else if (table === 'historial_inventario') {
             // Strip the client-side 'id' string because Supabase uses a serial/integer ID
             sanitizedRecords = records.map(({ id, ...rest }) => rest);
+        } else if (table === 'water_productos') {
+            sanitizedRecords = records.map(r => ({
+                ...r,
+                solo_equipo_grande: r.precio_dealer ?? r.solo_equipo_grande ?? 0
+            }));
         }
         
         // El id es el identificador por defecto para el conflicto en la mayoría de tablas
         let conflictObj = { onConflict: 'id' };
         if (table === 'historial_inventario') conflictObj.onConflict = 'fecha';
         
-        const { error, data } = await supabase.from(table).upsert(sanitizedRecords, conflictObj).select();
+        let { error, data } = await supabase.from(table).upsert(sanitizedRecords, conflictObj).select();
+        
+        if (error && table === 'water_productos' && error.message && error.message.includes('precio_dealer')) {
+            const fallbackRecords = sanitizedRecords.map(({ precio_dealer, ...rest }) => rest);
+            const retryRes = await supabase.from(table).upsert(fallbackRecords, conflictObj).select();
+            error = retryRes.error;
+            data = retryRes.data;
+        }
         
         if (error) {
             console.error(`[SUPABASE UPSERT ERROR] table ${table}:`, error.message);
