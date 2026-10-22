@@ -497,9 +497,12 @@
       
       /* Dark mode keeps original teal */
       .dark .sidebar-item-active {
-        background: rgba(0, 245, 212, 0.08);
-        border-right: 3px solid #00f5d4;
+        background: linear-gradient(90deg, rgba(0, 245, 212, 0.14) 0%, rgba(0, 245, 212, 0.02) 100%) !important;
+        border-left: 3px solid #00f5d4 !important;
+        border-right: none !important;
         color: #00f5d4 !important;
+        font-weight: 700 !important;
+        border-radius: 4px 12px 12px 4px !important;
       }
       /* Light mode active: handled above */
       .sidebar-item-active {
@@ -507,6 +510,33 @@
         border-radius: 0.75rem;
         margin-left: 0.25rem;
         margin-right: 0.25rem;
+      }
+
+      .sidebar-section-title {
+        font-size: 9.5px !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.16em !important;
+        color: #64748b !important;
+        opacity: 0.75 !important;
+        display: flex !important;
+        align-items: center !important;
+        user-select: none !important;
+        padding: 12px 12px 4px !important;
+      }
+      .sidebar-section-title::after {
+        content: '' !important;
+        flex: 1 !important;
+        height: 1px !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        margin-left: 8px !important;
+      }
+      html:not(.dark) .sidebar-section-title::after {
+        background: rgba(0, 0, 0, 0.06) !important;
+      }
+      .admin-sidebar-collapsed .sidebar-section-title,
+      .admin-sidebar-collapsed .btn-back-portal {
+        display: none !important;
       }
 
       .btn-premium {
@@ -767,171 +797,222 @@
     </div>
 
     <!-- Sidebar -->
-    <aside id="admin-sidebar" class="w-56 border-r border-gray-100 dark:border-gray-900 bg-white dark:bg-[#050505] flex flex-col z-40 transition-all duration-300">
-        <div>
-            <div class="sidebar-header h-20 flex items-center px-6 gap-3">
-                <img src="./assets/images/renew copia logo.png" class="w-6 h-6 object-contain brightness-0 invert dark:brightness-100 dark:invert-0 transition-all duration-300" alt="RENEW OS Logo">
+    <aside id="admin-sidebar" class="w-60 border-r border-gray-100 dark:border-white/5 bg-white dark:bg-[#070a10] flex flex-col z-40 transition-all duration-300 backdrop-blur-xl">
+        <div class="overflow-y-auto overflow-x-hidden flex-1 pb-4">
+            <div class="sidebar-header h-20 flex items-center px-5 gap-3 border-b border-gray-100 dark:border-white/5">
+                <img src="./assets/images/renew copia logo.png" class="w-7 h-7 object-contain brightness-0 invert dark:brightness-100 dark:invert-0 transition-all duration-300 drop-shadow-[0_0_8px_rgba(0,245,212,0.3)]" alt="RENEW OS Logo">
                 <div id="logo-container" class="flex flex-col">
-                    <h1 id="logo-text_main" class="text-lg font-black text-tealAccent leading-none tracking-tighter uppercase">EQUIPO <span class="text-gray-900 dark:text-white">RENEW</span></h1>
-                    <p id="logo-text_sub" class="text-[8px] uppercase tracking-[0.2em] font-black text-gray-400 dark:text-gray-600 mt-0.5">Intelligence</p>
+                    <h1 id="logo-text_main" class="text-base font-black text-tealAccent leading-none tracking-tight uppercase">EQUIPO <span class="text-gray-900 dark:text-white">RENEW</span></h1>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-tealAccent animate-pulse"></span>
+                        <p id="logo-text_sub" class="text-[8.5px] uppercase tracking-[0.14em] font-mono text-gray-400 dark:text-gray-500">OS 2.4 • Admin</p>
+                    </div>
                 </div>
             </div>
+
+            <!-- Quick link back to Sales Portal -->
+            <div class="px-3 pt-3 pb-1 btn-back-portal">
+                <a href="index.html" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-tealAccent/10 border border-white/5 hover:border-tealAccent/30 text-gray-400 hover:text-tealAccent text-xs font-semibold transition-all group">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+                        <span>Portal de Ventas</span>
+                    </span>
+                    <span class="text-[9px] font-mono opacity-50">App</span>
+                </a>
+            </div>
             
-            <nav class="mt-4 px-2 space-y-1.5" id="admin-nav">
-                <a href="#" data-view="constructor" class="nav-item sidebar-item-active flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-layer-group text-sm"></i>
+            <nav class="mt-2 px-2.5 space-y-3" id="admin-nav">
+                
+                <!-- SECCIÓN 1: SUPERVISIÓN -->
+                <div>
+                    <div class="sidebar-section-title px-2 mb-1">
+                        <span>Supervisión</span>
                     </div>
-                    <span class="nav-text">Dashboard</span>
-                </a>
-                <a href="#" data-view="rendimiento-global" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-chart-line text-sm"></i>
-                    </div>
-                    <span class="nav-text">Rendimiento Global</span>
-                </a>
-                <a href="#" data-view="usuarios" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-user-group text-sm"></i>
-                    </div>
-                    <span class="nav-text">Equipo</span>
-                </a>
-                <a href="#" data-view="roles" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-shield-halved text-sm"></i>
-                    </div>
-                    <span class="nav-text">Roles y Permisos</span>
-                </a>
-                <a href="#" data-view="hrhub" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-address-card text-sm"></i>
-                    </div>
-                    <span class="nav-text">RRHH</span>
-                </a>
-                <a href="#" data-view="proveedores" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-handshake text-sm"></i>
-                    </div>
-                    <span class="nav-text">Proveedores</span>
-                </a>
-                <a href="#" data-view="crm" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-users-gear text-sm"></i>
-                    </div>
-                    <span class="nav-text">Clientes</span>
-                </a>
-                <a href="#" data-view="call-center" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-headset text-sm"></i>
-                    </div>
-                    <span class="nav-text">Call Center</span>
-                </a>
-                <a href="#" data-view="mapa-admin" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-map-location-dot text-sm"></i>
-                    </div>
-                    <span class="nav-text">Mapa Clientes</span>
-                </a>
-                <a href="#" data-view="calendario" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-calendar-days text-sm"></i>
-                    </div>
-                    <span class="nav-text">Calendario</span>
-                </a>
-                <a href="#" data-view="kanban" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-table-columns text-sm"></i>
-                    </div>
-                    <span class="nav-text">Kanban</span>
-                </a>
-                <a href="#" data-view="academia" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-graduation-cap text-sm"></i>
-                    </div>
-                    <span class="nav-text">Gestor Academia</span>
-                </a>
-                <a href="#" data-view="anuncios" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-bullhorn text-sm"></i>
-                    </div>
-                    <span class="nav-text">Anuncios Globales</span>
-                </a>
-
-                <a href="#" data-view="lista-precios" class="nav-item flex items-center gap-1.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
-                    <div class="w-7 flex justify-center">
-                        <i class="fa-solid fa-tag text-sm"></i>
-                    </div>
-                    <span class="nav-text">Lista de Precios</span>
-                </a>
-
-                <!-- Inventario Group -->
-                <div class="px-0">
-                    <button id="btn-toggle-inv" class="nav-item w-full flex items-center justify-between px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
-                        <div class="flex items-center gap-1.5">
-                            <div class="w-7 flex justify-center">
-                                <i class="fa-solid fa-boxes-stacked text-sm"></i>
+                    <div class="space-y-0.5">
+                        <a href="#" data-view="constructor" class="nav-item sidebar-item-active flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-layer-group text-sm"></i>
                             </div>
-                            <span class="nav-text">Inventario</span>
-                        </div>
-                        <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-300 nav-text group-[.open]:rotate-180"></i>
-                    </button>
-                    
-                    <div id="sub-inv" class="hidden pl-10 space-y-1 mt-1 border-l border-gray-100 dark:border-gray-800 ml-6 transition-all">
-                        <a href="#" data-view="inventario" data-eco="solar" class="nav-item flex items-center gap-1.5 py-1.5 text-xs text-gray-500 hover:text-tealAccent transition-colors">Renew Solar</a>
-                        <a href="#" data-view="inventario" data-eco="water" class="nav-item flex items-center gap-1.5 py-1.5 text-xs text-gray-500 hover:text-blue-500 transition-colors">Renew Water</a>
-                        <a href="#" data-view="inventario" data-eco="home" class="nav-item flex items-center gap-1.5 py-1.5 text-xs text-gray-500 hover:text-purple-500 transition-colors">Renew Home</a>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+                        <a href="#" data-view="rendimiento-global" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-chart-line text-sm"></i>
+                            </div>
+                            <span class="nav-text">Rendimiento Global</span>
+                        </a>
+                        <a href="#" data-view="anuncios" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-bullhorn text-sm"></i>
+                            </div>
+                            <span class="nav-text">Anuncios Globales</span>
+                        </a>
                     </div>
                 </div>
 
-                <!-- Automatizaciones Group -->
-                <div class="px-0">
-                    <button id="btn-toggle-auto" class="nav-item w-full flex items-center justify-between px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
-                        <div class="flex items-center gap-1.5">
-                            <div class="w-7 flex justify-center">
-                                <i class="fa-solid fa-bolt text-sm text-yellowAccent"></i>
+                <!-- SECCIÓN 2: GESTIÓN COMERCIAL -->
+                <div>
+                    <div class="sidebar-section-title px-2 mb-1">
+                        <span>Comercial</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <a href="#" data-view="crm" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-users-gear text-sm"></i>
                             </div>
-                            <span class="nav-text">Automatizaciones</span>
-                        </div>
-                        <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-300 nav-text group-[.open]:rotate-180"></i>
-                    </button>
-                    
-                    <div id="sub-auto" class="hidden pl-10 space-y-1 mt-1 border-l border-gray-100 dark:border-gray-800 ml-6 transition-all">
-                        <a href="#" data-view="marketing" class="nav-item block py-1.5 text-xs text-gray-500 hover:text-tealAccent transition-colors">Email</a>
-                        <a href="#" data-view="whatsapp" class="nav-item block py-1.5 text-xs text-gray-500 hover:text-green-400 transition-colors">WhatsApp</a>
+                            <span class="nav-text">Clientes</span>
+                        </a>
+                        <a href="#" data-view="kanban" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-table-columns text-sm"></i>
+                            </div>
+                            <span class="nav-text">Kanban</span>
+                        </a>
+                        <a href="#" data-view="call-center" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-headset text-sm"></i>
+                            </div>
+                            <span class="nav-text">Call Center</span>
+                        </a>
+                        <a href="#" data-view="mapa-admin" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-map-location-dot text-sm"></i>
+                            </div>
+                            <span class="nav-text">Mapa Clientes</span>
+                        </a>
+                        <a href="#" data-view="calendario" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-calendar-days text-sm"></i>
+                            </div>
+                            <span class="nav-text">Calendario</span>
+                        </a>
                     </div>
                 </div>
+
+                <!-- SECCIÓN 3: OPERACIONES & SUMINISTROS -->
+                <div>
+                    <div class="sidebar-section-title px-2 mb-1">
+                        <span>Operaciones</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <!-- Inventario Group -->
+                        <div class="px-0">
+                            <button id="btn-toggle-inv" class="nav-item w-full flex items-center justify-between px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                        <i class="fa-solid fa-boxes-stacked text-sm"></i>
+                                    </div>
+                                    <span class="nav-text">Inventario</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-300 nav-text group-[.open]:rotate-180"></i>
+                            </button>
+                            
+                            <div id="sub-inv" class="hidden pl-8 space-y-0.5 mt-1 border-l border-gray-200 dark:border-white/10 ml-5 transition-all">
+                                <a href="#" data-view="inventario" data-eco="solar" class="nav-item flex items-center gap-2 py-1.5 px-2 text-xs text-gray-500 hover:text-tealAccent rounded-lg transition-colors">Renew Solar</a>
+                                <a href="#" data-view="inventario" data-eco="water" class="nav-item flex items-center gap-2 py-1.5 px-2 text-xs text-gray-500 hover:text-blue-500 rounded-lg transition-colors">Renew Water</a>
+                                <a href="#" data-view="inventario" data-eco="home" class="nav-item flex items-center gap-2 py-1.5 px-2 text-xs text-gray-500 hover:text-purple-500 rounded-lg transition-colors">Renew Home</a>
+                            </div>
+                        </div>
+
+                        <a href="#" data-view="proveedores" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-handshake text-sm"></i>
+                            </div>
+                            <span class="nav-text">Proveedores</span>
+                        </a>
+                        <a href="#" data-view="lista-precios" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-tag text-sm"></i>
+                            </div>
+                            <span class="nav-text">Lista de Precios</span>
+                        </a>
+                        <a href="#" data-view="academia" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-graduation-cap text-sm"></i>
+                            </div>
+                            <span class="nav-text">Gestor Academia</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 4: ORGANIZACIÓN & SISTEMA -->
+                <div>
+                    <div class="sidebar-section-title px-2 mb-1">
+                        <span>Sistema</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <a href="#" data-view="usuarios" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-user-group text-sm"></i>
+                            </div>
+                            <span class="nav-text">Equipo</span>
+                        </a>
+                        <a href="#" data-view="roles" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-shield-halved text-sm"></i>
+                            </div>
+                            <span class="nav-text">Roles y Permisos</span>
+                        </a>
+                        <a href="#" data-view="hrhub" class="nav-item flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs">
+                            <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                <i class="fa-solid fa-address-card text-sm"></i>
+                            </div>
+                            <span class="nav-text">RRHH</span>
+                        </a>
+
+                        <!-- Automatizaciones Group -->
+                        <div class="px-0">
+                            <button id="btn-toggle-auto" class="nav-item w-full flex items-center justify-between px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 flex justify-center items-center flex-shrink-0">
+                                        <i class="fa-solid fa-bolt text-sm text-yellowAccent"></i>
+                                    </div>
+                                    <span class="nav-text">Automatizaciones</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-300 nav-text group-[.open]:rotate-180"></i>
+                            </button>
+                            
+                            <div id="sub-auto" class="hidden pl-8 space-y-0.5 mt-1 border-l border-gray-200 dark:border-white/10 ml-5 transition-all">
+                                <a href="#" data-view="marketing" class="nav-item block py-1.5 px-2 text-xs text-gray-500 hover:text-tealAccent rounded-lg transition-colors">Email</a>
+                                <a href="#" data-view="whatsapp" class="nav-item block py-1.5 px-2 text-xs text-gray-500 hover:text-green-400 rounded-lg transition-colors">WhatsApp</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </nav>
         </div>
-
-        <!-- Spacer -->
-        <div class="flex-grow"></div>
         
-        <div class="p-4 space-y-1 mt-auto">
+        <!-- Footer Profile & System Controls -->
+        <div class="p-3 space-y-1 mt-auto border-t border-gray-100 dark:border-white/5 bg-black/20">
             <!-- Theme Toggle -->
-            <button id="btn-theme-toggle" class="nav-item w-full flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
-                <div class="w-7 flex justify-center items-center">
-                    <i class="fa-solid fa-moon dark:hidden text-sm"></i>
-                    <i class="fa-solid fa-sun hidden dark:block text-sm"></i>
+            <button id="btn-theme-toggle" class="nav-item w-full flex items-center gap-2.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                <div class="w-6 flex justify-center items-center">
+                    <i class="fa-solid fa-moon dark:hidden text-xs"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-xs"></i>
                 </div>
                 <span class="nav-text">Tema del Sistema</span>
             </button>
 
-            <!-- Profile / Avatar -->
-            <button onclick="window.renderView('usuarios')" class="nav-item w-full flex items-center gap-2 px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
-                <div class="w-7 flex justify-center items-center">
+            <!-- User Mini Profile -->
+            <button onclick="window.renderView('usuarios')" class="nav-item w-full flex items-center gap-2.5 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all font-semibold text-xs group">
+                <div class="w-6 flex justify-center items-center">
                     <div id="footer-user-avatar" class="w-6 h-6 rounded-full bg-gradient-to-tr from-tealAccent/20 to-blue-500/20 border border-tealAccent/30 flex items-center justify-center text-[10px] text-tealAccent font-black">DV</div>
                 </div>
-                <span class="nav-text" id="footer-user-name">Perfil de Usuario</span>
+                <div class="flex flex-col text-left leading-tight overflow-hidden">
+                    <span class="nav-text font-bold text-gray-800 dark:text-gray-200 truncate" id="footer-user-name">Perfil de Usuario</span>
+                    <span class="nav-text text-[9px] text-gray-500 font-mono">Administrador</span>
+                </div>
             </button>
 
-            <div class="py-2">
+            <div class="py-1">
                 <div class="w-full h-[1px] bg-gray-100 dark:bg-white/5"></div>
             </div>
 
-            <!-- Shutdown -->
-            <button id="btn-logout-sidebar" class="nav-item w-full flex items-center gap-2 px-3 py-2 text-red-500/80 hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all font-semibold text-xs group">
-                <div class="w-7 flex justify-center items-center">
-                    <i class="fa-solid fa-power-off text-sm"></i>
+            <!-- Logout -->
+            <button id="btn-logout-sidebar" class="nav-item w-full flex items-center gap-2.5 px-3 py-1.5 text-red-400/80 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-all font-semibold text-xs group">
+                <div class="w-6 flex justify-center items-center">
+                    <i class="fa-solid fa-power-off text-xs"></i>
                 </div>
                 <span class="nav-text">Cerrar Sesión</span>
             </button>
