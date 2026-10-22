@@ -807,20 +807,63 @@ export function _renderToolsForPipeline(user, activeUnit) {
     });
   }
 
-  // Dynamically populate desktop sidebar
+  // Dynamically populate desktop sidebar with structured modern sections
   const desktopContainer = document.getElementById('desktop-dynamic-tools');
   if (desktopContainer) {
     const desktopTools = allTools.filter(tool => tool.name !== 'Calendario');
     
-    desktopContainer.innerHTML = desktopTools
-      .map((tool, i) => `
-      <a href="#" class="nav-item" id="desktop-tool-${i}" title="${tool.name}" data-screen="${tool.screen || ''}">
-        <div style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
-          ${tool.icon}
-        </div>
-        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${tool.name.replace(' (Admin)', '').replace('Gestión de Leads (Fase 1)', 'Leads').replace('Mis ', '').replace(' de Pagos', '').replace('Lista de Precios', 'Lista')}</span>
-      </a>
-    `).join('');
+    // Categorize tools for modern cyber UX
+    const getCategory = (tool) => {
+      const n = (tool.name || '').toLowerCase();
+      const s = (tool.screen || '').toLowerCase();
+      if (s === 'call-center' || n.includes('lead') || s === 'clients' || n.includes('cliente') || n.includes('llamada') || s === 'mi-mapa' || n.includes('mapa')) {
+        return 'comercial';
+      }
+      if (n.includes('plantilla') || n.includes('inventario') || s === 'mis-recibos' || n.includes('recibo')) {
+        return 'operaciones';
+      }
+      return 'organizacion';
+    };
+
+    const categories = [
+      { id: 'comercial', label: 'Comercial' },
+      { id: 'operaciones', label: 'Operaciones' },
+      { id: 'organizacion', label: 'Organización' }
+    ];
+
+    let html = '';
+    categories.forEach(cat => {
+      const itemsInCat = desktopTools
+        .map((tool, index) => ({ tool, index }))
+        .filter(item => getCategory(item.tool) === cat.id);
+
+      if (itemsInCat.length > 0) {
+        html += `<div class="sidebar-section-title"><span>${cat.label}</span></div>`;
+        html += itemsInCat.map(({ tool, index }) => {
+          let cleanLabel = tool.name
+            .replace(' (Admin)', '')
+            .replace('Gestión de Leads (Fase 1)', 'Leads')
+            .replace('Mis ', '')
+            .replace(' de Pagos', '')
+            .replace('Lista de Precios', 'Lista');
+
+          const isAdminTool = tool.name.includes('Renew OS') || tool.name.includes('Admin');
+          const badge = isAdminTool ? `<span class="sidebar-pill-badge admin-badge">OS</span>` : '';
+
+          return `
+            <a href="#" class="nav-item ${isAdminTool ? 'nav-item-admin' : ''}" id="desktop-tool-${index}" title="${cleanLabel}" data-screen="${tool.screen || ''}">
+              <div class="nav-icon-box">
+                ${tool.icon}
+              </div>
+              <span class="nav-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${cleanLabel}</span>
+              ${badge}
+            </a>
+          `;
+        }).join('');
+      }
+    });
+
+    desktopContainer.innerHTML = html;
 
     desktopTools.forEach((tool, i) => {
       const btn = document.getElementById(`desktop-tool-${i}`);
@@ -829,6 +872,22 @@ export function _renderToolsForPipeline(user, activeUnit) {
         tool.action();
       });
     });
+
+    // Populate user profile in sidebar
+    if (user) {
+      const nameEl = document.getElementById('sidebar-user-name');
+      const roleEl = document.getElementById('sidebar-user-role');
+      const avatarEl = document.getElementById('sidebar-user-avatar');
+      if (nameEl) nameEl.textContent = (user.nombre || user.name || 'Usuario').split(' ')[0];
+      if (roleEl) roleEl.textContent = user.rol || user.role || 'Conectado';
+      if (avatarEl) {
+        if (user.foto || user.avatar) {
+          avatarEl.innerHTML = `<img src="${user.foto || user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar" />`;
+        } else {
+          avatarEl.textContent = (user.nombre || user.name || 'U').charAt(0).toUpperCase();
+        }
+      }
+    }
   }
 }
 

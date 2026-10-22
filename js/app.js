@@ -715,6 +715,22 @@ export function updateNavHighlight(activeScreen) {
     const span = themeBtn.querySelector('span');
     if (span) span.textContent = t('nav_theme');
   }
+
+  // Update user profile pill in sidebar if present
+  if (user) {
+    const nameEl = document.getElementById('sidebar-user-name');
+    const roleEl = document.getElementById('sidebar-user-role');
+    const avatarEl = document.getElementById('sidebar-user-avatar');
+    if (nameEl) nameEl.textContent = (user.nombre || user.name || 'Usuario').split(' ')[0];
+    if (roleEl) roleEl.textContent = user.rol || user.role || 'Conectado';
+    if (avatarEl && !avatarEl.querySelector('img')) {
+      if (user.foto || user.avatar) {
+        avatarEl.innerHTML = `<img src="${user.foto || user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar" />`;
+      } else {
+        avatarEl.textContent = (user.nombre || user.name || 'U').charAt(0).toUpperCase();
+      }
+    }
+  }
 }
 
 

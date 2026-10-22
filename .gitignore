@@ -5,3 +5,5 @@ uploads/
 credenciales-calendario.json
 db.json
 *.log
+
+Agente-Renew-Water/.env
