@@ -575,25 +575,37 @@ input[type="date"] {
 
 .deal-card {
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 18px;
-  border: 1.5px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  border-left: 3px solid var(--card-accent, var(--primary)) !important;
 }
+
+body.dark-theme .deal-card {
+  background: rgba(18, 24, 38, 0.65) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+}
+
 .deal-card::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 4px;
-  border-radius: 4px 0 0 4px;
-  background: var(--card-accent, var(--primary));
+  display: none !important;
 }
-.deal-card:active { transform: scale(.98); box-shadow: var(--shadow); }
-.deal-card:hover  { border-color: var(--primary); box-shadow: var(--shadow); }
+
+.deal-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--card-accent, var(--primary)) 40%, transparent) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.3), 0 0 16px -4px color-mix(in srgb, var(--card-accent, var(--primary)) 20%, transparent);
+}
+.deal-card:active {
+  transform: scale(0.99);
+}
 
 /* ── Locked Project Styles ────────────────────────────────── */
 .deal-locked {
@@ -641,59 +653,80 @@ input[type="date"] {
 }
 .deal-arrow {
   color: var(--text-muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.deal-card:hover .deal-arrow {
+  color: var(--card-accent, var(--primary));
+  transform: translateX(2px);
 }
 
-/* Stage Badges */
+/* Stage Badges - Modern Minimalist */
 .badge {
   display: inline-flex; align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: .72rem; font-weight: 700;
-  letter-spacing: .3px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: .7rem; font-weight: 700;
+  letter-spacing: .2px;
   white-space: nowrap;
   flex-shrink: 0;
+  border: 1px solid transparent;
 }
-.badge-blue    { background: #dbeafe; color: #1d4ed8; }
-.badge-purple  { background: #ede9fe; color: #6d28d9; }
-.badge-teal    { background: #ccfbf1; color: #0f766e; }
-.badge-green   { background: #d1fae5; color: #065f46; }
-.badge-orange  { background: #ffedd5; color: #c2410c; }
-.badge-gray    { background: #f1f5f9; color: #475569; }
-.badge-red     { background: #fee2e2; color: #b91c1c; }
-.badge-yellow  { background: #fef9c3; color: #854d0e; }
+.badge-blue    { background: #eff6ff; color: #1d4ed8; border-color: #dbeafe; }
+.badge-purple  { background: #faf5ff; color: #6d28d9; border-color: #ede9fe; }
+.badge-teal    { background: #f0fdfa; color: #0f766e; border-color: #ccfbf1; }
+.badge-green   { background: #f0fdf4; color: #065f46; border-color: #d1fae5; }
+.badge-orange  { background: #fff7ed; color: #c2410c; border-color: #ffedd5; }
+.badge-gray    { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+.badge-red     { background: #fef2f2; color: #b91c1c; border-color: #fee2e2; }
+.badge-yellow  { background: #fefce8; color: #854d0e; border-color: #fef9c3; }
 
-/* Progress Bar in Cards */
+/* Dark Theme Badges - Soft Translucent Glass */
+body.dark-theme .badge-blue    { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border-color: rgba(59, 130, 246, 0.25); }
+body.dark-theme .badge-purple  { background: rgba(139, 92, 246, 0.12); color: #c084fc; border-color: rgba(139, 92, 246, 0.25); }
+body.dark-theme .badge-teal    { background: rgba(0, 223, 191, 0.12); color: #00dfbf; border-color: rgba(0, 223, 191, 0.25); }
+body.dark-theme .badge-green   { background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.25); }
+body.dark-theme .badge-orange  { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25); }
+body.dark-theme .badge-gray    { background: rgba(255, 255, 255, 0.05); color: #94a3b8; border-color: rgba(255, 255, 255, 0.08); }
+body.dark-theme .badge-red     { background: rgba(239, 68, 68, 0.12); color: #f87171; border-color: rgba(239, 68, 68, 0.25); }
+body.dark-theme .badge-yellow  { background: rgba(234, 179, 8, 0.12); color: #facc15; border-color: rgba(234, 179, 8, 0.25); }
+
+/* Progress Bar in Cards - Clean Hairline */
 .deal-progress-wrap {
-  margin: 14px 0 16px;
+  margin: 10px 0 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 .deal-progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 .deal-progress-percentage {
   color: var(--card-accent, var(--primary));
-  font-weight: 800;
+  font-weight: 700;
+  font-family: monospace;
+  font-variant-numeric: tabular-nums;
 }
 .deal-progress-bg {
-  height: 6px;
-  background: var(--surface-alt);
-  border-radius: var(--radius-full);
+  height: 3px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 99px !important;
   overflow: hidden;
   position: relative;
 }
+body:not(.dark-theme) .deal-progress-bg {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
 .deal-progress-bar {
-  height: 100%;
-  background: var(--card-accent, var(--primary));
-  border-radius: var(--radius-full);
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px var(--primary-glow);
+  height: 100% !important;
+  background: linear-gradient(90deg, var(--card-accent, var(--primary)) 0%, #38bdf8 100%) !important;
+  border-radius: 99px !important;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--card-accent, var(--primary)) 40%, transparent);
 }
 
 /* Empty state */
@@ -1850,74 +1883,86 @@ body.no-nav #bottom-nav {
     box-shadow: none !important;
   }
   
-  /* Dashboard Tabs Desktop */
+  /* Dashboard & Clients Tabs Desktop - Clean Segmented Control */
   .dash-tabs-wrapper {
     max-width: 1200px !important;
-    margin: 0 auto 32px !important;
-    padding: 0 64px !important;
+    margin: 0 auto 20px !important;
+    padding: 0 24px !important;
     display: flex !important;
     justify-content: center !important;
   }
 
   .dash-tabs-container {
-    max-width: 800px !important;
+    display: inline-flex !important;
+    max-width: none !important;
     margin: 0 auto !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    gap: 24px !important;
-    border-radius: 0 !important;
-    border-bottom: 2px solid var(--border) !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    padding: 4px !important;
+    gap: 4px !important;
+    border-radius: 12px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     justify-content: center !important;
+    align-items: center !important;
+  }
+  body:not(.dark-theme) .dash-tabs-container {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
   }
   .dash-tab {
     flex: none !important;
-    padding: 18px 50px !important;
-    font-size: 1.2rem !important;
-    border-radius: 0 !important;
+    padding: 8px 22px !important;
+    font-size: 0.88rem !important;
+    border-radius: 8px !important;
     position: relative !important;
     background: transparent !important;
-    font-weight: 900 !important;
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    border: none !important;
   }
-
 
   .dash-tab:hover {
-    color: var(--primary) !important;
+    color: var(--text-primary) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
   }
   .dash-tab.active {
-    background: transparent !important;
-    color: var(--primary) !important;
-    box-shadow: none !important;
+    background: rgba(255, 255, 255, 0.09) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  }
+  body:not(.dark-theme) .dash-tab.active {
+    background: #ffffff !important;
+    color: var(--primary-dark) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   }
   .dash-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--primary);
-    border-radius: 3px 3px 0 0;
+    display: none !important;
   }
 
   /* Specific fix for Clients Screen Tabs */
   #screen-clients .clients-tabs-fix {
-    margin-top: 32px !important;
-    margin-bottom: 32px !important;
+    margin-top: 14px !important;
+    margin-bottom: 20px !important;
     display: flex !important;
     justify-content: center !important;
   }
   #screen-clients .clients-tabs-fix .dash-tabs-container {
-    max-width: 1400px !important;
-    gap: 30px !important;
+    max-width: none !important;
+    gap: 4px !important;
     margin: 0 auto !important;
     justify-content: center !important;
-    border-bottom: 2px solid var(--border) !important;
   }
   #screen-clients .clients-tabs-fix .dash-tab {
-    padding: 22px 50px !important;
-    font-size: 1.3rem !important;
-    font-weight: 900 !important;
+    padding: 8px 22px !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
   }
 
 

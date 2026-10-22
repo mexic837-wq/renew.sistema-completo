@@ -218,42 +218,65 @@ export async function renderDashboard() {
 
   screen.innerHTML = `
     <style>
-      /* —— Pipeline chip selector —— */
-      /* —— Pipeline chip selector —— */
+      /* —— Pipeline chip selector (Clean Segmented Control) —— */
       .pip-chips-row {
-        display: flex; gap: 10px; padding: 0 16px;
-        overflow-x: auto; scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch; scrollbar-width: none;
-        justify-content: center;
+        display: flex; gap: 6px; padding: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        width: fit-content;
+        margin: 6px auto 14px !important;
+        align-items: center;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      body:not(.dark-theme) .pip-chips-row {
+        background: rgba(0, 0, 0, 0.03);
+        border-color: rgba(0, 0, 0, 0.08);
       }
       .pip-chips-row::-webkit-scrollbar { display: none; }
       .pip-chip {
-        flex-shrink: 0; scroll-snap-align: start;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 4px;
-        padding: 8px 12px 6px;
-        border-radius: 14px;
-        border: 1.5px solid var(--border);
-        background: var(--surface);
-        cursor: pointer; min-width: 96px;
-        transition: all 0.18s ease;
-        position: relative; overflow: hidden;
+        flex-shrink: 0;
+        display: flex; flex-direction: row; align-items: center; justify-content: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        cursor: pointer; min-width: auto;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+      .pip-chip:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      body:not(.dark-theme) .pip-chip:hover:not(.active) {
+        background: rgba(0, 0, 0, 0.04);
       }
       .pip-chip.active {
-        border-color: var(--pip-accent);
-        background: color-mix(in srgb, var(--pip-accent) 10%, var(--surface));
-        box-shadow: 0 4px 16px color-mix(in srgb, var(--pip-accent) 22%, transparent);
+        background: color-mix(in srgb, var(--pip-accent) 14%, rgba(255, 255, 255, 0.03));
+        border-color: color-mix(in srgb, var(--pip-accent) 40%, transparent);
+        box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--pip-accent) 25%, transparent);
       }
       .pip-chip-logo {
-        /* natural landscape logo “ let width fill the chip, control height */
-        width: 72px; height: auto; max-height: 28px; object-fit: contain;
-        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
+        height: 18px; width: auto; max-width: 65px; object-fit: contain;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
       }
       .pip-chip-badge {
-        font-size: 0.55rem; font-weight: 800; color: var(--text-muted);
-        text-transform: uppercase; letter-spacing: 0.5px;
+        font-size: 0.65rem; font-weight: 700; color: var(--text-muted);
+        font-family: monospace;
+        padding: 1px 6px; border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
       }
-      .pip-chip.active .pip-chip-badge { color: var(--pip-accent); }
+      body:not(.dark-theme) .pip-chip-badge {
+        background: rgba(0, 0, 0, 0.06);
+      }
+      .pip-chip.active .pip-chip-badge {
+        background: color-mix(in srgb, var(--pip-accent) 20%, transparent);
+        color: var(--pip-accent);
+      }
       /* —— Tool list (Academia-style full-width rectangles) —— */
       @keyframes toolIn {
         from { opacity: 0; transform: translateY(10px); }
@@ -328,23 +351,21 @@ export async function renderDashboard() {
       /* —— Desktop Proportions —— */
       @media (min-width: 768px) {
         .pip-chips-row {
-          gap: 16px;
-          margin: 10px 0 24px !important;
+          gap: 8px;
+          margin: 10px auto 20px !important;
+          padding: 5px;
         }
         .pip-chip {
-          min-width: 150px;
-          padding: 14px 24px 12px;
+          padding: 8px 18px;
           gap: 10px;
-          border-radius: 20px;
-          border-width: 2px;
         }
         .pip-chip-logo {
-          width: 100px;
-          max-height: 40px;
+          height: 22px;
+          max-height: 22px;
+          max-width: 80px;
         }
         .pip-chip-badge {
           font-size: 0.7rem;
-          letter-spacing: 0.8px;
         }
       }
     </style>

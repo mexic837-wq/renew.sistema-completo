@@ -637,25 +637,25 @@ async function _renderList(user, container) {
       `;
 
       return `
-        <div class="deal-card" style="--card-accent:var(--primary); background:var(--surface); border-radius:16px; padding:16px; border-left:4px solid var(--primary); margin-bottom:12px; cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
-          <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div class="deal-card" style="--card-accent:var(--primary); cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
+          <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
             <div>
-               <div class="deal-client-name" style="color:var(--text-primary); font-weight:bold; font-size:1.1rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.2;">${c.nombre} ${deptBadgeHtml}</div>
+               <div class="deal-client-name" style="color:var(--text-primary); font-weight:700; font-size:1.05rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.25;">${c.nombre} ${deptBadgeHtml}</div>
                ${repHtml}
             </div>
-          <div style="display:flex; align-items:center;">
+          <div style="display:flex; align-items:center; gap:6px;">
              ${deleteBtnHtml}
-             <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}" style="padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${etapaLabel}</span>
+             <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}">${etapaLabel}</span>
           </div>
         </div>
         
-        <div class="deal-progress-wrap" style="margin-bottom:12px;">
-          <div class="deal-progress-info" style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px; font-weight:600; text-transform:uppercase;">
+        <div class="deal-progress-wrap">
+          <div class="deal-progress-info">
             <span>Avance de Proyecto</span>
             <span class="deal-progress-percentage">${progress}%</span>
           </div>
-          <div class="deal-progress-bg" style="width:100%; background:var(--surface-alt); height:4px; border-radius:2px; overflow:hidden;">
-            <div class="deal-progress-bar" style="width:${progress}%; background:var(--primary); height:100%;"></div>
+          <div class="deal-progress-bg">
+            <div class="deal-progress-bar" style="width:${progress}%;"></div>
           </div>
         </div>
 
@@ -666,7 +666,7 @@ async function _renderList(user, container) {
             <i class="far fa-calendar-alt" style="margin-right:6px"></i>
             ${dateStr}
           </div>
-          <i class="fas fa-chevron-right" style="color:var(--primary)"></i>
+          <i class="fas fa-chevron-right deal-arrow"></i>
         </div>
       </div>
     `;
