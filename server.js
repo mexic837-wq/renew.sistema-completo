@@ -2639,7 +2639,16 @@ const handlerAnalisisGratuito = async (req, res) => {
             }
         }
 
-        const nombreCliente = (
+        const sanitizeField = (val) => {
+            if (val === null || val === undefined) return '';
+            let s = String(val).trim();
+            while (s.startsWith('=')) {
+                s = s.substring(1).trim();
+            }
+            return s;
+        };
+
+        const rawNombre = (
             payload.nombre || 
             payload.fullName || 
             payload.nombreCompleto || 
@@ -2647,10 +2656,11 @@ const handlerAnalisisGratuito = async (req, res) => {
             payload.name || 
             payload.full_name || 
             payload.cliente || 
-            'Prospecto Web'
-        ).trim();
+            ''
+        );
+        const nombreCliente = sanitizeField(rawNombre) || 'Prospecto Web';
 
-        const telefono = (
+        const rawTel = (
             payload.telefono || 
             payload.phone || 
             payload.phoneFmt || 
@@ -2658,12 +2668,13 @@ const handlerAnalisisGratuito = async (req, res) => {
             payload.celular || 
             payload.numero || 
             ''
-        ).trim();
+        );
+        const telefono = sanitizeField(rawTel);
 
-        const email = (payload.email || payload.emailRaw || payload.correo || '').trim();
-        const horario = (payload.horario || payload.preferredTime || payload.horario_preferido || payload.horarioPreferido || payload.preferred_time || payload.schedule || '').trim();
-        const zip = (payload.codigo_postal || payload.codigoPostal || payload.zip || payload.zip_code || payload.zipCode || payload.postal_code || '').trim();
-        const estado = (payload.estado || payload.stateName || payload.state || payload.state_id || 'Florida').trim();
+        const email = sanitizeField(payload.email || payload.emailRaw || payload.correo || '');
+        const horario = sanitizeField(payload.horario || payload.preferredTime || payload.horario_preferido || payload.horarioPreferido || payload.preferred_time || payload.schedule || '');
+        const zip = sanitizeField(payload.codigo_postal || payload.codigoPostal || payload.zip || payload.zip_code || payload.zipCode || payload.postal_code || '');
+        const estado = sanitizeField(payload.estado || payload.stateName || payload.state || payload.state_id || 'Florida') || 'Florida';
         const zonaCubierta = payload.zona_cubierta !== undefined ? Boolean(payload.zona_cubierta) : (payload.zonaCubierta !== undefined ? Boolean(payload.zonaCubierta) : true);
 
         const cleanDigits = (str) => String(str || '').replace(/\D/g, '');
@@ -2673,7 +2684,7 @@ const handlerAnalisisGratuito = async (req, res) => {
         const now = new Date();
         const todayDate = now.toISOString().split('T')[0];
         const nowIso = now.toISOString();
-        const direccionCompleta = [zip, estado].filter(Boolean).join(', ');
+        const direccionCompleta = [zip, estado].filter(Boolean).map(sanitizeField).join(', ');
 
         const notaLead = `🎯 Lead de Sitio Web (Análisis Gratuito - renewwaterus.com)\n` +
             `• Horario preferido: ${horario || 'No especificado'}\n` +

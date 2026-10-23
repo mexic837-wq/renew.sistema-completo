@@ -279,6 +279,20 @@ async function _renderList(user, container) {
     projectsByClient.get(p.cliente_id).push(p);
   });
 
+  const cleanDisplay = (val) => {
+    if (!val) return '';
+    let s = String(val).trim();
+    while (s.startsWith('=')) s = s.substring(1).trim();
+    return s.replace(/,\s*=/g, ', ').trim();
+  };
+
+  (todosClientes || []).forEach(c => {
+    if (c.nombre) c.nombre = cleanDisplay(c.nombre);
+    if (c.telefono) c.telefono = cleanDisplay(c.telefono);
+    if (c.email) c.email = cleanDisplay(c.email);
+    if (c.direccion) c.direccion = cleanDisplay(c.direccion);
+  });
+
   const misClientes = (todosClientes || []).filter(c => {
     const clientProjects = projectsByClient.get(c.id) || [];
     // ── CALL CENTER: only show clients whose active project phase belongs to CC ──
@@ -923,7 +937,7 @@ function _showProspectoModal(client, user, db) {
       <!-- Header -->
       <div style="padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <div>
-          <h2 style="font-size:1.3rem;font-weight:900;color:var(--text-primary);margin:0;">${client.nombre || 'Sin nombre'}</h2>
+          <h2 style="font-size:1.3rem;font-weight:900;color:var(--text-primary);margin:0;">${cleanDisplay(client.nombre) || 'Sin nombre'}</h2>
           <span style="display:inline-block;margin-top:6px;background:rgba(59,130,246,0.12);color:#3b82f6;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:99px;border:1px solid rgba(59,130,246,0.25);">Prospecto</span>
         </div>
         <button id="btn-prospecto-close" style="background:var(--surface-alt);border:none;color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-xmark text-red-500"></i></button>
@@ -939,7 +953,7 @@ function _showProspectoModal(client, user, db) {
           </div>
           <div style="flex:1;">
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Teléfono</p>
-            <input type="text" id="prospecto-telefono" value="${client.telefono || ''}" placeholder="Añadir teléfono..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--primary);font-size:0.95rem;font-weight:700;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid var(--primary)'" onblur="this.style.borderBottom='1px solid transparent'">
+            <input type="text" id="prospecto-telefono" value="${cleanDisplay(client.telefono)}" placeholder="Añadir teléfono..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--primary);font-size:0.95rem;font-weight:700;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid var(--primary)'" onblur="this.style.borderBottom='1px solid transparent'">
           </div>
           ${client.telefono ? `` : ''}
         </div>
@@ -950,7 +964,7 @@ function _showProspectoModal(client, user, db) {
           </div>
           <div style="flex:1;">
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Correo Electrónico</p>
-            <input type="email" id="prospecto-email" value="${client.email || ''}" placeholder="Añadir correo..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--text-primary);font-size:0.9rem;font-weight:600;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid #6366f1'" onblur="this.style.borderBottom='1px solid transparent'">
+            <input type="email" id="prospecto-email" value="${cleanDisplay(client.email)}" placeholder="Añadir correo..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--text-primary);font-size:0.9rem;font-weight:600;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid #6366f1'" onblur="this.style.borderBottom='1px solid transparent'">
           </div>
         </div>
         
@@ -960,7 +974,7 @@ function _showProspectoModal(client, user, db) {
           </div>
           <div style="flex:1;">
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">Dirección</p>
-            <input type="text" id="prospecto-direccion" value="${client.direccion || ''}" placeholder="Añadir dirección..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--text-primary);font-size:0.9rem;font-weight:600;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid #ef4444'" onblur="this.style.borderBottom='1px solid transparent'">
+            <input type="text" id="prospecto-direccion" value="${cleanDisplay(client.direccion)}" placeholder="Añadir dirección..." style="background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:var(--text-primary);font-size:0.9rem;font-weight:600;width:100%;font-family:inherit;padding:2px 0;transition:all 0.2s;" onfocus="this.style.borderBottom='1px solid #ef4444'" onblur="this.style.borderBottom='1px solid transparent'">
           </div>
         </div>
         
