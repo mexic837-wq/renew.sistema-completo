@@ -79,6 +79,7 @@ let state = {
   activeEcoFilter: null,
   activeInventorySede: 'orlando',
   activeInventoryLine: 'all',
+  activeWorkerSede: 'all',
   currentCliIdPhoto: null,
   currentUsrFoto: null,
   currentUsrW9Url: null,
@@ -86,6 +87,13 @@ let state = {
   currentMtFoto: null,
   activeAnnTab: 'comunicados',
   crmKanbanActive: false
+};
+
+window.setWorkerSedeFilter = (sede) => {
+    state.activeWorkerSede = sede;
+    if (typeof window.renderView === 'function') {
+        window.renderView();
+    }
 };
 
 // ââ‚¬ââ‚¬ GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) ââ‚¬ââ‚¬
@@ -3102,7 +3110,7 @@ async function loadData() {
 }
 window.loadData = loadData;
 
-function setGlobalButton(show, html, className = "btn-premium flex items-center gap-3 px-6 py-3 shadow-lg") {
+function setGlobalButton(show, html, className = "btn-premium flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-sm") {
   const btn = document.getElementById('btn-global-action');
   if (!btn) return;
   if (!show) {
@@ -3163,13 +3171,43 @@ window.renderView = async function renderView() {
   let db = getDB();
   if (!db) return; // Wait for initDB if called too early
   
+  // Clear contextual controls from previous view
+  const viewControls = document.getElementById('view-context-controls');
+  if (viewControls) viewControls.innerHTML = '';
+
+  // Update Breadcrumb
+  const viewBreadcrumb = document.getElementById('view-breadcrumb');
+  if (viewBreadcrumb) {
+    const sectionNames = {
+      'rendimiento-global': 'Supervisión',
+      'usuarios': 'Supervisión',
+      'equipo': 'Supervisión',
+      'crm': 'Comercial',
+      'crm_maestro': 'Comercial',
+      'kanban': 'Comercial',
+      'call-center': 'Comercial',
+      'hrhub': 'Operaciones',
+      'proveedores': 'Operaciones',
+      'inventario': 'Operaciones',
+      'roles': 'Sistema',
+      'constructor': 'Sistema',
+      'lista-precios': 'Sistema',
+      'calendario': 'Comercial',
+      'marketing': 'Comercial',
+      'whatsapp': 'Comercial',
+      'academia': 'Operaciones'
+    };
+    viewBreadcrumb.textContent = sectionNames[state.activeView] || 'General';
+  }
+
   // Toggle Search Bar Visibility
   const searchInput = document.getElementById('global-search-input');
   if (searchInput) {
+      const searchContainer = searchInput.closest('.search-box-wrapper') || searchInput.parentElement;
       if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores', 'hrhub', 'roles'].includes(state.activeView)) {
-          searchInput.parentElement.style.display = 'block';
+          searchContainer.style.display = '';
       } else {
-          searchInput.parentElement.style.display = 'none';
+          searchContainer.style.display = 'none';
           searchInput.value = ''; // clear when hidden
       }
   }
@@ -4146,19 +4184,47 @@ window.renderView = async function renderView() {
     renderCalendario();
   } else if (state.activeView === 'usuarios' || state.activeView === 'equipo') {
     UI.viewTitle.textContent = "Equipo Renew";
-    UI.viewDesc.textContent = "Compañeros de trabajo en Renew Group.";
-    setGlobalButton(true, '<i class="fa-solid fa-user-tie"></i> Add Collaborator');
+    UI.viewDesc.textContent = "Directorio y gestión de colaboradores en Renew Group.";
+    setGlobalButton(true, '<i class="fa-solid fa-user-plus text-xs"></i> <span>Añadir Colaborador</span>');
     
-    let items = await getAdminWorkers();
+    let allWorkers = await getAdminWorkers();
     
     // Sort items alphabetically by nombre
-    items.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    allWorkers.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+    let items = allWorkers;
+
+    // Apply Sede Filter
+    const activeSede = state.activeWorkerSede || 'all';
+    if (activeSede !== 'all') {
+        items = items.filter(u => (u.sede || '').toLowerCase().includes(activeSede.toLowerCase()));
+    }
 
     if (window.globalSearchQuery) {
         items = items.filter(u => {
-            const searchStr = window.normalizeSearchString(`${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${window.getUserRoles(u).join(", ") || ''} ${u.email || ''} ${u.telefono || ''}`);
+            const searchStr = window.normalizeSearchString(`${u.nombre || ''} ${u.apellido || ''} ${u.department || ''} ${window.getUserRoles(u).join(", ") || ''} ${u.email || ''} ${u.telefono || ''} ${u.sede || ''}`);
             return searchStr.includes(window.globalSearchQuery);
         });
+    }
+
+    // Update Header Context Controls with live count and Sede tabs
+    const viewControls = document.getElementById('view-context-controls');
+    if (viewControls) {
+        const countOrlando = allWorkers.filter(u => (u.sede || '').toLowerCase().includes('orlando')).length;
+        const countDallas = allWorkers.filter(u => (u.sede || '').toLowerCase().includes('dallas')).length;
+        viewControls.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    <span class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></span>
+                    <span>${allWorkers.length} registrados (${items.length} visibles)</span>
+                </div>
+                <div class="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 text-xs">
+                    <button onclick="window.setWorkerSedeFilter('all')" class="px-2.5 py-1 rounded-lg font-bold transition-all ${activeSede === 'all' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}">Todas <span class="text-[10px] opacity-70">(${allWorkers.length})</span></button>
+                    <button onclick="window.setWorkerSedeFilter('orlando')" class="px-2.5 py-1 rounded-lg font-bold transition-all ${activeSede === 'orlando' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}">Orlando <span class="text-[10px] opacity-70">(${countOrlando})</span></button>
+                    <button onclick="window.setWorkerSedeFilter('dallas')" class="px-2.5 py-1 rounded-lg font-bold transition-all ${activeSede === 'dallas' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}">Dallas <span class="text-[10px] opacity-70">(${countDallas})</span></button>
+                </div>
+            </div>
+        `;
     }
 
     const cardsHtml = items.map(u => {
@@ -4167,68 +4233,79 @@ window.renderView = async function renderView() {
         const initial = u.initials || (safeNombre[0] || '?');
         const dept = u.department || 'Renew Group';
         const rol = (window.getUserRoles(u).join(" ") || "Vendedor").toLowerCase().includes('vendedor') ? 'Representante de Ventas' : (window.getUserRoles(u).join(", ") || 'Colaborador');
-        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-16 h-16 rounded-full object-cover border-2 border-tealAccent/20 shadow-lg group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-16 h-16 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-xl border-2 border-tealAccent/20&quot;>${initial}</div>';">` : `<div class="w-16 h-16 rounded-full bg-tealAccent/10 flex items-center justify-center font-black text-tealAccent text-xl border-2 border-tealAccent/20">${initial}</div>`;
+        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-12 h-12 rounded-xl object-cover border border-tealAccent/20 shadow-sm group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.outerHTML='<div class=&quot;w-12 h-12 rounded-xl bg-tealAccent/10 flex items-center justify-center font-bold text-tealAccent text-sm border border-tealAccent/20&quot;>${initial}</div>';">` : `<div class="w-12 h-12 rounded-xl bg-tealAccent/10 flex items-center justify-center font-bold text-tealAccent text-sm border border-tealAccent/20">${initial}</div>`;
         
         return `
-            <div class="group relative bg-white dark:bg-[#0f172a] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-premium hover:shadow-teal-glow transition-all animate-fadeIn">
-                <div class="flex flex-col items-center text-center">
-                    <div class="relative mb-4">
+            <div class="group relative bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 hover:border-tealAccent/30 dark:hover:border-tealAccent/30 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col justify-between animate-fadeIn">
+                <!-- Top Row: Avatar + Status + Admin Quick Actions -->
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div class="relative">
                         ${fotoHtml}
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 ${u.is_suspended ? 'bg-red-500' : 'bg-tealAccent'} rounded-full border-4 border-white dark:border-darkCard"></div>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#0c1322] ${u.is_suspended ? 'bg-red-500' : 'bg-tealAccent'}" title="${u.is_suspended ? 'Suspendido' : 'Activo'}"></span>
                     </div>
+
+                    <!-- Admin Quick Controls (hover) -->
+                    <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <label class="relative inline-flex items-center cursor-pointer" title="${u.is_suspended ? 'Cuenta Inhabilitada' : 'Cuenta Activa'}">
+                          <input type="checkbox" class="sr-only peer toggle-worker-status" data-id="${u.id}" ${u.is_suspended ? '' : 'checked'}>
+                          <div class="w-7 h-3.5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
+                        </label>
+                        <button class="btn-delete-worker flex items-center justify-center w-6 h-6 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors" data-id="${u.id}" title="Eliminar Trabajador">
+                            <i class="fa-solid fa-trash-can text-[11px]"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info: Name, Role, Metadata Chips -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white truncate" title="${safeNombre} ${safeApellido}">${safeNombre} ${safeApellido}</h3>
+                    <p class="text-[11px] font-semibold text-tealAccent truncate mb-2.5">${rol}</p>
                     
-                    <h3 class="text-base font-black text-gray-900 dark:text-white tracking-tighter mb-1">${safeNombre} ${safeApellido}</h3>
-                    <p class="text-[9px] font-black text-tealAccent uppercase tracking-widest mb-3 bg-tealAccent/5 px-3 py-1 rounded-full border border-tealAccent/10">${rol}</p>
-                    
-                    <div class="flex items-center gap-2 mb-4">
+                    <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 font-medium">
+                            <i class="fa-solid fa-location-dot text-[10px] text-orange-400"></i> ${u.sede || '-'}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 font-medium truncate max-w-[130px]" title="${dept}">
+                            <i class="fa-solid fa-briefcase text-[10px] text-tealAccent"></i> ${dept}
+                        </span>
+                    </div>
+
+                    ${(u.unidades && u.unidades.length > 0) ? `
+                    <div class="flex items-center gap-1.5 mt-2.5">
                          ${(u.unidades || []).map(pip => {
                              let icon = 'fa-gear';
                              let colorClass = 'text-gray-400';
                              if(pip.toLowerCase().includes('solar')) { icon = 'fa-sun'; colorClass = 'text-amber-500'; }
                              if(pip.toLowerCase().includes('water')) { icon = 'fa-droplet'; colorClass = 'text-blue-500'; }
                              if(pip.toLowerCase().includes('home'))  { icon = 'fa-house'; colorClass = 'text-purple-500'; }
-                             return `<i class="fa-solid ${icon} text-[10px] ${colorClass}"></i>`;
+                             return `<span class="w-5 h-5 rounded-md bg-gray-100 dark:bg-white/5 flex items-center justify-center" title="${pip}"><i class="fa-solid ${icon} text-[10px] ${colorClass}"></i></span>`;
                          }).join('')}
-                    </div>
-
-                    <div class="flex flex-col gap-1 w-full mb-4">
-                        <div class="flex items-center justify-between text-[10px] px-2 py-1 bg-gray-50 dark:bg-white/5 rounded-lg">
-                            <span class="text-gray-400 font-bold uppercase tracking-widest">Sede</span>
-                            <span class="text-orange-500 font-black uppercase tracking-widest">${u.sede || '-'}</span>
-                        </div>
-                        <div class="flex items-center justify-between text-[10px] px-2 py-1 bg-gray-50 dark:bg-white/5 rounded-lg">
-                            <span class="text-gray-400 font-bold uppercase tracking-widest">Dpto</span>
-                            <span class="text-gray-600 dark:text-gray-300 font-black uppercase tracking-widest">${dept}</span>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-2 w-full mt-auto">
-                        <button class="worker-name-link flex-1 bg-tealAccent/10 hover:bg-tealAccent/20 text-tealAccent py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-tealAccent/20" data-id="${u.id}">
-                            Ver Perfil
-                        </button>
-                        <button onclick="window.open('tel:${u.telefono}', '_self')" class="w-10 h-10 bg-gray-50 dark:bg-white/5 flex items-center justify-center rounded-xl text-gray-400 hover:text-tealAccent transition-all border border-gray-100 dark:border-white/5">
-                            <i class="fa-solid fa-phone text-xs"></i>
-                        </button>
-                    </div>
+                    </div>` : ''}
                 </div>
 
-                <!-- Admin Action Menu -->
-                <div class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2 items-end">
-                    <label class="relative inline-flex items-center cursor-pointer" title="${u.is_suspended ? 'Cuenta Inhabilitada' : 'Cuenta Activa'}">
-                      <input type="checkbox" class="sr-only peer toggle-worker-status" data-id="${u.id}" ${u.is_suspended ? '' : 'checked'}>
-                      <div class="w-7 h-3.5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all dark:border-gray-600 peer-checked:bg-tealAccent"></div>
-                    </label>
-                    <button class="btn-delete-worker flex items-center justify-center w-7 h-7 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-full transition-colors" data-id="${u.id}" title="Eliminar Trabajador">
-                        <i class="fa-solid fa-trash-can text-xs"></i>
+                <!-- Bottom Actions -->
+                <div class="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-white/5">
+                    <button class="worker-name-link flex-1 py-1.5 px-3 rounded-lg bg-tealAccent/10 hover:bg-tealAccent/20 text-tealAccent font-semibold text-xs transition-colors border border-tealAccent/20 text-center" data-id="${u.id}">
+                        Ver Perfil
                     </button>
+                    ${u.telefono ? `
+                    <button onclick="window.open('tel:${u.telefono}', '_self')" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-tealAccent/10 hover:text-tealAccent text-gray-400 flex items-center justify-center transition-colors border border-gray-200/50 dark:border-white/5" title="Llamar: ${u.telefono}">
+                        <i class="fa-solid fa-phone text-xs"></i>
+                    </button>` : ''}
                 </div>
             </div>
         `;
     }).join('');
 
-    UI.canvas.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mt-6">
+    UI.canvas.innerHTML = items.length > 0 ? `
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             ${cardsHtml}
+        </div>
+    ` : `
+        <div class="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+            <i class="fa-solid fa-user-slash text-4xl mb-3 opacity-40"></i>
+            <p class="text-sm font-semibold text-gray-300">No se encontraron colaboradores</p>
+            <p class="text-xs text-gray-500 mt-1">Intenta ajustar los filtros de sede o el término de búsqueda.</p>
         </div>
     `;
   }
@@ -10506,27 +10583,43 @@ function initGlobalSearch() {
     const searchInput = document.getElementById('global-search-input');
     if (searchInput) {
         // Ensure we don't attach multiple listeners
-        if (searchInput._hasListener) return;
-        searchInput._hasListener = true;
+        if (!searchInput._hasListener) {
+            searchInput._hasListener = true;
 
-        searchInput.addEventListener('input', (e) => {
-            window.globalSearchQuery = window.normalizeSearchString(e.target.value);
-            if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
-                 renderView();
-            } else if (state.activeView === 'hrhub') {
-                // Filter the HR Hub directorio table in-place without full re-render
-                const q = window.globalSearchQuery;
-                document.querySelectorAll('#hr-table-body tr').forEach(row => {
-                    const text = window.normalizeSearchString(row.textContent);
-                    row.style.display = (!q || text.includes(q)) ? '' : 'none';
-                });
-                document.querySelectorAll('#col-inscrito > *, #col-docs > *, #col-cap > *, #col-activo > *, #col-inactivo > *').forEach(card => {
-                    const text = window.normalizeSearchString(card.textContent);
-                    card.style.display = (!q || text.includes(q)) ? '' : 'none';
-                });
+            searchInput.addEventListener('input', (e) => {
+                window.globalSearchQuery = window.normalizeSearchString(e.target.value);
+                if (['crm', 'crm_maestro', 'usuarios', 'equipo', 'proveedores'].includes(state.activeView)) {
+                     renderView();
+                } else if (state.activeView === 'hrhub') {
+                    // Filter the HR Hub directorio table in-place without full re-render
+                    const q = window.globalSearchQuery;
+                    document.querySelectorAll('#hr-table-body tr').forEach(row => {
+                        const text = window.normalizeSearchString(row.textContent);
+                        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                    });
+                    document.querySelectorAll('#col-inscrito > *, #col-docs > *, #col-cap > *, #col-activo > *, #col-inactivo > *').forEach(card => {
+                        const text = window.normalizeSearchString(card.textContent);
+                        card.style.display = (!q || text.includes(q)) ? '' : 'none';
+                    });
+                }
+            });
+            console.log('[SEARCH] Listener initialized');
+        }
+    }
+
+    // Keyboard shortcut: ⌘K or Ctrl+K to focus search
+    if (!window._hasGlobalKeyKListener) {
+        window._hasGlobalKeyKListener = true;
+        window.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+                const input = document.getElementById('global-search-input');
+                if (input && input.offsetParent !== null) {
+                    e.preventDefault();
+                    input.focus();
+                    input.select();
+                }
             }
         });
-        console.log('[SEARCH] Listener initialized');
     }
 }
 

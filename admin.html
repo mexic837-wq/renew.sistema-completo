@@ -694,10 +694,10 @@
       .aqua-title-box {
           background: rgba(0, 245, 212, 0.05);
           border: 1px solid rgba(0, 245, 212, 0.2);
-          padding: 1.25rem 2.5rem;
-          border-radius: 2rem;
+          padding: 0.75rem 1.25rem;
+          border-radius: 1rem;
           display: inline-block;
-          box-shadow: 0 10px 40px rgba(0, 245, 212, 0.05);
+          box-shadow: 0 4px 15px rgba(0, 245, 212, 0.05);
           backdrop-filter: blur(10px);
       }
 
@@ -1023,34 +1023,35 @@
     <main class="flex-1 flex flex-col h-full overflow-hidden">
         
         <!-- Header -->
-        <header class="h-20 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-10">
-            <div class="flex items-center gap-8 flex-1">
-                <button id="admin-hamburger-btn" class="text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-bars text-xl"></i>
+        <header class="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-8 bg-white dark:bg-[#070A10]">
+            <div class="flex items-center gap-6 flex-1">
+                <button id="admin-hamburger-btn" class="text-gray-400 hover:text-white transition-colors" title="Alternar menú lateral">
+                    <i class="fa-solid fa-bars text-lg"></i>
                 </button>
                 
-                <div class="relative w-full max-w-md group">
-                  <div class="absolute inset-0 bg-gradient-to-r from-tealAccent/20 to-blue-500/20 rounded-2xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                  <div class="relative bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden">
-                      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none"></i>
-                      <input id="global-search-input" type="text" placeholder="Buscar registros..." class="w-full bg-transparent border-none focus:ring-0 py-2.5 pl-11 pr-4 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-600 text-gray-900 dark:text-white outline-none">
+                <div class="search-box-wrapper relative w-full max-w-md group">
+                  <div class="absolute inset-0 bg-gradient-to-r from-tealAccent/20 to-blue-500/20 rounded-xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  <div class="relative bg-gray-50 dark:bg-[#0B0F1A] border border-gray-200 dark:border-white/10 rounded-xl shadow-sm focus-within:border-tealAccent focus-within:ring-1 focus-within:ring-tealAccent transition-all overflow-hidden flex items-center">
+                      <i class="fa-solid fa-magnifying-glass pl-3.5 pr-2 text-gray-400 dark:text-gray-500 text-xs pointer-events-none"></i>
+                      <input id="global-search-input" type="text" placeholder="Buscar registros, colaboradores..." class="w-full bg-transparent border-none focus:ring-0 py-2 text-xs placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white outline-none">
+                      <kbd class="hidden sm:inline-flex items-center gap-0.5 mr-2 px-1.5 py-0.5 text-[10px] font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded">⌘K</kbd>
                   </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                  <button id="btn-notifications" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all relative">
-                    <i class="fa-solid fa-bell text-lg"></i>
-                    <span id="admin-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-darkBg animate-pulse"></span>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1.5">
+                  <button id="btn-notifications" class="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 transition-all relative">
+                    <i class="fa-solid fa-bell text-sm"></i>
+                    <span id="admin-bell-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-darkBg animate-pulse"></span>
                   </button>
-                  <button id="btn-header-chat" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all relative">
-                    <i class="fa-solid fa-comment-dots text-lg"></i>
-                    <span id="chat-header-badge" class="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-tealAccent rounded-full border-2 border-white dark:border-darkBg hidden animate-pulse"></span>
+                  <button id="btn-header-chat" class="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 transition-all relative">
+                    <i class="fa-solid fa-comment-dots text-sm"></i>
+                    <span id="chat-header-badge" class="absolute top-2 right-2 w-2 h-2 bg-tealAccent rounded-full border border-white dark:border-darkBg hidden animate-pulse"></span>
                   </button>
                   <div class="relative group">
-                    <button id="btn-header-settings" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-tealAccent dark:hover:text-white transition-all">
-                      <i class="fa-solid fa-gear text-lg"></i>
+                    <button id="btn-header-settings" class="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-tealAccent hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
+                      <i class="fa-solid fa-gear text-sm"></i>
                     </button>
                     <!-- Settings Dropdown -->
                     <div id="settings-dropdown" class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0f172a] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl py-3 z-[100] hidden animate-fadeIn origin-top-right">
@@ -1075,12 +1076,12 @@
                             <p id="lbl-lang-settings" class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Idioma / Language</p>
                             <div class="flex gap-2">
                                 <button id="admin-lang-es" onclick="window.setAdminLang('es')"
-                                    class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border transition-all"
+                                    class="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold border transition-all"
                                     style="border-color: rgba(0,245,212,0.4); background: rgba(0,245,212,0.08); color: #00f5d4;">
                                     🇪🇸 ES
                                 </button>
                                 <button id="admin-lang-en" onclick="window.setAdminLang('en')"
-                                    class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border border-gray-700 text-gray-400 transition-all hover:border-blue-400 hover:text-blue-400">
+                                    class="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-gray-400 transition-all hover:border-blue-400 hover:text-blue-400">
                                     🇺🇸 EN
                                 </button>
                             </div>
@@ -1096,32 +1097,43 @@
                         </div>
                     </div>
                   </div>
-
                 </div>
 
-                <div class="h-8 w-[1px] bg-gray-800 mx-2"></div>
+                <div class="h-6 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
 
-                <button id="btn-global-invite" onclick="window.openInviteModal()" class="flex items-center gap-2 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-xl transition-all border border-blue-500/20 shadow-sm shadow-blue-500/10 mr-2">
-                    <i class="fa-solid fa-user-plus text-sm"></i> 
-                    <span class="text-xs uppercase tracking-widest font-black">Invitar</span>
+                <button id="btn-global-invite" onclick="window.openInviteModal()" class="flex items-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-xl transition-all border border-blue-500/20 text-xs font-semibold">
+                    <i class="fa-solid fa-user-plus text-xs"></i> 
+                    <span>Invitar</span>
                 </button>
-                <button id="btn-global-action" onclick="window.handleGlobalAdd()" class="btn-premium flex items-center gap-3 px-6 py-3">
-                    <i class="fa-solid fa-plus text-sm"></i> 
-                    <span class="text-xs uppercase tracking-widest font-black">Create Task</span>
+                <button id="btn-global-action" onclick="window.handleGlobalAdd()" class="btn-premium flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all">
+                    <i class="fa-solid fa-plus text-xs"></i> 
+                    <span>Create Task</span>
                 </button>
             </div>
         </header>
 
-        <!-- View Context -->
-        <div class="px-10 py-10 bg-white dark:bg-transparent border-b border-gray-100 dark:border-none">
-            <div class="aqua-title-box">
-                <h2 id="view-title" class="text-4xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-1">System Engine</h2>
-                <p id="view-desc" class="text-[10px] uppercase tracking-[0.3em] font-black text-gray-400 dark:text-gray-600">Initializing Core Protocols...</p>
+        <!-- View Context Bar -->
+        <div class="px-8 py-3.5 bg-gray-50/70 dark:bg-[#080d1a]/80 backdrop-blur-md border-b border-gray-200/80 dark:border-white/5 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-0.5">
+                    <span>Renew OS</span>
+                    <i class="fa-solid fa-chevron-right text-[8px] text-gray-500"></i>
+                    <span id="view-breadcrumb" class="text-tealAccent">Directorio</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <h2 id="view-title" class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">System Engine</h2>
+                    <span id="view-badge" class="hidden px-2 py-0.5 text-[10px] font-semibold rounded-full bg-tealAccent/10 text-tealAccent border border-tealAccent/20"></span>
+                </div>
+                <p id="view-desc" class="text-[11px] text-gray-500 dark:text-gray-400">Initializing Core Protocols...</p>
+            </div>
+
+            <div id="view-context-controls" class="flex items-center gap-2">
+                <!-- Dynamic segmented controls, stats, or filters injected per view -->
             </div>
         </div>
 
         <!-- Canvas -->
-        <div class="flex-1 overflow-auto p-10 bg-bgLight dark:bg-[#050505] transition-colors" id="main-canvas">
+        <div class="flex-1 overflow-auto px-8 py-6 bg-bgLight dark:bg-[#050505] transition-colors" id="main-canvas">
             <!-- Rendered by admin-app.js -->
         </div>
 
