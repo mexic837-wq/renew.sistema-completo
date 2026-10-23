@@ -2632,7 +2632,7 @@ const handlerAnalisisGratuito = async (req, res) => {
         if (payload.true && typeof payload.true === 'object') payload = payload.true;
 
         // Desempaquetar si viene envuelto en un objeto anidado
-        if (payload && typeof payload === 'object' && !payload.nombre && !payload.telefono && !payload.phone && !payload.nombreCompleto) {
+        if (payload && typeof payload === 'object' && !payload.nombre && !payload.telefono && !payload.phone && !payload.nombreCompleto && !payload.fullName) {
             const keys = Object.keys(payload);
             if (keys.length === 1 && typeof payload[keys[0]] === 'object' && payload[keys[0]] !== null) {
                 payload = payload[keys[0]];
@@ -2641,6 +2641,7 @@ const handlerAnalisisGratuito = async (req, res) => {
 
         const nombreCliente = (
             payload.nombre || 
+            payload.fullName || 
             payload.nombreCompleto || 
             payload.nombre_completo || 
             payload.name || 
@@ -2652,16 +2653,17 @@ const handlerAnalisisGratuito = async (req, res) => {
         const telefono = (
             payload.telefono || 
             payload.phone || 
+            payload.phoneFmt || 
             payload.tel || 
             payload.celular || 
             payload.numero || 
             ''
         ).trim();
 
-        const email = (payload.email || payload.correo || '').trim();
-        const horario = (payload.horario || payload.horario_preferido || payload.horarioPreferido || payload.preferred_time || payload.schedule || '').trim();
+        const email = (payload.email || payload.emailRaw || payload.correo || '').trim();
+        const horario = (payload.horario || payload.preferredTime || payload.horario_preferido || payload.horarioPreferido || payload.preferred_time || payload.schedule || '').trim();
         const zip = (payload.codigo_postal || payload.codigoPostal || payload.zip || payload.zip_code || payload.zipCode || payload.postal_code || '').trim();
-        const estado = (payload.estado || payload.state || payload.state_id || 'Florida').trim();
+        const estado = (payload.estado || payload.stateName || payload.state || payload.state_id || 'Florida').trim();
         const zonaCubierta = payload.zona_cubierta !== undefined ? Boolean(payload.zona_cubierta) : (payload.zonaCubierta !== undefined ? Boolean(payload.zonaCubierta) : true);
 
         const cleanDigits = (str) => String(str || '').replace(/\D/g, '');
