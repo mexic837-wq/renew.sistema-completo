@@ -1793,98 +1793,97 @@
             </div>
         </div>
     </div>
-    <div id="modal-worker-detail" class="fixed inset-0 bg-black/70 backdrop-blur-sm nuclear-hidden items-center justify-center z-[9000]">
-        <!-- ... (worker modal content remains same, I'll just keep the structure for brevity in instruction if possible or replace the whole block) ... -->
-        <div class="bg-surfaceLight dark:bg-[#121212] w-[950px] max-h-[90vh] rounded-xl shadow-2xl flex relative animate-fadeIn overflow-hidden">
+    <div id="modal-worker-detail" class="fixed inset-0 bg-black/70 backdrop-blur-md nuclear-hidden items-center justify-center z-[9000]">
+        <div class="bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 w-[950px] max-h-[90vh] rounded-2xl shadow-2xl flex relative animate-fadeIn overflow-hidden text-gray-900 dark:text-white">
             <!-- Botón Cerrar (Esquina) -->
-            <button class="btn-cancel absolute top-3 right-3 z-10 bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all border border-gray-200">
+            <button class="btn-cancel absolute top-3.5 right-3.5 z-20 bg-gray-100 dark:bg-white/10 hover:bg-red-50 dark:hover:bg-red-500/20 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all border border-gray-200/60 dark:border-white/10">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
             <!-- Column Izquierda (Perfil) -->
-            <div class="w-[300px] min-w-[300px] bg-white border-r border-[#dde3e6] p-6 flex flex-col items-center overflow-y-auto">
+            <div class="w-[300px] min-w-[300px] bg-gray-50/70 dark:bg-[#080d18] border-r border-gray-200/80 dark:border-white/5 p-6 flex flex-col items-center overflow-y-auto hide-scrollbar">
                 <div class="w-full flex justify-between items-center mb-6">
-                    <span class="bg-sky-400 text-white px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">ADMINISTRATOR <i class="fa-solid fa-chevron-down text-[8px]"></i></span>
+                    <span class="bg-tealAccent/15 text-tealAccent border border-tealAccent/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">ADMINISTRATOR <i class="fa-solid fa-chevron-down text-[8px]"></i></span>
                     <div class="text-right">
-                        <p class="text-[10px] text-red-500 font-bold uppercase flex items-center gap-1 justify-end"><span class="w-2 h-2 rounded-full bg-red-500"></span> OFFLINE</p>
+                        <p class="text-[10px] text-red-500 font-bold uppercase flex items-center gap-1.5 justify-end"><span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> OFFLINE</p>
                         <p class="text-[9px] text-gray-400">last seen 2 days ago</p>
                     </div>
                 </div>
-                <div class="relative group mb-8 cursor-pointer" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-usr-foto-file').click()"><div id="det-usr-avatar" class="w-48 h-48 rounded-full border-[6px] border-white shadow-xl bg-cover bg-center bg-gray-100 flex items-center justify-center overflow-hidden relative"><div id="det-usr-avatar-inner" class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-user text-6xl text-gray-200"></i></div></div><div class="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-camera text-white text-3xl mb-1"></i><span class="text-white text-[10px] font-bold uppercase tracking-widest">Cambiar</span></div></div>
+                <div class="relative group mb-8 cursor-pointer" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-usr-foto-file').click()"><div id="det-usr-avatar" class="w-44 h-44 rounded-full border-4 border-white dark:border-white/10 shadow-xl bg-cover bg-center bg-gray-100 dark:bg-white/5 flex items-center justify-center overflow-hidden relative"><div id="det-usr-avatar-inner" class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-user text-5xl text-gray-300 dark:text-gray-600"></i></div></div><div class="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-camera text-white text-2xl mb-1"></i><span class="text-white text-[10px] font-bold uppercase tracking-widest">Cambiar</span></div></div>
                 <input type="file" id="det-usr-foto-file" class="hidden" accept="image/*">
-                <div class="flex flex-col gap-2 w-full mb-10">
+                <div class="flex flex-col gap-2 w-full mb-6">
                     <div class="flex gap-2 w-full hidden">
-                        <button id="btn-usr-chat" class="flex-1 border border-[#c6d8e1] text-[#535c69] py-2 rounded-full text-xs font-bold hover:bg-gray-50 transition-colors">CHAT</button>
-                        <button id="btn-usr-video" class="flex-1 border border-[#c6d8e1] text-[#535c69] py-2 rounded-full text-xs font-bold hover:bg-gray-50 transition-colors">VIDEO CALL</button>
+                        <button id="btn-usr-chat" class="flex-1 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">CHAT</button>
+                        <button id="btn-usr-video" class="flex-1 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">VIDEO CALL</button>
                     </div>
-                    <button id="btn-usr-email" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-full text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
-                        <i class="fa-brands fa-google text-red-500"></i> EMAIL
+                    <button id="btn-usr-email" class="w-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-brands fa-google text-red-500"></i> Enviar Correo
                     </button>
                 </div>
             </div>
             <!-- Column Derecha (Info) -->
-            <div class="flex-1 p-6 flex flex-col overflow-y-auto">
+            <div class="flex-1 p-6 flex flex-col overflow-y-auto hide-scrollbar bg-white dark:bg-[#0c1322]">
                 <div id="det-view-panel">
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <div class="flex justify-between items-center mb-8 border-b border-gray-50 pb-4"><h3 class="text-lg font-medium text-[#333]">Información de contacto</h3><button id="btn-edit-worker-from-detail" title="Editar información" class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:text-tealAccent hover:bg-tealAccent/10 transition-all shadow-sm border border-gray-100"><i class="fa-solid fa-gear text-sm"></i></button></div>
+                    <div class="bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/5 rounded-2xl p-6 mb-6">
+                        <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-white/5 pb-4"><h3 class="text-base font-bold text-gray-900 dark:text-white">Información de Contacto</h3><button id="btn-edit-worker-from-detail" title="Editar información" class="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-white/5 text-gray-400 hover:text-tealAccent hover:bg-tealAccent/10 transition-all border border-gray-200/80 dark:border-white/10 shadow-sm"><i class="fa-solid fa-gear text-sm"></i></button></div>
                         <div class="grid grid-cols-1 gap-6">
                             <div class="space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">First name</label><p id="det-usr-nombre" class="text-sm font-bold text-[#333]">-</p></div>
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Last name</label><p id="det-usr-apellido" class="text-sm font-bold text-[#333]">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Nombre</label><p id="det-usr-nombre" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Apellido</label><p id="det-usr-apellido" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
                                 </div>
-                                <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Email Corporativo</label><p id="det-usr-email" class="text-sm font-bold text-sky-500">-</p></div>
+                                <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Email Corporativo</label><p id="det-usr-email" class="text-sm font-semibold text-tealAccent hover:underline">-</p></div>
                                 <div class="flex gap-10">
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Position / Role</label><p id="det-usr-rol" class="text-sm font-bold text-[#333]">-</p></div>
-                                    <div id="det-view-rank-container"><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Rank</label><p id="det-usr-rank" class="text-sm font-bold text-tealAccent uppercase">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Cargo / Rol</label><p id="det-usr-rol" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
+                                    <div id="det-view-rank-container"><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Rango</label><p id="det-usr-rank" class="text-sm font-bold text-tealAccent uppercase">-</p></div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Department</label><p id="det-usr-dept" class="text-sm font-bold text-[#333]">-</p></div>
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Sede (Oficina)</label><p id="det-usr-sede" class="text-sm font-bold text-orange-500 uppercase">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Departamento</label><p id="det-usr-dept" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Sede (Oficina)</label><p id="det-usr-sede" class="text-sm font-semibold text-orange-400 uppercase">-</p></div>
                                 </div>
                                 <div id="det-usr-equipo-container" class="hidden">
-                                    <label class="block text-[10px] text-blue-500 font-bold mb-1 uppercase tracking-widest">Equipo Asignado</label>
-                                    <p id="det-usr-equipo-list" class="text-xs text-gray-700 font-medium flex flex-col gap-1">-</p>
+                                    <label class="block text-[10px] text-tealAccent font-bold mb-1 uppercase tracking-wider">Equipo Asignado</label>
+                                    <p id="det-usr-equipo-list" class="text-xs text-gray-700 dark:text-gray-300 font-medium flex flex-col gap-1">-</p>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Mobile phone</label><p id="det-usr-tel" class="text-sm font-bold text-[#333] flex items-center gap-2">-</p></div>
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Zadarma SIP ID</label><p id="det-usr-sip-id" class="text-sm font-bold text-[#333]">-</p></div>
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Tel. Emergencia</label><p id="det-usr-tel-emergencia" class="text-sm font-bold text-red-500">-</p></div>
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Nombre Contacto Emergencia</label><p id="det-usr-contacto-emergencia-nombre" class="text-sm font-bold text-red-500">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Teléfono Móvil</label><p id="det-usr-tel" class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Zadarma SIP ID</label><p id="det-usr-sip-id" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Tel. Emergencia</label><p id="det-usr-tel-emergencia" class="text-sm font-semibold text-red-400">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Contacto Emergencia</label><p id="det-usr-contacto-emergencia-nombre" class="text-sm font-semibold text-red-400">-</p></div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Fecha Nacimiento</label><p id="det-usr-dob-view" class="text-sm font-bold text-[#333]">-</p></div>
-                                    <div><label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Dirección Personal</label><p id="det-usr-direccion" class="text-sm font-bold text-[#333]">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Fecha Nacimiento</label><p id="det-usr-dob-view" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
+                                    <div><label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Dirección Personal</label><p id="det-usr-direccion" class="text-sm font-semibold text-gray-900 dark:text-white">-</p></div>
                                 </div>
                                 
                                 <!-- RRHH Only Info wrapper -->
                                 <div id="det-usr-rrhh-only">
                                   <!-- Zelle View Section -->
-                                  <div class="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl mb-4">
-                                      <label class="block text-[9px] text-purple-500 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                                  <div class="p-4 bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/15 rounded-xl mb-4">
+                                      <label class="block text-[9px] text-purple-400 font-bold mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
                                           <i class="fa-solid fa-money-bill-transfer"></i> Información de Pago (Zelle)
                                       </label>
                                       <div class="grid grid-cols-3 gap-4">
-                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nombre</label><p id="det-usr-zelle-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Cuenta/Email</label><p id="det-usr-zelle-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Número</label><p id="det-usr-zelle-tel" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nombre</label><p id="det-usr-zelle-nombre" class="text-xs font-semibold text-gray-900 dark:text-white">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Cuenta/Email</label><p id="det-usr-zelle-cuenta" class="text-xs font-semibold text-gray-900 dark:text-white">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Número</label><p id="det-usr-zelle-tel" class="text-xs font-semibold text-gray-900 dark:text-white">-</p></div>
                                       </div>
                                   </div>
 
                                   <!-- Información Bancaria View -->
-                                  <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                                      <label class="block text-[9px] text-emerald-600 font-black mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                                  <div class="p-4 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/15 rounded-xl">
+                                      <label class="block text-[9px] text-emerald-400 font-bold mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
                                           <i class="fa-solid fa-building-columns"></i> Información Bancaria
                                       </label>
                                       <div class="grid grid-cols-3 gap-4">
-                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Banco</label><p id="det-usr-banco-nombre" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Cuenta</label><p id="det-usr-banco-cuenta" class="text-[11px] font-bold text-[#333]">-</p></div>
-                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">NÂº Ruta</label><p id="det-usr-banco-ruta" class="text-[11px] font-bold text-[#333]">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Banco</label><p id="det-usr-banco-nombre" class="text-xs font-semibold text-gray-900 dark:text-white">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nº Cuenta</label><p id="det-usr-banco-cuenta" class="text-xs font-semibold text-gray-900 dark:text-white">-</p></div>
+                                          <div><label class="block text-[8px] text-gray-400 font-bold uppercase mb-1">Nº Ruta</label><p id="det-usr-banco-ruta" class="text-xs font-semibold text-gray-900 dark:text-white">-</p></div>
                                       </div>
                                   </div>
 
-                                  <div class="pt-4 border-t border-gray-50 mt-4">
-                                    <label class="block text-[10px] text-gray-400 font-medium mb-3 uppercase tracking-widest flex items-center gap-2">
-                                        <i class="fa-solid fa-folder-open text-tealAccent"></i> DOCUMENTACIÓN (PDF O IMAGEN)
+                                  <div class="pt-4 border-t border-gray-100 dark:border-white/5 mt-4">
+                                    <label class="block text-[10px] text-gray-400 font-semibold mb-3 uppercase tracking-wider flex items-center gap-2">
+                                        <i class="fa-solid fa-folder-open text-tealAccent"></i> Documentación (PDF o Imagen)
                                     </label>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="det-usr-docs-interactive">
                                         <!-- Se renderiza desde admin-app.js -->
@@ -1899,33 +1898,35 @@
                     
                     <!-- Back Arrow Header -->
                     <div class="flex items-center gap-3 mb-4 cursor-pointer w-max group" id="btn-back-edit-worker" title="Volver sin guardar">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 text-gray-400 group-hover:text-tealAccent group-hover:border-tealAccent transition-all">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-white/5 shadow-sm border border-gray-200/80 dark:border-white/10 text-gray-400 group-hover:text-tealAccent group-hover:border-tealAccent transition-all">
                             <i class="fa-solid fa-arrow-left"></i>
                         </div>
                         <span class="text-xs font-bold text-gray-400 group-hover:text-tealAccent transition-colors uppercase tracking-widest">Regresar</span>
                     </div>
 
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6 w-full">
-                        <!-- ... edit fields ... -->
-                        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre(s)</label><input id="det-edit-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Carlos"></div><div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Apellido(s)</label><input id="det-edit-apellido" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Rodríguez"></div></div>
-                        <div class="mb-4"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Email</label><input id="det-edit-email" type="email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors"></div>
+                    <div class="bg-gray-50/50 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/5 rounded-2xl p-6 mb-6 w-full">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Nombre(s)</label><input id="det-edit-nombre" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent focus:outline-none transition-colors" placeholder="Carlos"></div>
+                            <div><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Apellido(s)</label><input id="det-edit-apellido" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent focus:outline-none transition-colors" placeholder="Rodríguez"></div>
+                        </div>
+                        <div class="mb-4"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Email</label><input id="det-edit-email" type="email" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent focus:outline-none transition-colors"></div>
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Teléfono</label>
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Teléfono</label>
                                 <div class="flex">
-                                    <select id="det-edit-cc" class="w-20 border border-gray-200 rounded-l-lg px-1 py-2 text-xs text-[#333] bg-gray-50 outline-none">
+                                    <select id="det-edit-cc" class="w-20 border border-gray-200/80 dark:border-white/10 rounded-l-xl px-1 py-2 text-xs text-gray-900 dark:text-white bg-white dark:bg-[#0c1322] outline-none">
                                         <option value="+1">+1</option>
                                         <option value="+58">+58</option>
                                         <option value="+51">+51</option>
                                         <option value="+57">+57</option>
                                     </select>
-                                    <input id="det-edit-tel" type="tel" class="flex-1 border border-l-0 border-gray-200 rounded-r-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none" placeholder="555-1234">
+                                    <input id="det-edit-tel" type="tel" class="flex-1 bg-white dark:bg-[#0c1322] border border-l-0 border-gray-200/80 dark:border-white/10 rounded-r-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none" placeholder="555-1234">
                                 </div>
                             </div>
-                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Departamento</label><input id="det-edit-dept" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]"></div>
+                            <div><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Departamento</label><input id="det-edit-dept" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none"></div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Sede (Oficina)</label>
-                                <select id="det-edit-sede" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white">
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Sede (Oficina)</label>
+                                <select id="det-edit-sede" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white outline-none">
                                     <option value="orlando">Orlando</option>
                                     <option value="miami">Miami</option>
                                     <option value="dallas">Dallas</option>
@@ -1939,120 +1940,119 @@
                             </div>
                         </div>
                         <div class="mb-4">
-                            <div><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Roles / Cargos</label>
-                                <div id="det-edit-rol" class="w-full border border-gray-200 rounded-lg p-3 bg-white flex flex-col gap-2 max-h-40 overflow-y-auto">
+                            <div><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Roles / Cargos</label>
+                                <div id="det-edit-rol" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl p-3 flex flex-col gap-2 max-h-40 overflow-y-auto hide-scrollbar">
                                     <!-- Dinámico -->
                                 </div>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rango (Water)</label><select id="det-edit-rank" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="no_aplica">No Aplica</option><option value="oficina">Oficina</option><option value="novato">Novato (5 ventas)</option><option value="iniciante">Iniciante (15 ventas)</option><option value="junior">Junior (15 ventas)</option><option value="vendedor">Vendedor (12 ventas)</option><option value="analista">Analista (mantener 15 ventas x mes)</option><option value="dealer">Dealer</option></select></div>
-                            <div id="det-edit-rank-solar-container" class="hidden"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rango (Solar)</label><select id="det-edit-rank-solar" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] bg-white"><option value="no_aplica">No Aplica</option><option value="novato">NOVATO 2.50</option><option value="iniciante">INICIANTE 2.45</option><option value="junior">JUNIOR 2.40</option><option value="vendedor">VENDEDOR 2.30</option><option value="asesor">ASESOR 2.20</option></select></div>
+                            <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Rango (Water)</label><select id="det-edit-rank" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white outline-none"><option value="no_aplica">No Aplica</option><option value="oficina">Oficina</option><option value="novato">Novato (5 ventas)</option><option value="iniciante">Iniciante (15 ventas)</option><option value="junior">Junior (15 ventas)</option><option value="vendedor">Vendedor (12 ventas)</option><option value="analista">Analista (mantener 15 ventas x mes)</option><option value="dealer">Dealer</option></select></div>
+                            <div id="det-edit-rank-solar-container" class="hidden"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Rango (Solar)</label><select id="det-edit-rank-solar" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white outline-none"><option value="no_aplica">No Aplica</option><option value="novato">NOVATO 2.50</option><option value="iniciante">INICIANTE 2.45</option><option value="junior">JUNIOR 2.40</option><option value="vendedor">VENDEDOR 2.30</option><option value="asesor">ASESOR 2.20</option></select></div>
                         </div>
 
-                        <div class="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="det-edit-ver-catalogo" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300"><span class="text-sm font-bold text-gray-700">Permitir Ver Catálogo de Productos (Manual)</span></label>
+                        <div class="mb-4 bg-white/70 dark:bg-white/[0.02] border border-gray-200/70 dark:border-white/5 rounded-xl p-3.5">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="det-edit-ver-catalogo" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300 dark:border-white/20"><span class="text-xs font-semibold text-gray-800 dark:text-gray-200">Permitir Ver Catálogo de Productos (Manual)</span></label>
                             <p class="text-[10px] text-gray-400 mt-1 ml-6">Otorga acceso manual a la pantalla del Catálogo en Renew OS.</p>
                         </div>
                         
-                        <div class="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="det-edit-ver-partners" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300"><span class="text-sm font-bold text-gray-700">Permitir Ver Partners (Manual)</span></label>
+                        <div class="mb-4 bg-white/70 dark:bg-white/[0.02] border border-gray-200/70 dark:border-white/5 rounded-xl p-3.5">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="det-edit-ver-partners" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300 dark:border-white/20"><span class="text-xs font-semibold text-gray-800 dark:text-gray-200">Permitir Ver Partners (Manual)</span></label>
                             <p class="text-[10px] text-gray-400 mt-1 ml-6">Otorga acceso manual a la pantalla de Partners en Renew OS.</p>
                         </div>
                         
-                        <div id="det-edit-equipo-container" class="hidden mb-4 p-4 rounded-lg border border-blue-100 bg-blue-50/50">
-                            <label class="block text-[10px] text-blue-600 font-bold uppercase tracking-widest mb-2">Equipo (Representantes Asignados)</label>
-                            <div id="equipo-checkboxes" class="flex flex-col gap-2 max-h-40 overflow-y-auto bg-white p-2 border border-gray-200 rounded">
+                        <div id="det-edit-equipo-container" class="hidden mb-4 p-4 rounded-xl border border-tealAccent/20 bg-tealAccent/5">
+                            <label class="block text-[10px] text-tealAccent font-bold uppercase tracking-wider mb-2">Equipo (Representantes Asignados)</label>
+                            <div id="equipo-checkboxes" class="flex flex-col gap-2 max-h-40 overflow-y-auto hide-scrollbar bg-white dark:bg-[#0c1322] p-3 border border-gray-200/80 dark:border-white/10 rounded-xl">
                                 <!-- Checkboxes de vendedores se renderizan dinámicamente -->
                             </div>
                         </div>
 
                         <!-- Pipelines Permitidos (Dinámico) -->
-                        <div id="det-edit-pipelines-container" class="hidden mb-4 p-4 rounded-lg border border-teal-100 bg-teal-50/50">
-                            <label class="block text-[10px] text-teal-600 font-bold uppercase tracking-widest mb-2">Pipelines Permitidos</label>
+                        <div id="det-edit-pipelines-container" class="hidden mb-4 p-4 rounded-xl border border-tealAccent/20 bg-tealAccent/5">
+                            <label class="block text-[10px] text-tealAccent font-bold uppercase tracking-wider mb-2">Pipelines Permitidos</label>
                             <div id="det-edit-pipeline-perms" class="flex flex-col gap-2">
                                 <p class="text-[10px] text-gray-400 italic">Cargando pipelines...</p>
                             </div>
                         </div>
-                        <div class="mb-6"><label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Contraseña</label><input id="det-edit-pass" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333]" placeholder="renew123"></div>
+                        <div class="mb-4"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Contraseña</label><input id="det-edit-pass" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none" placeholder="renew123"></div>
                         <div class="mb-4">
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Zadarma SIP ID</label>
-                            <input id="det-edit-sip-id" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="Ej. 12345-101">
+                            <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Zadarma SIP ID</label>
+                            <input id="det-edit-sip-id" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent focus:outline-none transition-colors" placeholder="Ej. 12345-101">
                         </div>
                         <div class="mb-4">
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Dirección Personal</label>
-                            <input id="det-edit-direccion" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors" placeholder="123 Street, City, State">
+                            <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Dirección Personal</label>
+                            <input id="det-edit-direccion" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent focus:outline-none transition-colors" placeholder="123 Street, City, State">
                         </div>
 
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre Contacto Emergencia</label>
-                                <input id="det-edit-contacto-emergencia-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none" placeholder="Nombre completo">
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Nombre Contacto Emergencia</label>
+                                <input id="det-edit-contacto-emergencia-nombre" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none" placeholder="Nombre completo">
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Tel. Emergencia</label>
-                                <input id="det-edit-tel-emergencia" type="tel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none" placeholder="+1 (555) 000-0000">
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Tel. Emergencia</label>
+                                <input id="det-edit-tel-emergencia" type="tel" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none" placeholder="+1 (555) 000-0000">
                             </div>
                         </div>
-                            <div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Fecha Nacimiento (Cumpleaños)</label>
-                                <input id="det-edit-dob" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent focus:outline-none transition-colors">
+                            <div class="mb-4">
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Fecha Nacimiento (Cumpleaños)</label>
+                                <input id="det-edit-dob" type="date" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent focus:outline-none transition-colors">
                             </div>
 
-                        <!-- NEW: Zelle Info in Edit -->
-                        <div class="p-5 bg-purple-500/5 border border-purple-500/10 rounded-2xl mb-6">
-                            <label class="block text-[9px] text-purple-500 font-black mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <!-- Zelle Info in Edit -->
+                        <div class="p-4 bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/15 rounded-xl mb-4">
+                            <label class="block text-[9px] text-purple-400 font-bold mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <i class="fa-solid fa-money-bill-transfer"></i> Configuración de Pago (Zelle)
                             </label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre en Zelle</label>
-                                    <input id="det-edit-zelle-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="Nombre completo">
+                                    <label class="block text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Nombre en Zelle</label>
+                                    <input id="det-edit-zelle-nombre" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white" placeholder="Nombre completo">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cuenta/Email Zelle</label>
-                                    <input id="det-edit-zelle-cuenta" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="zelle@email.com">
+                                    <label class="block text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Cuenta/Email Zelle</label>
+                                    <input id="det-edit-zelle-cuenta" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white" placeholder="zelle@email.com">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número Zelle</label>
-                                    <input id="det-edit-zelle-tel" type="tel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="555-000-0000">
+                                    <label class="block text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Número Zelle</label>
+                                    <input id="det-edit-zelle-tel" type="tel" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white" placeholder="555-000-0000">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Información Bancaria en Edición -->
-                        <div class="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl mb-6">
-                            <label class="block text-[9px] text-emerald-600 font-black mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <div class="p-4 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/15 rounded-xl mb-4">
+                            <label class="block text-[9px] text-emerald-400 font-bold mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <i class="fa-solid fa-building-columns"></i> Información Bancaria
                             </label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre del Banco</label>
-                                    <input id="det-edit-banco-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="Ej: Bank of America">
+                                    <label class="block text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Nombre del Banco</label>
+                                    <input id="det-edit-banco-nombre" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white" placeholder="Ej: Bank of America">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número de Cuenta</label>
-                                    <input id="det-edit-banco-cuenta" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="XXXXXXXXXX">
+                                    <label class="block text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Número de Cuenta</label>
+                                    <input id="det-edit-banco-cuenta" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white" placeholder="XXXXXXXXXX">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Número de Ruta</label>
-                                    <input id="det-edit-banco-ruta" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-[#333]" placeholder="XXXXXXXXX">
+                                    <label class="block text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Número de Ruta</label>
+                                    <input id="det-edit-banco-ruta" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white" placeholder="XXXXXXXXX">
                                 </div>
                             </div>
                         </div>
 
-
                         <!-- ZONA DE DOCUMENTOS en Edición -->
-                        <div class="border-t border-gray-100 pt-5 mt-5">
+                        <div class="border-t border-gray-100 dark:border-white/5 pt-4 mt-4">
                             <div class="flex items-center gap-2 mb-3">
                                 <div class="w-6 h-6 rounded-lg bg-tealAccent/10 flex items-center justify-center">
                                     <i class="fa-solid fa-folder-open text-tealAccent text-[10px]"></i>
                                 </div>
-                                <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Documentación (PDF o Imagen)</label>
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Documentación (PDF o Imagen)</label>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <!-- W-9 -->
-                                <div id="det-edit-drop-w9" class="w-full border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/60 hover:bg-amber-400/5 transition-all min-h-[72px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-w9-file').click()">
+                                <div id="det-edit-drop-w9" class="w-full border border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-amber-400/60 hover:bg-amber-400/5 transition-all min-h-[72px] p-4 bg-white dark:bg-[#0c1322]" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-w9-file').click()">
                                     <input type="file" id="det-edit-inp-w9-file" class="hidden" accept=".pdf,image/*">
                                     <div id="det-edit-w9-placeholder" class="text-center">
                                         <i class="fa-solid fa-file-invoice text-xl text-amber-400 mb-1"></i>
@@ -2060,12 +2060,12 @@
                                     </div>
                                     <div id="det-edit-w9-success" class="hidden flex-col items-center gap-1 text-center">
                                         <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
-                                        <p id="det-edit-w9-file-name" class="text-[9px] text-emerald-600 font-bold truncate max-w-[150px]"></p>
-                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditW9();">Eliminar</button>
+                                        <p id="det-edit-w9-file-name" class="text-[9px] text-emerald-500 font-bold truncate max-w-[150px]"></p>
+                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-500 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditW9();">Eliminar</button>
                                     </div>
                                 </div>
                                 <!-- CARNET -->
-                                <div id="det-edit-drop-carnet" class="w-full border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-sky-400/60 hover:bg-sky-400/5 transition-all min-h-[72px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-carnet-file').click()">
+                                <div id="det-edit-drop-carnet" class="w-full border border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-sky-400/60 hover:bg-sky-400/5 transition-all min-h-[72px] p-4 bg-white dark:bg-[#0c1322]" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-carnet-file').click()">
                                     <input type="file" id="det-edit-inp-carnet-file" class="hidden" accept=".pdf,image/*">
                                     <div id="det-edit-carnet-placeholder" class="text-center">
                                         <i class="fa-solid fa-id-badge text-xl text-sky-400 mb-1"></i>
@@ -2073,12 +2073,12 @@
                                     </div>
                                     <div id="det-edit-carnet-success" class="hidden flex-col items-center gap-1 text-center">
                                         <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
-                                        <p id="det-edit-carnet-file-name" class="text-[9px] text-emerald-600 font-bold truncate max-w-[150px]"></p>
-                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditCarnet();">Eliminar</button>
+                                        <p id="det-edit-carnet-file-name" class="text-[9px] text-emerald-500 font-bold truncate max-w-[150px]"></p>
+                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-500 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditCarnet();">Eliminar</button>
                                     </div>
                                 </div>
                                 <!-- CONTRATO -->
-                                <div id="det-edit-drop-contrato" class="w-full border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-400/60 hover:bg-purple-400/5 transition-all min-h-[72px] p-4" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-contrato-file').click()">
+                                <div id="det-edit-drop-contrato" class="w-full border border-dashed border-gray-200 dark:border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-400/60 hover:bg-purple-400/5 transition-all min-h-[72px] p-4 bg-white dark:bg-[#0c1322]" onclick="if(event.target.tagName !== 'INPUT') document.getElementById('det-edit-inp-contrato-file').click()">
                                     <input type="file" id="det-edit-inp-contrato-file" class="hidden" accept=".pdf,image/*">
                                     <div id="det-edit-contrato-placeholder" class="text-center">
                                         <i class="fa-solid fa-file-signature text-xl text-purple-400 mb-1"></i>
@@ -2086,130 +2086,130 @@
                                     </div>
                                     <div id="det-edit-contrato-success" class="hidden flex-col items-center gap-1 text-center">
                                         <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
-                                        <p id="det-edit-contrato-file-name" class="text-[9px] text-emerald-600 font-bold truncate max-w-[150px]"></p>
-                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditContrato();">Eliminar</button>
+                                        <p id="det-edit-contrato-file-name" class="text-[9px] text-emerald-500 font-bold truncate max-w-[150px]"></p>
+                                        <button type="button" class="text-[9px] text-red-400 hover:text-red-500 font-bold uppercase mt-1" onclick="event.stopPropagation(); window.clearDetEditContrato();">Eliminar</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                <div id="det-save-bar" class="hidden mt-auto pt-4"><div class="bg-white rounded-xl border border-tealAccent/20 shadow-sm p-4 flex items-center justify-between gap-4"><div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></div><span class="text-[11px] font-black text-gray-500 uppercase tracking-widest">Cambios sin guardar</span></div><div class="flex gap-3"><button onclick="exitDetailEditMode()" class="px-4 py-2 text-xs font-bold text-gray-500 border border-gray-200 rounded-lg">Cancelar</button><button id="det-btn-save" class="px-5 py-2 bg-tealAccent text-black text-xs font-black rounded-lg">Guardar Cambios</button></div></div></div>
+                <div id="det-save-bar" class="hidden mt-auto pt-4"><div class="bg-white dark:bg-[#0c1322] rounded-xl border border-tealAccent/30 shadow-lg p-4 flex items-center justify-between gap-4"><div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></div><span class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Cambios sin guardar</span></div><div class="flex gap-3"><button onclick="exitDetailEditMode()" class="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all">Cancelar</button><button id="det-btn-save" class="px-5 py-2 bg-tealAccent text-black text-xs font-bold rounded-lg shadow-sm hover:shadow-tealAccent/20 hover:scale-[1.02] transition-all">Guardar Cambios</button></div></div></div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: DETALLE DE CLIENTE (Bitrix24 Style) -->
-    <div id="modal-client-detail" class="fixed inset-0 bg-black/70 backdrop-blur-sm nuclear-hidden items-center justify-center z-[100]">
-        <div class="bg-surfaceLight w-[950px] max-h-[90vh] rounded-xl shadow-2xl flex relative animate-fadeIn overflow-hidden">
-            <button class="btn-cancel absolute top-3 right-3 z-10 bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center border border-gray-200">
+    <!-- MODAL: DETALLE DE CLIENTE -->
+    <div id="modal-client-detail" class="fixed inset-0 bg-black/70 backdrop-blur-md nuclear-hidden items-center justify-center z-[100]">
+        <div class="bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 w-[960px] max-h-[90vh] rounded-2xl shadow-2xl flex relative animate-fadeIn overflow-hidden text-gray-900 dark:text-white">
+            <button class="btn-cancel absolute top-3.5 right-3.5 z-20 bg-gray-100 dark:bg-white/10 hover:bg-red-50 dark:hover:bg-red-500/20 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center border border-gray-200/60 dark:border-white/10 transition-all">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
 
             <!-- Izquierda: Perfil Card -->
-            <div class="w-[300px] min-w-[300px] bg-white border-r border-[#dde3e6] p-6 flex flex-col items-center overflow-y-auto">
+            <div class="w-[290px] min-w-[290px] bg-gray-50/70 dark:bg-[#080d18] border-r border-gray-200/80 dark:border-white/5 p-6 flex flex-col items-center overflow-y-auto hide-scrollbar">
                 <div class="w-full flex justify-between items-center mb-6">
-                    <span class="bg-tealAccent text-black px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest">CLIENTE MAESTRO</span>
+                    <span class="bg-tealAccent/15 text-tealAccent border border-tealAccent/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">CLIENTE MAESTRO</span>
                     <div class="text-right">
-                        <p id="det-cli-status-label" class="text-[10px] text-tealAccent font-bold uppercase flex items-center gap-1 justify-end">
-                            <span class="w-2 h-2 rounded-full bg-tealAccent"></span> PROSPECTO
+                        <p id="det-cli-status-label" class="text-[10px] text-tealAccent font-bold uppercase flex items-center gap-1.5 justify-end">
+                            <span class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></span> PROSPECTO
                         </p>
                     </div>
                 </div>
 
                 <div class="relative group mb-8 cursor-pointer" onclick="document.getElementById('det-cli-foto-file').click()">
-                    <div id="det-cli-avatar" class="w-48 h-48 rounded-full border-[6px] border-white shadow-xl bg-cover bg-center bg-gray-100 flex items-center justify-center overflow-hidden relative">
-                        <i class="fa-solid fa-user text-6xl text-gray-200"></i>
+                    <div id="det-cli-avatar" class="w-44 h-44 rounded-full border-4 border-white dark:border-white/10 shadow-xl bg-cover bg-center bg-gray-100 dark:bg-white/5 flex items-center justify-center overflow-hidden relative">
+                        <i class="fa-solid fa-user text-5xl text-gray-300 dark:text-gray-600"></i>
                     </div>
-                    <div class="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i class="fa-solid fa-camera text-white text-3xl mb-1"></i>
+                    <div class="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fa-solid fa-camera text-white text-2xl mb-1"></i>
                         <span class="text-white text-[10px] font-bold uppercase tracking-widest">Cambiar Foto</span>
                     </div>
                 </div>
                 <input type="file" id="det-cli-foto-file" class="hidden" accept="image/*">
 
-                <div class="flex flex-col gap-2 w-full mb-10">
-                    <button id="btn-cli-whatsapp" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
-                        <i class="fa-brands fa-whatsapp text-green-500"></i> WHATSAPP
+                <div class="flex flex-col gap-2 w-full mb-6">
+                    <button id="btn-cli-whatsapp" class="w-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-brands fa-whatsapp text-emerald-500"></i> WhatsApp
                     </button>
-                    <button id="btn-cli-call" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-phone text-sky-500"></i> LLAMAR
+                    <button id="btn-cli-call" class="w-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-solid fa-phone text-sky-400"></i> Llamar
                     </button>
-                    <button id="btn-cli-email" class="w-full border border-[#c6d8e1] text-[#535c69] py-2 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
-                        <i class="fa-brands fa-google text-red-500"></i> EMAIL
+                    <button id="btn-cli-email" class="w-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-brands fa-google text-red-500"></i> Enviar Correo
                     </button>
                 </div>
             </div>
 
             <!-- Derecha: Datos -->
-            <div class="flex-1 flex flex-col min-h-0 bg-gray-50/30">
+            <div class="flex-1 flex flex-col min-h-0 bg-gray-50/40 dark:bg-[#080d18]">
                 <!-- Navigation Tabs -->
-                <div class="flex items-center px-6 bg-white border-b border-gray-100 flex-shrink-0">
-                    <button class="cli-tab-btn active border-b-2 border-tealAccent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-tealAccent transition-all" data-tab="info">General Info</button>
-                    <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="evidences">Proyectos</button>
-                    <button class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all" data-tab="calls">Llamadas</button>
-                    <button id="cli-tab-btn-chat" class="cli-tab-btn border-b-2 border-transparent py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-tealAccent transition-all hidden" data-tab="chat">Chat</button>
+                <div class="flex items-center px-6 bg-white dark:bg-[#0c1322] border-b border-gray-100 dark:border-white/5 flex-shrink-0 gap-2">
+                    <button class="cli-tab-btn active border-b-2 border-tealAccent py-3.5 px-5 text-[11px] font-bold uppercase tracking-wider text-tealAccent transition-all" data-tab="info">General Info</button>
+                    <button class="cli-tab-btn border-b-2 border-transparent py-3.5 px-5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-tealAccent transition-all" data-tab="evidences">Proyectos</button>
+                    <button class="cli-tab-btn border-b-2 border-transparent py-3.5 px-5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-tealAccent transition-all" data-tab="calls">Llamadas</button>
+                    <button id="cli-tab-btn-chat" class="cli-tab-btn border-b-2 border-transparent py-3.5 px-5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-tealAccent transition-all hidden" data-tab="chat">Chat</button>
                 </div>
 
-                <div class="p-6 overflow-y-auto flex-1 min-h-0">
+                <div class="p-6 overflow-y-auto flex-1 min-h-0 hide-scrollbar">
                     <!-- Tab Content: General Info -->
                     <div id="cli-tab-info" class="cli-tab-content active transition-all duration-300">
                         <div id="det-cli-view-panel">
                     <!-- Contact Info Section -->
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <div class="flex justify-between items-center mb-8 border-b border-gray-50 pb-4">
-                            <h3 class="text-lg font-medium text-[#333]">Información de contacto</h3>
-                            <button id="btn-edit-cli-from-detail" title="Editar información" class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 hover:text-tealAccent hover:bg-tealAccent/10 border border-gray-100">
+                    <div class="bg-white dark:bg-[#0c1322] rounded-2xl border border-gray-200/70 dark:border-white/5 shadow-sm p-6 mb-6">
+                        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Información de Contacto</h3>
+                            <button id="btn-edit-cli-from-detail" title="Editar información" class="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-tealAccent hover:bg-tealAccent/10 border border-gray-200/80 dark:border-white/10 transition-all shadow-sm">
                                  <i class="fa-solid fa-gear text-sm"></i>
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-x-12 gap-y-6">
+                        <div class="grid grid-cols-2 gap-x-10 gap-y-5">
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Nombre Completo</label>
-                                <p id="det-cli-nombre" class="text-sm font-bold text-[#333]">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Nombre Completo</label>
+                                <p id="det-cli-nombre" class="text-sm font-semibold text-gray-900 dark:text-white">-</p>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Email</label>
-                                <p id="det-cli-email" class="text-sm font-bold text-sky-500">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Email</label>
+                                <p id="det-cli-email" class="text-sm font-semibold text-tealAccent hover:underline">-</p>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Teléfono Principal</label>
-                                <p id="det-cli-tel" class="text-sm font-bold text-[#333]">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Teléfono Principal</label>
+                                <p id="det-cli-tel" class="text-sm font-semibold text-gray-900 dark:text-white">-</p>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Departamentos Activos</label>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Departamentos Activos</label>
                                 <div id="det-cli-dept" class="flex flex-wrap gap-1.5 mt-1">
-                                    <span class="text-sm text-gray-300 italic">-</span>
+                                    <span class="text-sm text-gray-400 italic">-</span>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Fecha de Inicio</label>
-                                <p id="det-cli-fecha-inicio" class="text-sm font-bold text-amber-500">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Fecha de Inicio</label>
+                                <p id="det-cli-fecha-inicio" class="text-sm font-semibold text-amber-400">-</p>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Estado Global (Ciclo de Vida)</label>
-                                <p id="det-cli-macro-estado" class="text-sm font-black">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Estado Global (Ciclo de Vida)</label>
+                                <p id="det-cli-macro-estado" class="text-sm font-bold text-gray-900 dark:text-white">-</p>
                             </div>
                             <div class="col-span-2">
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1 uppercase tracking-widest">Dirección de Servicio</label>
-                                <p id="det-cli-direccion" class="text-sm font-bold text-[#333]">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Dirección de Servicio</label>
+                                <p id="det-cli-direccion" class="text-sm font-semibold text-gray-900 dark:text-white">-</p>
                             </div>
                             <!-- Vendedor Asignado -->
-                            <div class="col-span-2 pt-4 border-t border-gray-50">
-                                <label class="block text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-widest text-tealAccent">Vendedor Responsable</label>
-                                <div id="det-cli-vendedor-box" class="flex items-center gap-3 bg-tealAccent/5 p-3 rounded-xl border border-tealAccent/10">
-                                    <div class="w-10 h-10 rounded-full bg-tealAccent/20 flex items-center justify-center text-tealAccent font-black text-xs" id="det-cli-vendedor-avatar">?</div>
+                            <div class="col-span-2 pt-4 border-t border-gray-100 dark:border-white/5">
+                                <label class="block text-[10px] text-tealAccent font-bold mb-2 uppercase tracking-wider">Vendedor Responsable</label>
+                                <div id="det-cli-vendedor-box" class="flex items-center gap-3 bg-tealAccent/5 p-3.5 rounded-xl border border-tealAccent/20">
+                                    <div class="w-10 h-10 rounded-full bg-tealAccent/20 flex items-center justify-center text-tealAccent font-bold text-xs" id="det-cli-vendedor-avatar">?</div>
                                     <div>
-                                        <p id="det-cli-vendedor-nombre" class="text-sm font-bold text-[#333]">Sin asignar</p>
+                                        <p id="det-cli-vendedor-nombre" class="text-sm font-bold text-gray-900 dark:text-white">Sin asignar</p>
                                         <p class="text-[9px] text-gray-400 uppercase font-medium">Asignación Directa</p>
                                     </div>
-                                    <button id="btn-reassign-vendedor" class="ml-auto px-4 py-2 bg-white border border-tealAccent/20 text-tealAccent text-[10px] font-black uppercase rounded-lg hover:bg-tealAccent hover:text-white transition-all shadow-sm">
+                                    <button id="btn-reassign-vendedor" class="ml-auto px-4 py-2 bg-white dark:bg-white/5 border border-tealAccent/30 text-tealAccent text-[10px] font-bold uppercase rounded-xl hover:bg-tealAccent hover:text-black transition-all shadow-sm">
                                         Cambiar
                                     </button>
                                 </div>
                                 <!-- Dropdown oculto por defecto -->
                                 <div id="vendedor-selector-wrap" class="hidden mt-3 animate-fadeIn">
-                                    <select id="sel-vendedor-asignar" class="w-full bg-white border border-tealAccent/30 rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:ring-2 focus:ring-tealAccent/20">
+                                    <select id="sel-vendedor-asignar" class="w-full bg-white dark:bg-[#0c1322] border border-tealAccent/30 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-tealAccent/20">
                                         <option value="">-- Seleccionar Vendedor --</option>
                                     </select>
                                 </div>
@@ -2218,39 +2218,39 @@
                     </div>
 
                     <!-- Personal Details Section -->
-                    <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
-                        <h3 class="text-md font-medium text-[#333] mb-4">Documentación y Detalles</h3>
-                        <div class="grid grid-cols-4 gap-6">
+                    <div class="bg-white dark:bg-[#0c1322] rounded-2xl border border-gray-200/70 dark:border-white/5 shadow-sm p-6 mb-6">
+                        <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Documentación y Detalles</h3>
+                        <div class="grid grid-cols-4 gap-4">
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1">State ID / ZIP</label>
-                                <p id="det-cli-state-id" class="text-sm font-black text-tealAccent">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">State ID / ZIP</label>
+                                <p id="det-cli-state-id" class="text-sm font-bold text-tealAccent">-</p>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1">Fecha Nacimiento</label>
-                                <p id="det-cli-dob" class="text-sm font-bold text-[#333]">-</p>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Fecha Nacimiento</label>
+                                <p id="det-cli-dob" class="text-sm font-semibold text-gray-900 dark:text-white">-</p>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1">Foto ID / Licencia</label>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Foto ID / Licencia</label>
                                 <div id="det-cli-id-photo-wrp" class="mt-1">
-                                    <button id="btn-view-cli-id-photo" class="hidden items-center gap-2 px-3 py-1.5 bg-tealAccent/10 text-tealAccent text-[10px] font-black uppercase rounded-lg border border-tealAccent/20 hover:bg-tealAccent/20 transition-all">
+                                    <button id="btn-view-cli-id-photo" class="hidden items-center gap-2 px-3 py-1.5 bg-tealAccent/10 text-tealAccent text-[10px] font-bold uppercase rounded-lg border border-tealAccent/20 hover:bg-tealAccent/20 transition-all">
                                         <i class="fa-solid fa-image"></i> Ver Documento
                                     </button>
                                     <span id="det-cli-id-no-photo" class="text-[10px] text-gray-400 italic">No cargada</span>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-400 font-medium mb-1">ID Co-Aplicante</label>
+                                <label class="block text-[10px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">ID Co-Aplicante</label>
                                 <div id="det-cli-co-id-photo-wrp" class="mt-1">
-                                    <button id="btn-view-cli-co-id-photo" class="hidden items-center gap-2 px-3 py-1.5 bg-tealAccent/10 text-tealAccent text-[10px] font-black uppercase rounded-lg border border-tealAccent/20 hover:bg-tealAccent/20 transition-all">
+                                    <button id="btn-view-cli-co-id-photo" class="hidden items-center gap-2 px-3 py-1.5 bg-tealAccent/10 text-tealAccent text-[10px] font-bold uppercase rounded-lg border border-tealAccent/20 hover:bg-tealAccent/20 transition-all">
                                         <i class="fa-solid fa-image"></i> Ver Documento
                                     </button>
                                     <span id="det-cli-co-id-no-photo" class="text-[10px] text-gray-400 italic">No cargada</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-6 pt-4 border-t border-gray-50">
-                            <label class="block text-[10px] text-gray-400 font-medium mb-1">Notas Internas</label>
-                            <p id="det-cli-notas" class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 min-h-[60px]">-</p>
+                        <div class="mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
+                            <label class="block text-[10px] text-gray-400 font-semibold mb-1.5 uppercase tracking-wider">Notas Internas</label>
+                            <p id="det-cli-notas" class="text-xs text-gray-600 dark:text-gray-300 bg-gray-50/70 dark:bg-white/[0.02] p-3 rounded-xl border border-gray-200/60 dark:border-white/5 min-h-[60px]">-</p>
                         </div>
                     </div>
                 </div>
@@ -2258,62 +2258,60 @@
 
                 <!-- Tab Content: Proyectos -->
                 <div id="cli-tab-evidences" class="cli-tab-content hidden transition-all duration-300">
-                        <!-- â•â• GALERÃA DE EVIDENCIAS MÓVILES â•â• -->
-                        <div class="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 class="text-lg font-medium text-[#333]">Proyectos del Cliente</h3>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Gestión de proyectos y documentos</p>
-                            </div>
-                            <span id="evidence-count-badge" class="bg-gray-100 text-gray-500 text-[10px] font-black px-3 py-1 rounded-full border border-gray-200">0 ARCHIVOS</span>
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Proyectos del Cliente</h3>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Gestión de proyectos y documentos</p>
                         </div>
-
-                        <div id="cli-evidence-gallery" class="flex flex-col gap-4">
-                            <!-- Dynamically populated -->
-                            <div class="col-span-full py-10 text-center opacity-30">
-                                <i class="fa-solid fa-camera text-2xl mb-2"></i>
-                            </div>
-                        </div>
+                        <span id="evidence-count-badge" class="bg-tealAccent/10 text-tealAccent border border-tealAccent/20 text-[10px] font-bold px-3 py-1 rounded-full">0 ARCHIVOS</span>
                     </div>
 
-                    <!-- Tab Content: Llamadas -->
-                    <div id="cli-tab-calls" class="cli-tab-content hidden transition-all duration-300">
-                        <div class="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 class="text-lg font-medium text-[#333]">Historial de Llamadas</h3>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Grabaciones y asignación a proyectos</p>
-                            </div>
-                            <span id="cli-calls-count-badge" class="bg-gray-100 text-gray-500 text-[10px] font-black px-3 py-1 rounded-full border border-gray-200">0 LLAMADAS</span>
-                        </div>
-
-                        <div id="cli-calls-container" class="flex flex-col gap-3">
-                            <div class="col-span-full py-10 text-center opacity-30">
-                                <i class="fa-solid fa-microphone-slash text-2xl mb-2"></i>
-                                <p class="text-[10px] font-black uppercase">Sin historial de llamadas</p>
-                            </div>
+                    <div id="cli-evidence-gallery" class="flex flex-col gap-4">
+                        <!-- Dynamically populated -->
+                        <div class="col-span-full py-10 text-center opacity-30">
+                            <i class="fa-solid fa-camera text-2xl mb-2 text-gray-400"></i>
                         </div>
                     </div>
-                    <!-- Tab Content: Chat -->
-                    <div id="cli-tab-chat" class="cli-tab-content hidden transition-all duration-300">
-                        <div class="flex flex-col h-[550px] bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
-                            <!-- Header -->
-                            <div class="h-[70px] bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-                                <div>
-                                    <h3 class="text-lg font-black text-gray-800 flex items-center gap-2"><i class="fa-solid fa-comments text-tealAccent"></i> Chat Privado</h3>
-                                    <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Comunicación exclusiva y notificaciones</p>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <button id="btn-cli-chat-access" class="hidden px-4 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm">
-                                        <i class="fa-solid fa-shield-halved mr-1"></i> Accesos
-                                    </button>
-                                </div>
+                </div>
+
+                <!-- Tab Content: Llamadas -->
+                <div id="cli-tab-calls" class="cli-tab-content hidden transition-all duration-300">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Historial de Llamadas</h3>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Grabaciones y asignación a proyectos</p>
+                        </div>
+                        <span id="cli-calls-count-badge" class="bg-tealAccent/10 text-tealAccent border border-tealAccent/20 text-[10px] font-bold px-3 py-1 rounded-full">0 LLAMADAS</span>
+                    </div>
+
+                    <div id="cli-calls-container" class="flex flex-col gap-3">
+                        <div class="col-span-full py-10 text-center opacity-30">
+                            <i class="fa-solid fa-microphone-slash text-2xl mb-2 text-gray-400"></i>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Sin historial de llamadas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Chat -->
+                <div id="cli-tab-chat" class="cli-tab-content hidden transition-all duration-300">
+                    <div class="flex flex-col h-[550px] bg-white dark:bg-[#0c1322] rounded-2xl overflow-hidden border border-gray-200/80 dark:border-white/10">
+                        <!-- Header -->
+                        <div class="h-[64px] bg-white dark:bg-[#0c1322] border-b border-gray-100 dark:border-white/5 flex items-center justify-between px-6 flex-shrink-0">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-comments text-tealAccent"></i> Chat Privado</h3>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Comunicación exclusiva y notificaciones</p>
                             </div>
-                        
+                            <div class="flex items-center gap-3">
+                                <button id="btn-cli-chat-access" class="hidden px-4 py-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-600 hover:text-white transition-all shadow-sm">
+                                    <i class="fa-solid fa-shield-halved mr-1"></i> Accesos
+                                </button>
+                            </div>
+                        </div>
+                    
                         <!-- Messages Area -->
-                        <div id="cli-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 hide-scrollbar relative">
-                            <!-- Background pattern -->
-                            <div class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-60"></div>
+                        <div id="cli-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50 dark:bg-[#070b14] hide-scrollbar relative">
+                            <div class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-40"></div>
                             
-                            <!-- Initial state / Loading -->
                             <div class="flex flex-col items-center justify-center h-full text-gray-400 relative z-10">
                                 <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 opacity-40"></i>
                                 <p class="text-xs font-bold uppercase tracking-widest opacity-40">Cargando chat...</p>
@@ -2321,10 +2319,10 @@
                         </div>
 
                         <!-- Mentions Box -->
-                        <div id="cli-chat-mentions-box" class="hidden absolute bottom-24 left-6 sm:w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-[60] p-2"></div>
+                        <div id="cli-chat-mentions-box" class="hidden absolute bottom-24 left-6 sm:w-64 bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-[60] p-2 hide-scrollbar"></div>
 
                         <!-- Input Area -->
-                        <div class="bg-white border-t border-gray-200 p-4 flex-shrink-0 z-20">
+                        <div class="bg-white dark:bg-[#0c1322] border-t border-gray-100 dark:border-white/5 p-4 flex-shrink-0 z-20">
                             <div class="flex flex-col gap-2">
                                 <!-- Preview Image -->
                                 <div id="cli-chat-image-preview" class="hidden relative w-20 h-20 rounded-xl overflow-hidden border-2 border-tealAccent">
@@ -2334,72 +2332,71 @@
                                     </button>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <div class="flex-1 bg-gray-50 border border-gray-200 rounded-full flex items-center px-4 h-12 shadow-inner focus-within:border-tealAccent focus-within:ring-2 focus-within:ring-tealAccent/20 transition-all">
+                                    <div class="flex-1 bg-gray-50 dark:bg-black/30 border border-gray-200/80 dark:border-white/10 rounded-full flex items-center px-4 h-12 shadow-inner focus-within:border-tealAccent focus-within:ring-2 focus-within:ring-tealAccent/20 transition-all">
                                         <input type="file" id="cli-chat-file-input" class="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
                                         <label for="cli-chat-file-input" class="cursor-pointer text-gray-400 hover:text-tealAccent transition-colors">
                                             <i class="fa-solid fa-paperclip"></i>
                                         </label>
-                                        <input type="text" id="cli-chat-input" placeholder="Escribe un mensaje o usa @ para mencionar..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 px-3">
+                                        <input type="text" id="cli-chat-input" placeholder="Escribe un mensaje o usa @ para mencionar..." class="flex-1 bg-transparent outline-none text-sm text-gray-900 dark:text-white px-3">
                                         <div class="relative flex items-center">
-                                            <button id="btn-cli-chat-emoji" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                            <button id="btn-cli-chat-emoji" class="text-gray-400 hover:text-gray-300 transition-colors">
                                                 <i class="fa-regular fa-face-smile"></i>
                                             </button>
-                                            <!-- Emoji Picker -->
-                                            <div id="cli-chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-3 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex gap-2 z-[70]">
-                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg"><i class="fa-solid fa-thumbs-up"></i></button>
-                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg"><i class="fa-solid fa-fire"></i></button>
-                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg"><i class="fa-solid fa-face-smile"></i></button>
-                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 rounded p-1 text-lg">✅</button>
+                                            <div id="cli-chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-3 bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl shadow-lg p-2 flex gap-2 z-[70]">
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 text-lg"><i class="fa-solid fa-thumbs-up"></i></button>
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 text-lg"><i class="fa-solid fa-fire"></i></button>
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 text-lg"><i class="fa-solid fa-face-smile"></i></button>
+                                                <button type="button" class="cli-chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 text-lg">✅</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <button id="cli-chat-send-btn" class="w-12 h-12 rounded-full bg-tealAccent text-black flex items-center justify-center shadow-lg shadow-tealAccent/30 hover:scale-105 active:scale-95 transition-all">
+                                    <button id="cli-chat-send-btn" class="w-12 h-12 rounded-full bg-tealAccent text-black flex items-center justify-center shadow-lg shadow-tealAccent/20 hover:scale-105 active:scale-95 transition-all">
                                         <i class="fa-solid fa-paper-plane"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        </div>
                     </div>
+                </div>
 
                 <!-- Edit Panel -->
                 <div id="det-cli-edit-panel" class="hidden">
                     <input type="hidden" id="det-cli-edit-id">
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                         <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-50">
+                    <div class="bg-white dark:bg-[#0c1322] rounded-2xl border border-gray-200/70 dark:border-white/5 shadow-sm p-6 mb-6">
+                         <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
                              <div class="flex items-center gap-3">
-                                 <button onclick="exitClientEditMode()" class="mr-2 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-500 transition-all" title="Volver">
+                                 <button onclick="exitClientEditMode()" class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-all border border-gray-200/80 dark:border-white/10" title="Volver">
                                      <i class="fa-solid fa-arrow-left"></i>
                                  </button>
                                  <div class="w-8 h-8 rounded-full bg-tealAccent/10 flex items-center justify-center">
                                      <i class="fa-solid fa-pen-to-square text-tealAccent text-xs"></i>
                                  </div>
-                                 <h3 class="text-lg font-medium text-[#333]">Editar Cliente</h3>
+                                 <h3 class="text-base font-bold text-gray-900 dark:text-white">Editar Cliente</h3>
                              </div>
-                             <span class="text-[10px] font-black text-tealAccent uppercase tracking-widest bg-tealAccent/5 border border-tealAccent/20 px-3 py-1 rounded-full">Modo Edición</span>
+                             <span class="text-[10px] font-bold text-tealAccent uppercase tracking-wider bg-tealAccent/10 border border-tealAccent/20 px-3 py-1 rounded-full">Modo Edición</span>
                          </div>
 
                          <div class="grid grid-cols-2 gap-4 mb-4">
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Nombre Completo</label>
-                                 <input id="det-cli-edit-nombre" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Nombre Completo</label>
+                                 <input id="det-cli-edit-nombre" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                              </div>
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Email</label>
-                                 <input id="det-cli-edit-email" type="email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Email</label>
+                                 <input id="det-cli-edit-email" type="email" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                              </div>
                          </div>
 
                          <div class="grid grid-cols-2 gap-4 mb-4">
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Teléfono</label>
-                                 <input id="det-cli-edit-tel" type="tel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Teléfono</label>
+                                 <input id="det-cli-edit-tel" type="tel" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                              </div>
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Estado Global (Ciclo de Vida)</label>
-                                 <select id="det-cli-edit-macro-estado" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none bg-white">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Estado Global (Ciclo de Vida)</label>
+                                 <select id="det-cli-edit-macro-estado" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                                       <option value="Prospecto">📥 Prospecto</option>
-                                      <option value="En Proceso"><i class="fa-solid fa-shield"></i>️ En Proceso</option>
+                                      <option value="En Proceso">⚡ En Proceso</option>
                                       <option value="Cliente">🏆 Cliente</option>
                                       <option value="Declinado">🚫 Declinado / No Molestar</option>
                                   </select>
@@ -2407,59 +2404,58 @@
                          </div>
 
                          <div class="mb-4">
-                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Departamentos Activos</label>
-                             <div class="flex flex-wrap gap-3 p-3 border border-gray-200 rounded-lg" id="det-cli-edit-dept-wrap">
-                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
-                                     <input type="checkbox" name="det-chk-dept" value="Water" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> <i class="fa-solid fa-water"></i> Water
+                             <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Departamentos Activos</label>
+                             <div class="flex flex-wrap gap-3 p-3 border border-gray-200/80 dark:border-white/10 rounded-xl bg-gray-50/50 dark:bg-white/[0.02]" id="det-cli-edit-dept-wrap">
+                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-900 dark:text-white">
+                                     <input type="checkbox" name="det-chk-dept" value="Water" class="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-tealAccent focus:ring-tealAccent"> <i class="fa-solid fa-water text-sky-400"></i> Water
                                  </label>
-                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
-                                     <input type="checkbox" name="det-chk-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> ☀️ Solar
+                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-900 dark:text-white">
+                                     <input type="checkbox" name="det-chk-dept" value="Solar" class="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-tealAccent focus:ring-tealAccent"> ☀️ Solar
                                  </label>
-                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#333]">
-                                     <input type="checkbox" name="det-chk-dept" value="Home" class="w-4 h-4 rounded border-gray-300 text-tealAccent focus:ring-tealAccent"> 🏠 Home
+                                 <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-900 dark:text-white">
+                                     <input type="checkbox" name="det-chk-dept" value="Home" class="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-tealAccent focus:ring-tealAccent"> 🏠 Home
                                  </label>
                              </div>
                          </div>
 
-
                          <div class="mb-4">
-                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Dirección de Servicio</label>
-                             <input id="det-cli-edit-direccion" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                             <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Dirección de Servicio</label>
+                             <input id="det-cli-edit-direccion" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                          </div>
 
                          <div class="grid grid-cols-2 gap-4 mb-4">
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Vendedor Especialista</label>
-                                 <select id="det-cli-edit-vendedor" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Vendedor Especialista</label>
+                                 <select id="det-cli-edit-vendedor" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                                     <option value="">No asignado</option>
                                  </select>
                              </div>
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Fecha de Inicio</label>
-                                 <input id="det-cli-edit-fecha-inicio" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Fecha de Inicio</label>
+                                 <input id="det-cli-edit-fecha-inicio" type="date" class="w-full border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                              </div>
                          </div>
 
                          <div class="grid grid-cols-2 gap-4 mb-4">
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">State ID / ZIP</label>
-                                 <input id="det-cli-edit-state-id" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">State ID / ZIP</label>
+                                 <input id="det-cli-edit-state-id" type="text" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                              </div>
                              <div>
-                                 <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Fecha Nacimiento</label>
-                                 <input id="det-cli-edit-dob" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#333] focus:border-tealAccent outline-none">
+                                 <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Fecha Nacimiento</label>
+                                 <input id="det-cli-edit-dob" type="date" class="w-full border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-tealAccent outline-none">
                              </div>
                          </div>
 
                          <div class="mb-4">
-                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Subir Foto ID / Licencia</label>
+                             <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Subir Foto ID / Licencia</label>
                              <div class="flex items-center gap-4 mt-1">
                                  <input type="file" id="inp-cli-id-photo-file" class="hidden" accept="image/*">
-                                 <button onclick="document.getElementById('inp-cli-id-photo-file').click()" class="flex-1 py-3 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 hover:border-tealAccent/40 hover:text-tealAccent transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                                 <button onclick="document.getElementById('inp-cli-id-photo-file').click()" class="flex-1 py-3 border border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 hover:border-tealAccent/40 hover:text-tealAccent transition-all text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 bg-white dark:bg-[#0c1322]">
                                      <i class="fa-solid fa-cloud-arrow-up"></i>
                                      Seleccionar Imagen
                                  </button>
-                                 <div id="cli-id-photo-preview" class="hidden relative w-12 h-12 rounded-lg border border-gray-100 overflow-hidden group">
+                                 <div id="cli-id-photo-preview" class="hidden relative w-12 h-12 rounded-xl border border-gray-200/80 dark:border-white/10 overflow-hidden group">
                                      <img src="" class="w-full h-full object-cover">
                                      <button id="btn-remove-cli-id-photo" class="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                          <i class="fa-solid fa-times"></i>
@@ -2469,8 +2465,8 @@
                          </div>
 
                          <div class="mb-2">
-                             <label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Notas Internas</label>
-                             <textarea id="det-cli-edit-notas" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-[#333] focus:border-tealAccent outline-none h-24"></textarea>
+                             <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Notas Internas</label>
+                             <textarea id="det-cli-edit-notas" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:border-tealAccent outline-none h-24"></textarea>
                          </div>
                     </div>
                 </div>
@@ -2478,14 +2474,14 @@
 
                 <!-- Save Bar -->
                 <div id="det-cli-save-bar" class="hidden mt-auto pt-4">
-                    <div class="bg-white rounded-xl border border-tealAccent/20 shadow-sm p-4 flex items-center justify-between gap-4">
+                    <div class="bg-white dark:bg-[#0c1322] rounded-xl border border-tealAccent/30 shadow-lg p-4 flex items-center justify-between gap-4">
                         <div class="flex items-center gap-3">
                             <div class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></div>
-                            <span class="text-[11px] font-black text-gray-500 uppercase tracking-widest">Cambios sin guardar</span>
+                            <span class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Cambios sin guardar</span>
                         </div>
                         <div class="flex gap-3">
-                            <button id="btn-cancel-cli-edit" class="px-4 py-2 text-xs font-bold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
-                            <button id="btn-save-cli-changes" class="px-5 py-2 bg-tealAccent text-black text-xs font-black uppercase tracking-widest rounded-lg hover:shadow-lg hover:shadow-tealAccent/20 transition-all flex items-center gap-2">
+                            <button id="btn-cancel-cli-edit" class="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all">Cancelar</button>
+                            <button id="btn-save-cli-changes" class="px-5 py-2 bg-tealAccent text-black text-xs font-bold uppercase tracking-wider rounded-lg shadow-sm hover:shadow-tealAccent/20 hover:scale-[1.02] transition-all flex items-center gap-2">
                                 <span id="save-btn-text">Guardar Cambios</span>
                                 <div id="save-btn-spinner" class="hidden w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
                             </button>

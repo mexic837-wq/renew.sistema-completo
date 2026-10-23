@@ -8360,7 +8360,7 @@ function renderDiscussionHTML(discusion, pipelineColor, projectId = null) {
         let dateSeparator = '';
         if (dateLabel !== lastDateLabel) {
             lastDateLabel = dateLabel;
-            dateSeparator = `<div style="text-align:center;margin:12px 0 8px;"><span style="display:inline-block;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.05);color:#64748b;font-size:0.65rem;font-weight:800;padding:3px 12px;border-radius:99px;text-transform:capitalize;">${dateLabel}</span></div>`;
+            dateSeparator = `<div style="text-align:center;margin:12px 0 8px;"><span class="inline-block bg-white/70 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full capitalize shadow-xs">${dateLabel}</span></div>`;
         }
         
         const currentUser = getCurrentUser();
@@ -8388,14 +8388,14 @@ function renderDiscussionHTML(discusion, pipelineColor, projectId = null) {
             ${avatar}
             <div style="display:flex;flex-direction:column;${isMe ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
                 <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;${isMe ? 'flex-direction:row-reverse;' : ''}">
-                    <span style="font-size:0.7rem;font-weight:800;color:#0f172a;">${isMe ? 'Tú' : c.user}</span>
-                    <span style="font-size:0.6rem;color:#64748b;">${time}</span>
+                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200">${isMe ? 'Tú' : c.user}</span>
+                    <span class="text-[10px] text-gray-400">${time}</span>
                     ${isAdminOrCEO && projectId ? `
                     <button onclick="window.editProjectMsg('${projectId}', '${c.date}', '${encodeURIComponent(c.text || '')}')" title="Editar" class="ml-1 opacity-50 hover:opacity-100 transition-opacity"><i class="fa-solid fa-pencil text-[9px]"></i></button>
                     <button onclick="window.deleteProjectMsg('${projectId}', '${c.date}')" title="Eliminar" class="ml-1 opacity-50 hover:opacity-100 transition-opacity hover:text-red-600"><i class="fa-solid fa-trash text-[9px]"></i></button>
                     ` : ''}
                 </div>
-                <div style="background:${isMe ? pipelineColor : 'white'};color:${isMe ? 'white' : '#0f172a'};border-radius:${isMe ? '12px 0 12px 12px' : '0 12px 12px 12px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,0.1);${!isMe ? 'border:1px solid #e2e8f0;' : ''}">${c.text || ''}${attachmentHtml}</div>
+                <div style="background:${isMe ? pipelineColor : ''};color:${isMe ? 'white' : ''};border-radius:${isMe ? '14px 2px 14px 14px' : '2px 14px 14px 14px'};padding:8px 12px;font-size:0.8rem;line-height:1.4;" class="${isMe ? 'shadow-sm' : 'bg-white dark:bg-[#0c1322] text-gray-800 dark:text-gray-100 border border-gray-200/80 dark:border-white/10 shadow-sm'}">${c.text || ''}${attachmentHtml}</div>
             </div>
         </div>`;
         
@@ -8505,116 +8505,116 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
 
   const overlay = document.createElement('div');
   overlay.id = 'kanban-drawer-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);';
   overlay.innerHTML = `
-    <div id="kanban-split-modal" style="width:90vw;height:90vh;max-width:1400px;background:#f8fafc;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);display:flex;overflow:hidden;animation:zoomIn 0.2s ease-out;">
+    <div id="kanban-split-modal" style="width:92vw;height:88vh;max-width:1380px;animation:zoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);" class="bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-2xl flex overflow-hidden text-gray-900 dark:text-white">
       
       <!-- LEFT PANEL: Info & Subtasks -->
-      <div style="width:45%;min-width:400px;max-width:600px;background:white;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;flex-shrink:0;">
+      <div style="width:42%;min-width:380px;max-width:520px;" class="bg-white dark:bg-[#0c1322] flex flex-col border-r border-gray-200/80 dark:border-white/5 flex-shrink-0">
         
         <!-- Header Left -->
-        <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-                <div style="width:32px;height:32px;border-radius:8px;background:${pipeline.color};display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:12px;flex-shrink:0;">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-[#080d18]">
+            <div class="flex items-center gap-3 min-w-0">
+                <div style="background:${pipeline.color};" class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs flex-shrink-0 shadow-sm">
                     ${cli.nombre[0].toUpperCase()}
                 </div>
-                <div style="min-width:0;">
-                    <h2 class="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer truncate transition-colors" title="Ver detalle de cliente" onclick="document.getElementById('kanban-drawer-overlay')?.remove(); window.showClientDetail('${cli.id}')">${cli.nombre}</h2>
-                    <p class="text-[10px] text-gray-500">ID: ${p.id.substring(0,8).toUpperCase()}</p>
+                <div class="min-w-0">
+                    <h2 class="text-sm font-bold text-tealAccent hover:underline cursor-pointer truncate transition-colors" title="Ver detalle de cliente" onclick="document.getElementById('kanban-drawer-overlay')?.remove(); window.showClientDetail('${cli.id}')">${cli.nombre}</h2>
+                    <p class="text-[10px] text-gray-400 font-medium">ID: ${p.id.substring(0,8).toUpperCase()}</p>
                 </div>
             </div>
-            <button id="kanban-drawer-close-btn" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                <i class="fas fa-times"></i>
+            <button id="kanban-drawer-close-btn" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/20 flex items-center justify-center transition-all border border-gray-200/60 dark:border-white/10">
+                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
 
-        <div style="flex:1;overflow-y:auto;" class="hide-scrollbar">
+        <div class="flex-1 overflow-y-auto hide-scrollbar">
             ${cli.macro_estado === 'Declinado' ? `
-            <div class="m-5 p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 relative overflow-hidden group">
+            <div class="m-5 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200/80 dark:border-red-500/20 relative overflow-hidden group">
                 <div class="flex items-start gap-3">
                     <i class="fa-solid fa-circle-exclamation text-red-500 mt-0.5"></i>
                     <div>
-                        <h4 class="text-sm font-black text-red-700 dark:text-red-400 leading-tight">Proyecto Declinado</h4>
-                        <p class="text-xs text-red-600 dark:text-red-300 mt-1 font-medium">Motivo: <span class="font-bold">${cli.motivo_declinacion || 'No especificado'}</span></p>
-                        <button id="btn-reactivate-prospect" class="mt-3 px-4 py-2 bg-white dark:bg-darkCard text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:shadow-md transition-all border border-red-100 dark:border-red-500/20 hover:scale-[1.02] active:scale-95">Reactivar a Prospecto</button>
+                        <h4 class="text-xs font-bold text-red-700 dark:text-red-400 leading-tight">Proyecto Declinado</h4>
+                        <p class="text-[11px] text-red-600 dark:text-red-300 mt-1 font-medium">Motivo: <span class="font-bold">${cli.motivo_declinacion || 'No especificado'}</span></p>
+                        <button id="btn-reactivate-prospect" class="mt-3 px-3.5 py-1.5 bg-white dark:bg-white/5 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm border border-red-200 dark:border-red-500/20 hover:scale-[1.02] active:scale-95 transition-all">Reactivar a Prospecto</button>
                     </div>
                 </div>
             </div>
             ` : ''}
 
             <!-- Properties -->
-            <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;">
+            <div class="p-5 border-b border-gray-100 dark:border-white/5">
                 <div class="grid grid-cols-[100px_1fr] gap-y-3 gap-x-2 text-xs items-center">
-                    <div class="text-gray-400 font-medium">Descripción:</div>
-                    <div class="text-gray-800 text-[11px]">${p.descripcion || 'Sin descripción'}</div>
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider">Descripción:</div>
+                    <div class="text-gray-800 dark:text-gray-200 text-xs font-medium">${p.descripcion || 'Sin descripción'}</div>
                     
-                    <div class="text-gray-400 font-medium">Asignado a:</div>
-                    <div class="text-gray-800 font-medium flex items-center gap-2">
-                        <i class="fas fa-user-circle text-gray-300"></i> ${assigneeName}
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider">Asignado a:</div>
+                    <div class="text-gray-800 dark:text-gray-200 font-medium flex items-center gap-2">
+                        <i class="fas fa-user-circle text-tealAccent"></i> ${assigneeName}
                     </div>
 
-                    <div class="text-gray-400 font-medium">Creado el:</div>
-                    <div class="text-gray-800">${new Date(p.fecha).toLocaleDateString()}</div>
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider">Creado el:</div>
+                    <div class="text-gray-800 dark:text-gray-200 font-medium">${new Date(p.fecha).toLocaleDateString()}</div>
                     
-                    <div class="text-gray-400 font-medium">Fecha Límite:</div>
-                    <div class="text-gray-800">
-                        <input type="date" id="proj-deadline-input" value="${p.fecha_finalizacion ? p.fecha_finalizacion.substring(0,10) : ''}" class="text-[11px] bg-transparent border border-dashed border-gray-300 rounded px-2 py-1 outline-none hover:border-blue-400 cursor-pointer text-gray-700 w-full max-w-[130px] transition-colors" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider">Fecha Límite:</div>
+                    <div>
+                        <input type="date" id="proj-deadline-input" value="${p.fecha_finalizacion ? p.fecha_finalizacion.substring(0,10) : ''}" class="text-xs bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1 outline-none hover:border-tealAccent cursor-pointer text-gray-800 dark:text-gray-200 w-full max-w-[130px] transition-colors" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
                     </div>
                     
-                    <div class="text-gray-400 font-medium">Fecha Cierre:</div>
-                    <div class="text-gray-800">
-                        <input type="date" id="proj-close-date-input" value="${p.fecha_cierre ? p.fecha_cierre.substring(0,10) : ''}" class="text-[11px] bg-transparent border border-dashed border-emerald-300 rounded px-2 py-1 outline-none hover:border-emerald-400 cursor-pointer text-emerald-700 w-full max-w-[130px] transition-colors font-bold" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider">Fecha Cierre:</div>
+                    <div>
+                        <input type="date" id="proj-close-date-input" value="${p.fecha_cierre ? p.fecha_cierre.substring(0,10) : ''}" class="text-xs bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-2.5 py-1 outline-none hover:border-emerald-400 cursor-pointer text-emerald-600 dark:text-emerald-400 w-full max-w-[130px] transition-colors font-bold" ${isAdmin ? '' : 'disabled title="Solo administradores pueden editar"'}>
                     </div>
                     
-                    <div class="text-gray-400 font-medium mt-2">Proyecto:</div>
-                    <div class="text-gray-800 mt-2 flex items-center gap-2">
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider mt-1">Proyecto:</div>
+                    <div class="text-gray-800 dark:text-gray-200 mt-1 flex items-center gap-2 font-medium">
                         <span class="w-2 h-2 rounded-full" style="background:${pipeline.color}"></span> ${pipeline.nombre}
                     </div>
                     
-                    <div class="text-gray-400 font-medium mt-2">Etapa Actual:</div>
-                    <div class="text-gray-800 font-medium mt-2">${faseActual.nombre}</div>
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider mt-1">Etapa Actual:</div>
+                    <div class="text-gray-800 dark:text-gray-200 font-bold mt-1 text-tealAccent">${faseActual.nombre}</div>
 
-                    <div class="text-gray-400 font-medium mt-2">Técnico:</div>
-                    <div class="text-gray-800 font-medium mt-2 flex items-center justify-between">
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider mt-1">Técnico:</div>
+                    <div class="text-gray-800 dark:text-gray-200 font-medium mt-1 flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                           <i class="fas fa-tools text-gray-300"></i> ${(() => {
+                           <i class="fas fa-tools text-gray-400"></i> ${(() => {
                                const t = allWorkers.find(w => w.id === p.tecnico_id);
                                return t ? `${t.nombre} ${t.apellido || ''}` : 'Sin asignar';
                            })()}
                         </div>
-                        ${isAdmin ? `<button onclick="window.kanbanChangeTecnico('${p.id}')" class="text-[10px] text-blue-500 hover:underline"><i class="fas fa-edit"></i> Editar</button>` : ''}
+                        ${isAdmin ? `<button onclick="window.kanbanChangeTecnico('${p.id}')" class="text-[10px] text-tealAccent hover:underline"><i class="fas fa-edit"></i> Editar</button>` : ''}
                     </div>
                     
-                    <div class="text-gray-400 font-medium mt-2">colaboradores:</div>
-                    <div class="mt-2">
+                    <div class="text-gray-400 font-semibold text-[11px] uppercase tracking-wider mt-1">Colaboradores:</div>
+                    <div class="mt-1">
                         ${obsHtml || '<span class="text-[10px] text-gray-400 italic">No hay colaboradores</span>'}
                         ${canManageObservers ? `
-                        <button id="btn-manage-obs" class="text-[10px] text-blue-500 hover:underline mt-1"><i class="fas fa-plus"></i> Añadir colaborador</button>
+                        <button id="btn-manage-obs" class="text-[10px] text-tealAccent hover:underline mt-1 block"><i class="fas fa-plus"></i> Añadir colaborador</button>
                         ` : ''}
                     </div>
                 </div>
             </div>
 
-            <!-- Accordion -->
-            <div style="padding:16px 20px 0;">
-                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-tasks text-blue-500"></i> Subtasks (Fases): ${fases.length}</h3>
-                <div style="display:flex;flex-direction:column;gap:6px;">
+            <!-- Accordion / Subtasks (Fases) -->
+            <div class="p-5 pb-0">
+                <h3 class="text-xs font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="fas fa-tasks text-tealAccent"></i> Subtasks (Fases): ${fases.length}</h3>
+                <div class="flex flex-col gap-2">
                     ${fases.map((f, i) => {
                         const isDone = isProjectCompleted || i < fases.findIndex(fx => fx.id === p.fase_id);
                         const isCurrent = !isProjectCompleted && f.id === p.fase_id;
                         const isViewing = f.id === displayPhaseId;
                         return `
                         <div class="mb-1">
-                            <div class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${isViewing ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-gray-100 hover:bg-gray-50'}"
+                            <div class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isViewing ? 'bg-tealAccent/10 border-tealAccent/30 text-tealAccent shadow-sm' : 'bg-gray-50/50 dark:bg-white/[0.02] border-gray-200/60 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/[0.04]'}"
                                  onclick="window.openKanbanDrawer('${p.id}', '${isViewing ? '' : f.id}')">
                                 <div class="flex items-center gap-3">
-                                    <i class="fas ${isDone ? 'fa-check-circle text-green-500' : (isCurrent ? 'fa-dot-circle text-blue-500' : 'fa-circle text-gray-200')}"></i>
-                                    <span class="text-xs font-bold ${isViewing ? 'text-blue-700' : 'text-gray-700'}">${f.nombre}</span>
+                                    <i class="fas ${isDone ? 'fa-check-circle text-emerald-500' : (isCurrent ? 'fa-dot-circle text-tealAccent' : 'fa-circle text-gray-300 dark:text-gray-600')} text-xs"></i>
+                                    <span class="text-xs font-bold ${isViewing ? 'text-tealAccent' : 'text-gray-700 dark:text-gray-300'}">${f.nombre}</span>
                                 </div>
-                                <i class="fas fa-chevron-${isViewing ? 'down' : 'right'} text-[10px] text-${isViewing ? 'blue-500' : 'gray-300'}"></i>
+                                <i class="fas fa-chevron-${isViewing ? 'down' : 'right'} text-[10px] ${isViewing ? 'text-tealAccent' : 'text-gray-400'}"></i>
                             </div>
                             ${isViewing ? `
-                            <div class="mt-2 ml-4 p-4 bg-white border border-gray-100 rounded-xl shadow-sm relative before:absolute before:-left-4 before:top-4 before:w-4 before:h-px before:bg-gray-200">
+                            <div class="mt-2 ml-4 p-4 bg-white dark:bg-[#080d18] border border-gray-200/70 dark:border-white/5 rounded-xl shadow-sm relative before:absolute before:-left-4 before:top-4 before:w-4 before:h-px before:bg-gray-200 dark:before:bg-white/10">
                                 <div id="drawer-dynamic-fields">
                                     <p style="font-size:11px; color:#64748b; font-style:italic;">Cargando campos...</p>
                                 </div>
@@ -8626,15 +8626,15 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                 </div>
             </div>
             
-            <div style="padding:20px 20px 20px;border-top:1px solid #f1f5f9;margin-top:16px;">
-                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-paperclip text-gray-400"></i> Archivos Globales</h3>
+            <div class="p-5 border-t border-gray-100 dark:border-white/5 mt-4">
+                <h3 class="text-xs font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="fas fa-paperclip text-gray-400"></i> Archivos Globales</h3>
                 <div class="grid grid-cols-3 gap-2">
                     ${filesHtml}
                 </div>
             </div>
 
-            <div style="padding:20px 20px 20px;border-top:1px solid #f1f5f9;">
-                <h3 class="text-xs font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-microphone text-blue-400"></i> Llamadas Vinculadas</h3>
+            <div class="p-5 border-t border-gray-100 dark:border-white/5">
+                <h3 class="text-xs font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="fas fa-microphone text-tealAccent"></i> Llamadas Vinculadas</h3>
                 <div class="flex flex-col gap-2">
                     ${(() => {
                         const projectCalls = (cli.historial_llamadas || []).filter(c => c.proyecto_id === p.id);
@@ -8642,23 +8642,23 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                         return projectCalls.reverse().map(call => {
                             const dateStr = new Date(call.fecha).toLocaleDateString('es-ES', { month:'short', day:'numeric' });
                             return `
-                            <div class="bg-gray-50 border border-gray-100 p-2 rounded-lg flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-full flex items-center justify-center ${call.tipo === 'Entrante' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}">
+                            <div class="bg-gray-50/60 dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/5 p-2.5 rounded-xl flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center ${call.tipo === 'Entrante' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-tealAccent/10 text-tealAccent'}">
                                         <i class="fa-solid ${call.tipo === 'Entrante' ? 'fa-arrow-down' : 'fa-arrow-up'} text-[8px]"></i>
                                     </div>
                                     <div>
-                                        <p class="text-[10px] font-bold text-gray-700 leading-none">${call.tipo || 'Llamada'}</p>
-                                        <p class="text-[8px] text-gray-400">${dateStr}</p>
+                                        <p class="text-[10px] font-bold text-gray-800 dark:text-gray-200 leading-none">${call.tipo || 'Llamada'}</p>
+                                        <p class="text-[8px] text-gray-400 mt-0.5">${dateStr}</p>
                                     </div>
                                 </div>
                                 <div>
                                     ${call.grabacion_url ? `
                                     <audio id="drawer-audio-${call.call_id}" src="${call.grabacion_url}" preload="none"></audio>
-                                    <button onclick="const a=document.getElementById('drawer-audio-${call.call_id}'); if(a.paused){a.play();this.innerHTML='<i class=\\'fa-solid fa-pause\\'></i>';}else{a.pause();this.innerHTML='<i class=\\'fa-solid fa-play\\'></i>';}" class="w-6 h-6 rounded bg-white border border-gray-200 text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-colors">
+                                    <button onclick="const a=document.getElementById('drawer-audio-${call.call_id}'); if(a.paused){a.play();this.innerHTML='<i class=\'fa-solid fa-pause\'></i>';}else{a.pause();this.innerHTML='<i class=\'fa-solid fa-play\'></i>';}" class="w-6 h-6 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-tealAccent hover:bg-tealAccent hover:text-black flex items-center justify-center transition-all">
                                         <i class="fa-solid fa-play text-[8px]"></i>
                                     </button>
-                                    ` : '<span class="text-[8px] font-bold text-gray-400 bg-white border border-gray-100 px-1 rounded">Procesando...</span>'}
+                                    ` : '<span class="text-[8px] font-bold text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 px-1.5 py-0.5 rounded">Procesando...</span>'}
                                 </div>
                             </div>`;
                         }).join('');
@@ -8669,60 +8669,59 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
       </div>
       
       <!-- RIGHT PANEL: Task Chat -->
-      <div style="flex:1;display:flex;flex-direction:column;background:#dce9f5;position:relative;">
+      <div class="flex-1 flex flex-col bg-gray-50/40 dark:bg-[#070b14] relative text-gray-900 dark:text-white">
         <!-- Chat Header -->
-        <div style="height:60px;background:white;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;">
+        <div class="h-[60px] bg-white dark:bg-[#0c1322] border-b border-gray-100 dark:border-white/5 flex items-center justify-between px-6 flex-shrink-0">
             <div>
-                <h2 class="text-[15px] font-bold text-gray-800 flex items-center gap-2"><i class="far fa-comments text-blue-500"></i> Chat del Proyecto</h2>
-                <p class="text-[11px] text-gray-500">${colaboradores.length + 2} participantes</p>
+                <h2 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="far fa-comments text-tealAccent"></i> Chat del Proyecto</h2>
+                <p class="text-[10px] text-gray-400 font-medium">${colaboradores.length + 2} participantes</p>
             </div>
             <div class="flex items-center gap-3">
-                <div class="relative bg-gray-50 rounded-full flex items-center px-3 h-8 shadow-inner transition-all focus-within:ring-2 focus-within:ring-blue-100 focus-within:bg-white border border-transparent focus-within:border-blue-300">
+                <div class="relative bg-gray-50 dark:bg-black/30 rounded-full flex items-center px-3 h-8 shadow-inner border border-gray-200/70 dark:border-white/10 focus-within:border-tealAccent transition-all">
                     <i class="fas fa-search text-gray-400 text-xs mr-2"></i>
-                    <input type="text" id="chat-search-input" placeholder="Buscar mensaje..." class="bg-transparent outline-none text-xs text-gray-700 w-24 focus:w-40 transition-all duration-300" />
+                    <input type="text" id="chat-search-input" placeholder="Buscar..." class="bg-transparent outline-none text-xs text-gray-800 dark:text-gray-200 w-24 focus:w-40 transition-all duration-300" />
                 </div>
             </div>
         </div>
         
         <!-- Chat Background Overlay -->
-        <div style="position:absolute;inset:0;top:60px;bottom:70px;background-image:radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px);background-size:20px 20px;pointer-events:none;opacity:0.6;"></div>
+        <div style="position:absolute;inset:0;top:60px;bottom:70px;background-image:radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px);background-size:20px 20px;pointer-events:none;opacity:0.4;"></div>
         
         <!-- Messages Area -->
-        <div id="discussion-list" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;">
+        <div id="discussion-list" class="flex-1 overflow-y-auto p-6 flex flex-col gap-3 relative z-1 hide-scrollbar">
             ${renderDiscussionHTML(p.discusion, pipeline.color, p.id)}
         </div>
         
         <!-- Chat Input -->
-        <div style="height:70px;background:white;border-top:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:1;">
-            <div class="flex-1 bg-white border border-gray-200 rounded-full flex items-center px-4 h-10 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+        <div class="h-[68px] bg-white dark:bg-[#0c1322] border-t border-gray-100 dark:border-white/5 px-6 flex items-center gap-3 flex-shrink-0 z-10">
+            <div class="flex-1 bg-gray-50 dark:bg-black/30 border border-gray-200/80 dark:border-white/10 rounded-full flex items-center px-4 h-11 shadow-inner focus-within:border-tealAccent transition-all">
                 <input type="file" id="chat-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" />
-                <label for="chat-file-input" style="margin:0;cursor:pointer;display:flex;align-items:center;">
-                    <i class="fas fa-paperclip text-gray-400 mr-2 hover:text-gray-600"></i>
+                <label for="chat-file-input" class="m-0 cursor-pointer flex items-center">
+                    <i class="fas fa-paperclip text-gray-400 mr-2 hover:text-tealAccent transition-colors"></i>
                 </label>
                 <div id="chat-file-preview" style="display:none; font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px; margin-right:4px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;" onclick="document.getElementById('chat-file-input').value='';this.style.display='none';" title="Click para quitar"></div>
-                <input type="text" id="discussion-input" placeholder="Escribe un mensaje o menciona a alguien..." class="flex-1 bg-transparent outline-none text-sm text-gray-700 h-full" />
+                <input type="text" id="discussion-input" placeholder="Escribe un mensaje o menciona a alguien..." class="flex-1 bg-transparent outline-none text-xs text-gray-800 dark:text-gray-200 h-full" />
                 <div class="relative flex items-center">
-                    <i id="btn-chat-emoji" class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-gray-600 transition-colors"></i>
+                    <i id="btn-chat-emoji" class="far fa-smile text-gray-400 ml-2 cursor-pointer hover:text-tealAccent transition-colors"></i>
                     <!-- Emoji Picker Popup -->
-                    <div id="chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex gap-2 z-[60]">
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-thumbs-up"></i></button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-fire"></i></button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-face-smile"></i></button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg">âœ…</button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-eye"></i></button>
-                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-rocket"></i></button>
+                    <div id="chat-emoji-picker" class="hidden absolute bottom-full right-0 mb-2 bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl shadow-lg p-2 flex gap-2 z-[60]">
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-thumbs-up"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-fire"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-face-smile"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 transition-colors text-lg">✅</button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-eye"></i></button>
+                        <button type="button" class="chat-emoji-btn hover:bg-gray-100 dark:hover:bg-white/5 rounded p-1 transition-colors text-lg"><i class="fa-solid fa-rocket"></i></button>
                     </div>
                 </div>
             </div>
-            <button id="btn-send-discussion" class="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shadow-md transition-colors">
-                <i class="fas fa-paper-plane text-sm"></i>
+            <button id="btn-send-discussion" class="w-10 h-10 rounded-full bg-tealAccent text-black flex items-center justify-center shadow-lg shadow-tealAccent/20 hover:scale-105 active:scale-95 transition-all">
+                <i class="fas fa-paper-plane text-xs"></i>
             </button>
         </div>
       </div>
 
     </div>
   `;
-
   document.body.appendChild(overlay);
 
   // --- Deadline Logic ---
