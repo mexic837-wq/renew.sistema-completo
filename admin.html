@@ -763,30 +763,132 @@
             height: 0 !important;
         }
 
-        /* Collapsed Sidebar State */
-        aside#admin-sidebar.collapsed {
-            width: 80px !important;
+        /* Collapsed Sidebar State (Admin Renew OS) */
+        aside#admin-sidebar.collapsed,
+        .admin-sidebar-collapsed {
+            width: 72px !important;
+            min-width: 72px !important;
+            overflow-x: hidden !important;
         }
-        aside#admin-sidebar.collapsed .nav-text,
+        aside#admin-sidebar.collapsed .sidebar-header,
+        .admin-sidebar-collapsed .sidebar-header {
+            justify-content: center !important;
+            padding: 0 !important;
+        }
+        aside#admin-sidebar.collapsed .sidebar-header img,
+        .admin-sidebar-collapsed .sidebar-header img {
+            margin: 0 auto !important;
+        }
         aside#admin-sidebar.collapsed #logo-container,
-        aside#admin-sidebar.collapsed .sidebar-header span {
+        .admin-sidebar-collapsed #logo-container,
+        aside#admin-sidebar.collapsed .nav-text,
+        .admin-sidebar-collapsed .nav-text,
+        aside#admin-sidebar.collapsed .sidebar-section-title,
+        .admin-sidebar-collapsed .sidebar-section-title,
+        aside#admin-sidebar.collapsed .fa-chevron-down,
+        .admin-sidebar-collapsed .fa-chevron-down,
+        aside#admin-sidebar.collapsed #sub-auto,
+        .admin-sidebar-collapsed #sub-auto,
+        aside#admin-sidebar.collapsed .btn-back-portal span,
+        .admin-sidebar-collapsed .btn-back-portal span,
+        aside#admin-sidebar.collapsed .footer-text,
+        .admin-sidebar-collapsed .footer-text,
+        aside#admin-sidebar.collapsed .theme-text,
+        .admin-sidebar-collapsed .theme-text {
             display: none !important;
         }
-        aside#admin-sidebar.collapsed .sidebar-header {
-            justify-content: center;
-            padding: 0;
+        aside#admin-sidebar.collapsed .btn-back-portal,
+        .admin-sidebar-collapsed .btn-back-portal {
+            padding: 0 !important;
+            margin: 8px auto !important;
+            display: flex !important;
+            justify-content: center !important;
+            width: 100% !important;
         }
-        aside#admin-sidebar.collapsed .nav-item {
-            justify-content: center;
-            padding-left: 0;
-            padding-right: 0;
+        aside#admin-sidebar.collapsed .btn-back-portal a,
+        .admin-sidebar-collapsed .btn-back-portal a {
+            width: 2.75rem !important;
+            height: 2.75rem !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 12px !important;
         }
-        aside#admin-sidebar.collapsed .w-7 {
-            width: 100%;
-            margin: 0;
+        aside#admin-sidebar.collapsed .btn-back-portal a i,
+        .admin-sidebar-collapsed .btn-back-portal a i {
+            margin: 0 !important;
+            font-size: 0.9rem !important;
         }
-        aside#admin-sidebar.collapsed .fa-chevron-down {
+        aside#admin-sidebar.collapsed nav,
+        .admin-sidebar-collapsed nav {
+            padding-left: 0.25rem !important;
+            padding-right: 0.25rem !important;
+        }
+        aside#admin-sidebar.collapsed .nav-item,
+        .admin-sidebar-collapsed .nav-item {
+            width: 2.75rem !important;
+            height: 2.75rem !important;
+            padding: 0 !important;
+            margin: 4px auto !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 12px !important;
+            gap: 0 !important;
+            border-right: none !important;
+            border-left: none !important;
+        }
+        aside#admin-sidebar.collapsed .nav-item .w-6,
+        .admin-sidebar-collapsed .nav-item .w-6 {
+            width: auto !important;
+            margin: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        aside#admin-sidebar.collapsed .nav-item i,
+        .admin-sidebar-collapsed .nav-item i {
+            font-size: 1rem !important;
+            margin: 0 !important;
+        }
+        aside#admin-sidebar.collapsed #btn-theme-toggle,
+        .admin-sidebar-collapsed #btn-theme-toggle,
+        aside#admin-sidebar.collapsed #btn-logout-sidebar,
+        .admin-sidebar-collapsed #btn-logout-sidebar,
+        aside#admin-sidebar.collapsed button[onclick*="usuarios"],
+        .admin-sidebar-collapsed button[onclick*="usuarios"] {
+            width: 2.75rem !important;
+            height: 2.75rem !important;
+            padding: 0 !important;
+            margin: 4px auto !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 12px !important;
+            gap: 0 !important;
+        }
+        aside#admin-sidebar.collapsed button[onclick*="usuarios"] div:last-child,
+        .admin-sidebar-collapsed button[onclick*="usuarios"] div:last-child {
             display: none !important;
+        }
+        aside#admin-sidebar.collapsed #footer-user-avatar,
+        .admin-sidebar-collapsed #footer-user-avatar {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
+            margin: 0 auto !important;
+        }
+        .dark aside#admin-sidebar.collapsed .sidebar-item-active,
+        .dark .admin-sidebar-collapsed .sidebar-item-active {
+            background: rgba(0, 245, 212, 0.12) !important;
+            color: #00f5d4 !important;
+            box-shadow: 0 0 12px rgba(0, 245, 212, 0.25) !important;
+        }
+        html:not(.dark) aside#admin-sidebar.collapsed .sidebar-item-active,
+        html:not(.dark) .admin-sidebar-collapsed .sidebar-item-active {
+            background: rgba(15, 171, 158, 0.15) !important;
+            color: var(--lp) !important;
         }
     </style>
 
@@ -816,10 +918,6 @@
                 <img src="./assets/images/renew copia logo.png" class="w-6 h-6 object-contain brightness-0 invert dark:brightness-100 dark:invert-0 transition-all duration-300 drop-shadow-[0_0_8px_rgba(0,245,212,0.3)]" alt="RENEW OS Logo">
                 <div id="logo-container" class="flex flex-col">
                     <h1 id="logo-text_main" class="text-xs font-black text-tealAccent leading-none tracking-tight uppercase">EQUIPO <span class="text-gray-900 dark:text-white">RENEW</span></h1>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-tealAccent animate-pulse"></span>
-                        <p id="logo-text_sub" class="text-[8px] uppercase tracking-[0.14em] font-mono text-gray-400 dark:text-gray-500">OS 2.4 • Admin</p>
-                    </div>
                 </div>
             </div>
 
