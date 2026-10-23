@@ -9,31 +9,31 @@ export async function renderHRHub() {
 
     // UI HTML
     canvas.innerHTML = `
-    <div class="h-full flex flex-col animate-fadeIn pt-2">
-        <div class="flex items-center gap-2 mb-6 overflow-x-auto py-2 hide-scrollbar">
-            <button class="hr-view-btn active px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all whitespace-nowrap border-tealAccent text-tealAccent bg-tealAccent/10" data-target="directorio">Directorio Base</button>
-            <button class="hr-view-btn px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/5 text-gray-500 hover:text-white transition-all whitespace-nowrap" data-target="kanban">Onboarding Pulse</button>
-            <button class="hr-view-btn px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/5 text-gray-500 hover:text-white transition-all whitespace-nowrap" data-target="recibos">
-                <i class="fa-solid fa-receipt mr-1"></i>Recibos de Pago
+    <div class="h-full flex flex-col animate-fadeIn pt-1">
+        <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 w-fit mb-5 overflow-x-auto hide-scrollbar">
+            <button class="hr-view-btn active px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm" data-target="directorio">Directorio Base</button>
+            <button class="hr-view-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-gray-500 hover:text-white" data-target="kanban">Onboarding Pulse</button>
+            <button class="hr-view-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-gray-500 hover:text-white flex items-center gap-1.5" data-target="recibos">
+                <i class="fa-solid fa-receipt text-xs"></i><span>Recibos</span>
             </button>
-            <button class="hr-view-btn px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/5 text-gray-500 hover:text-white transition-all whitespace-nowrap" data-target="adelantos">
-                <i class="fa-solid fa-hand-holding-dollar mr-1"></i>Préstamos / Adelantos
+            <button class="hr-view-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap text-gray-500 hover:text-white flex items-center gap-1.5" data-target="adelantos">
+                <i class="fa-solid fa-hand-holding-dollar text-xs"></i><span>Préstamos / Adelantos</span>
             </button>
         </div>
 
         <!-- DIRECTORIO BASE -->
         <div id="view-directorio" class="hr-view-container block flex-1">
-            <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden overflow-x-auto hide-scrollbar">
+            <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
                 <table class="w-full text-xs min-w-[1100px]">
-                    <thead class="bg-gray-50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                    <thead class="bg-gray-50/60 dark:bg-white/[0.02] border-b border-gray-200/80 dark:border-white/5">
                         <tr>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Colaborador</th>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">División / Depto</th>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Ecosistemas</th>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Email Autenticación</th>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Teléfono Móvil</th>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Status Documentos</th>
-                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Acceso</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">Colaborador</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">División / Depto</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">Ecosistemas</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">Email Autenticación</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">Teléfono Móvil</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">Status Documentos</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">Acceso</th>
                             <th class="px-4 py-3 text-right"></th>
                         </tr>
                     </thead>
@@ -279,12 +279,12 @@ export async function renderHRHub() {
         btns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 btns.forEach(b => {
-                    b.classList.remove('active', 'border-tealAccent', 'text-tealAccent', 'bg-tealAccent/10');
-                    b.classList.add('border-white/5', 'text-gray-500');
+                    b.classList.remove('active', 'bg-white', 'dark:bg-[#0c1322]', 'text-tealAccent', 'shadow-sm');
+                    b.classList.add('text-gray-500');
                 });
                 const targetBtn = e.target.closest('.hr-view-btn');
-                targetBtn.classList.remove('border-white/5', 'text-gray-500');
-                targetBtn.classList.add('active', 'border-tealAccent', 'text-tealAccent', 'bg-tealAccent/10');
+                targetBtn.classList.remove('text-gray-500');
+                targetBtn.classList.add('active', 'bg-white', 'dark:bg-[#0c1322]', 'text-tealAccent', 'shadow-sm');
 
                 document.querySelectorAll('.hr-view-container').forEach(c => {
                     c.classList.remove('block', 'flex');

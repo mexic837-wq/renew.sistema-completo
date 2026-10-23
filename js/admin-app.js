@@ -4318,7 +4318,7 @@ window.renderView = async function renderView() {
     UI.viewDesc.textContent = "Directorio oficial de proveedores y subcontratistas.";
     
     if (!isRestrictedManager) {
-        setGlobalButton(true, '<i class="fa-solid fa-handshake"></i> Add Partner');
+        setGlobalButton(true, '<i class="fa-solid fa-plus text-xs"></i> <span>Añadir Proveedor</span>');
     } else {
         setGlobalButton(false);
     }
@@ -4332,91 +4332,103 @@ window.renderView = async function renderView() {
         });
     }
 
+    const viewControls = document.getElementById('view-context-controls');
+    if (viewControls) {
+        viewControls.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    <span class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></span>
+                    <span>${items.length} proveedores registrados</span>
+                </div>
+            </div>
+        `;
+    }
+
     const headers = isRestrictedManager ?
         ["", "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""] :
         [`<button id="btn-bulk-delete-partners" class="text-gray-400 hover:text-red-500 transition-all opacity-30 hover:opacity-100" title="Eliminar seleccionados"><i class="fa-solid fa-trash-can"></i></button>`, "Empresa / Contacto", "Servicio", "Teléfono", "Área de Cobertura", "Documentos", ""];
     const rowsHtml = items.map(u => {
         const safeEmpresa = u.empresa || 'Empresa Desconocida';
         const initial = safeEmpresa[0] ? safeEmpresa[0].toUpperCase() : '?';
-        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-7 h-7 rounded-lg object-cover border border-white/5">` : `<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center font-black text-gray-600 text-[9px]">${initial}</div>`;
+        const fotoHtml = u.foto ? `<img src="${u.foto}" class="w-8 h-8 rounded-xl object-cover border border-white/5">` : `<div class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center font-bold text-gray-400 text-xs">${initial}</div>`;
         
         let rawServ = u.servicio || 'General';
         if (rawServ.toLowerCase() === 'egenral') rawServ = 'General';
-        let servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5">${rawServ}</span>`;
+        let servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[10px] font-semibold rounded-md border border-gray-200/50 dark:border-white/5">${rawServ}</span>`;
         const s = rawServ.toLowerCase();
         
         if (s === 'fence') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-green-500/20"><i class="fa-solid fa-trowel-bricks"></i> ${t('partner_cat_fence')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-semibold rounded-md border border-green-500/20"><i class="fa-solid fa-trowel-bricks text-[9px] mr-1"></i>${t('partner_cat_fence')}</span>`;
         } else if (s === 'roofing' || s === 'roof') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-500/20"><i class="fa-solid fa-house"></i> ${t('partner_cat_roofing')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[10px] font-semibold rounded-md border border-blue-500/20"><i class="fa-solid fa-house text-[9px] mr-1"></i>${t('partner_cat_roofing')}</span>`;
         } else if (s === 'solar') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-orange-500/20"><i class="fa-solid fa-sun"></i> ${t('partner_cat_solar')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[10px] font-semibold rounded-md border border-orange-500/20"><i class="fa-solid fa-sun text-[9px] mr-1"></i>${t('partner_cat_solar')}</span>`;
         } else if (s === 'hvac' || s === 'aire') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20"><i class="fa-solid fa-snowflake"></i> ${t('partner_cat_hvac')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 text-[10px] font-semibold rounded-md border border-cyan-500/20"><i class="fa-solid fa-snowflake text-[9px] mr-1"></i>${t('partner_cat_hvac')}</span>`;
         } else if (s === 'painting' || s === 'pintura') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-purple-500/20"><i class="fa-solid fa-paint-roller"></i> ${t('partner_cat_painting')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-[10px] font-semibold rounded-md border border-purple-500/20"><i class="fa-solid fa-paint-roller text-[9px] mr-1"></i>${t('partner_cat_painting')}</span>`;
         } else if (s === 'remodelacion') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-500/20"><i class="fa-solid fa-toolbox"></i> ${t('partner_cat_remodelacion')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-500/10 text-gray-500 text-[10px] font-semibold rounded-md border border-gray-500/20"><i class="fa-solid fa-toolbox text-[9px] mr-1"></i>${t('partner_cat_remodelacion')}</span>`;
         } else if (s === 'dumpsters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-red-500/20"><i class="fa-solid fa-trash"></i> ${t('partner_cat_dumpsters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-semibold rounded-md border border-red-500/20"><i class="fa-solid fa-trash text-[9px] mr-1"></i>${t('partner_cat_dumpsters')}</span>`;
         } else if (s === 'gutters') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-sky-500/20"><i class="fa-solid fa-cloud-showers-water"></i> ${t('partner_cat_gutters')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-500 text-[10px] font-semibold rounded-md border border-sky-500/20"><i class="fa-solid fa-cloud-showers-water text-[9px] mr-1"></i>${t('partner_cat_gutters')}</span>`;
         } else if (s === 'screens') {
-            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[8px] font-black uppercase tracking-widest rounded-md border border-tealAccent/20"><i class="fa-solid fa-border-all"></i> ${t('partner_cat_screens')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-teal-500/10 text-tealAccent text-[10px] font-semibold rounded-md border border-tealAccent/20"><i class="fa-solid fa-border-all text-[9px] mr-1"></i>${t('partner_cat_screens')}</span>`;
         } else {
-            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[8px] font-black uppercase tracking-widest rounded-md border border-gray-200 dark:border-white/5"><i class="fa-solid fa-gear"></i> ${t('partner_cat_general')}</span>`;
+            servicioHtml = `<span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 text-gray-500 text-[10px] font-semibold rounded-md border border-gray-200/50 dark:border-white/5"><i class="fa-solid fa-gear text-[9px] mr-1"></i>${t('partner_cat_general')}</span>`;
         }
 
         return `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                <td class="px-4 py-2.5 w-4 text-center">
+                <td class="px-4 py-3 w-4 text-center">
                     ${!isRestrictedManager ? `<input type="checkbox" class="partner-chk w-3.5 h-3.5 rounded border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-tealAccent focus:ring-tealAccent" data-id="${u.id}">` : ''}
                 </td>
-                <td class="px-4 py-2.5 whitespace-nowrap">
+                <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-3">
                         ${fotoHtml}
                         <div class="flex flex-col">
                             ${!isRestrictedManager ? `<a href="#" class="partner-name-link font-bold text-gray-900 dark:text-white hover:text-tealAccent transition-colors text-xs tracking-tight" data-id="${u.id}">${safeEmpresa}</a>` : `<span class="font-bold text-gray-900 dark:text-white text-xs tracking-tight cursor-default">${safeEmpresa}</span>`}
-                            <span class="text-[8px] text-gray-400 dark:text-gray-600 font-black uppercase tracking-widest">${u.contacto || 'Sin contacto'}</span>
+                            <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">${u.contacto || 'Sin contacto'}</span>
                         </div>
                     </div>
                 </td>
-                <td class="px-4 py-2.5 whitespace-nowrap">
+                <td class="px-4 py-3 whitespace-nowrap">
                     ${servicioHtml}
                 </td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.telefono || '-'}</td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-[10px] text-gray-500 dark:text-gray-400 font-medium">${u.area || '-'}</td>
-                <td class="px-4 py-2.5 whitespace-nowrap flex gap-1">
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-medium">${u.telefono || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-medium">${u.area || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap flex gap-1.5 pt-4">
                     ${u.w9Url
-                      ? `<a href="${u.w9Url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
-                           <i class="fa-solid fa-file-invoice"></i> W-9 OK
+                      ? `<a href="${u.w9Url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 rounded-md px-2 py-0.5 text-[9px] font-bold">
+                           <i class="fa-solid fa-file-invoice text-[8px]"></i> W-9 OK
                          </a>`
-                      : `<span class="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/5 text-gray-400 border border-gray-200 dark:border-white/5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
-                           <i class="fa-solid fa-file-excel"></i> Sin W-9
+                      : `<span class="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/5 text-gray-400 border border-gray-200/50 dark:border-white/5 rounded-md px-2 py-0.5 text-[9px] font-medium">
+                           <i class="fa-solid fa-file-excel text-[8px]"></i> Sin W-9
                          </span>`
                     }
                     ${u.seguroUrl
-                      ? `<a href="${u.seguroUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
-                           <i class="fa-solid fa-shield-halved"></i> Seguro OK
+                      ? `<a href="${u.seguroUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-md px-2 py-0.5 text-[9px] font-bold">
+                           <i class="fa-solid fa-shield-halved text-[8px]"></i> Seguro OK
                          </a>`
-                      : `<span class="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide">
-                           <i class="fa-solid fa-triangle-exclamation"></i> Sin Seguro
+                      : `<span class="inline-flex items-center gap-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-md px-2 py-0.5 text-[9px] font-medium">
+                           <i class="fa-solid fa-triangle-exclamation text-[8px]"></i> Sin Seguro
                          </span>`
                     }
                 </td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-right">
-                    ${!isRestrictedManager ? `<button class="btn-delete-partner text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-[10px]"></i></button>` : ''}
+                <td class="px-4 py-3 whitespace-nowrap text-right">
+                    ${!isRestrictedManager ? `<button class="btn-delete-partner text-gray-300 hover:text-red-500 transition-colors" data-id="${u.id}"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
                 </td>
             </tr>
         `;
     }).join('');
 
     UI.canvas.innerHTML = `
-        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl shadow-premium overflow-hidden mt-4 overflow-x-auto hide-scrollbar">
+        <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
             <table class="w-full text-xs">
-                <thead class="bg-gray-50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                <thead class="bg-gray-50/60 dark:bg-white/[0.02] border-b border-gray-200/80 dark:border-white/5">
                     <tr>
-                        ${headers.map(h => `<th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em]">${h}</th>`).join('')}
+                        ${headers.map(h => `<th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${h}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
@@ -5379,66 +5391,66 @@ window.renderView = async function renderView() {
          </td></tr>`;
 
     UI.canvas.innerHTML = `
-      <div class="max-w-6xl mx-auto animate-fadeIn">
-        <div class="mb-4 flex flex-wrap gap-4">
-           <button class="inv-sede-tab ${activeInventorySede === 'orlando' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="orlando">Sede Orlando</button>
-           <button class="inv-sede-tab ${activeInventorySede === 'miami' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="miami">Sede Miami</button>
-           <button class="inv-sede-tab ${activeInventorySede === 'dallas' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="dallas">Sede Dallas</button>
-           <button class="inv-sede-tab ${activeInventorySede === 'new_york' ? 'btn-premium' : 'btn-secondary-premium'} text-xs px-6 py-3 rounded-2xl shadow-sm" data-sede="new_york">Sede Nueva York</button>
+      <div class="max-w-6xl mx-auto animate-fadeIn space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 text-xs w-fit">
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'orlando' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="orlando">Orlando</button>
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'miami' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="miami">Miami</button>
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'dallas' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="dallas">Dallas</button>
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'new_york' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="new_york">Nueva York</button>
+          </div>
+
+          <!-- Line Filters -->
+          <div class="flex flex-wrap items-center gap-1.5">
+             <button class="inv-line-tab ${activeInventoryLine === 'all' ? 'bg-tealAccent/15 text-tealAccent border-tealAccent/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-transparent hover:text-white'} text-[11px] font-semibold px-3 py-1 rounded-lg transition-all border" data-line="all">Todos</button>
+             ${uniqueLines.map(line => `
+               <button class="inv-line-tab ${activeInventoryLine === line ? 'bg-tealAccent/15 text-tealAccent border-tealAccent/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-transparent hover:text-white'} text-[11px] font-semibold px-3 py-1 rounded-lg transition-all border" data-line="${line}">${line}</button>
+             `).join('')}
+          </div>
         </div>
 
-        <!-- NEW: Line Filters -->
-        <div class="mb-8 flex flex-wrap gap-2 animate-fadeInSlow">
-           <button class="inv-line-tab ${activeInventoryLine === 'all' ? 'bg-tealAccent text-black shadow-teal-glow' : 'bg-gray-100 dark:bg-white/5 text-gray-400'} text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all border border-transparent hover:border-tealAccent/30" data-line="all">Todos</button>
-           ${uniqueLines.map(line => `
-             <button class="inv-line-tab ${activeInventoryLine === line ? 'bg-tealAccent text-black shadow-teal-glow' : 'bg-gray-100 dark:bg-white/5 text-gray-400'} text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all border border-transparent hover:border-tealAccent/30" data-line="${line}">${line}</button>
-           `).join('')}
-        </div>
-
-        <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
+        <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
             <table class="w-full text-xs">
-                <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+                <thead class="bg-gray-50/60 dark:bg-white/[0.02] border-b border-gray-200/80 dark:border-white/5">
                     <tr>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_code')}</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_prod')}</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_line')}</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">ESPECIFICACIONES</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_storage')}</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_stock')}</th>
-                        <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_actions')}</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_code')}</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_prod')}</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_line')}</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">ESPECIFICACIONES</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_storage')}</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_stock')}</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_actions')}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                    ${rowsHtml.length ? rowsHtml : `<tr><td colspan="7" class="py-24 text-center"><i class="fa-solid fa-parachute-box text-5xl text-gray-200 dark:text-white/5 mb-4 block"></i><span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">${t('inv_empty')}</span></td></tr>`}
+                    ${rowsHtml.length ? rowsHtml : `<tr><td colspan="7" class="py-16 text-center text-gray-400"><i class="fa-solid fa-parachute-box text-4xl text-gray-300 dark:text-white/10 mb-2 block"></i><span class="text-xs font-semibold">${t('inv_empty')}</span></td></tr>`}
                 </tbody>
             </table>
         </div>
 
         <!-- ââ‚¬ââ‚¬ Historial de Movimientos ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ -->
         <div class="mt-8">
-          <div class="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
-              <div class="flex items-center justify-between">
-                <h2 class="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                  <i class="fa-solid fa-clock-rotate-left text-orange-400"></i>
-                  ${t('inv_history_title')}
-                </h2>
-                <button id="btn-clear-historial" onclick="window.clearInventarioHistorial && window.clearInventarioHistorial()" class="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                  <i class="fa-solid fa-trash-can"></i> Borrar Historial
-                </button>
-              </div>
-            </div>
+          <div class="p-4 border-b border-gray-200/80 dark:border-white/5 bg-gray-50/40 dark:bg-white/[0.01] rounded-t-2xl border border-gray-200/80 dark:border-white/5 flex items-center justify-between">
+              <h2 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-orange-400"></i>
+                ${t('inv_history_title')}
+              </h2>
+              <button id="btn-clear-historial" onclick="window.clearInventarioHistorial && window.clearInventarioHistorial()" class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-xs font-bold transition-all">
+                <i class="fa-solid fa-trash-can text-[11px]"></i> Borrar Historial
+              </button>
+          </div>
 
-          <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
+          <div class="bg-white/80 dark:bg-[#0c1322] border-x border-b border-gray-200/80 dark:border-white/5 rounded-b-2xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
             <table class="w-full text-xs">
-              <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+              <thead class="bg-gray-50/60 dark:bg-white/[0.02] border-b border-gray-200/80 dark:border-white/5">
                 <tr>
-                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_date')}</th>
-                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_tech')}</th>
-                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PROYECTO</th>
-                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_item')}</th>
-                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_qty')}</th>
-                  <th class="px-6 py-4 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">${t('inv_col_sede')}</th>
-                  <th class="px-6 py-4 text-right text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Acción</th>
+                  <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_date')}</th>
+                  <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_tech')}</th>
+                  <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">PROYECTO</th>
+                  <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_item')}</th>
+                  <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_qty')}</th>
+                  <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">${t('inv_col_sede')}</th>
+                  <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Acción</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-white/5">
@@ -5459,12 +5471,12 @@ window.renderView = async function renderView() {
     setGlobalButton(false);
     
     const annTabsHtml = `
-      <div class="flex gap-4 mb-8">
-        <button class="ann-sub-tab px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.activeAnnTab === 'comunicados' ? 'bg-tealAccent text-black shadow-teal-glow' : 'bg-gray-100 dark:bg-white/5 text-gray-400 hover:text-tealAccent'}" data-tab="comunicados">
-          <i class="fa-solid fa-bullhorn mr-2"></i> Comunicados
+      <div class="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 text-xs w-fit mb-6">
+        <button class="ann-sub-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${state.activeAnnTab === 'comunicados' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-tab="comunicados">
+          <i class="fa-solid fa-bullhorn mr-1.5 text-xs"></i> Comunicados
         </button>
-        <button class="ann-sub-tab px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.activeAnnTab === 'llamadas' ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-gray-100 dark:bg-white/5 text-gray-400 hover:text-blue-400'}" data-tab="llamadas">
-          <i class="fa-solid fa-video mr-2"></i> Coordinar Llamadas
+        <button class="ann-sub-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${state.activeAnnTab === 'llamadas' ? 'bg-white dark:bg-[#0c1322] text-blue-400 shadow-sm' : 'text-gray-400 hover:text-white'}" data-tab="llamadas">
+          <i class="fa-solid fa-video mr-1.5 text-xs"></i> Coordinar Llamadas
         </button>
       </div>
     `;
@@ -10991,51 +11003,50 @@ async function renderListaPreciosAdmin() {
   `;}).join('');
 
   UI.canvas.innerHTML = `
-    <div class="max-w-7xl mx-auto animate-fadeIn">
-      <div class="flex flex-col xl:flex-row justify-between xl:items-center mb-6 gap-6">
-          <div class="flex flex-col gap-3">
-              <h2 class="text-xl font-black text-white uppercase tracking-tighter">Gestión de Precios</h2>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit">
+    <div class="max-w-7xl mx-auto animate-fadeIn space-y-5">
+      <div class="flex flex-col xl:flex-row justify-between xl:items-center gap-4">
+          <div class="flex flex-col gap-2">
+              <div class="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 w-fit">
                  ${Object.entries(rankLabels).map(([key, label]) => `
-                    <button class="precios-rank-tab px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${activeRank === key ? 'bg-white dark:bg-white/10 text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
+                    <button class="precios-rank-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRank === key ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'}" data-rank="${key}">
                         ${label}
                     </button>
                  `).join('')}
               </div>
           </div>
           
-          <div class="flex flex-col md:flex-row items-center justify-end gap-3 w-full xl:w-auto mt-4 xl:mt-0 flex-1">
-              <div class="relative w-full md:w-64">
-                  <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                  <input type="text" placeholder="Buscar producto o código..." value="${state.preciosSearchQuery || ''}" class="w-full bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-[10px] uppercase font-black text-gray-900 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent transition-colors outline-none" oninput="window.setPreciosSearch(this.value)">
+          <div class="flex flex-wrap items-center justify-end gap-2.5 w-full xl:w-auto">
+              <div class="relative w-full sm:w-60">
+                  <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                  <input type="text" placeholder="Buscar producto o código..." value="${state.preciosSearchQuery || ''}" class="w-full bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-xs text-gray-900 dark:text-white focus:border-tealAccent focus:ring-1 focus:ring-tealAccent transition-colors outline-none" oninput="window.setPreciosSearch(this.value)">
               </div>
               ${isAdminPriceList ? `
-              <button onclick="window.syncGoogleSheets()" id="btn-sync-sheets" class="flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-600 text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all">
-                  <i class="fa-solid fa-sync"></i> Sincronizar Sheets
+              <button onclick="window.syncGoogleSheets()" id="btn-sync-sheets" class="flex-shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-2 bg-green-500/10 border border-green-500/20 rounded-xl text-green-500 text-xs font-bold hover:bg-green-500 hover:text-white transition-all">
+                  <i class="fa-solid fa-sync text-xs"></i> <span>Sincronizar Sheets</span>
               </button>
               ` : ''}
               <div class="flex items-center">
-                  <button onclick="window.open('${activePdf}', '_blank')" class="flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-l-xl text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">
-                    <i class="fa-solid fa-file-pdf"></i> Lista ${rankLabels[activeRank].toUpperCase()} (PDF)
+                  <button onclick="window.open('${activePdf}', '_blank')" class="flex items-center gap-1.5 px-3.5 py-2 bg-red-500/10 border border-red-500/20 rounded-l-xl text-red-500 text-xs font-bold hover:bg-red-500 hover:text-white transition-all">
+                    <i class="fa-solid fa-file-pdf text-xs"></i> <span>PDF (${rankLabels[activeRank]})</span>
                   </button>
-                  <button onclick="window.adminUploadCatalogo('${activeRank}')" class="flex items-center justify-center w-12 py-3 bg-red-600 text-white rounded-r-xl text-[10px] hover:bg-red-700 transition-all border border-red-600" title="Actualizar PDF">
-                    <i class="fa-solid fa-upload"></i>
+                  <button onclick="window.adminUploadCatalogo('${activeRank}')" class="flex items-center justify-center w-9 py-2 bg-red-600 text-white rounded-r-xl text-xs hover:bg-red-700 transition-all border border-red-600" title="Actualizar PDF">
+                    <i class="fa-solid fa-upload text-xs"></i>
                   </button>
               </div>
           </div>
       </div>
       <input type="file" id="inp-catalog-pdf" class="hidden" accept="application/pdf">
 
-      <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
+      <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden overflow-x-auto hide-scrollbar">
           <table class="w-full text-xs">
-              <thead class="bg-gray-50/50 dark:bg-white/[0.01] border-b border-gray-100 dark:border-white/5">
+              <thead class="bg-gray-50/60 dark:bg-white/[0.02] border-b border-gray-200/80 dark:border-white/5">
                   <tr>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">FOTO</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">CATEGORÍA</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRODUCTO</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">SPECS</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">PRECIO ${rankLabels[activeRank].toUpperCase()}</th>
-                      <th class="px-6 py-5 text-left text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">RANGO SUG.</th>
+                      <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">FOTO</th>
+                      <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">CATEGORÍA</th>
+                      <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">PRODUCTO</th>
+                      <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">SPECS</th>
+                      <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">PRECIO ${rankLabels[activeRank].toUpperCase()}</th>
+                      <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">RANGO SUG.</th>
                       <th class="px-6 py-5 text-right text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">ACCIONES</th>
                   </tr>
               </thead>

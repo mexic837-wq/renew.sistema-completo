@@ -10,58 +10,58 @@ export async function renderRendimientoGlobal() {
     if (!canvas) return;
 
     canvas.innerHTML = `
-        <div class="p-8 space-y-8 animate-fadeIn">
+        <div class="space-y-6 animate-fadeIn">
 
             <!-- Filters Row -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <!-- Tabs Ecosystem -->
-                <div class="flex items-center gap-4 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit" id="rendimiento-eco-tabs">
+                <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 w-fit" id="rendimiento-eco-tabs">
                     <!-- Tabs will be dynamically inserted here -->
                 </div>
 
                 <!-- Time Filters -->  
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col sm:flex-row items-center gap-3">
                     <!-- Quick filters -->
-                    <div class="flex items-center gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl w-fit">
-                        <button id="range-weekly"  onclick="window.setGlobalRange('weekly')"  class="range-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Semanal</button>
-                        <button id="range-monthly" onclick="window.setGlobalRange('monthly')" class="range-tab active px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Mensual</button>
-                        <button id="range-annual"  onclick="window.setGlobalRange('annual')"  class="range-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Anual</button>
-                        <button id="range-custom"  onclick="window.toggleDatePicker()"        class="range-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent flex items-center gap-1.5"><svg xmlns='http://www.w3.org/2000/svg' class='w-3 h-3' fill='none' viewBox='0 0 24 24' stroke='currentColor'><rect x='3' y='4' width='18' height='18' rx='2' stroke-width='2'/><line x1='16' y1='2' x2='16' y2='6' stroke-width='2'/><line x1='8' y1='2' x2='8' y2='6' stroke-width='2'/><line x1='3' y1='10' x2='21' y2='10' stroke-width='2'/></svg>Rango</button>
+                    <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 w-fit">
+                        <button id="range-weekly"  onclick="window.setGlobalRange('weekly')"  class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent">Semanal</button>
+                        <button id="range-monthly" onclick="window.setGlobalRange('monthly')" class="range-tab active px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm">Mensual</button>
+                        <button id="range-annual"  onclick="window.setGlobalRange('annual')"  class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent">Anual</button>
+                        <button id="range-custom"  onclick="window.toggleDatePicker()"        class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent flex items-center gap-1.5"><svg xmlns='http://www.w3.org/2000/svg' class='w-3 h-3' fill='none' viewBox='0 0 24 24' stroke='currentColor'><rect x='3' y='4' width='18' height='18' rx='2' stroke-width='2'/><line x1='16' y1='2' x2='16' y2='6' stroke-width='2'/><line x1='8' y1='2' x2='8' y2='6' stroke-width='2'/><line x1='3' y1='10' x2='21' y2='10' stroke-width='2'/></svg>Rango</button>
                     </div>
                     <!-- Custom date range (hidden by default) -->
-                    <div id="custom-date-picker" class="hidden items-center gap-3 bg-white dark:bg-darkCard border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 shadow-lg">
+                    <div id="custom-date-picker" class="hidden items-center gap-3 bg-white/90 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3.5 py-2 shadow-lg">
                         <div class="flex items-center gap-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Desde</label>
-                            <input id="date-from" type="date" onchange="window.applyCustomRange()" class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-tealAccent/40">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Desde</label>
+                            <input id="date-from" type="date" onchange="window.applyCustomRange()" class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-tealAccent">
                         </div>
-                        <span class="text-gray-300 font-bold">→</span>
+                        <span class="text-gray-400 font-bold">→</span>
                         <div class="flex items-center gap-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hasta</label>
-                            <input id="date-to" type="date" onchange="window.applyCustomRange()" class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-tealAccent/40">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hasta</label>
+                            <input id="date-to" type="date" onchange="window.applyCustomRange()" class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-tealAccent">
                         </div>
-                        <button onclick="window.clearCustomRange()" class="ml-2 text-[10px] font-black text-gray-400 hover:text-red-400 transition-all uppercase tracking-widest"><i class="fa-solid fa-xmark text-red-500"></i> Limpiar</button>
+                        <button onclick="window.clearCustomRange()" class="ml-1 text-[10px] font-bold text-gray-400 hover:text-red-400 transition-all uppercase tracking-wider"><i class="fa-solid fa-xmark text-red-500"></i> Limpiar</button>
                     </div>
                 </div>
             </div>
 
             <!-- Vendor Filter Row -->
-            <div class="flex items-center gap-4">
-                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filtrar por vendedor:</span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-semibold text-gray-400">Filtrar por vendedor:</span>
                 <div id="vendor-selector-wrapper" class="relative">
                     <!-- Trigger button -->
-                    <button id="vendor-selector-btn" onclick="window.toggleVendorDropdown()" class="flex items-center gap-2 bg-white dark:bg-darkCard border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-xs font-black text-gray-700 dark:text-white shadow-sm hover:border-tealAccent/40 transition-all min-w-[200px]">
+                    <button id="vendor-selector-btn" onclick="window.toggleVendorDropdown()" class="flex items-center gap-2 bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-xl px-3.5 py-2 text-xs font-bold text-gray-700 dark:text-white shadow-sm hover:border-tealAccent/40 transition-all min-w-[200px]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-tealAccent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
                         <span id="vendor-btn-label" class="flex-1 text-left">Todos los vendedores</span>
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
                     <!-- Dropdown panel -->
-                    <div id="vendor-dropdown" class="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-darkCard border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl min-w-[280px] overflow-hidden">
+                    <div id="vendor-dropdown" class="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-[#0c1322] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl min-w-[280px] overflow-hidden">
                         <!-- Header -->
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5">
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Seleccionar vendedores</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Seleccionar vendedores</span>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input id="vendor-cb-all" type="checkbox" checked onchange="window.selectAllVendors(this.checked)" class="w-4 h-4 accent-teal-400">
-                                <span class="text-[10px] font-black text-tealAccent uppercase tracking-widest">Todos</span>
+                                <input id="vendor-cb-all" type="checkbox" checked onchange="window.selectAllVendors(this.checked)" class="w-3.5 h-3.5 accent-teal-400">
+                                <span class="text-[10px] font-bold text-tealAccent uppercase tracking-wider">Todos</span>
                             </label>
                         </div>
                         <!-- Vendor list -->
@@ -72,75 +72,75 @@ export async function renderRendimientoGlobal() {
                 </div>
             </div>
 
-            <!-- KPI Cards (5 cols) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <!-- KPI Cards (5 cols matching modern OS standard) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <!-- Prospectos -->
-                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-blue-400/30 transition-all">
-                    <p class="text[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2">Prospectos</p>
-                    <div class="flex items-end gap-3">
-                        <h3 id="kpi-total-contactos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
-                        <span id="kpi-prospectos-pct" class="text-sm font-black text-blue-400 mb-1"></span>
+                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-blue-400/30 transition-all">
+                    <p class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Prospectos</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="kpi-total-contactos" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
+                        <span id="kpi-prospectos-pct" class="text-xs font-bold text-blue-400"></span>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 font-medium">Total de contactos registrados</p>
+                    <p class="text-[11px] text-gray-400 mt-1">Total registrados</p>
                 </div>
 
                 <!-- Presentaciones -->
-                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-amber-400/30 transition-all">
-                    <p class="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] mb-2">Presentaciones</p>
-                    <div class="flex items-end gap-3">
-                        <h3 id="kpi-proyectos-abiertos" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
-                        <span id="kpi-presentaciones-pct" class="text-sm font-black text-amber-400 mb-1"></span>
+                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-amber-400/30 transition-all">
+                    <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-1">Presentaciones</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="kpi-proyectos-abiertos" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
+                        <span id="kpi-presentaciones-pct" class="text-xs font-bold text-amber-400"></span>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 font-medium">Citas con presentación activa</p>
+                    <p class="text-[11px] text-gray-400 mt-1">Citas con presentación</p>
                 </div>
 
                 <!-- Ventas -->
-                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-emerald-400/30 transition-all">
-                    <p class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2">Ventas</p>
-                    <div class="flex items-end gap-3">
-                        <h3 id="kpi-ventas-totales" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
-                        <span id="kpi-ventas-pct" class="text-sm font-black text-emerald-400 mb-1"></span>
+                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-emerald-400/30 transition-all">
+                    <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Ventas</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="kpi-ventas-totales" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
+                        <span id="kpi-ventas-pct" class="text-xs font-bold text-emerald-400"></span>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 font-medium">Proyectos concretados</p>
+                    <p class="text-[11px] text-gray-400 mt-1">Proyectos cerrados</p>
                 </div>
 
                 <!-- Declinados -->
-                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-red-400/30 transition-all">
-                    <p class="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] mb-2">Declinados</p>
-                    <div class="flex items-end gap-3">
-                        <h3 id="kpi-declinados-totales" class="text-3xl font-black text-gray-900 dark:text-white">0</h3>
+                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-red-400/30 transition-all">
+                    <p class="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Declinados</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="kpi-declinados-totales" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 font-medium">Prospectos rechazados</p>
+                    <p class="text-[11px] text-gray-400 mt-1">Prospectos rechazados</p>
                 </div>
 
                 <!-- Tasa de Rendimiento (indicador visual) -->
-                <div class="bg-white dark:bg-darkCard p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-premium group hover:border-purple-400/30 transition-all relative overflow-hidden">
-                    <p class="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-2">Tasa de Rendimiento</p>
-                    <div class="flex items-end gap-3">
-                        <h3 id="kpi-tasa-cierre" class="text-3xl font-black text-gray-900 dark:text-white">0%</h3>
-                        <span id="kpi-tasa-icon" class="text-xl mb-1">—</span>
+                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-purple-400/30 transition-all relative overflow-hidden">
+                    <p class="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Rendimiento</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 id="kpi-tasa-cierre" class="text-2xl font-bold text-gray-900 dark:text-white">0%</h3>
+                        <span id="kpi-tasa-icon" class="text-sm font-bold text-purple-400">—</span>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 font-medium">Citas → ventas concretadas</p>
+                    <p class="text-[11px] text-gray-400 mt-1">Citas vs ventas</p>
                     <!-- Progress bar -->
-                    <div class="mt-4 w-full h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div class="mt-3 w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                         <div id="kpi-tasa-bar" class="h-full rounded-full transition-all duration-700"
                              style="width:0%; background: linear-gradient(90deg,#a855f7,#7c3aed);"></div>
                     </div>
                     <!-- Benchmark label -->
                     <div class="flex justify-between mt-1">
-                        <span class="text-[9px] text-gray-400 font-bold">0%</span>
-                        <span id="kpi-tasa-label" class="text-[9px] font-black text-purple-400">Calculando…</span>
-                        <span class="text-[9px] text-gray-400 font-bold">100%</span>
+                        <span class="text-[9px] text-gray-400">0%</span>
+                        <span id="kpi-tasa-label" class="text-[9px] font-bold text-purple-400">Calculando…</span>
+                        <span class="text-[9px] text-gray-400">100%</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart + Legend -->
-            <div class="bg-white dark:bg-darkCard p-10 rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-premium">
-                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <!-- Chart + Legend (Modern Container) -->
+            <div class="bg-white/80 dark:bg-[#0c1322] p-6 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                     <div>
-                        <h4 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Desempeño Global</h4>
-                        <p id="chart-subtitle" class="text-xs text-gray-500 font-medium mt-1">Evolución de prospectos, presentaciones y ventas del mes.</p>
+                        <h4 class="text-base font-bold text-gray-900 dark:text-white tracking-tight">Desempeño Global</h4>
+                        <p id="chart-subtitle" class="text-xs text-gray-500 font-normal mt-0.5">Evolución de prospectos, presentaciones y ventas del mes.</p>
                     </div>
                     <!-- Legend -->
                     <div class="flex items-center gap-6 flex-shrink-0">
@@ -190,8 +190,8 @@ export async function renderRendimientoGlobal() {
         </div>
 
         <style>
-            .eco-tab.active  { background:#00f5d4; color:#000; box-shadow:0 4px 15px rgba(0,245,212,.2); }
-            .range-tab.active{ background:#00f5d4; color:#000; box-shadow:0 4px 15px rgba(0,245,212,.2); }
+            .eco-tab.active  { background:#00f5d4; color:#000; font-weight: 700; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+            .range-tab.active{ background:#00f5d4; color:#000; font-weight: 700; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
             #custom-date-picker.visible { display:flex; }
             #date-from, #date-to { color-scheme: dark; }
             #vendor-dropdown { display:none; }
@@ -230,7 +230,7 @@ export async function renderRendimientoGlobal() {
     const ecoTabsContainer = document.getElementById('rendimiento-eco-tabs');
     if (ecoTabsContainer) {
         ecoTabsContainer.innerHTML = allowedEcos.map(eco => `
-            <button id="tab-${eco.toLowerCase()}" onclick="window.filterGlobalEco('${eco}')" class="eco-tab px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-gray-500 hover:text-tealAccent">Renew ${eco}</button>
+            <button id="tab-${eco.toLowerCase()}" onclick="window.filterGlobalEco('${eco}')" class="eco-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent">Renew ${eco}</button>
         `).join('');
     }
 

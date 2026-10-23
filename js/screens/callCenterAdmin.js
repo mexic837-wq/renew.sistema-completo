@@ -3,61 +3,63 @@ import { showToast } from '../components/toast.js';
 export async function renderCallCenterAdmin() {
     const main = document.getElementById('main-canvas');
     main.innerHTML = `
-        <div class="px-10 py-10 fade-in w-full max-w-[1600px] mx-auto min-h-screen flex flex-col">
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <div class="aqua-label"><i class="fa-solid fa-headset mr-2"></i> Módulo Call Center</div>
-                    <h2 class="text-4xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-2">Call Center Leads</h2>
-                    <p class="text-[12px] uppercase tracking-[0.2em] font-bold text-gray-500">Gestión de prospectos del Call Center y carga manual</p>
+        <div class="space-y-6 animate-fadeIn w-full">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200/50 dark:border-white/5 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        <span class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></span>
+                        <span>Flujo de Leads Telefónicos</span>
+                    </span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button id="btn-process-queue" class="px-4 py-3 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all" title="Procesar leads en cola de espera">
-                        <i class="fa-solid fa-arrows-rotate mr-1"></i> Procesar Cola
+                <div class="flex items-center gap-2.5">
+                    <button id="btn-process-queue" class="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5" title="Procesar leads en cola de espera">
+                        <i class="fa-solid fa-arrows-rotate text-xs"></i> <span>Procesar Cola</span>
                     </button>
-                    <button id="btn-add-cc-lead" class="btn-premium">
-                        <i class="fa-solid fa-user-plus text-lg"></i> Añadir Lead Call Center
+                    <button id="btn-add-cc-lead" class="btn-premium flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs shadow-sm transition-all">
+                        <i class="fa-solid fa-plus text-xs"></i> <span>Añadir Lead</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Stats Badges -->
-            <div id="cc-stats-bar" class="grid grid-cols-4 gap-4 mb-6">
-                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
-                    <p class="text-2xl font-black text-gray-900 dark:text-white" id="cc-stat-total">-</p>
-                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">Total Leads</p>
+            <!-- Stats Cards (Matching Modern OS Design) -->
+            <div id="cc-stats-bar" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:border-tealAccent/30 transition-all">
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Total Leads</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="cc-stat-total">-</p>
                 </div>
-                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
-                    <p class="text-2xl font-black text-yellow-500" id="cc-stat-espera">-</p>
-                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">En Espera</p>
+                <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:border-yellow-500/30 transition-all">
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-yellow-500">En Espera</p>
+                    <p class="text-2xl font-bold text-yellow-500 mt-1" id="cc-stat-espera">-</p>
                 </div>
-                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
-                    <p class="text-2xl font-black text-blue-500" id="cc-stat-pendientes">-</p>
-                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">Pendientes</p>
+                <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:border-blue-500/30 transition-all">
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-blue-500">Pendientes</p>
+                    <p class="text-2xl font-bold text-blue-500 mt-1" id="cc-stat-pendientes">-</p>
                 </div>
-                <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-2xl p-4 text-center">
-                    <p class="text-2xl font-black text-green-500" id="cc-stat-aceptados">-</p>
-                    <p class="text-[9px] uppercase tracking-widest font-bold text-gray-400 mt-1">Aceptados</p>
+                <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:border-tealAccent/30 transition-all">
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-tealAccent">Aceptados</p>
+                    <p class="text-2xl font-bold text-tealAccent mt-1" id="cc-stat-aceptados">-</p>
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-darkCard border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-light-card flex-1">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+            <!-- Modern Table Wrapper -->
+            <div class="bg-white/80 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto hide-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="border-b border-gray-100 dark:border-white/10 text-[10px] uppercase tracking-[0.15em] text-gray-400 dark:text-gray-500">
-                                <th class="pb-4 font-black">Nombre</th>
-                                <th class="pb-4 font-black">Teléfono</th>
-                                <th class="pb-4 font-black">Dirección</th>
-                                <th class="pb-4 font-black">Email</th>
-                                <th class="pb-4 font-black">Operador</th>
-                                <th class="pb-4 font-black">Origen</th>
-                                <th class="pb-4 font-black">Notas</th>
-                                <th class="pb-4 font-black">Estado</th>
-                                <th class="pb-4 font-black text-right">Acción</th>
+                            <tr class="bg-gray-50/60 dark:bg-white/[0.02] border-b border-gray-200/80 dark:border-white/5 text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500">
+                                <th class="py-3 px-4">Nombre</th>
+                                <th class="py-3 px-4">Teléfono</th>
+                                <th class="py-3 px-4">Dirección</th>
+                                <th class="py-3 px-4">Email</th>
+                                <th class="py-3 px-4">Operador</th>
+                                <th class="py-3 px-4">Origen</th>
+                                <th class="py-3 px-4">Notas</th>
+                                <th class="py-3 px-4">Estado</th>
+                                <th class="py-3 px-4 text-right">Acción</th>
                             </tr>
                         </thead>
-                        <tbody id="cc-leads-tbody" class="text-sm">
-                            <tr><td colspan="7" class="py-10 text-center text-gray-500 text-xs uppercase tracking-widest"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Cargando...</td></tr>
+                        <tbody id="cc-leads-tbody" class="divide-y divide-gray-100 dark:divide-white/5">
+                            <tr><td colspan="9" class="py-12 text-center text-gray-400 text-xs"><i class="fa-solid fa-circle-notch fa-spin mr-2 text-tealAccent"></i> Cargando registros...</td></tr>
                         </tbody>
                     </table>
                 </div>

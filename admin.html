@@ -495,44 +495,48 @@
           transition: all 0.5s ease;
       }
       
-      /* Dark mode keeps original teal */
-      .dark .sidebar-item-active {
-        background: linear-gradient(90deg, rgba(0, 245, 212, 0.14) 0%, rgba(0, 245, 212, 0.02) 100%) !important;
-        border-left: 3px solid #00f5d4 !important;
-        border-right: none !important;
-        color: #00f5d4 !important;
-        font-weight: 700 !important;
-        border-radius: 4px 12px 12px 4px !important;
-      }
-      /* Light mode active: handled above */
+      /* Modern Minimalist Sidebar Active Item */
       .sidebar-item-active {
-        border-right: none;
-        border-radius: 0.75rem;
-        margin-left: 0.25rem;
-        margin-right: 0.25rem;
+        background: rgba(0, 245, 212, 0.08) !important;
+        color: #00f5d4 !important;
+        font-weight: 600 !important;
+        border-radius: 0.75rem !important;
+        border: 1px solid rgba(0, 245, 212, 0.22) !important;
+      }
+      .sidebar-item-active i {
+        color: #00f5d4 !important;
+      }
+      .dark .sidebar-item-active {
+        background: rgba(0, 245, 212, 0.08) !important;
+        color: #00f5d4 !important;
+        font-weight: 600 !important;
+        border-radius: 0.75rem !important;
+        border: 1px solid rgba(0, 245, 212, 0.22) !important;
+      }
+      html:not(.dark) .sidebar-item-active {
+        background: rgba(15, 171, 158, 0.08) !important;
+        color: var(--lp) !important;
+        font-weight: 600 !important;
+        border-radius: 0.75rem !important;
+        border: 1px solid rgba(15, 171, 158, 0.22) !important;
+      }
+      html:not(.dark) .sidebar-item-active i {
+        color: var(--lp) !important;
       }
 
       .sidebar-section-title {
-        font-size: 9.5px !important;
-        font-weight: 800 !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.16em !important;
         color: #64748b !important;
-        opacity: 0.75 !important;
         display: flex !important;
         align-items: center !important;
         user-select: none !important;
         padding: 12px 12px 4px !important;
       }
       .sidebar-section-title::after {
-        content: '' !important;
-        flex: 1 !important;
-        height: 1px !important;
-        background: rgba(255, 255, 255, 0.06) !important;
-        margin-left: 8px !important;
-      }
-      html:not(.dark) .sidebar-section-title::after {
-        background: rgba(0, 0, 0, 0.06) !important;
+        display: none !important;
       }
       .admin-sidebar-collapsed .sidebar-section-title,
       .admin-sidebar-collapsed .btn-back-portal {
@@ -742,13 +746,22 @@
     <style>
         #admin-preloader.fade-out { opacity: 0; visibility: hidden; transform: scale(1.1); pointer-events: none; }
         
-        /* Sidebar Scroll & Collapse */
-        #admin-sidebar {
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: none; /* Firefox */
+        /* Sidebar Scroll & Complete Scrollbar Suppression */
+        #admin-sidebar,
+        #admin-sidebar *,
+        #admin-sidebar-scroll,
+        .hide-scrollbar {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
         }
-        #admin-sidebar::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+        #admin-sidebar::-webkit-scrollbar,
+        #admin-sidebar *::-webkit-scrollbar,
+        #admin-sidebar-scroll::-webkit-scrollbar,
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
 
         /* Collapsed Sidebar State */
         aside#admin-sidebar.collapsed {
@@ -797,27 +810,27 @@
     </div>
 
     <!-- Sidebar -->
-    <aside id="admin-sidebar" class="w-60 border-r border-gray-100 dark:border-white/5 bg-white dark:bg-[#070a10] flex flex-col z-40 transition-all duration-300 backdrop-blur-xl">
-        <div class="overflow-y-auto overflow-x-hidden flex-1 pb-4">
-            <div class="sidebar-header h-20 flex items-center px-5 gap-3 border-b border-gray-100 dark:border-white/5">
-                <img src="./assets/images/renew copia logo.png" class="w-7 h-7 object-contain brightness-0 invert dark:brightness-100 dark:invert-0 transition-all duration-300 drop-shadow-[0_0_8px_rgba(0,245,212,0.3)]" alt="RENEW OS Logo">
+    <aside id="admin-sidebar" class="w-60 border-r border-gray-200/80 dark:border-white/5 bg-white dark:bg-[#070a10] flex flex-col z-40 transition-all duration-300 backdrop-blur-xl">
+        <div id="admin-sidebar-scroll" class="overflow-y-auto overflow-x-hidden flex-1 pb-4 hide-scrollbar">
+            <div class="sidebar-header h-16 flex items-center px-4 gap-2.5 border-b border-gray-200/80 dark:border-white/5">
+                <img src="./assets/images/renew copia logo.png" class="w-6 h-6 object-contain brightness-0 invert dark:brightness-100 dark:invert-0 transition-all duration-300 drop-shadow-[0_0_8px_rgba(0,245,212,0.3)]" alt="RENEW OS Logo">
                 <div id="logo-container" class="flex flex-col">
-                    <h1 id="logo-text_main" class="text-base font-black text-tealAccent leading-none tracking-tight uppercase">EQUIPO <span class="text-gray-900 dark:text-white">RENEW</span></h1>
-                    <div class="flex items-center gap-1.5 mt-1">
+                    <h1 id="logo-text_main" class="text-xs font-black text-tealAccent leading-none tracking-tight uppercase">EQUIPO <span class="text-gray-900 dark:text-white">RENEW</span></h1>
+                    <div class="flex items-center gap-1.5 mt-0.5">
                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-tealAccent animate-pulse"></span>
-                        <p id="logo-text_sub" class="text-[8.5px] uppercase tracking-[0.14em] font-mono text-gray-400 dark:text-gray-500">OS 2.4 • Admin</p>
+                        <p id="logo-text_sub" class="text-[8px] uppercase tracking-[0.14em] font-mono text-gray-400 dark:text-gray-500">OS 2.4 • Admin</p>
                     </div>
                 </div>
             </div>
 
             <!-- Quick link back to Sales Portal -->
-            <div class="px-3 pt-3 pb-1 btn-back-portal">
-                <a href="index.html" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-tealAccent/10 border border-white/5 hover:border-tealAccent/30 text-gray-400 hover:text-tealAccent text-xs font-semibold transition-all group">
+            <div class="px-3 pt-2.5 pb-1 btn-back-portal">
+                <a href="index.html" class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-gray-100/70 dark:bg-white/[0.02] hover:bg-tealAccent/10 border border-gray-200/50 dark:border-white/5 hover:border-tealAccent/30 text-gray-500 dark:text-gray-400 hover:text-tealAccent text-[11px] font-semibold transition-all group">
                     <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+                        <i class="fa-solid fa-arrow-left text-[10px] group-hover:-translate-x-0.5 transition-transform"></i>
                         <span>Portal de Ventas</span>
                     </span>
-                    <span class="text-[9px] font-mono opacity-50">App</span>
+                    <span class="text-[8.5px] font-mono opacity-60 px-1 py-0.5 rounded bg-gray-200 dark:bg-white/5">App</span>
                 </a>
             </div>
             
