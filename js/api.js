@@ -1997,7 +1997,22 @@ export async function getDealsByUser(userId, pipelineName) {
   }
 }
 
-export async function getClientesMaestro() {
+export async function getClientesMaestro(forceRefresh = false) {
+  if (forceRefresh) {
+    try {
+      const res = await fetch(`${API_BASE}/db?t=${Date.now()}`);
+      if (res.ok) {
+        const fresh = await res.json();
+        const freshClients = fresh.Clientes_Maestro || fresh.clientes_maestro;
+        const freshProys = fresh.Proyectos_Dinamicos || fresh.proyectos_dinamicos;
+        const db = getDB();
+        if (freshClients && db) db.Clientes_Maestro = freshClients;
+        if (freshProys && db) db.Proyectos_Dinamicos = freshProys;
+      }
+    } catch(e) {
+      console.warn('[getClientesMaestro] Refresh error:', e);
+    }
+  }
   const db = getDB();
   syncClientStatuses(db);
   return db.Clientes_Maestro;

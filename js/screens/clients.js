@@ -243,7 +243,7 @@ export async function renderClients() {
 
 // ── Render client/prospect list ──────────────────────────────
 async function _renderList(user, container) {
-  const todosClientes = await getClientesMaestro();
+  const todosClientes = await getClientesMaestro(true);
   const db = getDB();
 
   // Sync user profile from DB to get latest permissions/equipo_ids
