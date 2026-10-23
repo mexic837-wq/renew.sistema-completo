@@ -2418,7 +2418,8 @@ const handlerFormularioExterno = async (req, res) => {
                 adjuntos_oficina: adjuntos,
                 departamentos_activos: depts,
                 departamento: resolvedDept,
-                estado: 'En Proceso'
+                estado: isWorkOrder ? 'En Proceso' : (existingCli.estado || 'Lead'),
+                macro_estado: isWorkOrder ? 'Clientes' : (existingCli.macro_estado || 'Prospectos')
             };
             if (!isWorkOrder && pdfUrl) updateData.credit_app_url = pdfUrl;
             if (idPhotoUrl) {
@@ -2449,7 +2450,7 @@ const handlerFormularioExterno = async (req, res) => {
                 state_id: stateId,
                 dob: dob,
                 empresa: '',
-                estado: 'En Proceso',
+                estado: isWorkOrder ? 'En Proceso' : 'Lead',
                 macro_estado: isWorkOrder ? 'Clientes' : 'Prospectos',
                 fecha: todayDate,
                 fecha_inicio: nowIso,
@@ -2473,115 +2474,120 @@ const handlerFormularioExterno = async (req, res) => {
             }
         }
 
-        // 6. Resolver Pipeline y Fases
-        const { data: pipelines } = await supabase.from('admin_pipelines').select('*');
-        const pipTarget = (pipelines || []).find(p => 
-            p.nombre.trim().toLowerCase().includes(resolvedDept.toLowerCase().replace('renew ', '')) ||
-            p.nombre.trim().toLowerCase() === resolvedDept.toLowerCase()
-        ) || (pipelines || []).find(p => p.id === 'pip_water') || pipelines?.[0];
+        // 6. Lógica de Proyecto según el tipo de formulario:
+        // - Aplicación de Crédito: SE QUEDA COMO PROSPECTO (sin proyecto en Kanban aún). La aplicación queda vinculada en su perfil para que cuando sea aprobada, se comience el proyecto.
+        // - Orden de Trabajo: CLIENTE APROBADO (crea o avanza el proyecto en proyectos_dinamicos en la fase de Orden de Trabajo).
+        let proyecto = null;
+        let proyectoId = null;
+        let pipelineId = null;
+        let targetFaseId = null;
 
-        const pipelineId = pipTarget?.id || 'pip_water';
+        if (isWorkOrder) {
+            const { data: pipelines } = await supabase.from('admin_pipelines').select('*');
+            const pipTarget = (pipelines || []).find(p => 
+                p.nombre.trim().toLowerCase().includes(resolvedDept.toLowerCase().replace('renew ', '')) ||
+                p.nombre.trim().toLowerCase() === resolvedDept.toLowerCase()
+            ) || (pipelines || []).find(p => p.id === 'pip_water') || pipelines?.[0];
 
-        const { data: allFases } = await supabase
-            .from('admin_fases')
-            .select('*')
-            .eq('pipeline_id', pipelineId)
-            .order('orden', { ascending: true });
+            pipelineId = pipTarget?.id || 'pip_water';
 
-        const fases = allFases || [];
-        const firstFase = fases[0];
-        const ordenTrabajoFase = fases.find(f => f.nombre.toLowerCase().includes('orden') || f.orden === 2) || firstFase;
-        const targetFaseId = isWorkOrder ? (ordenTrabajoFase?.id || firstFase?.id) : firstFase?.id;
-
-        // 7. Buscar o Crear Proyecto Dinámico
-        const { data: existingProjects } = await supabase
-            .from('proyectos_dinamicos')
-            .select('*')
-            .eq('cliente_id', clienteId)
-            .eq('pipeline_id', pipelineId);
-
-        let proyecto = existingProjects && existingProjects.length > 0 ? existingProjects[0] : null;
-        let proyectoId = proyecto ? proyecto.id : null;
-
-        if (proyecto) {
-            console.log(`[WEBHOOK-SYNC] Proyecto existente encontrado: ${proyectoId}. Actualizando fase y actividades...`);
-            const disc = Array.isArray(proyecto.discusion) ? proyecto.discusion : [];
-            disc.push({
-                id: `disc_${Date.now()}`,
-                autor: responsableNombre || 'Sistema',
-                fecha: nowIso,
-                mensaje: `Formulario externo (${isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito'}) sincronizado.`
-            });
-
-            const proyUpdate = {
-                ultima_actividad: nowIso,
-                ultima_actividad_label: isWorkOrder ? 'Orden de Trabajo Recibida' : 'Aplicación de Crédito Recibida',
-                discusion: disc
-            };
-
-            // Si es orden de trabajo y el proyecto estaba en fase 1 ("Aprobación"), avanzarlo a Fase 2 ("Orden de Trabajo")
-            if (isWorkOrder && proyecto.fase_id === firstFase?.id) {
-                proyUpdate.fase_id = targetFaseId;
-            }
-
-            if (responsableId && !proyecto.responsable_id) {
-                proyUpdate.responsable_id = responsableId;
-            }
-
-            await supabase.from('proyectos_dinamicos').update(proyUpdate).eq('id', proyectoId);
-        } else {
-            proyectoId = `proy_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-            console.log(`[WEBHOOK-SYNC] Creando nuevo proyecto dinámico: ${proyectoId}`);
-
-            const newProy = {
-                id: proyectoId,
-                cliente_id: clienteId,
-                pipeline_id: pipelineId,
-                fase_id: targetFaseId,
-                responsable_id: responsableId,
-                fecha: todayDate,
-                estado: 'Activo',
-                ultima_actividad: nowIso,
-                ultima_actividad_label: isWorkOrder ? 'Orden de Trabajo Recibida' : 'Aplicación de Crédito Recibida',
-                colaboradores: [],
-                discusion: [
-                    {
-                        id: `disc_${Date.now()}`,
-                        autor: responsableNombre || 'Sistema',
-                        fecha: nowIso,
-                        mensaje: `Proyecto creado automáticamente desde enlace independiente. Vendedor/Dealer: ${responsableNombre}.`
-                    }
-                ]
-            };
-
-            const { error: insProyErr } = await supabase.from('proyectos_dinamicos').insert([newProy]);
-            if (insProyErr) {
-                console.error('[WEBHOOK-SYNC] Error creando proyecto dinámico:', insProyErr);
-                throw insProyErr;
-            }
-        }
-
-        // 8. Sincronizar Campos Dinámicos (respuestas_dinamicas)
-        if (pdfUrl && targetFaseId) {
-            const { data: campos } = await supabase
-                .from('admin_campos_formulario')
+            const { data: allFases } = await supabase
+                .from('admin_fases')
                 .select('*')
-                .eq('fase_id', targetFaseId);
+                .eq('pipeline_id', pipelineId)
+                .order('orden', { ascending: true });
 
-            if (campos && campos.length > 0) {
-                const tipoBuscado = isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito';
-                const campoTarget = campos.find(c => (c.tipo || '').toLowerCase().includes(tipoBuscado.toLowerCase())) || campos[0];
-                if (campoTarget) {
-                    const respId = `resp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-                    await supabase.from('respuestas_dinamicas').upsert({
-                        id: respId,
-                        proyecto_id: proyectoId,
-                        campo_id: campoTarget.id,
-                        valor: pdfUrl
-                    }, { onConflict: 'id' });
-                    console.log(`[WEBHOOK-SYNC] Campo dinámico ${campoTarget.id} asignado con URL: ${pdfUrl}`);
+            const fases = allFases || [];
+            const firstFase = fases[0];
+            const ordenTrabajoFase = fases.find(f => f.nombre.toLowerCase().includes('orden') || f.orden === 2) || firstFase;
+            targetFaseId = ordenTrabajoFase?.id || firstFase?.id;
+
+            // Buscar o Crear Proyecto Dinámico
+            const { data: existingProjects } = await supabase
+                .from('proyectos_dinamicos')
+                .select('*')
+                .eq('cliente_id', clienteId)
+                .eq('pipeline_id', pipelineId);
+
+            proyecto = existingProjects && existingProjects.length > 0 ? existingProjects[0] : null;
+            proyectoId = proyecto ? proyecto.id : null;
+
+            if (proyecto) {
+                console.log(`[WEBHOOK-SYNC] Proyecto existente encontrado: ${proyectoId}. Avanzando a Orden de Trabajo...`);
+                const disc = Array.isArray(proyecto.discusion) ? proyecto.discusion : [];
+                disc.push({
+                    id: `disc_${Date.now()}`,
+                    autor: responsableNombre || 'Sistema',
+                    fecha: nowIso,
+                    mensaje: `Orden de Trabajo recibida. Proyecto avanzado a ${ordenTrabajoFase?.nombre || 'Orden de Trabajo'}.`
+                });
+
+                const proyUpdate = {
+                    fase_id: targetFaseId,
+                    ultima_actividad: nowIso,
+                    ultima_actividad_label: 'Orden de Trabajo Recibida',
+                    discusion: disc
+                };
+
+                if (responsableId && !proyecto.responsable_id) {
+                    proyUpdate.responsable_id = responsableId;
+                }
+
+                await supabase.from('proyectos_dinamicos').update(proyUpdate).eq('id', proyectoId);
+            } else {
+                proyectoId = `proy_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                console.log(`[WEBHOOK-SYNC] Creando nuevo proyecto dinámico para Orden de Trabajo: ${proyectoId}`);
+
+                const newProy = {
+                    id: proyectoId,
+                    cliente_id: clienteId,
+                    pipeline_id: pipelineId,
+                    fase_id: targetFaseId,
+                    responsable_id: responsableId,
+                    fecha: todayDate,
+                    estado: 'Activo',
+                    ultima_actividad: nowIso,
+                    ultima_actividad_label: 'Orden de Trabajo Recibida',
+                    colaboradores: [],
+                    discusion: [
+                        {
+                            id: `disc_${Date.now()}`,
+                            autor: responsableNombre || 'Sistema',
+                            fecha: nowIso,
+                            mensaje: `Proyecto iniciado por Orden de Trabajo desde enlace independiente. Vendedor/Dealer: ${responsableNombre}.`
+                        }
+                    ]
+                };
+
+                const { error: insProyErr } = await supabase.from('proyectos_dinamicos').insert([newProy]);
+                if (insProyErr) {
+                    console.error('[WEBHOOK-SYNC] Error creando proyecto dinámico:', insProyErr);
+                    throw insProyErr;
                 }
             }
+
+            // Sincronizar Campos Dinámicos (respuestas_dinamicas) para Orden de Trabajo
+            if (pdfUrl && targetFaseId) {
+                const { data: campos } = await supabase
+                    .from('admin_campos_formulario')
+                    .select('*')
+                    .eq('fase_id', targetFaseId);
+
+                if (campos && campos.length > 0) {
+                    const campoTarget = campos.find(c => (c.tipo || '').toLowerCase().includes('orden')) || campos[0];
+                    if (campoTarget) {
+                        const respId = `resp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                        await supabase.from('respuestas_dinamicas').upsert({
+                            id: respId,
+                            proyecto_id: proyectoId,
+                            campo_id: campoTarget.id,
+                            valor: pdfUrl
+                        }, { onConflict: 'id' });
+                    }
+                }
+            }
+        } else {
+            console.log(`[WEBHOOK-SYNC] Aplicación de Crédito guardada exitosamente como Prospecto (sin proyecto en Kanban). Cliente: ${clienteId}`);
         }
 
         console.log(`[WEBHOOK-SYNC] Sincronización exitosa | Cliente: ${clienteId} | Proyecto: ${proyectoId}`);
