@@ -2121,7 +2121,8 @@ app.post('/api/generar-orden', async (req, res) => {
 // ─── ENDPOINT: Sincronización de Formulario Externo (Crédito y Orden de Trabajo) ───
 // Permite que enlaces independientes (Vercel / n8n) sincronicen automáticamente prospectos,
 // proyectos dinámicos, PDFs y fotos de ID en Renew OS según las plantillas del sistema.
-app.post('/api/webhook/formulario-externo', async (req, res) => {
+// Acepta tanto /api/webhook/formulario-externo como /api/webhook/formulario
+const handlerFormularioExterno = async (req, res) => {
     try {
         console.log('[WEBHOOK-SYNC] Recibida petición de sincronización de formulario externo...');
         let payload = req.body;
@@ -2607,7 +2608,10 @@ app.post('/api/webhook/formulario-externo', async (req, res) => {
             detalle: error.message
         });
     }
-});
+};
+
+app.post('/api/webhook/formulario-externo', handlerFormularioExterno);
+app.post('/api/webhook/formulario', handlerFormularioExterno);
 
 
 // ── CALL CENTER PROSPECTOS API ──────────────────────────────
