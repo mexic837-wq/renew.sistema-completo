@@ -2118,6 +2118,483 @@ app.post('/api/generar-orden', async (req, res) => {
     }
 });
 
+// ─── ENDPOINT: Sincronización de Formulario Externo (Crédito y Orden de Trabajo) ───
+// Permite que enlaces independientes (Vercel / n8n) sincronicen automáticamente prospectos,
+// proyectos dinámicos, PDFs y fotos de ID en Renew OS según las plantillas del sistema.
+app.post('/api/webhook/formulario-externo', async (req, res) => {
+    try {
+        console.log('[WEBHOOK-SYNC] Recibida petición de sincronización de formulario externo...');
+        let payload = req.body;
+        if (payload && payload.body && typeof payload.body === 'object') {
+            payload = payload.body;
+        }
+        if (payload && payload.datos && typeof payload.datos === 'object') {
+            payload = { ...payload, ...payload.datos };
+        }
+
+        const tipo = (payload.tipo_formulario || payload.evento || '').toLowerCase();
+        const isCredit = tipo.includes('credito') || tipo.includes('credit');
+        const isWorkOrder = tipo.includes('orden') || tipo.includes('trabajo') || tipo.includes('workorder');
+
+        // Extraer comprador / aplicante
+        const comp = payload.comprador || payload.aplicante || {};
+        const coApp = payload.coAplicante || payload.co_aplicante || {};
+        const emp = payload.empleoAplicante || payload.empleo || {};
+        const inst = payload.instalacion || {};
+        const fin = payload.finanzas || {};
+        const firmas = payload.firmas || {};
+        const dealerName = (payload.nombre_dealer || payload.dealerName || payload.nombre_rep || '').trim();
+        const procedencia = payload.negocio_procedencia || payload.negocio || 'Renew Water';
+
+        const nombreCliente = (
+            comp.nombreCompleto || 
+            `${comp.nombre || ''} ${comp.segundoNombre || comp.apellido || ''}`.trim() || 
+            'Cliente Nuevo'
+        ).trim();
+
+        const telefono = comp.telefono || comp.phone || '';
+        const email = comp.email || '';
+        const direccion = comp.direccion || comp.address || '';
+        const ciudad = comp.ciudad || comp.city || '';
+        const estado = comp.estado || comp.state || '';
+        const zip = comp.zipCode || comp.zip || '';
+        const direccionCompleta = [direccion, ciudad, estado, zip].filter(Boolean).join(', ');
+        const dob = comp.fechaNacimiento || comp.dob || '-';
+        const stateId = comp.licenciaEstado || comp.estado || '-';
+
+        // 1. Buscar o asignar Dealer (Vendedor) en usuarios
+        let responsableId = null;
+        let responsableNombre = dealerName || 'Representante';
+
+        if (dealerName) {
+            const cleanDealer = dealerName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const { data: users } = await supabase.from('usuarios').select('id, nombre, apellido, email, rol');
+            if (users && users.length > 0) {
+                // Coincidencia exacta
+                let match = users.find(u => {
+                    const full = `${u.nombre || ''} ${u.apellido || ''}`.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    return full === cleanDealer;
+                });
+                // Coincidencia por partes (tanto nombre como apellido deben estar presentes si se ingresaron ambos)
+                if (!match) {
+                    const parts = cleanDealer.split(/\s+/).filter(Boolean);
+                    if (parts.length > 1) {
+                        match = users.find(u => {
+                            const full = `${u.nombre || ''} ${u.apellido || ''}`.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            return parts.every(p => full.includes(p));
+                        });
+                    } else if (parts.length === 1 && parts[0].length >= 3) {
+                        // Solo se ingresó una sola palabra
+                        match = users.find(u => {
+                            const fn = (u.nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            const ln = (u.apellido || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            return fn === parts[0] || ln === parts[0];
+                        });
+                    }
+                }
+                if (match) {
+                    responsableId = match.id;
+                    responsableNombre = `${match.nombre || ''} ${match.apellido || ''}`.trim();
+                    console.log(`[WEBHOOK-SYNC] Dealer "${dealerName}" asignado al usuario ID: ${responsableId} (${responsableNombre})`);
+                } else {
+                    const adminUser = users.find(u => (u.rol || '').includes('Admin') || (u.rol || '').includes('CEO')) || users[0];
+                    if (adminUser) responsableId = adminUser.id;
+                    console.log(`[WEBHOOK-SYNC] Dealer "${dealerName}" no encontrado exacto. Fallback a ID: ${responsableId}`);
+                }
+            }
+        }
+
+        // 2. Subir Foto del ID si viene en Base64
+        let idPhotoUrl = payload.id_photo_url || null;
+        if (!idPhotoUrl && comp.fotoId && typeof comp.fotoId === 'string' && comp.fotoId.startsWith('data:image')) {
+            idPhotoUrl = await uploadBase64ToSupabase(comp.fotoId, isCredit ? 'creditos_ids' : 'ordenes_ids');
+            console.log(`[WEBHOOK-SYNC] Foto de ID subida a: ${idPhotoUrl}`);
+        }
+
+        // 3. Subir Foto del ID del Co-Aplicante si viene en Base64
+        let coIdPhotoUrl = null;
+        if (coApp.fotoId && typeof coApp.fotoId === 'string' && coApp.fotoId.startsWith('data:image')) {
+            coIdPhotoUrl = await uploadBase64ToSupabase(coApp.fotoId, 'creditos_ids');
+        }
+
+        // 4. Obtener o Generar el PDF
+        let pdfUrl = payload.pdf_url || payload.orden_url || payload.document_url || null;
+        if (!pdfUrl) {
+            console.log('[WEBHOOK-SYNC] Generando PDF automáticamente...');
+            const moldeName = isWorkOrder ? 'molde_orden_v3.pdf' : 'molde_credito_v9.pdf';
+            const moldePath = path.join(__dirname, 'FORMULARIO-RENEW-WATER-main', moldeName);
+            if (fs.existsSync(moldePath)) {
+                let datosPDF = {};
+                const todayStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+
+                if (isWorkOrder) {
+                    const e = payload.equipos || {};
+                    const f = payload.finanzas || {};
+                    const t = payload.tarjeta || {};
+                    datosPDF = {
+                        "fecha_orden": todayStr,
+                        "comprador_1": comp.nombre || '',
+                        "comprador_2": comp.segundoNombre || '',
+                        "telefono": comp.telefono || '',
+                        "email": comp.email || '',
+                        "direccion": comp.direccion || '',
+                        "ciudad": comp.ciudad || '',
+                        "estado": comp.estado || '',
+                        "zip": comp.zipCode || '',
+                        "equipo_softener": (e.suavizadorCasa_entera || e.suavizadorCasa) ? 'X' : '',
+                        "equipo_ro": (e.osmosisReversa || e.osmosisReverso) ? 'X' : '',
+                        "equipo_alkaline": e.aguaAlcalina ? 'X' : '',
+                        "equipo_well": e.aguaPozo ? 'X' : '',
+                        "equipo_otro_texto": e.otros || e.otro_texto || '',
+                        "fecha_inst": inst.fechaEstimada || '',
+                        "num_personas": inst.personasEnCasa || '',
+                        "piso_elevado": inst.tipoPiso === 'Raised' ? 'X' : '',
+                        "piso_concreto": inst.tipoPiso === 'Concrete-slab' ? 'X' : '',
+                        "icemaker_yes": inst.conexionRefrigerador === 'Yes' ? 'X' : '',
+                        "icemaker_no": inst.conexionRefrigerador === 'No' ? 'X' : '',
+                        "hora_9_2": inst.horario === '9:00am-2:00pm' ? 'X' : '',
+                        "hora_2_6": inst.horario === '2:00pm-6:00pm' ? 'X' : '',
+                        "dureza": inst.granossDureza || '',
+                        "instrucciones": inst.instruccionesEspeciales || '',
+                        "precio_contado": f.precioContado || '',
+                        "instalacion": f.instalacion || '',
+                        "total_contado": f.precioContado || '',
+                        "cuota_inicial": f.cuotaInicial || '',
+                        "saldo_financiado": f.saldo_financiado || '',
+                        "cantidad_financiar": f.cantidad_financiar || '',
+                        "terminos_pago": f.terminos_pago || '',
+                        "apr": f.apr || '',
+                        "cargos_financieros": f.cargosFinancieros || '',
+                        "total_pagos": f.totalPagos || '',
+                        "cc_monto": f.tarjetaMonto || '',
+                        "cc_num": f.tarjetaNumero || t.numero || '',
+                        "cc_exp": f.tarjetaExpiracion || t.expiracion || '',
+                        "cc_cvv": f.tarjetaCvv || t.cvv || '',
+                        "firma_comp1": firmas.comprador_1 || firmas.comprador || '',
+                        "firma_comp2": firmas.comprador_2 || '',
+                        "nombre_rep": dealerName,
+                        "firma_rep": firmas.representante || '',
+                        "fecha_c1": todayStr,
+                        "fecha_c2": todayStr,
+                        "fecha_rep": todayStr
+                    };
+                } else {
+                    const ea = payload.empleoAplicante || payload.empleo || {};
+                    const eco = payload.empleoCoAplicante || {};
+                    datosPDF = {
+                        "monto_credito": payload.monto_credito || comp.monto || '',
+                        "aplicante_nombre": comp.nombreCompleto || `${comp.nombre || ''} ${comp.segundoNombre || ''}`.trim(),
+                        "aplicante_dob": comp.fechaNacimiento || '',
+                        "aplicante_ssn": comp.seguroSocial || '',
+                        "aplicante_licencia": comp.licencia || '',
+                        "aplicante_estado_lic": comp.licenciaEstado || '',
+                        "aplicante_expedicion_lic": comp.licenciaExpedicion || '',
+                        "aplicante_expiracion_lic": comp.licenciaExpiracion || '',
+                        "aplicante_telefono": comp.telefono || '',
+                        "aplicante_email": comp.email || '',
+                        "aplicante_direccion": comp.direccion || '',
+                        "aplicante_tiempo_casa": comp.tiempoViviendo || '',
+                        "aplicante_pago_casa": comp.pagoMensual || '',
+                        "aplicante_tipo_house": comp.tipoVivienda === 'Casa' ? 'X' : '',
+                        "aplicante_tipo_dept": comp.tipoVivienda === 'Departamento' ? 'X' : '',
+                        "aplicante_tipo_condo": comp.tipoVivienda === 'Condo' ? 'X' : '',
+                        "aplicante_tipo_mobile": comp.tipoVivienda === 'Mobile Home' ? 'X' : '',
+                        "aplicante_estatus_paid": comp.estatusVivienda === 'Pagado' ? 'X' : '',
+                        "aplicante_estatus_mortgage": comp.estatusVivienda === 'Hipotecado' ? 'X' : '',
+                        "aplicante_estatus_rent": comp.estatusVivienda === 'Rentado' ? 'X' : '',
+                        "aplicante_empresa": ea.nombreEmpleo || '',
+                        "aplicante_tel_trabajo": ea.telefonoTrabajo || '',
+                        "aplicante_dir_trabajo": ea.direccionTrabajo || '',
+                        "aplicante_cargo": ea.posicion || '',
+                        "aplicante_tiempo_trabajo": ea.tiempoTrabajo || '',
+                        "aplicante_ingreso_monto": ea.pagoMensual || '',
+                        "aplicante_job_full": ea.tipoIngreso === 'Tiempo Completo' ? 'X' : '',
+                        "aplicante_job_part": ea.tipoIngreso === 'Medio Tiempo' ? 'X' : '',
+                        "aplicante_job_own": ea.tipoIngreso === 'Propio Negocio' ? 'X' : '',
+                        "aplicante_job_retired": ea.tipoIngreso === 'Pensionado' ? 'X' : '',
+                        "aplicante_check_monthly": ea.frecuenciaPago === 'Mensual' ? 'X' : '',
+                        "aplicante_check_yearly": ea.frecuenciaPago === 'Anual' ? 'X' : '',
+                        "co_nombre": coApp.nombreCompleto || `${coApp.nombre || ''} ${coApp.segundoNombre || ''}`.trim(),
+                        "co_dob": coApp.fechaNacimiento || '',
+                        "co_ssn": coApp.seguroSocial || '',
+                        "co_licencia": coApp.licencia || '',
+                        "co_estado_lic": coApp.licenciaEstado || '',
+                        "co_telefono": coApp.telefono || '',
+                        "co_email": coApp.email || '',
+                        "co_direccion": coApp.direccion || '',
+                        "co_empresa": eco.nombreEmpleo || '',
+                        "firma_aplicante": firmas.firma_aplicante || firmas.comprador_1 || firmas.signature || '',
+                        "firma_co_aplicante": firmas.firma_co_aplicante || firmas.comprador_2 || '',
+                        "fecha_firma_aplicante": todayStr,
+                        "fecha_firma_co": todayStr,
+                        "nombre_dealer": dealerName,
+                        "fecha_firma_dealer": todayStr
+                    };
+                }
+
+                try {
+                    const pdfBytes = await generarPDF(moldePath, datosPDF);
+                    const folder = isWorkOrder ? 'ordenes' : 'creditos';
+                    const prefix = isWorkOrder ? 'orden_trabajo' : 'app_credito';
+                    const fileName = `${folder}/${prefix}_${Date.now()}_${Math.round(Math.random() * 1E9)}.pdf`;
+                    const { error: upErr } = await supabase.storage
+                        .from('archivos_renew')
+                        .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
+
+                    if (!upErr) {
+                        const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
+                        pdfUrl = publicUrl;
+                        console.log(`[WEBHOOK-SYNC] PDF generado y subido con éxito: ${pdfUrl}`);
+                    } else {
+                        console.error('[WEBHOOK-SYNC] Error subiendo PDF a Storage:', upErr);
+                    }
+                } catch (pdfGenErr) {
+                    console.error('[WEBHOOK-SYNC] Error en generarPDF:', pdfGenErr);
+                }
+            }
+        }
+
+        // 5. Buscar Cliente existente en clientes_maestro (por teléfono o email)
+        const cleanPhone = telefono.replace(/\D/g, '').slice(-10);
+        const cleanEmail = email.trim().toLowerCase();
+
+        const { data: allClients } = await supabase.from('clientes_maestro').select('*');
+        let existingCli = null;
+
+        if (allClients && allClients.length > 0) {
+            if (cleanPhone && cleanPhone.length >= 7) {
+                existingCli = allClients.find(c => (c.telefono || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+            }
+            if (!existingCli && cleanEmail && cleanEmail.includes('@')) {
+                existingCli = allClients.find(c => (c.email || '').trim().toLowerCase() === cleanEmail);
+            }
+        }
+
+        let clienteId = existingCli ? existingCli.id : null;
+        let adjuntos = (existingCli && existingCli.adjuntos_oficina && typeof existingCli.adjuntos_oficina === 'object' && !Array.isArray(existingCli.adjuntos_oficina)) 
+            ? { ...existingCli.adjuntos_oficina } 
+            : {};
+
+        if (isWorkOrder) {
+            if (pdfUrl) {
+                adjuntos.orden_trabajo_url = pdfUrl;
+                adjuntos.ultima_orden_fecha = new Date().toISOString();
+            }
+        } else {
+            if (pdfUrl) {
+                adjuntos.app_url = pdfUrl;
+                adjuntos.ultima_credit_fecha = new Date().toISOString();
+            }
+        }
+
+        if (idPhotoUrl) {
+            adjuntos.id_photo_url = idPhotoUrl;
+        }
+        if (coIdPhotoUrl) {
+            adjuntos.co_applicant_id_url = coIdPhotoUrl;
+        }
+
+        const resolvedDept = procedencia.toLowerCase().includes('home') ? 'Renew Home' : 'Renew Water';
+        const nowIso = new Date().toISOString();
+        const todayDate = nowIso.split('T')[0];
+
+        if (existingCli) {
+            console.log(`[WEBHOOK-SYNC] Actualizando cliente existente: ${clienteId} (${existingCli.nombre})`);
+            const depts = Array.isArray(existingCli.departamentos_activos) ? [...existingCli.departamentos_activos] : [];
+            if (!depts.includes(resolvedDept)) depts.push(resolvedDept);
+
+            const updateData = {
+                adjuntos_oficina: adjuntos,
+                departamentos_activos: depts,
+                departamento: resolvedDept,
+                estado: 'En Proceso'
+            };
+            if (isWorkOrder && pdfUrl) updateData.orden_trabajo_url = pdfUrl;
+            if (!isWorkOrder && pdfUrl) updateData.credit_app_url = pdfUrl;
+            if (idPhotoUrl) {
+                updateData.id_photo = idPhotoUrl;
+                updateData.adjunto_id_url = idPhotoUrl;
+            }
+            if (responsableId && !existingCli.vendedor_asignado_id) {
+                updateData.vendedor_asignado_id = responsableId;
+                updateData.vendedor_asignado_nombre = responsableNombre;
+            }
+
+            await supabase.from('clientes_maestro').update(updateData).eq('id', clienteId);
+        } else {
+            clienteId = `cli_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+            console.log(`[WEBHOOK-SYNC] Creando nuevo prospecto/cliente: ${clienteId} (${nombreCliente})`);
+
+            const newCli = {
+                id: clienteId,
+                nombre: nombreCliente,
+                telefono: telefono,
+                email: email,
+                direccion: direccionCompleta,
+                zip: zip,
+                state_id: stateId,
+                dob: dob,
+                empresa: '',
+                estado: 'En Proceso',
+                macro_estado: isWorkOrder ? 'Clientes' : 'Prospectos',
+                fecha: todayDate,
+                fecha_inicio: nowIso,
+                departamento: resolvedDept,
+                departamentos_activos: [resolvedDept],
+                origen_tipo: 'representante',
+                origen_id: responsableId,
+                origen_nombre: responsableNombre,
+                vendedor_asignado_id: responsableId,
+                vendedor_asignado_nombre: responsableNombre,
+                adjuntos_oficina: adjuntos,
+                id_photo: idPhotoUrl,
+                adjunto_id_url: idPhotoUrl,
+                credit_app_url: !isWorkOrder ? pdfUrl : null,
+                orden_trabajo_url: isWorkOrder ? pdfUrl : null
+            };
+
+            const { error: insCliErr } = await supabase.from('clientes_maestro').insert([newCli]);
+            if (insCliErr) {
+                console.error('[WEBHOOK-SYNC] Error creando cliente en clientes_maestro:', insCliErr);
+            }
+        }
+
+        // 6. Resolver Pipeline y Fases
+        const { data: pipelines } = await supabase.from('admin_pipelines').select('*');
+        const pipTarget = (pipelines || []).find(p => 
+            p.nombre.trim().toLowerCase().includes(resolvedDept.toLowerCase().replace('renew ', '')) ||
+            p.nombre.trim().toLowerCase() === resolvedDept.toLowerCase()
+        ) || (pipelines || []).find(p => p.id === 'pip_water') || pipelines?.[0];
+
+        const pipelineId = pipTarget?.id || 'pip_water';
+
+        const { data: allFases } = await supabase
+            .from('admin_fases')
+            .select('*')
+            .eq('pipeline_id', pipelineId)
+            .order('orden', { ascending: true });
+
+        const fases = allFases || [];
+        const firstFase = fases[0];
+        const ordenTrabajoFase = fases.find(f => f.nombre.toLowerCase().includes('orden') || f.orden === 2) || firstFase;
+        const targetFaseId = isWorkOrder ? (ordenTrabajoFase?.id || firstFase?.id) : firstFase?.id;
+
+        // 7. Buscar o Crear Proyecto Dinámico
+        const { data: existingProjects } = await supabase
+            .from('proyectos_dinamicos')
+            .select('*')
+            .eq('cliente_id', clienteId)
+            .eq('pipeline_id', pipelineId);
+
+        let proyecto = existingProjects && existingProjects.length > 0 ? existingProjects[0] : null;
+        let proyectoId = proyecto ? proyecto.id : null;
+
+        if (proyecto) {
+            console.log(`[WEBHOOK-SYNC] Proyecto existente encontrado: ${proyectoId}. Actualizando fase y actividades...`);
+            const disc = Array.isArray(proyecto.discusion) ? proyecto.discusion : [];
+            disc.push({
+                id: `disc_${Date.now()}`,
+                autor: responsableNombre || 'Sistema',
+                fecha: nowIso,
+                mensaje: `Formulario externo (${isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito'}) sincronizado.`
+            });
+
+            const proyUpdate = {
+                ultima_actividad: nowIso,
+                ultima_actividad_label: isWorkOrder ? 'Orden de Trabajo Recibida' : 'Aplicación de Crédito Recibida',
+                discusion: disc
+            };
+
+            // Si es orden de trabajo y el proyecto estaba en fase 1 ("Aprobación"), avanzarlo a Fase 2 ("Orden de Trabajo")
+            if (isWorkOrder && proyecto.fase_id === firstFase?.id) {
+                proyUpdate.fase_id = targetFaseId;
+            }
+
+            if (responsableId && !proyecto.responsable_id) {
+                proyUpdate.responsable_id = responsableId;
+            }
+
+            await supabase.from('proyectos_dinamicos').update(proyUpdate).eq('id', proyectoId);
+        } else {
+            proyectoId = `proy_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+            console.log(`[WEBHOOK-SYNC] Creando nuevo proyecto dinámico: ${proyectoId}`);
+
+            const newProy = {
+                id: proyectoId,
+                cliente_id: clienteId,
+                pipeline_id: pipelineId,
+                fase_id: targetFaseId,
+                responsable_id: responsableId,
+                fecha: todayDate,
+                estado: 'Activo',
+                ultima_actividad: nowIso,
+                ultima_actividad_label: isWorkOrder ? 'Orden de Trabajo Recibida' : 'Aplicación de Crédito Recibida',
+                colaboradores: [],
+                discusion: [
+                    {
+                        id: `disc_${Date.now()}`,
+                        autor: responsableNombre || 'Sistema',
+                        fecha: nowIso,
+                        mensaje: `Proyecto creado automáticamente desde enlace independiente. Vendedor/Dealer: ${responsableNombre}.`
+                    }
+                ]
+            };
+
+            const { error: insProyErr } = await supabase.from('proyectos_dinamicos').insert([newProy]);
+            if (insProyErr) {
+                console.error('[WEBHOOK-SYNC] Error creando proyecto dinámico:', insProyErr);
+            }
+        }
+
+        // 8. Sincronizar Campos Dinámicos (respuestas_dinamicas)
+        if (pdfUrl && targetFaseId) {
+            const { data: campos } = await supabase
+                .from('admin_campos_formulario')
+                .select('*')
+                .eq('fase_id', targetFaseId);
+
+            if (campos && campos.length > 0) {
+                const tipoBuscado = isWorkOrder ? 'Orden de Trabajo' : 'Aplicación de Crédito';
+                const campoTarget = campos.find(c => (c.tipo || '').toLowerCase().includes(tipoBuscado.toLowerCase())) || campos[0];
+                if (campoTarget) {
+                    const respId = `resp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                    await supabase.from('respuestas_dinamicas').upsert({
+                        id: respId,
+                        proyecto_id: proyectoId,
+                        campo_id: campoTarget.id,
+                        valor: pdfUrl
+                    }, { onConflict: 'id' });
+                    console.log(`[WEBHOOK-SYNC] Campo dinámico ${campoTarget.id} asignado con URL: ${pdfUrl}`);
+                }
+            }
+        }
+
+        console.log(`[WEBHOOK-SYNC] Sincronización exitosa | Cliente: ${clienteId} | Proyecto: ${proyectoId}`);
+
+        return res.status(200).json({
+            success: true,
+            cliente_id: clienteId,
+            proyecto_id: proyectoId,
+            pipeline_id: pipelineId,
+            fase_id: targetFaseId,
+            responsable_id: responsableId,
+            responsable_nombre: responsableNombre,
+            pdf_url: pdfUrl,
+            id_photo_url: idPhotoUrl,
+            tipo_formulario: isWorkOrder ? 'orden_trabajo' : 'aplicacion_credito',
+            mensaje: 'Prospecto y Proyecto sincronizados exitosamente en Renew OS'
+        });
+
+    } catch (error) {
+        console.error('[WEBHOOK-SYNC ERROR]', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Error al sincronizar formulario externo con Renew OS',
+            detalle: error.message
+        });
+    }
+});
+
 
 // ── CALL CENTER PROSPECTOS API ──────────────────────────────
 // Implementa el Algoritmo de Asignación Inteligente:
