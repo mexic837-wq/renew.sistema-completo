@@ -390,13 +390,15 @@ async function _renderList(user, container) {
       } else if (isCallCenterRole) {
         countProspectos++;
       } else {
+        const isProspectoMacro = c.macro_estado === 'Prospectos' || c.macro_estado === 'Prospecto' || c.estado === 'Lead';
+        if (isProspectoMacro) countProspectos++;
         if (activePipelineObj) {
           const hasProjectInPipeline = clientProjects.some(p => String(p.pipeline_id) === String(activePipelineObj.id));
-          if (!hasProjectInPipeline) countProspectos++;
-          else countClientes++;
+          if (!hasProjectInPipeline && !isProspectoMacro) countProspectos++;
+          if (hasProjectInPipeline) countClientes++;
         } else {
-          if (clientProjects.length === 0) countProspectos++;
-          else countClientes++;
+          if (clientProjects.length === 0 && !isProspectoMacro) countProspectos++;
+          if (clientProjects.length > 0) countClientes++;
         }
       }
   });
@@ -455,7 +457,9 @@ async function _renderList(user, container) {
       if (currentClientsTab !== 'kanban' && c.macro_estado === 'Declinado') return false;
 
       const clientProjects = projectsByClient.get(c.id) || [];
+      const isProspectoMacro = c.macro_estado === 'Prospectos' || c.macro_estado === 'Prospecto' || c.estado === 'Lead';
       if (currentClientsTab === 'prospectos') {
+        if (isProspectoMacro) return true;
         if (activePipelineObj) {
           const hasProjectInPipeline = clientProjects.some(p => String(p.pipeline_id) === String(activePipelineObj.id));
           return !hasProjectInPipeline;
