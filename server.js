@@ -2619,6 +2619,223 @@ const handlerFormularioExterno = async (req, res) => {
 app.post('/api/webhook/formulario-externo', handlerFormularioExterno);
 app.post('/api/webhook/formulario', handlerFormularioExterno);
 
+// ─── ENDPOINT: Webhook Análisis Gratuito (Sitio Web renewwaterus.com) ───
+// Recibe los datos del modal "Agenda tu prueba gratis" de la web oficial y crea o actualiza
+// el prospecto en clientes_maestro (macro_estado: 'Prospectos', estado: 'Lead') listo para iniciar proyecto.
+const handlerAnalisisGratuito = async (req, res) => {
+    try {
+        console.log('[ANALISIS-GRATUITO] Recibida solicitud desde sitio web / n8n...');
+        let payload = req.body || {};
+        if (payload.body && typeof payload.body === 'object') payload = payload.body;
+        if (payload.datos && typeof payload.datos === 'object') payload = { ...payload, ...payload.datos };
+        if (payload.data && typeof payload.data === 'object') payload = { ...payload, ...payload.data };
+        if (payload.true && typeof payload.true === 'object') payload = payload.true;
+
+        // Desempaquetar si viene envuelto en un objeto anidado
+        if (payload && typeof payload === 'object' && !payload.nombre && !payload.telefono && !payload.phone && !payload.nombreCompleto) {
+            const keys = Object.keys(payload);
+            if (keys.length === 1 && typeof payload[keys[0]] === 'object' && payload[keys[0]] !== null) {
+                payload = payload[keys[0]];
+            }
+        }
+
+        const nombreCliente = (
+            payload.nombre || 
+            payload.nombreCompleto || 
+            payload.nombre_completo || 
+            payload.name || 
+            payload.full_name || 
+            payload.cliente || 
+            'Prospecto Web'
+        ).trim();
+
+        const telefono = (
+            payload.telefono || 
+            payload.phone || 
+            payload.tel || 
+            payload.celular || 
+            payload.numero || 
+            ''
+        ).trim();
+
+        const email = (payload.email || payload.correo || '').trim();
+        const horario = (payload.horario || payload.horario_preferido || payload.horarioPreferido || payload.preferred_time || payload.schedule || '').trim();
+        const zip = (payload.codigo_postal || payload.codigoPostal || payload.zip || payload.zip_code || payload.zipCode || payload.postal_code || '').trim();
+        const estado = (payload.estado || payload.state || payload.state_id || 'Florida').trim();
+        const zonaCubierta = payload.zona_cubierta !== undefined ? Boolean(payload.zona_cubierta) : (payload.zonaCubierta !== undefined ? Boolean(payload.zonaCubierta) : true);
+
+        const cleanDigits = (str) => String(str || '').replace(/\D/g, '');
+        const cleanTel = cleanDigits(telefono);
+        const tel10 = cleanTel.length >= 10 ? cleanTel.slice(-10) : cleanTel;
+
+        const now = new Date();
+        const todayDate = now.toISOString().split('T')[0];
+        const nowIso = now.toISOString();
+        const direccionCompleta = [zip, estado].filter(Boolean).join(', ');
+
+        const notaLead = `🎯 Lead de Sitio Web (Análisis Gratuito - renewwaterus.com)\n` +
+            `• Horario preferido: ${horario || 'No especificado'}\n` +
+            `• Zona / Zip: ${zip || ''} ${estado || ''}\n` +
+            `• Cobertura de zona: ${zonaCubierta ? 'Cubierta' : 'Por verificar'}\n` +
+            `• Registrado: ${now.toLocaleString('es-ES', { timeZone: 'America/New_York' })}`;
+
+        // 1. Buscar si ya existe en clientes_maestro por teléfono (últimos 10 dígitos)
+        let existingCli = null;
+        let clienteId = null;
+
+        if (tel10 && tel10.length >= 7) {
+            const { data: allCli } = await supabase.from('clientes_maestro').select('*');
+            if (allCli && allCli.length > 0) {
+                existingCli = allCli.find(c => {
+                    const cTel = cleanDigits(c.telefono);
+                    return cTel.length >= 7 && (cTel.slice(-10) === tel10 || tel10.slice(-10) === cTel.slice(-10));
+                });
+            }
+        }
+
+        if (existingCli) {
+            clienteId = existingCli.id;
+            console.log(`[ANALISIS-GRATUITO] Prospecto existente encontrado: ${clienteId} (${existingCli.nombre})`);
+
+            const currentActivos = Array.isArray(existingCli.departamentos_activos) ? existingCli.departamentos_activos : [];
+            const updatedActivos = currentActivos.includes('Renew Water') ? currentActivos : [...currentActivos, 'Renew Water'];
+            const notasPrevias = (existingCli.notas || '').trim();
+            const nuevasNotas = notasPrevias ? `${notasPrevias}\n\n---\n${notaLead}` : notaLead;
+
+            const updateData = {
+                departamento: existingCli.departamento || 'Renew Water',
+                departamentos_activos: updatedActivos,
+                notas: nuevasNotas
+            };
+
+            if (!existingCli.zip && zip) updateData.zip = zip;
+            if (!existingCli.direccion && direccionCompleta) updateData.direccion = direccionCompleta;
+            if (!existingCli.email && email) updateData.email = email;
+            if (existingCli.macro_estado === 'Declinado') {
+                updateData.macro_estado = 'Prospectos';
+                updateData.estado = 'Lead';
+            }
+
+            const { error: updErr } = await supabase.from('clientes_maestro').update(updateData).eq('id', clienteId);
+            if (updErr) console.error('[ANALISIS-GRATUITO] Error actualizando clientes_maestro:', updErr);
+        } else {
+            clienteId = `cli_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+            console.log(`[ANALISIS-GRATUITO] Creando nuevo prospecto en clientes_maestro: ${clienteId} (${nombreCliente})`);
+
+            const newCli = {
+                id: clienteId,
+                nombre: nombreCliente,
+                telefono: telefono,
+                email: email,
+                direccion: direccionCompleta,
+                zip: zip,
+                state_id: estado,
+                empresa: '',
+                estado: 'Lead',
+                macro_estado: 'Prospectos',
+                fecha: todayDate,
+                fecha_inicio: nowIso,
+                created_at: nowIso,
+                departamento: 'Renew Water',
+                departamentos_activos: ['Renew Water'],
+                origen_tipo: 'sitio_web',
+                origen_nombre: 'Web Renew Water - Análisis Gratuito',
+                notas: notaLead
+            };
+
+            const { error: insErr } = await supabase.from('clientes_maestro').insert([newCli]);
+            if (insErr) {
+                console.error('[ANALISIS-GRATUITO] Error insertando en clientes_maestro:', insErr);
+                throw insErr;
+            }
+        }
+
+        // 2. Sincronizar también con Call Center (call_center_prospectos) para asignación inteligente
+        try {
+            if (tel10 && tel10.length >= 7) {
+                const { data: existentesCC } = await supabase
+                    .from('call_center_prospectos')
+                    .select('id, telefono, estado')
+                    .in('estado', ['pendiente', 'confirmacion_pendiente', 'en_espera']);
+
+                const isDupCC = (existentesCC || []).some(e =>
+                    cleanDigits(e.telefono).slice(-10) === tel10
+                );
+
+                if (!isDupCC) {
+                    const leadId = `lead_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                    let agente = null;
+                    if (typeof asignarLeadAMejorAgente === 'function') {
+                        agente = await asignarLeadAMejorAgente({ telefono, nombre: nombreCliente }, 0);
+                    }
+
+                    const ccLead = {
+                        id: leadId,
+                        nombre: nombreCliente,
+                        telefono: telefono,
+                        direccion: direccionCompleta,
+                        email: email,
+                        zip_code: zip,
+                        estado_geo: estado,
+                        pipeline: 'Renew Water',
+                        fuente: 'sitio_web',
+                        origen: 'Web Renew Water - Análisis Gratuito',
+                        estado: agente ? 'confirmacion_pendiente' : 'en_espera',
+                        prioridad: 1, // Alta prioridad por ser lead directo de la web
+                        intentos_reasignacion: 0,
+                        operador_id: agente ? agente.id : null,
+                        operador_nombre: agente ? `${agente.nombre || ''} ${agente.apellido || ''}`.trim() : null,
+                        fecha_creacion: nowIso,
+                        fecha_asignacion: agente ? nowIso : null,
+                        fecha_expiracion: agente ? new Date(Date.now() + 60 * 1000).toISOString() : null,
+                        notas: `Horario preferido: ${horario || 'No especificado'}. Cobertura: ${zonaCubierta ? 'Sí' : 'Por verificar'}.`
+                    };
+
+                    if (agente) {
+                        await supabase.from('usuarios')
+                            .update({ ultima_asignacion_cc: nowIso })
+                            .eq('id', agente.id);
+                    }
+
+                    await supabase.from('call_center_prospectos').insert([ccLead]);
+                    console.log(`[ANALISIS-GRATUITO] Lead añadido exitosamente a call_center_prospectos: ${leadId}`);
+                }
+            }
+        } catch (ccError) {
+            console.warn('[ANALISIS-GRATUITO] Aviso: no se pudo insertar en call_center_prospectos (no crítico):', ccError.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            mensaje: existingCli ? 'Prospecto actualizado con éxito en Renew OS' : 'Prospecto creado exitosamente en Renew OS listo para comenzar proyecto',
+            cliente_id: clienteId,
+            cliente: {
+                id: clienteId,
+                nombre: nombreCliente,
+                telefono: telefono,
+                departamento: 'Renew Water',
+                macro_estado: 'Prospectos',
+                estado: 'Lead',
+                horario_preferido: horario,
+                zona: `${zip} ${estado}`.trim()
+            }
+        });
+
+    } catch (error) {
+        console.error('[ANALISIS-GRATUITO ERROR]', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Error al procesar formulario de análisis gratuito en Renew OS',
+            detalle: error.message
+        });
+    }
+};
+
+app.post('/api/webhook/analisis-gratuito', handlerAnalisisGratuito);
+app.post('/api/webhook/formulario-web', handlerAnalisisGratuito);
+app.post('/api/webhook/lead-web', handlerAnalisisGratuito);
+
+
 
 // ── CALL CENTER PROSPECTOS API ──────────────────────────────
 // Implementa el Algoritmo de Asignación Inteligente:
