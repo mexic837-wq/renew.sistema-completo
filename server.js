@@ -2710,10 +2710,17 @@ const handlerAnalisisGratuito = async (req, res) => {
                 notas: nuevasNotas
             };
 
-            if (!existingCli.zip && zip) updateData.zip = zip;
-            if (!existingCli.direccion && direccionCompleta) updateData.direccion = direccionCompleta;
-            if (!existingCli.email && email) updateData.email = email;
-            if (existingCli.macro_estado === 'Declinado') {
+            if (nombreCliente && (nombreCliente !== 'Prospecto Web' || !existingCli.nombre || existingCli.nombre === 'Prospecto Web')) {
+                updateData.nombre = nombreCliente;
+            }
+            if (telefono) updateData.telefono = telefono;
+            if (zip) updateData.zip = zip;
+            if (direccionCompleta) updateData.direccion = direccionCompleta;
+            if (email) updateData.email = email;
+            if (estado) updateData.state_id = estado;
+            if (!existingCli.origen_tipo) updateData.origen_tipo = 'sitio_web';
+            if (!existingCli.origen_nombre) updateData.origen_nombre = 'Web Renew Water - Análisis Gratuito';
+            if (existingCli.macro_estado === 'Declinado' || !existingCli.macro_estado) {
                 updateData.macro_estado = 'Prospectos';
                 updateData.estado = 'Lead';
             }

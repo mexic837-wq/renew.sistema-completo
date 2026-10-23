@@ -314,7 +314,11 @@ async function _renderList(user, container) {
           clientProjects.some(p => String(p.responsable_id) === String(id) || String(p.creador_id) === String(id))
         );
 
-      if (String(c.creador_id) !== String(user.id) &&
+      // Leads no asignados o provenientes de la web oficial deben ser visibles para el equipo comercial en "Mis Prospectos"
+      const isUnassignedLead = (!c.vendedor_asignado_id && !c.creador_id && !c.responsable_id) || c.origen_tipo === 'sitio_web';
+
+      if (!isUnassignedLead &&
+        String(c.creador_id) !== String(user.id) &&
         String(c.responsable_id) !== String(user.id) &&
         String(c.vendedor_asignado_id) !== String(user.id) &&
         String(c.origen_id) !== String(user.id) &&
