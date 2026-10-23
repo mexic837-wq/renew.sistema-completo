@@ -2735,7 +2735,6 @@ const handlerAnalisisGratuito = async (req, res) => {
                 macro_estado: 'Prospectos',
                 fecha: todayDate,
                 fecha_inicio: nowIso,
-                created_at: nowIso,
                 departamento: 'Renew Water',
                 departamentos_activos: ['Renew Water'],
                 origen_tipo: 'sitio_web',
