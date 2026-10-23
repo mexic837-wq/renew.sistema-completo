@@ -2419,7 +2419,6 @@ app.post('/api/webhook/formulario-externo', async (req, res) => {
                 departamento: resolvedDept,
                 estado: 'En Proceso'
             };
-            if (isWorkOrder && pdfUrl) updateData.orden_trabajo_url = pdfUrl;
             if (!isWorkOrder && pdfUrl) updateData.credit_app_url = pdfUrl;
             if (idPhotoUrl) {
                 updateData.id_photo = idPhotoUrl;
@@ -2430,7 +2429,11 @@ app.post('/api/webhook/formulario-externo', async (req, res) => {
                 updateData.vendedor_asignado_nombre = responsableNombre;
             }
 
-            await supabase.from('clientes_maestro').update(updateData).eq('id', clienteId);
+            const { error: updCliErr } = await supabase.from('clientes_maestro').update(updateData).eq('id', clienteId);
+            if (updCliErr) {
+                console.error('[WEBHOOK-SYNC] Error actualizando cliente en clientes_maestro:', updCliErr);
+                throw updCliErr;
+            }
         } else {
             clienteId = `cli_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
             console.log(`[WEBHOOK-SYNC] Creando nuevo prospecto/cliente: ${clienteId} (${nombreCliente})`);
@@ -2459,13 +2462,13 @@ app.post('/api/webhook/formulario-externo', async (req, res) => {
                 adjuntos_oficina: adjuntos,
                 id_photo: idPhotoUrl,
                 adjunto_id_url: idPhotoUrl,
-                credit_app_url: !isWorkOrder ? pdfUrl : null,
-                orden_trabajo_url: isWorkOrder ? pdfUrl : null
+                credit_app_url: !isWorkOrder ? pdfUrl : null
             };
 
             const { error: insCliErr } = await supabase.from('clientes_maestro').insert([newCli]);
             if (insCliErr) {
                 console.error('[WEBHOOK-SYNC] Error creando cliente en clientes_maestro:', insCliErr);
+                throw insCliErr;
             }
         }
 
@@ -2553,6 +2556,7 @@ app.post('/api/webhook/formulario-externo', async (req, res) => {
             const { error: insProyErr } = await supabase.from('proyectos_dinamicos').insert([newProy]);
             if (insProyErr) {
                 console.error('[WEBHOOK-SYNC] Error creando proyecto dinámico:', insProyErr);
+                throw insProyErr;
             }
         }
 
