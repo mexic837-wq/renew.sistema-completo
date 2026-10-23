@@ -2131,6 +2131,16 @@ app.post('/api/webhook/formulario-externo', async (req, res) => {
         if (payload && payload.datos && typeof payload.datos === 'object') {
             payload = { ...payload, ...payload.datos };
         }
+        if (payload && payload.true && typeof payload.true === 'object') {
+            payload = payload.true;
+        }
+        // Desempaquetar si viene envuelto en una sola propiedad que contiene el formulario
+        if (payload && typeof payload === 'object' && !payload.comprador && !payload.aplicante && !payload.tipo_formulario) {
+            const keys = Object.keys(payload);
+            if (keys.length === 1 && typeof payload[keys[0]] === 'object' && payload[keys[0]] !== null) {
+                payload = payload[keys[0]];
+            }
+        }
 
         const tipo = (payload.tipo_formulario || payload.evento || '').toLowerCase();
         const isCredit = tipo.includes('credito') || tipo.includes('credit');
