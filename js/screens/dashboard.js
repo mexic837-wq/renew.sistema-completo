@@ -1680,7 +1680,7 @@ async function initLeaderboardChart(user) {
 
     // ── Month Filter Check ───────────────────────────────────────
     if (window.lbMonthFilter && window.lbMonthFilter !== 'all') {
-      const pDateRaw = p.fecha_cierre || p.fecha || p.created_at || cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at;
+      const pDateRaw = p.fecha_cierre || p.fecha || p.created_at || cli.fecha_cierre || cli.fecha_conversion || cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at;
       const pDate = parseSafeDate(pDateRaw);
       if (!pDate) return; // Exclude records without valid dates from month filter
       const pYear = pDate.getFullYear();

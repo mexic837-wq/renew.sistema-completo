@@ -654,29 +654,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     };
 
     // ── Helper de Detección de Ventas y Fechas ──
-    const isProjectClosedSale = (p) => {
-        if (!p) return false;
-        if (p.fecha_cierre) return true;
-        const est = String(p.estado || '').toLowerCase();
-        const fId = String(p.fase_id || '').toLowerCase();
-        const finishedTerms = ['completado', 'finalizado', 'finished', 'cerrado', 'closed', 'venta', 'liquidado'];
-        if (finishedTerms.some(t => est === t || fId === t)) return true;
-        if (p.fase_id === null && p.pipeline_id === 'pip_water') return true;
-        if (db && db.Admin_Fases) {
-            const fObj = db.Admin_Fases.find(f => String(f.id).toLowerCase() === fId);
-            if (fObj) {
-                const fNom = String(fObj.nombre || '').toLowerCase();
-                if (finishedTerms.some(t => fNom.includes(t)) || fNom.includes('comisión') || fNom.includes('comision')) return true;
-                if (db.Admin_Pipelines) {
-                    const pipeline = db.Admin_Pipelines.find(pip => pip.id === fObj.pipeline_id);
-                    if (pipeline && String(pipeline.nombre || '').toLowerCase().includes('solar')) {
-                        if (typeof fObj.orden === 'number' && fObj.orden >= 2) return true;
-                    }
-                }
-            }
-        }
-        return false;
-    };
+    const isProjectClosedSale = (p) => isProjectFinished(p, db);
 
     const getProjectSaleDate = (p) => {
         if (p.fecha_cierre) return p.fecha_cierre;

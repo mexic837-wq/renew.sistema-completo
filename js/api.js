@@ -2887,8 +2887,13 @@ async function _checkAndPromoteVendor(db, userId) {
 export function isProjectFinished(p, db) {
   if (!p) return false;
   
-  // STRICTER COMPLETION LOGIC:
-  // Only count if state or phase explicitly says Completed/Finished
+  // 1. Si tiene fecha_cierre explícita, se considera venta cerrada/completada
+  if (p.fecha_cierre) return true;
+
+  // 2. En el pipeline de Agua (Water), los proyectos finalizados tienen fase_id null
+  if (p.fase_id === null && (!p.pipeline_id || p.pipeline_id === 'pip_water')) return true;
+
+  // 3. Revisión por términos de estado o fase completada
   const estado = String(p.estado || '').toLowerCase();
   const faseId = String(p.fase_id || '').toLowerCase();
 
@@ -2900,7 +2905,7 @@ export function isProjectFinished(p, db) {
     const faseObj = db.Admin_Fases.find(f => String(f.id).toLowerCase() === faseId);
     if (faseObj) {
       const faseNom = String(faseObj.nombre || '').toLowerCase();
-      if (finishedTerms.some(term => faseNom.includes(term)) || faseNom.includes('completado')) return true;
+      if (finishedTerms.some(term => faseNom.includes(term)) || faseNom.includes('completado') || faseNom.includes('comisión') || faseNom.includes('comision')) return true;
 
       // Lógica específica para SOLAR: contar como completado (venta) desde la fase 2 en adelante
       if (db.Admin_Pipelines) {
@@ -2929,8 +2934,12 @@ export function getProjectDate(p, db) {
   // we should check if the client has an older/more accurate fecha_registro or fecha_inicio
   if (!p.fecha_cierre && db && db.Clientes_Maestro && p.cliente_id) {
     const cli = db.Clientes_Maestro.find(c => String(c.id) === String(p.cliente_id));
-    if (cli && (cli.fecha_registro || cli.fecha || cli.fecha_inicio || cli.created_at)) {
-      date = cli.fecha_registro || cli.fecha || cli.fecha_inicio || cli.created_at;
+    if (cli) {
+      if (isProjectFinished(p, db)) {
+        date = cli.fecha_cierre || cli.fecha_conversion || cli.fecha_registro || cli.fecha || cli.fecha_inicio || cli.created_at || date;
+      } else {
+        date = cli.fecha_registro || cli.fecha || cli.fecha_inicio || cli.created_at || date;
+      }
     }
   }
 

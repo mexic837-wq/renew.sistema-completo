@@ -10,12 +10,12 @@ import {
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js?v=3';
+} from './api.js?v=4';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
 import { t, getLang, setLang } from './i18n.js';
-import { renderRendimientoGlobal } from './screens/rendimiento-global.js?v=4';
+import { renderRendimientoGlobal } from './screens/rendimiento-global.js?v=5';
 import { renderHRHub } from './screens/hrhub.js';
 import { renderCallCenterAdmin } from './screens/callCenterAdmin.js';
 import { openChat } from './components/internal-chat.js';
@@ -1005,7 +1005,7 @@ window.adminCreateFolder = async () => {
     await saveDB(db);
     
     try {
-        const { saveGranular } = await import('./api.js?v=3');
+        const { saveGranular } = await import('./api.js?v=4');
         await saveGranular('academia_content', newFolder);
     } catch(err) {
         console.error('Error guardando carpeta granularmente', err);
