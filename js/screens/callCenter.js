@@ -18,12 +18,13 @@ let _ccState = {
 
 // ── API HELPERS ──────────────────────────────────────────────
 
-async function getProspectos(operadorId) {
+// Lista compartida: todos ven todos los leads del call center
+const ESTADOS_ACTIVOS = ['pendiente', 'confirmacion_pendiente', 'en_espera'];
+const esActivo = p => !p.estado || ESTADOS_ACTIVOS.includes(p.estado);
+
+async function getProspectos() {
   try {
-    const url = operadorId
-      ? `/api/cc-prospectos?operador_id=${encodeURIComponent(operadorId)}`
-      : '/api/cc-prospectos';
-    const res = await fetch(url);
+    const res = await fetch('/api/cc-prospectos');
     if (!res.ok) throw new Error('Server error');
     return await res.json();
   } catch (e) {
@@ -101,16 +102,10 @@ export async function renderCallCenter() {
   // Loading skeleton
   screen.innerHTML = buildLoadingSkeleton();
 
-  // Fetch leads assigned to this operator (Admins can see all)
-  const isAdmin = window.getUserRoles(user).some(r => ['admin', 'ceo', 'administrador'].includes(r));
-  const operador_query = isAdmin ? null : user.id;
-  _ccState.isAdmin = isAdmin;
-  const todos      = await getProspectos(operador_query);
-  
-  // Nuevos estados del algoritmo
-  _ccState.prospectos  = todos.filter(p => ['pendiente','confirmacion_pendiente'].includes(p.estado) || !p.estado);
-  _ccState.rechazados  = todos.filter(p => p.estado === 'rechazado');
-  _ccState.enEspera    = todos.filter(p => p.estado === 'en_espera');
+  // Todos los usuarios con acceso ven la misma lista completa
+  const todos = await getProspectos();
+  _ccState.prospectos = todos.filter(esActivo);
+  _ccState.rechazados = todos.filter(p => p.estado === 'rechazado');
 
   renderFase1(screen, user);
 }
@@ -186,23 +181,27 @@ function renderFase1(screen, user) {
 
   // EVENTS
   screen.onclick = (e) => handleFase1Click(screen, user, e);
-  startCountdownTick(screen);
+  if (screen._ccTickInterval) { clearInterval(screen._ccTickInterval); screen._ccTickInterval = null; }
 
   // ── AUTO-POLLING: Refresca prospectos cada 15s ──────────
   if (screen._ccPollInterval) clearInterval(screen._ccPollInterval);
   screen._ccPollInterval = setInterval(async () => {
     if (_ccState.fase !== 1) return;
-    const operador_query = _ccState.isAdmin ? null : user.id;
-    const fresh = await getProspectos(operador_query);
-    const freshPending = fresh.filter(p => ['pendiente','confirmacion_pendiente'].includes(p.estado) || !p.estado);
+    if (document.getElementById('modal-cc-pre-notas')) return; // no interrumpir notas abiertas
+    const fresh = await getProspectos();
+    const freshPending = fresh.filter(esActivo);
     
     const oldIds = new Set(_ccState.prospectos.map(p => p.id));
     const newLeads = freshPending.filter(p => !oldIds.has(p.id));
+    const changed = freshPending.length !== _ccState.prospectos.length
+      || freshPending.some(p => {
+        const old = _ccState.prospectos.find(o => o.id === p.id);
+        return !old || (old.notas_pre || '') !== (p.notas_pre || '');
+      });
     
-    if (newLeads.length > 0 || freshPending.length !== _ccState.prospectos.length) {
+    if (changed) {
       _ccState.prospectos = freshPending;
       _ccState.rechazados = fresh.filter(p => p.estado === 'rechazado');
-      _ccState.enEspera = fresh.filter(p => p.estado === 'en_espera');
       renderFase1(screen, user);
       
       if (newLeads.length > 0) {
@@ -223,31 +222,18 @@ function buildFase1Card(p, index) {
     ? new Date(p.fecha_creacion).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     : '';
 
-  // Countdown para confirmacion_pendiente
-  const isPending = p.estado === 'confirmacion_pendiente';
-  const expiresAt = p.fecha_expiracion ? new Date(p.fecha_expiracion).getTime() : null;
-  const secsLeft  = expiresAt ? Math.max(0, Math.round((expiresAt - Date.now()) / 1000)) : null;
-  const timerBadge = isPending && secsLeft !== null
-    ? `<div class="cc-countdown" data-id="${p.id}" data-expires="${expiresAt}"
-            style="display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:3px 10px;margin-bottom:8px;">
-         <span style="font-size:10px;">⏱</span>
-         <span class="cc-timer-val" style="font-size:10px;font-weight:900;color:#f59e0b;">Aceptar en <b>${secsLeft}s</b></span>
-       </div>`
-    : '';
-
   const fuenteBadge = `<span style="display:inline-block;background:rgba(0,245,212,0.08);color:var(--primary);border:1px solid rgba(0,245,212,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;padding:3px 8px;border-radius:6px;margin-bottom:6px;margin-right:6px;">${fuente.toUpperCase()}</span>`;
   const origenBadge = p.origen ? `<span style="display:inline-block;background:rgba(245,158,11,0.08);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;padding:3px 8px;border-radius:6px;margin-bottom:6px;margin-right:6px;">${p.origen.toUpperCase()}</span>` : '';
   const pipBadge   = pipeline ? `<span style="display:inline-block;background:rgba(139,92,246,0.1);color:#8b5cf6;border:1px solid rgba(139,92,246,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:6px;margin-bottom:6px;">${pipeline}</span>` : '';
 
   return `
     <div class="cc-p1-card" data-id="${p.id}" data-nombre="${encodeURIComponent(nombre)}" data-tel="${encodeURIComponent(tel)}" data-dir="${encodeURIComponent(dir)}"
-         style="background:var(--surface);border:1px solid ${isPending ? 'rgba(245,158,11,0.4)' : 'var(--border)'};border-radius:20px;padding:18px;position:relative;overflow:hidden;animation:fadeInUp 0.3s ease ${index * 0.06}s both;">
+         style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px;position:relative;overflow:hidden;animation:fadeInUp 0.3s ease ${index * 0.06}s both;">
 
       <div style="position:absolute;top:14px;right:14px;background:rgba(0,245,212,0.08);border:1px solid rgba(0,245,212,0.18);border-radius:8px;padding:3px 10px;">
         <span style="font-size:9px;font-weight:900;color:var(--primary);">#${String(index+1).padStart(2,'0')}</span>
       </div>
 
-      ${timerBadge}
       <div style="margin-bottom:6px;">${fuenteBadge}${origenBadge}${pipBadge}</div>
       <h3 style="font-size:19px;font-weight:900;color:var(--text);margin:0 0 14px;line-height:1.2;">${nombre}</h3>
 
@@ -288,32 +274,6 @@ function buildFase1Card(p, index) {
   `;
 }
 
-// Tick global de contadores (actualiza cada segundo)
-function startCountdownTick(screen) {
-  if (screen._ccTickInterval) clearInterval(screen._ccTickInterval);
-  screen._ccTickInterval = setInterval(() => {
-    screen.querySelectorAll('.cc-countdown').forEach(el => {
-      const exp     = parseInt(el.dataset.expires);
-      const secsLeft = Math.max(0, Math.round((exp - Date.now()) / 1000));
-      const valEl   = el.querySelector('.cc-timer-val');
-      if (valEl) valEl.innerHTML = `Aceptar en <b>${secsLeft}s</b>`;
-      if (secsLeft === 0) {
-        // Timeout — rechazar automáticamente via el servidor
-        const id = el.dataset.id;
-        fetch(`/api/cc-prospectos/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accion: 'timeout' })
-        });
-        const card = screen.querySelector(`.cc-p1-card[data-id="${id}"]`);
-        if (card) { card.style.opacity = '0.3'; card.style.pointerEvents = 'none'; }
-        el.innerHTML = '<span style="font-size:10px;color:#ef4444;">⏰ Tiempo agotado — reasignado</span>';
-        setTimeout(() => card?.remove(), 2000);
-      }
-    });
-  }, 1000);
-}
-
 async function handleFase1Click(screen, user, e) {
   // ── RECHAZAR ──────────────────────────────────────────────
   const btnRej = e.target.closest('.btn-p1-rechazar');
@@ -326,15 +286,19 @@ async function handleFase1Click(screen, user, e) {
       card.style.transform  = 'translateX(-110px)';
       setTimeout(() => card.remove(), 310);
     }
-    // Usa la nueva firma: accion:'rechazar' → el servidor busca siguiente agente
-    await patchProspecto(id, { accion: 'rechazar' });
+    // Rechazo definitivo: el lead sale de la lista para todos
+    await patchProspecto(id, {
+      accion: 'rechazar',
+      operador_id: user.id,
+      operador_nombre: `${user.nombre || ''} ${user.apellido || ''}`.trim()
+    });
     const pros = _ccState.prospectos.find(p => p.id === id);
     if (pros) {
       _ccState.rechazados.push({ ...pros, estado: 'rechazado' });
       _ccState.prospectos = _ccState.prospectos.filter(p => p.id !== id);
     }
     updateConversionBar(screen, _ccState.prospectos.length, _ccState.rechazados.length);
-    showToast('Lead rechazado — buscando siguiente agente...', 'info');
+    showToast('Lead rechazado', 'info');
     screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     return;
   }
@@ -349,8 +313,6 @@ async function handleFase1Click(screen, user, e) {
     _ccState.activeId = id;
     // Confirma la aceptación: estado pasa a 'pendiente' (activo)
     await patchProspecto(id, { accion: 'aceptar' });
-    // Trigger queue processing since an agent just freed capacity
-    fetch('/api/cc-prospectos/procesar-cola', { method: 'POST' }).catch(() => {});
     renderFase2(screen, user, { ...pros, estado: 'pendiente' });
     return;
   }
@@ -666,13 +628,12 @@ function renderFase2(screen, user, prospecto) {
         await patchProspecto(prospecto.id, {
           estado:    'aceptado',
           ecosistema: selectedEco,
+          operador_id: user.id,
+          operador_nombre: `${user.nombre || ''} ${user.apellido || ''}`.trim(),
           fecha_gestion: new Date().toISOString()
         });
 
         const { cliente, vendedor } = await crearLeadEnCRM(prospecto, selectedEco, notas, user);
-
-        // Trigger queue processing since operator completed a lead
-        fetch('/api/cc-prospectos/procesar-cola', { method: 'POST' }).catch(() => {});
 
         // Remove from prospectos list
         _ccState.prospectos = _ccState.prospectos.filter(p => p.id !== prospecto.id);

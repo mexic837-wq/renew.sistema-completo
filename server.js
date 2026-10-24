@@ -2769,7 +2769,7 @@ const handlerAnalisisGratuito = async (req, res) => {
             }
         }
 
-        // 2. Sincronizar también con Call Center (call_center_prospectos) para asignación inteligente
+        // 2. Sincronizar también con Call Center (call_center_prospectos) (lista compartida)
         try {
             if (tel10 && tel10.length >= 7) {
                 const { data: existentesCC } = await supabase
@@ -2783,11 +2783,6 @@ const handlerAnalisisGratuito = async (req, res) => {
 
                 if (!isDupCC) {
                     const leadId = `lead_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-                    let agente = null;
-                    if (typeof asignarLeadAMejorAgente === 'function') {
-                        agente = await asignarLeadAMejorAgente({ telefono, nombre: nombreCliente }, 0);
-                    }
-
                     const ccLead = {
                         id: leadId,
                         nombre: nombreCliente,
@@ -2799,22 +2794,16 @@ const handlerAnalisisGratuito = async (req, res) => {
                         pipeline: 'Renew Water',
                         fuente: 'sitio_web',
                         origen: 'Web Renew Water - Análisis Gratuito',
-                        estado: agente ? 'confirmacion_pendiente' : 'en_espera',
+                        estado: 'pendiente',
                         prioridad: 1, // Alta prioridad por ser lead directo de la web
                         intentos_reasignacion: 0,
-                        operador_id: agente ? agente.id : null,
-                        operador_nombre: agente ? `${agente.nombre || ''} ${agente.apellido || ''}`.trim() : null,
+                        operador_id: null,
+                        operador_nombre: null,
                         fecha_creacion: nowIso,
-                        fecha_asignacion: agente ? nowIso : null,
-                        fecha_expiracion: agente ? new Date(Date.now() + 60 * 1000).toISOString() : null,
+                        fecha_asignacion: null,
+                        fecha_expiracion: null,
                         notas: `Horario preferido: ${horario || 'No especificado'}. Cobertura: ${zonaCubierta ? 'Sí' : 'Por verificar'}.`
                     };
-
-                    if (agente) {
-                        await supabase.from('usuarios')
-                            .update({ ultima_asignacion_cc: nowIso })
-                            .eq('id', agente.id);
-                    }
 
                     await supabase.from('call_center_prospectos').insert([ccLead]);
                     console.log(`[ANALISIS-GRATUITO] Lead añadido exitosamente a call_center_prospectos: ${leadId}`);
@@ -2857,128 +2846,24 @@ app.post('/api/webhook/lead-web', handlerAnalisisGratuito);
 
 
 // ── CALL CENTER PROSPECTOS API ──────────────────────────────
-// Implementa el Algoritmo de Asignación Inteligente:
-// • Capacidad máxima de 5 leads activos por agente
-// • Ordenación por ultimaAsignacion (menos reciente primero)
-// • Cola de espera con prioridades (Normal / Prioridad Alta)
-// • Reasignación automática por timeout / rechazo
+// Lista compartida: todos los usuarios con acceso ven TODOS los leads activos
+// (sin cola ni asignación por agente). Un lead sale de la lista solo cuando
+// cambia de estado: 'aceptado' (convertido a cliente) o 'rechazado'.
+const CC_ESTADOS_ACTIVOS = ['pendiente', 'confirmacion_pendiente', 'en_espera'];
 
-const CC_MAX_LEADS_POR_AGENTE = 5;
-
-// ─── FUNCIÓN CENTRAL DE ASIGNACIÓN ──────────────────────────
-async function asignarLeadAMejorAgente(lead, offset = 0) {
-    // 1. Obtener agentes CC activos
-    const { data: usuarios, error: usrErr } = await supabase
-        .from('usuarios')
-        .select('id, nombre, apellido, rol, ultima_asignacion_cc')
-        .in('rol', ['Call Center', 'call_center', 'CALL_CENTER']);
-
-    if (usrErr || !usuarios || usuarios.length === 0) return null;
-
-    // 2. Contar leads ACTIVOS (pendiente + confirmacion_pendiente) por agente
-    const { data: activosRows } = await supabase
-        .from('call_center_prospectos')
-        .select('operador_id')
-        .in('estado', ['pendiente', 'confirmacion_pendiente']);
-
-    const loadMap = {};
-    usuarios.forEach(u => { loadMap[u.id] = 0; });
-    (activosRows || []).forEach(row => {
-        if (row.operador_id && loadMap[row.operador_id] !== undefined) {
-            loadMap[row.operador_id]++;
-        }
-    });
-
-    // 3. Filtrar agentes con capacidad disponible (< CC_MAX_LEADS_POR_AGENTE)
-    const disponibles = usuarios.filter(u => (loadMap[u.id] || 0) < CC_MAX_LEADS_POR_AGENTE);
-
-    if (disponibles.length === 0) return null; // Cola de espera
-
-    // 4. Ordenar por última asignación ASC (el que recibió su último lead hace más tiempo primero)
-    disponibles.sort((a, b) => {
-        const tA = a.ultima_asignacion_cc ? new Date(a.ultima_asignacion_cc).getTime() : 0;
-        const tB = b.ultima_asignacion_cc ? new Date(b.ultima_asignacion_cc).getTime() : 0;
-        return tA - tB;
-    });
-
-    // Soporte para offset: saltarse agentes que ya rechazaron/timeout en este lead
-    const agente = disponibles[offset % disponibles.length];
-    return agente;
-}
-
-// ── CRON: Procesar cola + limpiar expirados (cada 2 min) ────
-setInterval(async () => {
+// Migración única al arrancar: los leads que quedaron en la antigua cola o
+// esperando confirmación pasan a 'pendiente' sin expiración.
+(async () => {
     try {
-        const now = new Date().toISOString();
-
-        // 1. Limpiar leads con confirmacion_pendiente expirados (timeout server-side)
-        const { data: expirados } = await supabase
-            .from('call_center_prospectos')
-            .select('id, operador_id, intentos_reasignacion')
-            .eq('estado', 'confirmacion_pendiente')
-            .lt('fecha_expiracion', now);
-
-        if (expirados && expirados.length > 0) {
-            for (const lead of expirados) {
-                const intentos = (lead.intentos_reasignacion || 0) + 1;
-                const siguiente = await asignarLeadAMejorAgente(lead, intentos);
-
-                if (siguiente && siguiente.id !== lead.operador_id) {
-                    await supabase.from('call_center_prospectos').update({
-                        estado: 'confirmacion_pendiente',
-                        operador_id: siguiente.id,
-                        operador_nombre: `${siguiente.nombre || ''} ${siguiente.apellido || ''}`.trim(),
-                        intentos_reasignacion: intentos,
-                        fecha_asignacion: now,
-                        fecha_expiracion: new Date(Date.now() + 60 * 1000).toISOString(),
-                    }).eq('id', lead.id);
-                    console.log(`[CC-CRON] Lead ${lead.id} expirado → reasignado a ${siguiente.nombre}`);
-                } else {
-                    await supabase.from('call_center_prospectos').update({
-                        estado: 'en_espera',
-                        prioridad: 1,
-                        operador_id: null,
-                        operador_nombre: null,
-                        intentos_reasignacion: intentos,
-                        fecha_asignacion: null,
-                        fecha_expiracion: null,
-                    }).eq('id', lead.id);
-                    console.log(`[CC-CRON] Lead ${lead.id} expirado → cola de espera (prioridad alta)`);
-                }
-            }
-        }
-
-        // 2. Procesar cola de espera
-        const { data: cola } = await supabase
-            .from('call_center_prospectos')
-            .select('*')
-            .eq('estado', 'en_espera')
-            .order('prioridad', { ascending: false })
-            .order('fecha_creacion', { ascending: true });
-
-        if (cola && cola.length > 0) {
-            let assigned = 0;
-            for (const lead of cola) {
-                const agente = await asignarLeadAMejorAgente(lead, 0);
-                if (!agente) break;
-                await supabase.from('call_center_prospectos').update({
-                    estado: 'confirmacion_pendiente',
-                    operador_id: agente.id,
-                    operador_nombre: `${agente.nombre || ''} ${agente.apellido || ''}`.trim(),
-                    fecha_asignacion: now,
-                    fecha_expiracion: new Date(Date.now() + 60 * 1000).toISOString(),
-                }).eq('id', lead.id);
-                await supabase.from('usuarios')
-                    .update({ ultima_asignacion_cc: now })
-                    .eq('id', agente.id);
-                assigned++;
-            }
-            if (assigned > 0) console.log(`[CC-CRON] ${assigned} lead(s) asignados desde cola de espera`);
-        }
+        const { error } = await supabase.from('call_center_prospectos').update({
+            estado: 'pendiente',
+            fecha_expiracion: null,
+        }).in('estado', ['confirmacion_pendiente', 'en_espera']);
+        if (error) throw error;
     } catch (err) {
-        console.error('[CC-CRON] Error:', err.message);
+        console.error('[CC-MIGRACION] Error normalizando leads:', err.message);
     }
-}, 2 * 60 * 1000); // Cada 2 minutos
+})();
 
 // GET: Usuarios (para asignaciones manuales en Call Center)
 app.get('/api/usuarios', async (req, res) => {
@@ -3067,7 +2952,7 @@ app.post('/api/cc-prospectos', async (req, res) => {
                 const { data: existentes } = await supabase
                     .from('call_center_prospectos')
                     .select('id, telefono, estado')
-                    .in('estado', ['pendiente', 'confirmacion_pendiente', 'en_espera']);
+                    .in('estado', CC_ESTADOS_ACTIVOS);
                 
                 const isDuplicate = (existentes || []).some(e => 
                     (e.telefono || '').replace(/\D/g, '').slice(-10) === cleanTel
@@ -3081,80 +2966,35 @@ app.post('/api/cc-prospectos', async (req, res) => {
                 }
             }
 
-            let agente = null;
-            let manualAssignment = false;
-
+            // Operador opcional (solo informativo); el lead es visible para todos
+            let operador = null;
             if (lead.operador_id) {
-                // Manual assignment
                 const { data: usr } = await supabase.from('usuarios').select('id, nombre, apellido').eq('id', lead.operador_id).single();
-                if (usr) {
-                    agente = usr;
-                    manualAssignment = true;
-                }
+                if (usr) operador = usr;
             }
 
-            if (!agente) {
-                agente = await asignarLeadAMejorAgente(lead, 0);
-            }
-
-            let nuevoLead;
-            if (agente) {
-                // ── Asignar directamente ──
-                nuevoLead = {
-                    id:                    leadId,
-                    nombre:               lead.nombre     || null,
-                    telefono:             lead.telefono,
-                    direccion:            lead.direccion  || null,
-                    email:                lead.email      || null,
-                    ciudad:               lead.ciudad     || null,
-                    estado_geo:           lead.estado_geo || lead.estado || null,
-                    zip_code:             lead.zip_code   || null,
-                    pipeline:             lead.pipeline   || lead.ecosistema || null,
-                    fuente:               lead.fuente     || 'scraper',
-                    origen:               lead.origen     || null,
-                    estado:               manualAssignment ? 'pendiente' : 'confirmacion_pendiente',
-                    prioridad:            0,
-                    intentos_reasignacion: 0,
-                    operador_id:          agente.id,
-                    operador_nombre:      `${agente.nombre || ''} ${agente.apellido || ''}`.trim(),
-                    fecha_creacion:       new Date().toISOString(),
-                    fecha_asignacion:     new Date().toISOString(),
-                    fecha_expiracion:     manualAssignment ? null : new Date(Date.now() + 60 * 1000).toISOString()
-                };
-
-                // Actualizar ultima_asignacion_cc del agente
-                await supabase.from('usuarios')
-                    .update({ ultima_asignacion_cc: new Date().toISOString() })
-                    .eq('id', agente.id);
-
-                summary.asignados++;
-                summary.distribution[nuevoLead.operador_nombre] = (summary.distribution[nuevoLead.operador_nombre] || 0) + 1;
-            } else {
-                // ── Sin capacidad → Cola de espera ──
-                nuevoLead = {
-                    id:                    leadId,
-                    nombre:               lead.nombre     || null,
-                    telefono:             lead.telefono,
-                    direccion:            lead.direccion  || null,
-                    email:                lead.email      || null,
-                    ciudad:               lead.ciudad     || null,
-                    estado_geo:           lead.estado_geo || lead.estado || null,
-                    zip_code:             lead.zip_code   || null,
-                    pipeline:             lead.pipeline   || lead.ecosistema || null,
-                    fuente:               lead.fuente     || 'scraper',
-                    origen:               lead.origen     || null,
-                    estado:               'en_espera',
-                    prioridad:            0,
-                    intentos_reasignacion: 0,
-                    operador_id:          null,
-                    operador_nombre:      null,
-                    fecha_creacion:       new Date().toISOString(),
-                    fecha_asignacion:     null,
-                    fecha_expiracion:     null
-                };
-                summary.en_espera++;
-                console.log(`[CC-PROSPECTOS] Lead ${leadId} colocado en cola de espera.`);
-            }
+            const nuevoLead = {
+                id:                    leadId,
+                nombre:               lead.nombre     || null,
+                telefono:             lead.telefono,
+                direccion:            lead.direccion  || null,
+                email:                lead.email      || null,
+                ciudad:               lead.ciudad     || null,
+                estado_geo:           lead.estado_geo || lead.estado || null,
+                zip_code:             lead.zip_code   || null,
+                pipeline:             lead.pipeline   || lead.ecosistema || null,
+                fuente:               lead.fuente     || 'scraper',
+                origen:               lead.origen     || null,
+                estado:               'pendiente',
+                prioridad:            0,
+                intentos_reasignacion: 0,
+                operador_id:          operador ? operador.id : null,
+                operador_nombre:      operador ? `${operador.nombre || ''} ${operador.apellido || ''}`.trim() : null,
+                fecha_creacion:       new Date().toISOString(),
+                fecha_asignacion:     operador ? new Date().toISOString() : null,
+                fecha_expiracion:     null
+            };
+            summary.asignados++;
 
             resultados.push(nuevoLead);
         }
@@ -3171,7 +3011,7 @@ app.post('/api/cc-prospectos', async (req, res) => {
             data = inserted || [];
         }
 
-        console.log(`[CC-PROSPECTOS] ${leadsIn.length} leads procesados — Asignados: ${summary.asignados}, En espera: ${summary.en_espera}, Duplicados: ${summary.duplicados}`, summary.distribution);
+        console.log(`[CC-PROSPECTOS] ${leadsIn.length} leads procesados — Nuevos: ${summary.asignados}, Duplicados: ${summary.duplicados}`);
         res.json({ success: true, total: leadsIn.length, ...summary, data });
 
     } catch (e) {
@@ -3189,64 +3029,24 @@ app.patch('/api/cc-prospectos/:id', async (req, res) => {
         const now = new Date().toISOString();
 
         if (accion === 'aceptar') {
-            // ── El agente acepta el lead → pasa a 'pendiente' (activo) ──
-            const updates = {
-                ...extraFields,
-                estado: 'pendiente',
-                fecha_gestion: now
-            };
-            const { error } = await supabase.from('call_center_prospectos').update(updates).eq('id', id);
+            // El lead sigue en la lista hasta que se convierte (estado 'aceptado')
+            const { error } = await supabase.from('call_center_prospectos')
+                .update({ ...extraFields, estado: 'pendiente', fecha_gestion: now }).eq('id', id);
             if (error) throw error;
             return res.json({ success: true, accion: 'aceptado' });
         }
 
-        if (accion === 'rechazar' || accion === 'timeout') {
-            // ── Agente rechaza o expiró el tiempo → buscar siguiente agente ──
-            const { data: lead, error: fetchErr } = await supabase
-                .from('call_center_prospectos').select('*').eq('id', id).single();
-            if (fetchErr || !lead) return res.status(404).json({ error: 'Lead no encontrado' });
+        if (accion === 'rechazar') {
+            // Rechazo definitivo → sale de la lista para todos
+            const { error } = await supabase.from('call_center_prospectos')
+                .update({ ...extraFields, estado: 'rechazado', fecha_expiracion: null, fecha_gestion: now }).eq('id', id);
+            if (error) throw error;
+            return res.json({ success: true, accion: 'rechazado' });
+        }
 
-            const intentos = (lead.intentos_reasignacion || 0) + 1;
-
-            // Intentar asignar al siguiente agente disponible
-            const siguienteAgente = await asignarLeadAMejorAgente(lead, intentos);
-
-            if (siguienteAgente && siguienteAgente.id !== lead.operador_id) {
-                // Reasignar al siguiente agente
-                const { error } = await supabase.from('call_center_prospectos').update({
-                    estado:               'confirmacion_pendiente',
-                    operador_id:          siguienteAgente.id,
-                    operador_nombre:      `${siguienteAgente.nombre || ''} ${siguienteAgente.apellido || ''}`.trim(),
-                    intentos_reasignacion: intentos,
-                    fecha_asignacion:     now,
-                    fecha_expiracion:     new Date(Date.now() + 60 * 1000).toISOString(),
-                    fecha_gestion:        now
-                }).eq('id', id);
-                if (error) throw error;
-
-                await supabase.from('usuarios')
-                    .update({ ultima_asignacion_cc: now })
-                    .eq('id', siguienteAgente.id);
-
-                console.log(`[CC-PROSPECTOS] Lead ${id} reasignado a ${siguienteAgente.nombre} (intento #${intentos})`);
-                return res.json({ success: true, accion: 'reasignado', nuevo_agente: siguienteAgente.nombre });
-            } else {
-                // Nadie más disponible → Cola de Prioridad Alta (al frente de la cola)
-                const { error } = await supabase.from('call_center_prospectos').update({
-                    estado:               'en_espera',
-                    prioridad:            1, // Alta prioridad
-                    operador_id:          null,
-                    operador_nombre:      null,
-                    intentos_reasignacion: intentos,
-                    fecha_asignacion:     null,
-                    fecha_expiracion:     null,
-                    fecha_gestion:        now
-                }).eq('id', id);
-                if (error) throw error;
-
-                console.log(`[CC-PROSPECTOS] Lead ${id} pasó a Prioridad Alta en cola de espera (${intentos} intentos).`);
-                return res.json({ success: true, accion: 'en_espera_prioridad_alta' });
-            }
+        if (accion === 'timeout') {
+            // Ya no hay temporizador por agente: se ignora (compatibilidad)
+            return res.json({ success: true, accion: 'sin_cambios' });
         }
 
         // Actualización genérica de otros campos (ecosistema, notas, etc.)
@@ -3262,51 +3062,9 @@ app.patch('/api/cc-prospectos/:id', async (req, res) => {
     }
 });
 
-// POST: Procesar cola de espera — reasigna leads pendientes cuando se libera capacidad
-// Llamar desde n8n por cron (cada 2-5 min) o desde el cliente al completar/rechazar un lead
-app.post('/api/cc-prospectos/procesar-cola', async (req, res) => {
-    try {
-        // Obtener leads en cola de espera ordenados: prioridad alta primero, luego por fecha
-        const { data: cola, error: colaErr } = await supabase
-            .from('call_center_prospectos')
-            .select('*')
-            .eq('estado', 'en_espera')
-            .order('prioridad', { ascending: false })
-            .order('fecha_creacion', { ascending: true });
-
-        if (colaErr) throw colaErr;
-        if (!cola || cola.length === 0) {
-            return res.json({ success: true, procesados: 0, mensaje: 'Cola vacía' });
-        }
-
-        let procesados = 0;
-        const now = new Date().toISOString();
-
-        for (const lead of cola) {
-            const agente = await asignarLeadAMejorAgente(lead, 0);
-            if (!agente) break; // No hay más capacidad, detener
-
-            await supabase.from('call_center_prospectos').update({
-                estado:           'confirmacion_pendiente',
-                operador_id:      agente.id,
-                operador_nombre:  `${agente.nombre || ''} ${agente.apellido || ''}`.trim(),
-                fecha_asignacion: now,
-                fecha_expiracion: new Date(Date.now() + 60 * 1000).toISOString()
-            }).eq('id', lead.id);
-
-            await supabase.from('usuarios')
-                .update({ ultima_asignacion_cc: now })
-                .eq('id', agente.id);
-
-            procesados++;
-            console.log(`[CC-COLA] Lead ${lead.id} (prioridad ${lead.prioridad ? 'ALTA' : 'normal'}) asignado a ${agente.nombre}`);
-        }
-
-        res.json({ success: true, procesados, en_cola: cola.length - procesados });
-    } catch (e) {
-        console.error('[CC-COLA] Error procesando cola:', e.message);
-        res.status(500).json({ error: e.message });
-    }
+// POST: Procesar cola — ya no existe cola por agente; se mantiene por compatibilidad (n8n / admin)
+app.post('/api/cc-prospectos/procesar-cola', (req, res) => {
+    res.json({ success: true, procesados: 0, en_cola: 0, mensaje: 'Lista compartida: no hay cola por agente' });
 });
 
 // DELETE: Eliminar un prospecto de la tabla
@@ -3315,8 +3073,6 @@ app.delete('/api/cc-prospectos/:id', async (req, res) => {
         const { id } = req.params;
         const { error } = await supabase.from('call_center_prospectos').delete().eq('id', id);
         if (error) throw error;
-        // Al eliminar, procesar la cola por si hay capacidad liberada
-        fetch(`http://localhost:${port}/api/cc-prospectos/procesar-cola`, { method: 'POST' }).catch(() => {});
         res.json({ success: true });
     } catch (e) {
         console.error('[CC-PROSPECTOS] DELETE error:', e.message);
