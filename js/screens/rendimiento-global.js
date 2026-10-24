@@ -632,6 +632,27 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         return d >= rangeStart && d <= rangeEnd;
     };
 
+    const getClientDate = (c) => {
+        if (!c) return null;
+        return c.fecha || c.fecha_inicio || c.fecha_registro || c.created_at || null;
+    };
+
+    const inClientRange = (c) => {
+        if (!rangeStart || !rangeEnd) return true;
+        const rawDate = getClientDate(c);
+        if (rawDate) {
+            const d = safeDate(rawDate);
+            if (d) {
+                // En vista Anual, incluir registros del año o declinados operativos del equipo
+                if (range === 'annual' && c.macro_estado === 'Declinado') return true;
+                return d >= rangeStart && d <= rangeEnd;
+            }
+        }
+        // En vista Anual, los registros sin fecha explícita corresponden a la base importada operativa anual
+        if (range === 'annual') return true;
+        return false;
+    };
+
     // ── Helper de Detección de Ventas y Fechas ──
     const isProjectClosedSale = (p) => {
         if (!p) return false;
@@ -662,18 +683,18 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         if (p.fecha) return p.fecha;
         if (p.created_at) return p.created_at;
         const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
-        return cli ? (cli.fecha_cierre || cli.fecha_conversion || cli.fecha_registro || cli.fecha || cli.created_at) : null;
+        return cli ? (cli.fecha_cierre || cli.fecha_conversion || cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at) : null;
     };
 
     const getProjectActiveDate = (p) => {
         if (p.fecha) return p.fecha;
         if (p.created_at) return p.created_at;
         const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
-        return cli ? (cli.fecha_registro || cli.fecha || cli.created_at) : null;
+        return cli ? (cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at) : null;
     };
 
     // ── 4. KPIs based on Projects & Clients ──────────
-    const filteredClients = ecoClients.filter(c => inRange(c.fecha_registro || c.fecha || c.created_at));
+    const filteredClients = ecoClients.filter(c => inClientRange(c));
     const closedProjects = ecoProjects.filter(p => isProjectClosedSale(p) && inRange(getProjectSaleDate(p)));
     const openProjects   = ecoProjects.filter(p => !isProjectClosedSale(p) && inRange(getProjectActiveDate(p)));
 
@@ -840,7 +861,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             lbs.push(`${d.getDate()}/${d.getMonth()+1}`);
         }
         clientsArr.forEach(c => {
-            const d = safeDate(c.fecha_registro || c.fecha || c.created_at);
+            const d = safeDate(getClientDate(c));
             if (!d) return;
             const idx = Math.round((d - start) / msDay);
             if (idx >= 0 && idx < days) {
@@ -874,7 +895,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const dpr = Array(12).fill(0);
         const dv  = Array(12).fill(0);
         clientsArr.forEach(c => { 
-            const d = safeDate(c.fecha_registro||c.fecha||c.created_at); 
+            const d = safeDate(getClientDate(c)); 
             if(d && d.getFullYear()===year) {
                 if (c.macro_estado === 'Declinado') {
                     dd[d.getMonth()]++;
@@ -1115,7 +1136,7 @@ window.showKpiDetailModal = function(type) {
                             } else {
                                 cli = item;
                                 clientId = cli.id;
-                                dateRaw = cli.fecha_registro || cli.fecha || cli.created_at;
+                                dateRaw = cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at;
                                 rep = workers.find(w => String(w.id) === String(cli.vendedor_asignado_id || cli.responsable_id));
                                 faseLabel = cli.macro_estado || cli.estado || (type === 'declinados' ? 'Declinado' : 'Prospecto');
                             }
@@ -1150,13 +1171,13 @@ window.showKpiDetailModal = function(type) {
                                     </td>
                                     <td class="py-3 px-4 text-right whitespace-nowrap">
                                         <div class="flex items-center justify-end gap-1.5">
-                                            ${projectId ? `
-                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.openKanbanDrawer === 'function') window.openKanbanDrawer('${projectId}');" class="px-2.5 py-1 rounded-lg bg-tealAccent text-black font-bold text-[11px] hover:brightness-110 transition-all shadow-sm flex items-center gap-1">
+                                            ${projectId && !projectId.startsWith('VIRTUAL_') ? `
+                                                <button onclick="window.closeKpiDetailModal(); if (window.appNavigate) window.appNavigate('detail', '${projectId}'); else window.location.hash = '#detail/${projectId}';" class="px-2.5 py-1 rounded-lg bg-tealAccent text-black font-bold text-[11px] hover:brightness-110 transition-all shadow-sm flex items-center gap-1">
                                                     <i class="fa-solid fa-folder-open text-[10px]"></i> Proyecto
                                                 </button>
                                             ` : ''}
                                             ${clientId ? `
-                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.showClientDetail === 'function') window.showClientDetail('${clientId}');" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 font-bold text-[11px] hover:bg-gray-200 dark:hover:bg-white/20 transition-all flex items-center gap-1">
+                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.openClientOrProspectModal === 'function') { window.openClientOrProspectModal('${clientId}', '${projectId || ''}'); } else if (window.appNavigate && '${projectId}' && !'${projectId}'.startsWith('VIRTUAL_')) { window.appNavigate('detail', '${projectId}'); }" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 font-bold text-[11px] hover:bg-gray-200 dark:hover:bg-white/20 transition-all flex items-center gap-1">
                                                     <i class="fa-solid fa-user text-[10px]"></i> Cliente
                                                 </button>
                                             ` : ''}

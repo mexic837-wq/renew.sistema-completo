@@ -112,7 +112,8 @@ export function computeUserRank(userId, activeUnit, db) {
   const curYear    = now.getFullYear();
   const totalAT    = myProjects.length;
   const totalMonth = myProjects.filter(p => {
-    const dateToUse = p.fecha_cierre || p.fecha;
+    const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+    const dateToUse = p.fecha_cierre || p.fecha || (cli ? (cli.fecha || cli.fecha_inicio) : null);
     if (!dateToUse) return false;
     let dStr = String(dateToUse).trim();
     if (dStr.includes(' ') && !dStr.includes('T')) dStr = dStr.replace(' ', 'T');
@@ -1679,7 +1680,7 @@ async function initLeaderboardChart(user) {
 
     // ── Month Filter Check ───────────────────────────────────────
     if (window.lbMonthFilter && window.lbMonthFilter !== 'all') {
-      const pDateRaw = p.fecha_cierre || p.fecha || p.created_at || cli.fecha_registro || cli.fecha || cli.created_at;
+      const pDateRaw = p.fecha_cierre || p.fecha || p.created_at || cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at;
       const pDate = parseSafeDate(pDateRaw);
       if (!pDate) return; // Exclude records without valid dates from month filter
       const pYear = pDate.getFullYear();

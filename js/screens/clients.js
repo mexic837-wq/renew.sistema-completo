@@ -9,6 +9,13 @@ let currentClientsTab = 'prospectos'; // 'prospectos' | 'clientes'
 let activeDeptFilter = null;
 
 // ── Helpers ──────────────────────────────────────────────────
+function cleanDisplay(val) {
+  if (!val) return '';
+  let s = String(val).trim();
+  while (s.startsWith('=')) s = s.substring(1).trim();
+  return s.replace(/,\s*=/g, ', ').trim();
+}
+
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Buenos días ☀️';
@@ -278,13 +285,6 @@ async function _renderList(user, container) {
     if (!projectsByClient.has(p.cliente_id)) projectsByClient.set(p.cliente_id, []);
     projectsByClient.get(p.cliente_id).push(p);
   });
-
-  const cleanDisplay = (val) => {
-    if (!val) return '';
-    let s = String(val).trim();
-    while (s.startsWith('=')) s = s.substring(1).trim();
-    return s.replace(/,\s*=/g, ', ').trim();
-  };
 
   (todosClientes || []).forEach(c => {
     if (c.nombre) c.nombre = cleanDisplay(c.nombre);
@@ -938,7 +938,7 @@ function _showProspectoModal(client, user, db) {
       <div style="padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <div>
           <h2 style="font-size:1.3rem;font-weight:900;color:var(--text-primary);margin:0;">${cleanDisplay(client.nombre) || 'Sin nombre'}</h2>
-          <span style="display:inline-block;margin-top:6px;background:rgba(59,130,246,0.12);color:#3b82f6;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:99px;border:1px solid rgba(59,130,246,0.25);">Prospecto</span>
+          <span style="display:inline-block;margin-top:6px;background:${client.macro_estado === 'Declinado' ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.12)'};color:${client.macro_estado === 'Declinado' ? '#ef4444' : '#3b82f6'};font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:99px;border:1px solid ${client.macro_estado === 'Declinado' ? 'rgba(239,68,68,0.25)' : 'rgba(59,130,246,0.25)'};">${client.macro_estado || 'Prospecto'}</span>
         </div>
         <button id="btn-prospecto-close" style="background:var(--surface-alt);border:none;color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-xmark text-red-500"></i></button>
       </div>
@@ -2455,4 +2455,22 @@ function _renderKanban(user, container, filteredClients, db) {
     }
     wireKanbanCards(container);
 }
+
+// ── Global Helper for Modals ──
+window.openClientOrProspectModal = async (clientId, projectId) => {
+    const { getDB, getCurrentUser } = await import('../api.js');
+    const db = getDB();
+    const user = getCurrentUser();
+    if (projectId && projectId !== 'null' && !projectId.startsWith('VIRTUAL_')) {
+        if (window.appNavigate) window.appNavigate('detail', projectId);
+        else window.location.hash = '#detail/' + projectId;
+        return;
+    }
+    const client = (db.Clientes_Maestro || []).find(c => String(c.id) === String(clientId));
+    if (client) {
+        _showProspectoModal(client, user, db);
+    }
+};
+window._showProspectoModal = _showProspectoModal;
+
 

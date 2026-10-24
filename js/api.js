@@ -66,6 +66,7 @@ function applyPostProcessing(freshDB) {
                         const pip = (freshDB.Admin_Pipelines || []).find(p => p.nombre.toLowerCase().includes('water'));
                         if (pip) pipId = pip.id;
                     }
+                    const clientDate = cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at || null;
                     freshDB.Proyectos_Dinamicos.push({
                         id: 'VIRTUAL_' + cli.id,
                         cliente_id: cli.id,
@@ -74,9 +75,9 @@ function applyPostProcessing(freshDB) {
                         estado: 'Completado',
                         creador_id: cli.creador_id || cli.vendedor_asignado_id,
                         responsable_id: cli.vendedor_asignado_id || cli.creador_id,
-                        created_at: cli.created_at || new Date().toISOString(),
-                        fecha: cli.created_at || new Date().toISOString(),
-                        fecha_cierre: cli.created_at || new Date().toISOString()
+                        created_at: clientDate,
+                        fecha: clientDate,
+                        fecha_cierre: clientDate
                     });
                 }
             }
@@ -113,7 +114,6 @@ function applyPostProcessing(freshDB) {
     }
 
     // ── DATA MIGRATION: Backfill dates and status for consistency ──
-    const today = new Date().toISOString().split('T')[0];
     (freshDB.Proyectos_Dinamicos || []).forEach(p => {
         const isFinished = isProjectFinished(p, freshDB);
 
@@ -121,7 +121,11 @@ function applyPostProcessing(freshDB) {
             if (p.estado !== 'Completado') {
                 p.estado = 'Completado';
             }
-            p.fecha_cierre = today;
+            // Preserve original fecha_cierre if present; fallback to real project/client date if missing
+            if (!p.fecha_cierre) {
+                const cli = (freshDB.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+                p.fecha_cierre = p.fecha_finalizacion || p.fecha || (cli ? (cli.fecha || cli.fecha_inicio || cli.fecha_registro || cli.created_at) : null) || null;
+            }
         }
 
         if (p.cliente_id && p.fecha) {
@@ -2922,11 +2926,11 @@ export function getProjectDate(p, db) {
   }
 
   // If we don't have a specific project date (like fecha_cierre) and we are defaulting to created_at,
-  // we should check if the client has an older/more accurate fecha_registro
+  // we should check if the client has an older/more accurate fecha_registro or fecha_inicio
   if (!p.fecha_cierre && db && db.Clientes_Maestro && p.cliente_id) {
     const cli = db.Clientes_Maestro.find(c => String(c.id) === String(p.cliente_id));
-    if (cli && (cli.fecha_registro || cli.fecha || cli.created_at)) {
-      date = cli.fecha_registro || cli.fecha || cli.created_at;
+    if (cli && (cli.fecha_registro || cli.fecha || cli.fecha_inicio || cli.created_at)) {
+      date = cli.fecha_registro || cli.fecha || cli.fecha_inicio || cli.created_at;
     }
   }
 
