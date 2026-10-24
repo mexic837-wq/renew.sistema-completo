@@ -6,6 +6,98 @@ import { getDB } from '../api.js';
 import { t } from '../i18n.js';
 let activeAcademyDeptFilter = '';
 
+/* ============================================================
+   Visor propio de documentos (Excel / Word / CSV) – sin Office Online
+   Rápido, sin iniciar sesión. Si falla, abre el archivo directo.
+   ============================================================ */
+const _loadScript = (src) => new Promise((res, rej) => {
+    if (document.querySelector(`script[data-lib="${src}"]`)) return res();
+    const s = document.createElement('script');
+    s.src = src; s.dataset.lib = src; s.onload = res; s.onerror = () => rej(new Error('No se pudo cargar ' + src));
+    document.head.appendChild(s);
+});
+const _escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+window.openAcademyFile = async (url, title) => {
+    if (!url) return;
+    const clean = url.split('?')[0].split('#')[0].toLowerCase();
+    const ext = clean.split('.').pop();
+    const isSheet = ['xlsx', 'xls', 'xlsm', 'csv'].includes(ext);
+    const isDocx = ext === 'docx';
+    if (!isSheet && !isDocx) {
+        // PDF, imágenes, videos, pptx/doc: directo (el navegador los muestra solo)
+        if (['pptx', 'ppt', 'doc'].includes(ext)) {
+            return window.open(`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`, '_blank');
+        }
+        return window.open(url, '_blank');
+    }
+
+    const name = title || decodeURIComponent(clean.split('/').pop());
+    document.getElementById('academy-doc-viewer')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'academy-doc-viewer';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:12px;';
+    modal.innerHTML = `
+      <div style="background:var(--surface,#fff);color:var(--text-primary,#111);border-radius:16px;width:100%;max-width:1400px;height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border,#ddd);">
+          <strong style="flex:1;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(name)}</strong>
+          <a href="${_escHtml(url)}" download target="_blank" rel="noopener" style="padding:6px 12px;border-radius:8px;background:var(--primary,#00dfbf);color:#fff;font-weight:800;font-size:.75rem;text-decoration:none;">Descargar</a>
+          <button id="adv-close" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border,#ddd);background:transparent;color:inherit;font-weight:800;font-size:.75rem;cursor:pointer;">Cerrar ✕</button>
+        </div>
+        <div id="adv-tabs" style="display:none;gap:6px;padding:8px 16px;border-bottom:1px solid var(--border,#ddd);overflow-x:auto;"></div>
+        <div id="adv-body" style="flex:1;overflow:auto;padding:12px 16px;"><p style="opacity:.6;">Cargando documento…</p></div>
+      </div>`;
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.querySelector('#adv-close').onclick = close;
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    const body = modal.querySelector('#adv-body');
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+
+        if (isDocx) {
+            await _loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js');
+            const out = await window.mammoth.convertToHtml({ arrayBuffer: buf });
+            body.innerHTML = `<div style="max-width:850px;margin:0 auto;line-height:1.6;font-size:.95rem;">${out.value}</div>`;
+            return;
+        }
+
+        await _loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+        const wb = window.XLSX.read(buf, { type: 'array', cellStyles: true });
+        const tabs = modal.querySelector('#adv-tabs');
+        const show = (idx) => {
+            const sh = wb.Sheets[wb.SheetNames[idx]];
+            body.innerHTML = `<style>
+                #adv-body table{border-collapse:collapse;font-size:.8rem;}
+                #adv-body td,#adv-body th{border:1px solid var(--border,#ccc);padding:4px 8px;vertical-align:top;white-space:pre-wrap;max-width:320px;}
+              </style>` + window.XLSX.utils.sheet_to_html(sh, { header: '', footer: '' });
+            [...tabs.children].forEach((b, i) => {
+                b.style.background = i === idx ? 'var(--primary,#00dfbf)' : 'transparent';
+                b.style.color = i === idx ? '#fff' : 'inherit';
+            });
+        };
+        if (wb.SheetNames.length > 1) {
+            tabs.style.display = 'flex';
+            wb.SheetNames.forEach((n, i) => {
+                const b = document.createElement('button');
+                b.textContent = n;
+                b.style.cssText = 'padding:5px 12px;border-radius:8px;border:1px solid var(--border,#ddd);font-weight:700;font-size:.75rem;cursor:pointer;white-space:nowrap;';
+                b.onclick = () => show(i);
+                tabs.appendChild(b);
+            });
+        }
+        show(0);
+    } catch (err) {
+        console.warn('Visor propio falló, usando visor externo:', err);
+        close();
+        window.open(`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`, '_blank');
+    }
+};
+
+
 // Global helper to safely resolve the dynamic import from the correct module base URL
 window.reloadAcademy = () => import('./academy.js').then(m => m.renderAcademy());
 
@@ -222,7 +314,7 @@ export function renderAcademy() {
         let iconHtml = '<i class="fa-solid fa-file text-xl"></i>';
         let iconBg = 'bg-surface-alt';
         let iconColor = 'text-text-secondary';
-        let onClickAction = `window.open('${getViewerUrl(item.enlace)}', '_blank')`;
+        let onClickAction = `window.openAcademyFile('${item.enlace}')`;
         
         let isImage = false;
         if (item.enlace) {
@@ -1070,7 +1162,7 @@ export function renderAcademy() {
 
           if (catKey === 'video') {
             return `
-              <div class="video-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%;">
+              <div class="video-item" onclick="window.openAcademyFile('${r.enlace}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%;">
                 <div style="width: 100%; height: 160px; position:relative; background: #000;">
                   ${r.miniaturaUrl ? `<img src="${r.miniaturaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.85;">` : ''}
                   <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
@@ -1137,7 +1229,7 @@ export function renderAcademy() {
 
             if (r.miniaturaUrl || isImage) {
                 return `
-                  <div class="recurso-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%; cursor: pointer;">
+                  <div class="recurso-item" onclick="window.openAcademyFile('${r.enlace}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%; cursor: pointer;">
                     <div style="width: 100%; height: 160px; position:relative; background: var(--surface-alt);">
                       <img src="${r.miniaturaUrl || r.enlace}" style="width:100%; height:100%; object-fit:cover; opacity:0.9;">
                       <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.1);">
@@ -1162,7 +1254,7 @@ export function renderAcademy() {
             }
 
             return `
-              <div class="recurso-item" onclick="window.open('${getViewerUrl(r.enlace)}', '_blank')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
+              <div class="recurso-item" onclick="window.openAcademyFile('${r.enlace}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
                 <div style="width: 52px; height: 52px; border-radius: 15px; background: ${iconBg}; color: ${iconColor}; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
                   ${iconSvg}
                 </div>
