@@ -18,6 +18,147 @@ const _loadScript = (src) => new Promise((res, rej) => {
 });
 const _escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+/* --- Excel con su formato original: colores, fuentes, bordes, anchos y celdas combinadas --- */
+const _XL_THEME = ['FFFFFF', '000000', 'E7E6E6', '44546A', '4472C4', 'ED7D31', 'A5A5A5', 'FFC000', '5B9BD5', '70AD47'];
+const _XL_INDEXED = { 8: '000000', 9: 'FFFFFF', 10: 'FF0000', 11: '00FF00', 12: '0000FF', 13: 'FFFF00', 14: 'FF00FF', 15: '00FFFF', 22: 'C0C0C0', 23: '808080' };
+const _XL_BORDER = { thin: '1px solid', hair: '1px solid', dotted: '1px dotted', dashed: '1px dashed', dashDot: '1px dashed', dashDotDot: '1px dashed', mediumDashed: '2px dashed', mediumDashDot: '2px dashed', mediumDashDotDot: '2px dashed', slantDashDot: '2px dashed', medium: '2px solid', thick: '3px solid', double: '3px double' };
+const _XL_GRID = '#e1e1e1';
+const _XL_CSS = `<style>
+    #adv-body .xl-grid{border-collapse:separate;border-spacing:0;table-layout:fixed;background:#fff;color:#000;font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:11pt;}
+    #adv-body .xl-grid td{padding:0 3px;overflow:hidden;line-height:1.25;}
+    #adv-body .xl-hd{background:#f3f3f3;color:#555;font:400 11px 'Segoe UI',Arial,sans-serif;text-align:center;border-right:1px solid #d4d4d4;border-bottom:1px solid #d4d4d4;}
+    #adv-body .xl-ch{position:sticky;top:0;z-index:2;height:20px;}
+    #adv-body .xl-rh{position:sticky;left:0;z-index:1;}
+    #adv-body .xl-corner{left:0;z-index:3;}
+  </style>`;
+
+// Lee los colores del tema del libro (los "colores de tema" de Excel)
+const _xlTheme = (wb) => {
+    try {
+        const xml = Object.values(wb._themes || {})[0];
+        if (!xml) return _XL_THEME;
+        return ['lt1', 'dk1', 'lt2', 'dk2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'].map((k, i) => {
+            const m = xml.match(new RegExp(`<a:${k}>\\s*<a:(?:srgbClr val|sysClr[^>]*lastClr)="([0-9A-Fa-f]{6})"`));
+            return m ? m[1] : _XL_THEME[i];
+        });
+    } catch { return _XL_THEME; }
+};
+const _xlColor = (c, theme) => {
+    if (!c) return null;
+    let hex = c.argb ? c.argb.slice(-6) : c.theme != null ? theme[c.theme] : _XL_INDEXED[c.indexed];
+    if (!hex) return null;
+    if (c.tint) {
+        hex = hex.match(/../g).map(h => {
+            const v = parseInt(h, 16);
+            return Math.round(c.tint < 0 ? v * (1 + c.tint) : v + (255 - v) * c.tint).toString(16).padStart(2, '0');
+        }).join('');
+    }
+    return '#' + hex;
+};
+const _xlBorder = (b, theme) => b && b.style ? `${_XL_BORDER[b.style] || '1px solid'} ${_xlColor(b.color, theme) || '#000'}` : null;
+const _xlColName = (c) => { let s = ''; for (let n = c + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
+
+// sj = hoja de SheetJS (texto con formato, combinadas); ws = hoja de ExcelJS (estilos) o null
+const _xlRenderSheet = (sj, ws, theme) => {
+    const X = window.XLSX;
+    if (!sj['!ref']) return '<p style="padding:16px;color:#666;">Hoja vacía</p>';
+    const rg = X.utils.decode_range(sj['!ref']);
+    const nR = Math.min(rg.e.r, 1999) + 1, nC = Math.min(rg.e.c, 199) + 1;
+    const grid = ws?.views?.[0]?.showGridLines !== false;
+
+    const colW = [], colHidden = [], rowH = [], rowHidden = [];
+    for (let c = 0; c < nC; c++) {
+        const ec = ws?.getColumn(c + 1), sc = sj['!cols']?.[c];
+        colW[c] = Math.round((ec?.width ?? sc?.wch ?? ws?.properties?.defaultColWidth ?? 8.43) * 7 + 5);
+        colHidden[c] = !!(ec?.hidden || sc?.hidden);
+    }
+    for (let r = 0; r < nR; r++) {
+        const er = ws?.findRow(r + 1), sr = sj['!rows']?.[r];
+        rowH[r] = Math.round((er?.height ?? sr?.hpt ?? ws?.properties?.defaultRowHeight ?? 15) * 4 / 3);
+        rowHidden[r] = !!(er?.hidden || sr?.hidden);
+    }
+
+    const span = {}, covered = new Set();
+    (sj['!merges'] || []).forEach(m => {
+        span[`${m.s.r},${m.s.c}`] = m;
+        for (let r = m.s.r; r <= m.e.r; r++) for (let c = m.s.c; c <= m.e.c; c++) if (r !== m.s.r || c !== m.s.c) covered.add(`${r},${c}`);
+    });
+
+    // Bordes: cada celda pinta su derecha/abajo; izquierda/arriba se pasan a la vecina
+    const bR = {}, bB = {}, bL = {}, bT = {};
+    for (let r = 0; r < nR && ws; r++) {
+        ws.findRow(r + 1)?.eachCell({ includeEmpty: true }, (cell, col) => {
+            const b = cell.style?.border, c = col - 1;
+            if (!b || c >= nC) return;
+            const k = `${r},${c}`;
+            const right = _xlBorder(b.right, theme), bottom = _xlBorder(b.bottom, theme), left = _xlBorder(b.left, theme), top = _xlBorder(b.top, theme);
+            if (right) bR[k] = right;
+            if (bottom) bB[k] = bottom;
+            if (left) { if (c > 0) bR[`${r},${c - 1}`] ??= left; else bL[k] = left; }
+            if (top) { if (r > 0) bB[`${r - 1},${c}`] ??= top; else bT[k] = top; }
+        });
+    }
+
+    const cellHtml = (r, c) => {
+        const k = `${r},${c}`;
+        if (covered.has(k)) return '';
+        const sc = sj[X.utils.encode_cell({ r, c })];
+        const st = ws?.findCell(r + 1, c + 1)?.style || {};
+        const f = st.font || {}, a = st.alignment || {}, fill = st.fill, css = [];
+        if (f.name) css.push(`font-family:'${String(f.name).replace(/['"<>;]/g, '')}',Calibri,Arial,sans-serif`);
+        if (f.size) css.push(`font-size:${f.size}pt`);
+        if (f.bold) css.push('font-weight:700');
+        if (f.italic) css.push('font-style:italic');
+        const deco = [f.underline && 'underline', f.strike && 'line-through'].filter(Boolean).join(' ');
+        if (deco) css.push(`text-decoration:${deco}`);
+        const fc = _xlColor(f.color, theme);
+        if (fc) css.push(`color:${fc}`);
+        const bg = fill?.type === 'pattern' && fill.pattern && fill.pattern !== 'none' ? _xlColor(fill.fgColor, theme)
+            : fill?.type === 'gradient' ? _xlColor(fill.stops?.[0]?.color, theme) : null;
+        if (bg) css.push(`background:${bg}`);
+        const t = sc?.t;
+        const h = a.horizontal && !['general', 'fill'].includes(a.horizontal)
+            ? ({ centerContinuous: 'center', distributed: 'justify' }[a.horizontal] || a.horizontal)
+            : (t === 'n' || t === 'd' ? 'right' : t === 'b' || t === 'e' ? 'center' : 'left');
+        css.push(`text-align:${h}`);
+        css.push(`vertical-align:${a.vertical === 'top' ? 'top' : ['middle', 'center'].includes(a.vertical) ? 'middle' : 'bottom'}`);
+        css.push(a.wrapText ? 'white-space:pre-wrap;word-break:break-word' : 'white-space:pre');
+        if (a.indent) css.push(`padding-left:${3 + a.indent * 9}px`);
+
+        let attrs = '', lastR = r, lastC = c;
+        const m = span[k];
+        if (m) {
+            lastR = Math.min(m.e.r, nR - 1); lastC = Math.min(m.e.c, nC - 1);
+            let rs = 0, cs = 0;
+            for (let i = r; i <= lastR; i++) if (!rowHidden[i]) rs++;
+            for (let i = c; i <= lastC; i++) if (!colHidden[i]) cs++;
+            if (rs > 1) attrs += ` rowspan="${rs}"`;
+            if (cs > 1) attrs += ` colspan="${cs}"`;
+        }
+        const gl = '1px solid ' + (bg || (grid ? _XL_GRID : 'transparent'));
+        css.push(`border-right:${bR[`${r},${lastC}`] || gl}`, `border-bottom:${bB[`${lastR},${c}`] || gl}`);
+        if (bL[k]) css.push(`border-left:${bL[k]}`);
+        if (bT[k]) css.push(`border-top:${bT[k]}`);
+
+        let inner = _escHtml(sc ? (sc.w ?? (sc.v == null ? '' : String(sc.v))) : '');
+        if (sc?.l?.Target) inner = `<a href="${_escHtml(sc.l.Target)}" target="_blank" rel="noopener" style="color:inherit">${inner}</a>`;
+        return `<td${attrs} style="${css.join(';')}">${inner}</td>`;
+    };
+
+    const cols = [...Array(nC).keys()].filter(c => !colHidden[c]);
+    const totalW = 40 + cols.reduce((s, c) => s + colW[c], 0);
+    let html = `${_XL_CSS}<table class="xl-grid" style="width:${totalW}px"><colgroup><col style="width:40px">`
+        + cols.map(c => `<col style="width:${colW[c]}px">`).join('')
+        + '</colgroup><thead><tr><th class="xl-hd xl-ch xl-corner"></th>'
+        + cols.map(c => `<th class="xl-hd xl-ch">${_xlColName(c)}</th>`).join('')
+        + '</tr></thead><tbody>';
+    for (let r = 0; r < nR; r++) {
+        if (rowHidden[r]) continue;
+        html += `<tr style="height:${rowH[r]}px"><th class="xl-hd xl-rh">${r + 1}</th>${cols.map(c => cellHtml(r, c)).join('')}</tr>`;
+    }
+    return html + '</tbody></table>';
+};
+
 window.openAcademyFile = async (url, title) => {
     if (!url) return;
     const clean = url.split('?')[0].split('#')[0].toLowerCase();
@@ -44,8 +185,8 @@ window.openAcademyFile = async (url, title) => {
           <a href="${_escHtml(url)}" download target="_blank" rel="noopener" style="padding:6px 12px;border-radius:8px;background:var(--primary,#00dfbf);color:#fff;font-weight:800;font-size:.75rem;text-decoration:none;">Descargar</a>
           <button id="adv-close" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border,#ddd);background:transparent;color:inherit;font-weight:800;font-size:.75rem;cursor:pointer;">Cerrar ✕</button>
         </div>
-        <div id="adv-tabs" style="display:none;gap:6px;padding:8px 16px;border-bottom:1px solid var(--border,#ddd);overflow-x:auto;"></div>
-        <div id="adv-body" style="flex:1;overflow:auto;padding:12px 16px;"><p style="opacity:.6;">Cargando documento…</p></div>
+        <div id="adv-body" style="flex:1;overflow:auto;background:#fff;color:#000;"><p style="opacity:.6;padding:12px 16px;">Cargando documento…</p></div>
+        <div id="adv-tabs" style="display:none;gap:2px;padding:0 8px;background:#f3f3f3;border-top:1px solid #d4d4d4;overflow-x:auto;"></div>
       </div>`;
     document.body.appendChild(modal);
     const close = () => modal.remove();
@@ -59,36 +200,53 @@ window.openAcademyFile = async (url, title) => {
         const buf = await res.arrayBuffer();
 
         if (isDocx) {
-            await _loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js');
-            const out = await window.mammoth.convertToHtml({ arrayBuffer: buf });
-            body.innerHTML = `<div style="max-width:850px;margin:0 auto;line-height:1.6;font-size:.95rem;">${out.value}</div>`;
+            // Word con sus páginas, fuentes, tablas e imágenes originales
+            try {
+                await _loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+                await _loadScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js');
+                body.innerHTML = '';
+                await window.docx.renderAsync(buf, body, null, { inWrapper: true, ignoreLastRenderedPageBreak: true });
+            } catch (e) {
+                console.warn('docx-preview falló, usando mammoth:', e);
+                await _loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js');
+                const out = await window.mammoth.convertToHtml({ arrayBuffer: buf });
+                body.innerHTML = `<div style="max-width:850px;margin:0 auto;padding:16px;line-height:1.6;font-size:.95rem;">${out.value}</div>`;
+            }
             return;
         }
 
         await _loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
         const wb = window.XLSX.read(buf, { type: 'array', cellStyles: true });
+        // ExcelJS aporta los estilos (colores, fuentes, bordes) en xlsx/xlsm
+        let ewb = null, theme = _XL_THEME;
+        if (['xlsx', 'xlsm'].includes(ext)) {
+            try {
+                await _loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+                ewb = new window.ExcelJS.Workbook();
+                await ewb.xlsx.load(buf.slice(0));
+                theme = _xlTheme(ewb);
+            } catch (e) { console.warn('Sin estilos de Excel:', e); ewb = null; }
+        }
         const tabs = modal.querySelector('#adv-tabs');
+        const visible = wb.SheetNames.filter((n, i) => !wb.Workbook?.Sheets?.[i]?.Hidden);
         const show = (idx) => {
-            const sh = wb.Sheets[wb.SheetNames[idx]];
-            body.innerHTML = `<style>
-                #adv-body table{border-collapse:collapse;font-size:.8rem;}
-                #adv-body td,#adv-body th{border:1px solid var(--border,#ccc);padding:4px 8px;vertical-align:top;white-space:pre-wrap;max-width:320px;}
-              </style>` + window.XLSX.utils.sheet_to_html(sh, { header: '', footer: '' });
+            const sheetName = visible[idx];
+            body.innerHTML = _xlRenderSheet(wb.Sheets[sheetName], ewb?.getWorksheet(sheetName), theme);
+            body.scrollTop = body.scrollLeft = 0;
             [...tabs.children].forEach((b, i) => {
-                b.style.background = i === idx ? 'var(--primary,#00dfbf)' : 'transparent';
-                b.style.color = i === idx ? '#fff' : 'inherit';
+                b.style.background = i === idx ? '#fff' : 'transparent';
+                b.style.color = i === idx ? '#217346' : '#444';
+                b.style.borderBottom = i === idx ? '3px solid #217346' : '3px solid transparent';
             });
         };
-        if (wb.SheetNames.length > 1) {
-            tabs.style.display = 'flex';
-            wb.SheetNames.forEach((n, i) => {
-                const b = document.createElement('button');
-                b.textContent = n;
-                b.style.cssText = 'padding:5px 12px;border-radius:8px;border:1px solid var(--border,#ddd);font-weight:700;font-size:.75rem;cursor:pointer;white-space:nowrap;';
-                b.onclick = () => show(i);
-                tabs.appendChild(b);
-            });
-        }
+        tabs.style.display = 'flex';
+        visible.forEach((n, i) => {
+            const b = document.createElement('button');
+            b.textContent = n;
+            b.style.cssText = "padding:6px 14px;border:none;font:600 12px 'Segoe UI',Arial,sans-serif;cursor:pointer;white-space:nowrap;";
+            b.onclick = () => show(i);
+            tabs.appendChild(b);
+        });
         show(0);
     } catch (err) {
         console.warn('Visor propio falló, usando visor externo:', err);
