@@ -18,6 +18,51 @@ const _loadScript = (src) => new Promise((res, rej) => {
 });
 const _escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+/* --- Abrir en Google Sheets / Docs: copia el archivo al Drive de la persona para editarlo ---
+   Requiere un "ID de cliente OAuth" (tipo Aplicación web) de Google Cloud con el origen
+   https://renewgroup.site autorizado y la API de Google Drive habilitada. */
+const GOOGLE_CLIENT_ID = '';
+let _gToken = null, _gTokenExp = 0;
+const _googleToken = () => new Promise(async (res, rej) => {
+    if (_gToken && Date.now() < _gTokenExp) return res(_gToken);
+    try { await _loadScript('https://accounts.google.com/gsi/client'); } catch (e) { return rej(e); }
+    window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: (r) => {
+            if (r.error) return rej(new Error(r.error));
+            _gToken = r.access_token; _gTokenExp = Date.now() + (r.expires_in - 60) * 1000;
+            res(_gToken);
+        },
+        error_callback: (e) => rej(new Error(e?.type || 'popup')),
+    }).requestAccessToken();
+});
+const _openInGoogle = async (buf, name, isDocx, btn) => {
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = 'Abriendo…';
+    try {
+        const token = await _googleToken();
+        const meta = { name: name.replace(/\.(xlsx|xlsm|xls|csv|docx)$/i, ''), mimeType: isDocx ? 'application/vnd.google-apps.document' : 'application/vnd.google-apps.spreadsheet' };
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+        form.append('file', new Blob([buf]));
+        const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+            method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: form,
+        });
+        if (!r.ok) throw new Error('Drive ' + r.status);
+        const { webViewLink } = await r.json();
+        if (!window.open(webViewLink, '_blank')) {
+            // Si el navegador bloquea la ventana, dejamos el enlace en el botón
+            btn.outerHTML = `<a href="${_escHtml(webViewLink)}" target="_blank" rel="noopener" style="${btn.style.cssText}">Ir al archivo en Google ↗</a>`;
+            return;
+        }
+    } catch (e) {
+        console.warn('No se pudo abrir en Google:', e);
+        alert('No se pudo copiar el archivo a tu Google Drive. Intenta de nuevo o usa "Descargar".');
+    }
+    btn.disabled = false; btn.innerHTML = label;
+};
+
 /* --- Excel con su formato original: colores, fuentes, bordes, anchos y celdas combinadas --- */
 const _XL_THEME = ['FFFFFF', '000000', 'E7E6E6', '44546A', '4472C4', 'ED7D31', 'A5A5A5', 'FFC000', '5B9BD5', '70AD47'];
 const _XL_INDEXED = { 8: '000000', 9: 'FFFFFF', 10: 'FF0000', 11: '00FF00', 12: '0000FF', 13: 'FFFF00', 14: 'FF00FF', 15: '00FFFF', 22: 'C0C0C0', 23: '808080' };
@@ -174,6 +219,9 @@ window.openAcademyFile = async (url, title) => {
     }
 
     const name = title || decodeURIComponent(clean.split('/').pop());
+    // Abre el archivo en Excel/Word de escritorio (si está instalado) para editarlo
+    const officeUrl = `ms-${isDocx ? 'word' : 'excel'}:ofe|u|${new URL(url, location.href).href}`;
+    if (GOOGLE_CLIENT_ID) _loadScript('https://accounts.google.com/gsi/client').catch(() => {});
     document.getElementById('academy-doc-viewer')?.remove();
     const modal = document.createElement('div');
     modal.id = 'academy-doc-viewer';
@@ -182,6 +230,8 @@ window.openAcademyFile = async (url, title) => {
       <div style="background:var(--surface,#fff);color:var(--text-primary,#111);border-radius:16px;width:100%;max-width:1400px;height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">
         <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border,#ddd);">
           <strong style="flex:1;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(name)}</strong>
+          <a href="${_escHtml(officeUrl)}" style="padding:6px 12px;border-radius:8px;background:${isDocx ? '#2b579a' : '#217346'};color:#fff;font-weight:800;font-size:.75rem;text-decoration:none;">Abrir en ${isDocx ? 'Word' : 'Excel'}</a>
+          ${GOOGLE_CLIENT_ID ? `<button id="adv-google" disabled style="padding:6px 12px;border-radius:8px;border:none;background:${isDocx ? '#4285f4' : '#0f9d58'};color:#fff;font-family:inherit;font-weight:800;font-size:.75rem;cursor:pointer;text-decoration:none;">Abrir en ${isDocx ? 'Google Docs' : 'Google Sheets'}</button>` : ''}
           <a href="${_escHtml(url)}" download target="_blank" rel="noopener" style="padding:6px 12px;border-radius:8px;background:var(--primary,#00dfbf);color:#fff;font-weight:800;font-size:.75rem;text-decoration:none;">Descargar</a>
           <button id="adv-close" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border,#ddd);background:transparent;color:inherit;font-weight:800;font-size:.75rem;cursor:pointer;">Cerrar ✕</button>
         </div>
@@ -198,6 +248,11 @@ window.openAcademyFile = async (url, title) => {
         const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const buf = await res.arrayBuffer();
+        const gBtn = modal.querySelector('#adv-google');
+        if (gBtn) {
+            gBtn.disabled = false;
+            gBtn.onclick = () => _openInGoogle(buf.slice(0), name, isDocx, gBtn);
+        }
 
         if (isDocx) {
             // Word con sus páginas, fuentes, tablas e imágenes originales
