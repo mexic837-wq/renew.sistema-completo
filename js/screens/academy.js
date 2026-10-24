@@ -21,7 +21,7 @@ const _escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<
 /* --- Abrir en Google Sheets / Docs: copia el archivo al Drive de la persona para editarlo ---
    Requiere un "ID de cliente OAuth" (tipo Aplicación web) de Google Cloud con el origen
    https://renewgroup.site autorizado y la API de Google Drive habilitada. */
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '879983724974-3gdfai95vco9s2ase2dr57091ratm8an.apps.googleusercontent.com';
 let _gToken = null, _gTokenExp = 0;
 const _googleToken = () => new Promise(async (res, rej) => {
     if (_gToken && Date.now() < _gTokenExp) return res(_gToken);
