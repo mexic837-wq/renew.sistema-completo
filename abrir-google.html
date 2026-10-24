@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abriendo en Google…</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;
+         font-family: system-ui, 'Segoe UI', Arial, sans-serif; background: #f4f6f8; color: #222; text-align: center; }
+  .card { background: #fff; border-radius: 16px; padding: 32px 28px; max-width: 420px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+  .spin { width: 36px; height: 36px; border: 4px solid #e0e0e0; border-top-color: #0f9d58; border-radius: 50%; animation: s 1s linear infinite; margin: 0 auto 16px; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  h2 { font-size: 1.1rem; margin: 0; }
+  p { color: #666; font-size: .9rem; }
+  a.btn { display: inline-block; margin-top: 8px; padding: 10px 18px; border-radius: 10px; background: #00dfbf; color: #fff; font-weight: 700; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spin" id="spin"></div>
+  <h2 id="msg">Abriendo en Google Sheets…</h2>
+  <p id="sub">Copiando el archivo a tu Google Drive</p>
+  <div id="extra"></div>
+</div>
+<script>
+/* Copia un archivo de Academia al Google Drive de la persona (convertido a Sheets/Docs) y lo abre.
+   Uso: /abrir-google.html?src=<url del archivo>&name=<nombre>
+   El ID de cliente OAuth debe tener esta página como "URI de redireccionamiento autorizado". */
+(async () => {
+    const CLIENT_ID = '879983724974-3gdfai95vco9s2ase2dr57091ratm8an.apps.googleusercontent.com';
+    const KEY = 'renew_gtoken';
+    const REDIRECT = location.origin + location.pathname;
+    const $ = (id) => document.getElementById(id);
+
+    const fail = (txt, src) => {
+        $('spin').remove();
+        $('msg').textContent = 'No se pudo abrir en Google';
+        $('sub').textContent = txt;
+        if (src) {
+            const a = document.createElement('a');
+            a.className = 'btn'; a.href = src; a.textContent = 'Descargar el archivo';
+            $('extra').appendChild(a);
+        }
+    };
+    const store = {
+        get() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } },
+        set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch {} },
+        clear() { try { localStorage.removeItem(KEY); } catch {} },
+    };
+
+    // 1) Vuelta desde Google con el permiso, o primera llegada con ?src=
+    const hash = new URLSearchParams(location.hash.slice(1));
+    let job, freshToken = false;
+    if (hash.get('error')) return fail('No se dio el permiso de Google Drive.');
+    if (hash.get('access_token')) {
+        store.set({ t: hash.get('access_token'), exp: Date.now() + (Number(hash.get('expires_in') || 3600) - 60) * 1000 });
+        try { job = JSON.parse(hash.get('state') || '{}'); } catch { job = {}; }
+        freshToken = true;
+        history.replaceState(null, '', REDIRECT);
+    } else {
+        const q = new URLSearchParams(location.search);
+        job = { src: q.get('src'), name: q.get('name') };
+    }
+    if (!job.src || !/^https?:\/\//i.test(job.src)) return fail('No se indicó el archivo.');
+
+    const file = decodeURIComponent(job.src.split('?')[0].split('/').pop() || 'archivo');
+    const isDoc = /\.docx?$/i.test(file);
+    const title = (job.name || file).replace(/^\d{10,}_/, '').replace(/\.(xlsx|xlsm|xls|csv|docx?)$/i, '');
+    document.title = $('msg').textContent = `Abriendo en Google ${isDoc ? 'Docs' : 'Sheets'}…`;
+
+    const auth = () => location.replace('https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+        client_id: CLIENT_ID,
+        redirect_uri: REDIRECT,
+        response_type: 'token',
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        include_granted_scopes: 'true',
+        state: JSON.stringify(job),
+    }));
+
+    // 2) Sin permiso vigente: pedirlo a Google (vuelve a esta misma página)
+    const tok = store.get();
+    if (!tok || Date.now() > tok.exp) return auth();
+
+    // 3) Descargar el archivo, subirlo convertido al Drive y abrirlo
+    try {
+        const res = await fetch(job.src);
+        if (!res.ok) throw new Error('No se pudo descargar el archivo (' + res.status + ').');
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify({
+            name: title,
+            mimeType: isDoc ? 'application/vnd.google-apps.document' : 'application/vnd.google-apps.spreadsheet',
+        })], { type: 'application/json' }));
+        form.append('file', await res.blob());
+        const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+            method: 'POST', headers: { Authorization: 'Bearer ' + tok.t }, body: form,
+        });
+        if (r.status === 401 && !freshToken) { store.clear(); return auth(); }
+        if (!r.ok) throw new Error('Google Drive respondió ' + r.status + '.');
+        const { webViewLink } = await r.json();
+        location.replace(webViewLink);
+    } catch (e) {
+        console.error(e);
+        fail(e.message || 'Error inesperado.', job.src);
+    }
+})();
+</script>
+</body>
+</html>
