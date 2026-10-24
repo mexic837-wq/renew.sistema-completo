@@ -21,6 +21,151 @@ const _loadScript = (src) => new Promise((res, rej) => {
 const _escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const _googleOpenUrl = (absUrl, name) => `/abrir-google.html?src=${encodeURIComponent(absUrl)}&name=${encodeURIComponent(name)}`;
 
+/* ============================================================
+   Diseño de Sala Virtual (moderno y minimalista)
+   ============================================================ */
+const _AC_CSS = `
+.ac-root{min-height:100vh;background:var(--bg);}
+.ac-wrap{max-width:1180px;margin:0 auto;padding:36px 32px 120px;}
+@media(max-width:640px){.ac-wrap{padding:20px 16px 120px;}}
+.ac-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px;}
+.ac-title{font-size:1.75rem;font-weight:800;letter-spacing:-.03em;color:var(--text-primary);margin:0;line-height:1.1;}
+.ac-sub{color:var(--text-muted);font-size:.9rem;margin:6px 0 0;font-weight:500;}
+.ac-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ac-seg{display:inline-flex;padding:4px;background:var(--surface-alt);border:1px solid var(--border);border-radius:12px;gap:2px;}
+.ac-seg button{border:0;background:transparent;color:var(--text-muted);font-weight:700;font-size:.8rem;padding:7px 16px;border-radius:9px;cursor:pointer;transition:.15s;}
+.ac-seg button:hover{color:var(--text-primary);}
+.ac-seg button.active{background:var(--surface);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.ac-btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#04201b;border:0;border-radius:12px;padding:10px 16px;font-weight:700;font-size:.85rem;cursor:pointer;transition:.15s;}
+.ac-btn-primary:hover{filter:brightness(.95);}
+.ac-menu{position:relative;}
+.ac-menu-list{position:absolute;right:0;top:calc(100% + 8px);min-width:210px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:50;display:none;}
+.ac-menu.open .ac-menu-list{display:block;}
+.ac-menu-list button{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;background:none;border-radius:10px;font-size:.85rem;font-weight:600;color:var(--text-primary);cursor:pointer;text-align:left;}
+.ac-menu-list button:hover{background:var(--surface-alt);}
+.ac-menu-list i{width:18px;color:var(--text-muted);}
+.ac-bar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+.ac-nav{display:flex;gap:6px;}
+.ac-icon-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;transition:.15s;flex-shrink:0;}
+.ac-icon-btn:hover:not(:disabled){background:var(--surface-alt);color:var(--text-primary);}
+.ac-icon-btn:disabled{opacity:.35;cursor:default;}
+.ac-crumbs{display:flex;align-items:center;gap:2px;flex:1;min-width:0;font-size:.875rem;overflow-x:auto;white-space:nowrap;scrollbar-width:none;}
+.ac-crumbs span{padding:6px 8px;border-radius:8px;color:var(--text-muted);font-weight:600;cursor:pointer;}
+.ac-crumbs span:hover{background:var(--surface-alt);color:var(--text-primary);}
+.ac-crumbs span.cur{color:var(--text-primary);cursor:default;background:none;}
+.ac-crumbs i{font-size:.55rem;color:var(--text-muted);opacity:.6;}
+.ac-search{position:relative;width:240px;max-width:100%;}
+.ac-search input{width:100%;height:36px;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:0 12px 0 34px;font-size:.85rem;color:var(--text-primary);outline:none;transition:.15s;}
+.ac-search input:focus{border-color:var(--primary);}
+.ac-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.8rem;pointer-events:none;}
+@media(max-width:640px){.ac-search{width:100%;}}
+.ac-subhead{margin:0;font-size:1.15rem;font-weight:750;color:var(--text-primary);letter-spacing:-.01em;}
+.ac-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:4px 0 12px;}
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:28px;}
+.ac-ico{--c:#64748b;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);font-size:1rem;}
+.ac-txt{min-width:0;flex:1;}
+.ac-txt h3,.ac-txt h4{margin:0;font-size:.9rem;font-weight:650;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em;}
+.ac-txt p{margin:2px 0 0;font-size:.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac-cat,.ac-item{position:relative;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:.18s;min-width:0;}
+.ac-cat{padding:16px;border-radius:16px;}
+.ac-item{padding:12px 14px;border-radius:14px;}
+.ac-cat:hover,.ac-item:hover,.ac-media:hover{border-color:color-mix(in srgb,var(--primary) 45%,var(--border));box-shadow:0 6px 20px rgba(0,0,0,.06);transform:translateY(-1px);}
+.ac-cat .ac-ico{width:44px;height:44px;border-radius:12px;font-size:1.1rem;}
+.ac-go{margin-left:auto;color:var(--text-muted);font-size:.7rem;opacity:.6;}
+.ac-thumb{width:40px;height:40px;border-radius:11px;object-fit:cover;flex-shrink:0;background:var(--surface-alt);}
+.ac-del{width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:.15s;flex-shrink:0;}
+.ac-item:hover .ac-del,.ac-del:focus{opacity:1;}
+.ac-del:hover{background:rgba(239,68,68,.1);color:#ef4444;}
+@media(hover:none){.ac-del{opacity:1;}}
+.ac-media{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:.18s;}
+.ac-cover{aspect-ratio:16/9;background:#0b0b0b center/cover no-repeat;display:flex;align-items:center;justify-content:center;}
+.ac-play{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);color:#111;display:flex;align-items:center;justify-content:center;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+.ac-media .ac-txt{padding:12px 14px;}
+.ac-empty{grid-column:1/-1;text-align:center;padding:56px 16px;border:1px dashed var(--border);border-radius:16px;color:var(--text-muted);font-size:.9rem;font-weight:500;}
+.ac-empty i{font-size:1.6rem;opacity:.4;margin-bottom:10px;display:block;}
+`;
+const _acInjectCss = () => {
+    if (document.getElementById('ac-css')) return;
+    const s = document.createElement('style');
+    s.id = 'ac-css'; s.textContent = _AC_CSS;
+    document.head.appendChild(s);
+    // Cierra el menú "Nuevo" al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        document.querySelectorAll('.ac-menu.open').forEach(m => { if (!m.contains(e.target)) m.classList.remove('open'); });
+    });
+};
+
+const _acFileMeta = (item) => {
+    const ext = (item.enlace || '').split('?')[0].split('.').pop().toLowerCase();
+    const tipo = (item.tipo || '').toLowerCase();
+    if (tipo === 'nota') return { isNote: true, icon: 'fa-note-sticky', c: '#0d9488', label: 'Nota' };
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return { isImage: true, icon: 'fa-image', c: '#8b5cf6', label: 'Imagen' };
+    if (['mp4', 'mov', 'avi', 'webm', 'm4v'].includes(ext) || tipo.includes('video')) return { isVideo: true, icon: 'fa-play', c: '#ef4444', label: 'Video' };
+    const excel = ['fa-file-excel', '#16a34a', 'Excel · se abre en Google Sheets'];
+    const word = ['fa-file-word', '#2563eb', 'Word'];
+    const ppt = ['fa-file-powerpoint', '#ea580c', 'PowerPoint'];
+    const map = { pdf: ['fa-file-pdf', '#dc2626', 'PDF'], xlsx: excel, xls: excel, xlsm: excel, csv: ['fa-file-csv', '#16a34a', 'CSV · se abre en Google Sheets'], docx: word, doc: word, pptx: ppt, ppt };
+    const [icon, c, label] = map[ext] || ['fa-file-lines', '#64748b', ext && ext.length <= 5 ? ext.toUpperCase() : 'Archivo'];
+    return { icon, c, label };
+};
+const _acTitle = (item, m) => {
+    if (item.titulo && item.titulo !== 'null') return item.titulo;
+    if (m.isNote) return 'Nota';
+    const file = decodeURIComponent((item.enlace || '').split('?')[0].split('/').pop() || '').replace(/^\d{10,}_/, '');
+    return file || (m.isImage ? 'Imagen' : 'Documento');
+};
+const _acItem = ({ onclick = '', cls = '', attrs = '', thumb, ico, c, title, meta, delId }) => `
+    <div class="ac-item academy-card ${cls}" ${attrs} ${onclick ? `onclick="${onclick}"` : ''} data-search="${_escHtml(String(title || '').toLowerCase())}">
+        ${thumb ? `<img class="ac-thumb" src="${_escHtml(thumb)}" alt="" loading="lazy">` : `<div class="ac-ico" style="--c:${c}"><i class="fa-solid ${ico}"></i></div>`}
+        <div class="ac-txt"><h4>${_escHtml(title)}</h4>${meta ? `<p>${_escHtml(meta)}</p>` : ''}</div>
+        ${delId ? `<button class="ac-del" title="Eliminar" onclick="event.stopPropagation(); if(confirm('¿Eliminar esto de forma permanente?')) window.deleteAcademyItem('${delId}', this);"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
+    </div>`;
+const _acEmpty = (text) => `<div class="ac-empty"><i class="fa-regular fa-folder-open"></i>${_escHtml(text)}</div>`;
+
+const _acHeaderHtml = (depts, active, extra = '') => `
+    <div class="ac-head">
+        <div>
+            <h1 class="ac-title">${t('academy_title')}</h1>
+            <p class="ac-sub">${t('academy_team')}</p>
+        </div>
+        <div class="ac-actions">
+            ${depts.length > 1 ? `<div class="ac-seg">${depts.map(d => `<button class="academy-dept-filter-pill ${d === active ? 'active' : ''}" data-dept="${d}">${d}</button>`).join('')}</div>` : ''}
+            ${extra}
+        </div>
+    </div>`;
+
+const _acCatsHtml = (dept) => {
+    const cap = (s) => s ? s.charAt(0) + s.slice(1).toLowerCase() : '';
+    const cats = [
+        { key: 'video', ico: 'fa-circle-play', c: '#ef4444', title: t('academy_videos'), sub: t('academy_multimedia') },
+        { key: 'pdf', ico: 'fa-book-open', c: '#3b82f6', title: t('academy_docs'), sub: t('academy_recursos') },
+        { key: 'banco', ico: 'fa-building-columns', c: '#8b5cf6', title: t('academy_info'), sub: t('academy_banco') },
+        { key: 'faq', ico: 'fa-circle-question', c: '#f59e0b', title: t('academy_faq'), sub: t('academy_soporte') },
+        { key: 'equipo', ico: 'fa-solar-panel', c: '#ec4899', title: t('academy_equipment'), sub: t('academy_equipment_label') },
+    ];
+    const site = dept === 'Water' ? { link: 'https://renewwaterus.com/', title: 'Renew Water' }
+        : dept === 'Solar' ? { link: 'https://www.renewsolarus.com/', title: 'Renew Solar' } : null;
+    return cats.map(k => `
+        <div class="ac-cat" data-categoria="${k.key}" data-search="${_escHtml(k.title.toLowerCase())}">
+            <div class="ac-ico" style="--c:${k.c}"><i class="fa-solid ${k.ico}"></i></div>
+            <div class="ac-txt"><h3>${k.title}</h3><p>${cap(k.sub)}</p></div>
+            <i class="fa-solid fa-chevron-right ac-go"></i>
+        </div>`).join('')
+        + (site ? `
+        <div class="ac-cat" data-link="${site.link}" data-search="${site.title.toLowerCase()}">
+            <div class="ac-ico" style="--c:#0d9488"><i class="fa-solid fa-globe"></i></div>
+            <div class="ac-txt"><h3>${site.title}</h3><p>Página oficial</p></div>
+            <i class="fa-solid fa-arrow-up-right-from-square ac-go"></i>
+        </div>` : '');
+};
+
+window.filterAcademyItems = (q) => {
+    q = q.trim().toLowerCase();
+    document.querySelectorAll('#vista-academia [data-search]').forEach(el => {
+        el.style.display = !q || el.dataset.search.includes(q) ? '' : 'none';
+    });
+};
+
 window.openAcademyFile = async (url, title) => {
     if (!url) return;
     const clean = url.split('?')[0].split('#')[0].toLowerCase();
@@ -108,6 +253,7 @@ export function renderAcademy() {
   const user = getCurrentUser();
   const screen = document.getElementById('screen-academy');
   if (!screen) return;
+  _acInjectCss();
 
   const dbLocal = getDB();
   const allContent = dbLocal.academiaContent || [];
@@ -163,20 +309,18 @@ export function renderAcademy() {
         }
     }
 
-    let breadcrumbsHtml = `<span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold text-text-muted hover:text-text-primary" onclick="window.mainAcademyFolder=null; window.reloadAcademy()">Inicio</span>`;
-    path.forEach((f, idx) => {
-        const isLast = idx === path.length - 1;
-        breadcrumbsHtml += ` <i class="fa-solid fa-chevron-right text-[0.65rem] opacity-40 mx-1"></i> <span class="cursor-pointer hover:bg-surface-alt py-1 px-3 rounded-lg transition-colors font-bold ${isLast ? 'text-primary' : 'text-text-muted hover:text-text-primary'}" onclick="window.mainAcademyFolder='${f.id}'; window.reloadAcademy()">${f.titulo}</span>`;
-    });
+    const crumbs = [{ id: null, titulo: 'Inicio' }, ...path];
+    const breadcrumbsHtml = crumbs.map((f, idx) => {
+        const isLast = idx === crumbs.length - 1;
+        const go = f.id ? `window.mainAcademyFolder='${f.id}'` : 'window.mainAcademyFolder=null';
+        return `${idx ? '<i class="fa-solid fa-chevron-right"></i>' : ''}<span class="${isLast ? 'cur' : ''}" ${isLast ? '' : `onclick="${go}; window.reloadAcademy()"`}>${_escHtml(f.titulo)}</span>`;
+    }).join('');
 
     const parentFolderId = path.length > 0 ? path[path.length - 1].parent_id || null : null;
-    const upArrowHtml = window.mainAcademyFolder ? 
-        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; window.reloadAcademy()" title="Subir un nivel"><i class="fa-solid fa-arrow-up"></i></button>` 
-        : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-up"></i></button>`;
-
-    const backArrowHtml = window.mainAcademyFolder ? 
-        `<button class="w-8 h-8 rounded hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.mainAcademyFolder='${parentFolderId === null ? '' : parentFolderId}'; if(window.mainAcademyFolder==='') window.mainAcademyFolder=null; window.reloadAcademy()" title="Atrás"><i class="fa-solid fa-arrow-left"></i></button>`
-        : `<button class="w-8 h-8 rounded flex items-center justify-center text-text-muted opacity-30 cursor-not-allowed"><i class="fa-solid fa-arrow-left"></i></button>`;
+    const goParent = `window.mainAcademyFolder=${parentFolderId ? `'${parentFolderId}'` : 'null'}; window.reloadAcademy()`;
+    const navHtml = `
+        <button class="ac-icon-btn" title="Atrás" ${window.mainAcademyFolder ? `onclick="${goParent}"` : 'disabled'}><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="ac-icon-btn" title="Actualizar" onclick="window.reloadAcademy()"><i class="fa-solid fa-rotate-right"></i></button>`;
 
     const currentItems = allContent.filter(i => {
         if (i.tipo === 'ELIMINADO') return false;
@@ -232,273 +376,68 @@ export function renderAcademy() {
     const folders = currentItems.filter(i => i.is_folder).sort((a,b) => (a.titulo||'').localeCompare(b.titulo||''));
     const files = currentItems.filter(i => !i.is_folder).sort((a,b) => (a.titulo||'').localeCompare(b.titulo||''));
 
-    const getViewerUrl = (url) => {
-        if (!url) return '';
-        const lowerUrl = url.toLowerCase();
-        const officeExts = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
-        const isOffice = officeExts.some(ext => lowerUrl.endsWith(ext));
-        const isPdf = lowerUrl.endsWith('.pdf');
-
-        if (isOffice) {
-            return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
-        }
-        if (isPdf) {
-            return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-        }
-        return url;
-    };
-
     let itemsHtml = '';
-    if (folders.length === 0 && files.length === 0) {
-        itemsHtml = `
-            <div class="col-span-full flex flex-col items-center justify-center py-16 text-center bg-surface border border-border rounded-2xl mt-4">
-                <i class="fa-solid fa-folder-open text-4xl text-text-muted opacity-30 mb-4"></i>
-                <p class="text-text-muted font-bold">${t('academy_empty') || 'Carpeta vacía'}</p>
-            </div>
-        `;
+    if (folders.length) {
+        itemsHtml += `<div class="ac-label">Carpetas</div><div class="ac-grid">` + folders.map(item => {
+            const n = allContent.filter(i => i.parent_id === item.id && i.tipo !== 'ELIMINADO').length;
+            return _acItem({
+                onclick: `window.mainAcademyFolder='${item.id}'; window.reloadAcademy()`,
+                attrs: 'data-is-folder="true"',
+                thumb: item.miniaturaUrl, ico: 'fa-folder', c: '#eab308',
+                title: item.titulo || 'Carpeta sin nombre',
+                meta: item.notas || `${n} ${n === 1 ? 'elemento' : 'elementos'}`,
+                delId: item.id,
+            });
+        }).join('') + '</div>';
     }
-
-    folders.forEach(item => {
-        let iconHtml = '<i class="fa-solid fa-folder text-xl"></i>';
-        let iconBg = 'bg-primary/10';
-        let iconColor = 'text-primary';
-
-        itemsHtml += `
-            <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="window.mainAcademyFolder='${item.id}'; window.reloadAcademy()" data-is-folder="true">
-                <div class="absolute top-2 right-2 flex gap-2 z-10">
-                    <button class="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center transition-colors shadow-sm" onclick="event.stopPropagation(); if(confirm('¿Eliminar esto de forma permanente?')) window.deleteAcademyItem('${item.id}', this);" title="Eliminar">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
-                </div>
-                ${item.miniaturaUrl ? 
-                    `<div class="h-32 w-full bg-black relative">
-                        <img src="${item.miniaturaUrl}" class="w-full h-full object-cover opacity-80" />
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center text-white"><i class="fa-solid fa-folder"></i></div>
-                        </div>
-                    </div>` 
-                    : 
-                    `<div class="h-32 w-full flex items-center justify-center ${iconBg} ${iconColor}">
-                        ${iconHtml}
-                    </div>`
-                }
-                <div class="p-4 flex-1 flex flex-col">
-                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${item.titulo || 'Carpeta sin nombre'}</h4>
-                    ${item.notas ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
-                    <div class="mt-auto flex flex-wrap gap-1">
-                        <span class="text-[0.55rem] px-2 py-1 bg-surface-alt border border-border rounded-md uppercase font-black text-text-muted">${allContent.filter(i => i.parent_id === item.id).length} elementos</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    files.forEach(item => {
-        const typeStr = (item.tipo || '').toLowerCase();
-        let iconHtml = '<i class="fa-solid fa-file text-xl"></i>';
-        let iconBg = 'bg-surface-alt';
-        let iconColor = 'text-text-secondary';
-        let onClickAction = `window.openAcademyFile('${item.enlace}')`;
-        
-        let isImage = false;
-        if (item.enlace) {
-            const ext = item.enlace.split('.').pop().split('?')[0].toLowerCase();
-            if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
-                isImage = true;
-            }
-        }
-
-        if (typeStr.includes('video')) { iconHtml = '<i class="fa-solid fa-play"></i>'; iconBg = 'bg-red-500/10'; iconColor = 'text-red-500'; }
-        else if (typeStr.includes('pdf')) { iconHtml = '<i class="fa-solid fa-file-pdf"></i>'; iconBg = 'bg-blue-500/10'; iconColor = 'text-blue-500'; }
-        else if (typeStr === 'nota') { 
-            iconHtml = '<i class="fa-solid fa-quote-left text-2xl"></i>'; 
-            iconBg = 'bg-primary/10'; 
-            iconColor = 'text-primary'; 
-            onClickAction = `window.viewAcademyNote('${item.id}')`; 
-        }
-        else if (isImage) {
-            iconHtml = '<i class="fa-solid fa-image text-xl"></i>';
-        }
-        
-        const validTitle = (item.titulo && item.titulo !== 'null') ? item.titulo : (isImage ? 'Imagen' : (typeStr === 'nota' ? 'Nota' : 'Documento'));
-
-        itemsHtml += `
-            <div class="academy-card bg-surface border border-border rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all flex flex-col relative" onclick="${onClickAction}" data-is-folder="false">
-                <div class="absolute top-2 right-2 flex gap-2 z-10">
-                    <button class="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center transition-colors shadow-sm" onclick="event.stopPropagation(); if(confirm('¿Eliminar esto de forma permanente?')) window.deleteAcademyItem('${item.id}', this);" title="Eliminar">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
-                </div>
-                ${(item.miniaturaUrl || isImage) ? 
-                    `<div class="h-32 w-full bg-black relative">
-                        <img src="${item.miniaturaUrl || item.enlace}" class="w-full h-full object-cover opacity-80" />
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            ${item.miniaturaUrl ? `<div class="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center text-white"><i class="fa-solid fa-play"></i></div>` : ''}
-                        </div>
-                    </div>` 
-                    : 
-                    `<div class="h-32 w-full flex items-center justify-center ${iconBg} ${iconColor}">
-                        ${iconHtml}
-                    </div>`
-                }
-                <div class="p-4 flex-1 flex flex-col">
-                    <h4 class="m-0 text-text-primary font-bold text-sm leading-tight mb-2 line-clamp-2">${validTitle}</h4>
-                    ${item.notas && typeStr !== 'nota' ? `<p class="m-0 text-xs text-text-muted italic line-clamp-2 mb-2">${item.notas}</p>` : ''}
-                    <div class="mt-auto flex flex-wrap gap-1">
-                        ${(item.permisos || []).map(p => `<span class="text-[0.55rem] px-2 py-1 bg-surface-alt border border-border rounded-md uppercase font-black text-text-muted">${p}</span>`).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    const filterHtml = `
-        <div class="flex items-center justify-center gap-3 mt-4 mb-8 relative z-10 w-full" id="academy-dept-filters">
-          ${depts.map(d => `<button class="academy-dept-filter-pill ${activeAcademyDeptFilter === d ? 'active' : ''}" data-dept="${d}" style="padding: 8px 24px; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.3s; ${activeAcademyDeptFilter === d ? 'background: var(--primary); color: #000; border: 1px solid var(--primary);' : 'background: transparent; color: var(--text-secondary); border: 1px solid var(--border);'}">${d.toUpperCase()}</button>`).join('')}
-        </div>
-    `;
-
-    let heroCardsHtml = '';
-    if (!window.mainAcademyFolder) {
-        heroCardsHtml = `
-          <!-- Contenedor con ancho limitado para "Respiro" -->
-          <div id="academia-menu-principal" class="w-full flex flex-col items-center mb-8">
-            <div class="academy-grid px-10">
-              
-              <!-- Card 1: Videos de Entrenamiento -->
-              <div class="academy-hero-card" data-categoria="video" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_multimedia')}</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_videos')}</h3>
-                </div>
-              </div>
-              
-              <!-- Card 2: PDF -->
-              <div class="academy-hero-card" data-categoria="pdf" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_recursos')}</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_docs')}</h3>
-                </div>
-              </div>
-              
-              <!-- Card 3: Banco -->
-              <div class="academy-hero-card" data-categoria="banco" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_banco')}</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_info')}</h3>
-                </div>
-              </div>
-    
-              <!-- Card 4: FAQ -->
-              <div class="academy-hero-card" data-categoria="faq" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('assets/images/support-bg.png'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_soporte')}</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_faq')}</h3>
-                </div>
-              </div>
-    
-              <!-- Card 5: Detalles de equipo -->
-              <div class="academy-hero-card" data-categoria="equipo" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_equipment_label')}</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_equipment')}</h3>
-                </div>
-              </div>
-              
-              ${activeAcademyDeptFilter === 'Water' ? `
-              <!-- Card 6: Renew Water -->
-              <div class="academy-hero-card" data-link="https://renewwaterus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Water</h3>
-                </div>
-              </div>
-              ` : ''}
-              
-              ${activeAcademyDeptFilter === 'Solar' ? `
-              <!-- Card 7: Renew Solar -->
-              <div class="academy-hero-card" data-link="https://www.renewsolarus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-                <div class="card-overlay" style="padding: 16px;">
-                  <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
-                  <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Solar</h3>
-                </div>
-              </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
+    if (files.length) {
+        itemsHtml += `<div class="ac-label">Archivos</div><div class="ac-grid">` + files.map(item => {
+            const m = _acFileMeta(item);
+            return _acItem({
+                onclick: m.isNote ? `window.viewAcademyNote('${item.id}')` : `window.openAcademyFile('${item.enlace}')`,
+                attrs: 'data-is-folder="false"',
+                thumb: item.miniaturaUrl || (m.isImage ? item.enlace : null), ico: m.icon, c: m.c,
+                title: _acTitle(item, m),
+                meta: item.notas && !m.isNote ? item.notas : m.label,
+                delId: item.id,
+            });
+        }).join('') + '</div>';
     }
+    if (!itemsHtml && window.mainAcademyFolder) itemsHtml = _acEmpty(t('academy_empty') || 'Carpeta vacía');
+
+    const sectionsHtml = window.mainAcademyFolder ? '' : `
+        <div id="academia-menu-principal">
+            <div class="ac-label">Secciones</div>
+            <div class="ac-grid">${_acCatsHtml(activeAcademyDeptFilter)}</div>
+        </div>`;
+
+    const closeMenu = `this.closest('.ac-menu').classList.remove('open');`;
+    const newMenuHtml = `
+        <div class="ac-menu">
+            <button class="ac-btn-primary" onclick="this.parentElement.classList.toggle('open')"><i class="fa-solid fa-plus"></i> Nuevo</button>
+            <div class="ac-menu-list">
+                <button onclick="${closeMenu} window.mainCreateFolder()"><i class="fa-solid fa-folder-plus"></i> Crear carpeta</button>
+                <button onclick="${closeMenu} window.mainUploadDoc()"><i class="fa-solid fa-arrow-up-from-bracket"></i> Subir archivo</button>
+                <button onclick="${closeMenu} window.mainCreateNote()"><i class="fa-solid fa-pen-to-square"></i> Crear nota</button>
+            </div>
+        </div>`;
 
     screen.innerHTML = `
-      <div id="vista-academia" class="w-full min-h-screen pb-32 animate-fadeIn" style="background: var(--bg);">
-        <header class="flex flex-col md:flex-row items-center justify-between px-10 py-6 bg-surface border-b border-border shadow-sm gap-4">
-            <div>
-                <h1 style="color: var(--text-primary); font-size: 1.8rem; font-weight: 950; letter-spacing: -1px; line-height: 1; margin: 0; text-transform: uppercase;">${t('academy_title')}</h1>
-                <p style="color: var(--primary); font-size: 0.85rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;">Gestor Avanzado</p>
-            </div>
-            
-            <div class="relative group">
-                <button class="px-6 py-2.5 rounded-full font-bold text-sm transition-colors flex items-center gap-2 shadow-lg hover:scale-105" style="background: var(--primary); color: #000;">
-                    <i class="fa-solid fa-plus"></i> NUEVO
-                </button>
-                <div class="absolute right-0 top-full mt-3 w-56 bg-surface border border-border rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden" style="box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-                    <button onclick="window.mainCreateFolder()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
-                        <i class="fa-solid fa-folder-plus text-primary text-lg w-5"></i> Crear Carpeta
-                    </button>
-                    <div class="w-full h-px bg-border"></div>
-                    <button onclick="window.mainUploadDoc()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
-                        <i class="fa-solid fa-file-arrow-up text-primary text-lg w-5"></i> Subir Archivo
-                    </button>
-                    <div class="w-full h-px bg-border"></div>
-                    <button onclick="window.mainCreateNote()" class="w-full text-left px-5 py-3.5 text-sm font-bold text-text-primary hover:bg-surface-alt transition-colors flex items-center gap-3">
-                        <i class="fa-solid fa-pen-to-square text-primary text-lg w-5"></i> Crear Nota
-                    </button>
-                </div>
-            </div>
-        </header>
+      <div id="vista-academia" class="ac-root animate-fadeIn"><div class="ac-wrap">
+        ${_acHeaderHtml(depts, activeAcademyDeptFilter, newMenuHtml)}
 
-        ${filterHtml}
-        
-        <!-- Explorer Nav Bar -->
-        <div class="px-10 py-2 flex items-center gap-4 mb-6" id="academy-explorer-nav">
-            <div class="flex items-center gap-2">
-                ${backArrowHtml}
-                ${upArrowHtml}
-                <button class="w-9 h-9 rounded-full hover:bg-surface-alt flex items-center justify-center text-text-muted transition-colors" onclick="window.reloadAcademy()" title="Actualizar"><i class="fa-solid fa-rotate-right"></i></button>
-            </div>
-            <div class="flex-1 flex items-center gap-2 text-sm text-text-primary font-bold">
-                <i class="fa-solid fa-folder-open text-primary mr-2 text-lg"></i>
-                ${breadcrumbsHtml}
-            </div>
+        <div class="ac-bar" id="academy-explorer-nav">
+            <div class="ac-nav">${navHtml}</div>
+            <div class="ac-crumbs">${breadcrumbsHtml}</div>
+            <label class="ac-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" placeholder="Buscar…" oninput="window.filterAcademyItems(this.value)"></label>
         </div>
 
-        ${heroCardsHtml}
+        ${sectionsHtml}
 
-        <!-- Sub-Vista (Contenido del Módulo) -->
-        <div id="academia-subvista" class="hidden w-full flex flex-col animate-fadeIn academy-main-container">
-          <header class="flex items-center justify-between px-8 w-full" style="background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 20px; box-shadow: var(--shadow-sm); margin-bottom: 30px;">
-            <button id="btn-regresar-academia" style="background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-primary); width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-              </svg>
-            </button>
-            <h2 id="titulo-subvista" style="color: var(--text-primary); font-size: 1.05rem; font-weight: 950; text-transform: uppercase; letter-spacing: 2.2px; flex: 1; text-align: center; margin-right: 44px;">Categoría</h2>
-          </header>
-  
-          <div id="contenedor-recursos-finales" class="academy-grid px-6">
-            <!-- Injected Content -->
-          </div>
-        </div>
-
-        <div id="academia-gestor-grid" class="px-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            ${itemsHtml}
-        </div>
-      </div>
-      
-      <!-- Modals (Injected below) -->
+        <div id="academia-gestor-grid">${itemsHtml}</div>
+      </div></div>
     `;
-    
+
     // Inject Modals for Upload and Create Folder
     if (!document.getElementById('modal-main-academy')) {
         const modalHtml = `
@@ -857,126 +796,21 @@ export function renderAcademy() {
   } else {
     // Normal User View
     screen.innerHTML = `
-      <!-- Estructura Base -->
-      <div id="vista-academia" class="w-full min-h-screen pb-32" style="background: var(--bg); transition: background 0.3sease;">
-        
-        <!-- Menú Principal (Hub de Módulos) -->
-        <div id="academia-menu-principal" class="w-full flex flex-col animate-fadeIn academy-main-container">
-          
-          <!-- Header Recto con Separación (Estilo Menú Principal) -->
-          <header class="flex flex-col items-center text-center px-10 w-full" style="margin-bottom: 30px; background: var(--surface); padding: 32px 20px 24px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm);">
-            <h1 style="color: var(--text-primary); font-size: 1.8rem; font-weight: 950; letter-spacing: -1px; line-height: 1; margin: 0; text-transform: uppercase;">${t('academy_title')}</h1>
-            <p style="color: var(--primary); font-size: 0.85rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;">${t('academy_subtitle')}</p>
-            <p style="color: var(--text-muted); font-size: 0.75rem; line-height: 1.4; max-width: 250px; margin-top: 12px; font-weight: 500;">
-                ${t('academy_team')}
-            </p>
-  
-          </header>
-  
-          <!-- Filtros de Departamento (Pipeline) -->
-          <div id="academy-dept-filter" style="display:flex; justify-content:center; gap:10px; padding:0 30px 20px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;">
-            ${depts.map(dept => {
-              const isActive = activeAcademyDeptFilter.toLowerCase().includes(dept.toLowerCase()) || (activeAcademyDeptFilter === 'Todos' && dept === 'Todos');
-              let color = 'var(--text-secondary)';
-              let bg = 'transparent';
-              let border = 'var(--border)';
-              if (isActive) {
-                if (dept === 'Todos') { color = 'var(--primary)'; bg = 'rgba(0, 223, 191, 0.1)'; border = 'var(--primary)'; }
-                else if (dept === 'Solar') { color = '#f59e0b'; bg = 'rgba(245, 158, 11, 0.1)'; border = '#f59e0b'; }
-                else if (dept === 'Water') { color = '#0ea5e9'; bg = 'rgba(14, 165, 233, 0.1)'; border = '#0ea5e9'; }
-                else if (dept === 'Home') { color = '#a855f7'; bg = 'rgba(168, 85, 247, 0.1)'; border = '#a855f7'; }
-              }
-              return `<button class="academy-dept-filter-pill" data-dept="${dept}" style="padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; color: ${color}; background: ${bg}; border: 1px solid ${border}; flex-shrink: 0;">${dept.toUpperCase()}</button>`;
-            }).join('')}
-          </div>
-  
-          <!-- Contenedor con ancho limitado para "Respiro" -->
-          <div class="academy-grid px-10">
-            
-            <!-- Card 1: Videos de Entrenamiento -->
-            <div class="academy-hero-card" data-categoria="video" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop');">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_multimedia')}</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_videos')}</h3>
-              </div>
-            </div>
-  
-  
-            <!-- Card 2: PDF -->
-            <div class="academy-hero-card" data-categoria="pdf" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=600&auto=format&fit=crop');">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_recursos')}</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_docs')}</h3>
-              </div>
-            </div>
-  
-  
-            <!-- Card 3: Banco -->
-            <div class="academy-hero-card" data-categoria="banco" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=600&auto=format&fit=crop');">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_banco')}</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_info')}</h3>
-              </div>
-            </div>
-  
-  
-            <!-- Card 4: FAQ -->
-            <div class="academy-hero-card" data-categoria="faq" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('assets/images/support-bg.png'); background-size: cover; background-position: center;">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_soporte')}</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_faq')}</h3>
-              </div>
-            </div>
-  
-            <!-- Card 5: Detalles de equipo -->
-            <div class="academy-hero-card" data-categoria="equipo" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.02), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">${t('academy_equipment_label')}</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">${t('academy_equipment')}</h3>
-              </div>
-            </div>
-  
-            ${activeAcademyDeptFilter === 'Water' ? `
-            <!-- Card 6: Renew Water -->
-            <div class="academy-hero-card" data-link="https://renewwaterus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Water</h3>
-              </div>
-            </div>
-            ` : ''}
-  
-            ${activeAcademyDeptFilter === 'Solar' ? `
-            <!-- Card 7: Renew Solar -->
-            <div class="academy-hero-card" data-link="https://www.renewsolarus.com/" style="border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center;">
-              <div class="card-overlay" style="padding: 16px;">
-                <span class="eyebrow" style="color: var(--primary); font-size: 0.5rem; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase;">Página Oficial</span>
-                <h3 style="color:#fff; font-size: 1.25rem; font-weight: 950; margin-top: 2px; text-transform: uppercase;">Renew Solar</h3>
-              </div>
-            </div>
-            ` : ''}
-  
-          </div>
+      <div id="vista-academia" class="ac-root animate-fadeIn"><div class="ac-wrap">
+        <div id="academia-menu-principal">
+          ${_acHeaderHtml(depts, activeAcademyDeptFilter)}
+          <div class="ac-label">Secciones</div>
+          <div class="ac-grid">${_acCatsHtml(activeAcademyDeptFilter)}</div>
         </div>
-  
-        <!-- Sub-Vista (Contenido del Módulo) -->
-        <div id="academia-subvista" class="hidden w-full flex flex-col animate-fadeIn academy-main-container">
-          <header class="flex items-center justify-between px-8 w-full" style="background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 20px; box-shadow: var(--shadow-sm); margin-bottom: 30px;">
-            <button id="btn-regresar-academia" style="background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-primary); width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-              </svg>
-            </button>
-            <h2 id="titulo-subvista" style="color: var(--text-primary); font-size: 1.05rem; font-weight: 950; text-transform: uppercase; letter-spacing: 2.2px; flex: 1; text-align: center; margin-right: 44px;">Categoría</h2>
-          </header>
-  
-          <div id="contenedor-recursos-finales" class="academy-grid px-6">
-            <!-- Injected Content -->
+
+        <div id="academia-subvista" class="hidden">
+          <div class="ac-bar">
+            <button id="btn-regresar-academia" class="ac-icon-btn" title="Atrás"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2 id="titulo-subvista" class="ac-subhead">Categoría</h2>
           </div>
+          <div id="contenedor-recursos-finales" class="ac-grid"></div>
         </div>
-  
-      </div>
+      </div></div>
     `;
   }
 
@@ -997,7 +831,7 @@ export function renderAcademy() {
       });
   }
 
-  const cards = document.querySelectorAll('.academy-hero-card');
+  const cards = document.querySelectorAll('.ac-cat');
   cards.forEach(card => {
     card.addEventListener('click', () => {
       const directLink = card.getAttribute('data-link');
@@ -1094,165 +928,35 @@ export function renderAcademy() {
         });
 
         if (resources.length === 0) {
-          contenedorFinal.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-28 text-center">
-               <div style="width: 80px; height: 80px; border-radius: 24px; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; margin-bottom: 24px; color: var(--text-muted);">
-                  <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; opacity: 0.3;"></i>
-               </div>
-               <p style="color: var(--text-muted); font-weight: 700; font-size: 0.95rem; letter-spacing: -0.2px;">${t('academy_empty')}</p>
-            </div>
-          `;
-
+          contenedorFinal.innerHTML = _acEmpty(t('academy_empty'));
           return;
         }
 
-        const getViewerUrl = (url) => {
-          if (!url) return '';
-          const lowerUrl = url.toLowerCase();
-          const officeExts = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
-          const isOffice = officeExts.some(ext => lowerUrl.endsWith(ext));
-          const isPdf = lowerUrl.endsWith('.pdf');
-
-          if (isOffice) {
-            return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
-          }
-          if (isPdf) {
-            return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-          }
-          return url;
-        };
-
         contenedorFinal.innerHTML = resources.map(r => {
           if (r.is_folder) {
-             return `
-              <div class="recurso-item recurso-carpeta-legacy" data-cat="${catKey}" data-id="${r.id}" data-titulo="${r.titulo}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
-                <div style="width: 52px; height: 52px; border-radius: 15px; background: rgba(255,180,0,0.1); color: #eab308; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
-                  <i class="fa-solid fa-folder"></i>
-                </div>
-                <div style="flex: 1;">
-                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo}</h4>
-                  ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic;">${r.notas}</p>` : ''}
-                  <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #eab308;"></span>
-                    CARPETA
-                  </p>
-                </div>
-                <div style="color: var(--text-muted); padding-right: 10px; opacity: 0.5;">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </div>
-              </div>
-             `;
+            return _acItem({
+              cls: 'recurso-carpeta-legacy',
+              attrs: `data-cat="${catKey}" data-id="${r.id}" data-titulo="${_escHtml(r.titulo)}"`,
+              thumb: r.miniaturaUrl, ico: 'fa-folder', c: '#eab308',
+              title: r.titulo, meta: r.notas || 'Carpeta',
+            });
           }
-
-          if (catKey === 'video') {
-            return `
-              <div class="video-item" onclick="window.openAcademyFile('${r.enlace}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%;">
-                <div style="width: 100%; height: 160px; position:relative; background: #000;">
-                  ${r.miniaturaUrl ? `<img src="${r.miniaturaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.85;">` : ''}
-                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
-                    <div style="width:58px; height:58px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 25px rgba(0,223,191,0.4); border: 3px solid rgba(255,255,255,0.3);">
-                       <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                         <path d="M8 5v14l11-7z"/>
-                       </svg>
-                    </div>
-                  </div>
-                </div>
-                <div style="padding: 20px;">
-                  <h4 style="margin:0 0 8px; color:var(--text-primary); font-size: 0.95rem; font-weight: 950; line-height: 1.2;">${r.titulo}</h4>
-                  ${r.notas ? `<p style="margin: 0 0 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic;">${r.notas}</p>` : ''}
-                  <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    ${(r.permisos || []).map(p => `<span style="font-size:0.55rem; padding:4px 10px; background:var(--surface-alt); border: 1px solid var(--border); color:var(--text-secondary); border-radius:8px; font-weight:900; text-transform: uppercase;">${p}</span>`).join('')}
-                  </div>
-                </div>
-              </div>
-             `;
-          } else if (r.tipo === 'Nota') {
-             return `
-              <div class="recurso-item" onclick="window.viewAcademyNote('${r.id}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
-                <div style="width: 52px; height: 52px; border-radius: 15px; background: rgba(0, 223, 191, 0.1); color: var(--primary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
-                  <i class="fa-solid fa-quote-left" style="font-size: 1.2rem;"></i>
-                </div>
-                <div style="flex: 1;">
-                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${r.titulo || 'Nota'}</h4>
-                  <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-                    NOTA
-                  </p>
-                </div>
-              </div>
-             `;
-          } else {
-            // Icono y color predeterminado segun categoria
-            let iconSvg = '';
-            let iconBg = 'var(--surface-alt)';
-            let iconColor = 'var(--primary)';
-
-            let isImage = false;
-            if (r.enlace) {
-                const ext = r.enlace.split('.').pop().split('?')[0].toLowerCase();
-                if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
-                    isImage = true;
-                }
-            }
-
-            const validTitle = (r.titulo && r.titulo !== 'null') ? r.titulo : (isImage ? 'Imagen' : 'Documento');
-
-            if (catKey === 'pdf') {
-              iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-              iconColor = '#3b82f6'; // Azul
-            } else if (catKey === 'banco') {
-              iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
-              iconColor = '#8b5cf6'; // Morado
-            } else if (catKey === 'equipo') {
-              iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`;
-              iconColor = '#ec4899'; // Pink
-            } else {
-              iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-              iconColor = '#f59e0b'; // Naranja
-            }
-
-            if (r.miniaturaUrl || isImage) {
-                return `
-                  <div class="recurso-item" onclick="window.openAcademyFile('${r.enlace}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-sm); width: 100%; cursor: pointer;">
-                    <div style="width: 100%; height: 160px; position:relative; background: var(--surface-alt);">
-                      <img src="${r.miniaturaUrl || r.enlace}" style="width:100%; height:100%; object-fit:cover; opacity:0.9;">
-                      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.1);">
-                        ${r.miniaturaUrl ? `<div style="width:50px; height:50px; border-radius:15px; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid var(--border);">
-                           ${iconSvg}
-                        </div>` : ''}
-                      </div>
-                    </div>
-                    <div style="padding: 20px;">
-                      <h4 style="margin:0 0 8px; color:var(--text-primary); font-size: 0.95rem; font-weight: 950; line-height: 1.2;">${validTitle}</h4>
-                      ${r.notas ? `<p style="margin: 0 0 10px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic;">${r.notas}</p>` : ''}
-                      <p style="margin:0 0 10px; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
-                        <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
-                        ${(r.tipo || '').replace(/Informaci(?:\u00C3\u00B3|\u00f3)n/g, 'Información')}
-                      </p>
-                      <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        ${(r.permisos || []).map(p => `<span style="font-size:0.55rem; padding:4px 10px; background:var(--surface-alt); border: 1px solid var(--border); color:var(--text-secondary); border-radius:8px; font-weight:900; text-transform: uppercase;">${p}</span>`).join('')}
-                      </div>
-                    </div>
-                  </div>
-                `;
-            }
-
-            return `
-              <div class="recurso-item" onclick="window.openAcademyFile('${r.enlace}')" style="background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-sm); width: 100%; margin-bottom: 8px;">
-                <div style="width: 52px; height: 52px; border-radius: 15px; background: ${iconBg}; color: ${iconColor}; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);">
-                  ${iconSvg}
-                </div>
-                <div style="flex: 1;">
-                  <h4 style="margin:0 0 4px; color:var(--text-primary); font-size: 0.95rem; font-weight: 800; line-height: 1.2;">${validTitle}</h4>
-                  ${r.notas ? `<p style="margin: 0 0 6px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; font-style: italic;">${r.notas}</p>` : ''}
-                  <p style="margin:0; font-size:0.65rem; color:var(--text-muted); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 4px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: ${iconColor};"></span>
-                    ${(r.tipo || '').replace(/Informaci(?:\u00C3\u00B3|\u00f3)n/g, 'Información')}
-                  </p>
-                </div>
-              </div>
-            `;
+          const m = _acFileMeta(r);
+          if (m.isNote) {
+            return _acItem({ onclick: `window.viewAcademyNote('${r.id}')`, ico: m.icon, c: m.c, title: r.titulo || 'Nota', meta: 'Nota' });
           }
+          const title = _acTitle(r, m);
+          const cover = r.miniaturaUrl || (m.isImage ? r.enlace : null);
+          if (cover || m.isVideo) {
+            return `
+              <div class="ac-media" onclick="window.openAcademyFile('${r.enlace}')" data-search="${_escHtml(title.toLowerCase())}">
+                <div class="ac-cover" ${cover ? `style="background-image:url('${_escHtml(cover)}')"` : ''}>
+                  ${m.isVideo ? '<span class="ac-play"><i class="fa-solid fa-play"></i></span>' : ''}
+                </div>
+                <div class="ac-txt"><h4>${_escHtml(title)}</h4><p>${_escHtml(r.notas || m.label)}</p></div>
+              </div>`;
+          }
+          return _acItem({ onclick: `window.openAcademyFile('${r.enlace}')`, ico: m.icon, c: m.c, title, meta: r.notas || m.label });
         }).join('');
 
         // Attach click listeners for folders
