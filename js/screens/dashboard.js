@@ -1697,6 +1697,10 @@ async function initLeaderboardChart(user) {
         projectCountByUserId[targetUserId] = (projectCountByUserId[targetUserId] || 0) + 1;
       }
     } else {
+      // Solo contar proyectos FINALIZADOS como ventas (misma lógica que el Kanban)
+      const isFinished = isProjectFinished(p, db);
+      if (!isFinished) return;
+
       // Asignar venta al representante
       let repId = (cli.vendedor_asignado_id || '').split(',')[0].trim() 
                || (cli.responsable_id || '').split(',')[0].trim() 

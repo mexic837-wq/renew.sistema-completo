@@ -1177,7 +1177,7 @@ window.showKpiDetailModal = function(type) {
                                                 </button>
                                             ` : ''}
                                             ${clientId ? `
-                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.openClientOrProspectModal === 'function') { window.openClientOrProspectModal('${clientId}', '${projectId || ''}'); } else if (window.appNavigate && '${projectId}' && !'${projectId}'.startsWith('VIRTUAL_')) { window.appNavigate('detail', '${projectId}'); }" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 font-bold text-[11px] hover:bg-gray-200 dark:hover:bg-white/20 transition-all flex items-center gap-1">
+                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.showClientDetail === 'function') { window.showClientDetail('${clientId}'); } else if (typeof window.openClientOrProspectModal === 'function') { window.openClientOrProspectModal('${clientId}', '${projectId || ''}'); }" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 font-bold text-[11px] hover:bg-gray-200 dark:hover:bg-white/20 transition-all flex items-center gap-1">
                                                     <i class="fa-solid fa-user text-[10px]"></i> Cliente
                                                 </button>
                                             ` : ''}
