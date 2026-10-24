@@ -1767,14 +1767,159 @@ async function initLeaderboardChart(user) {
     initLeaderboardChart(getCurrentUser());
   };
 
-  const monthOptions = [];
+  window.toggleLbMonthDropdown = () => {
+    const menu = document.getElementById('lb-month-menu');
+    const chevron = document.getElementById('lb-month-chevron');
+    const btn = document.getElementById('lb-month-trigger-btn');
+    if (!menu) return;
+    const isHidden = menu.style.display === 'none' || menu.style.display === '';
+    if (isHidden) {
+      menu.style.display = 'block';
+      menu.style.animation = 'lbDropdownScaleIn 0.22s cubic-bezier(0.16,1,0.3,1) forwards';
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+      if (btn) {
+        btn.style.borderColor = 'var(--primary)';
+        btn.style.boxShadow = '0 0 14px rgba(0,223,191,0.22)';
+      }
+    } else {
+      menu.style.display = 'none';
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+      if (btn) {
+        btn.style.borderColor = 'rgba(0,223,191,0.25)';
+        btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+      }
+    }
+  };
+
+  window.selectLbMonth = (val) => {
+    const menu = document.getElementById('lb-month-menu');
+    if (menu) menu.style.display = 'none';
+    window.setLeaderboardMonth(val);
+  };
+
+  if (!window._lbDropdownDocClickBound) {
+    window._lbDropdownDocClickBound = true;
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('lb-month-dropdown-wrapper');
+      const menu = document.getElementById('lb-month-menu');
+      const chevron = document.getElementById('lb-month-chevron');
+      const btn = document.getElementById('lb-month-trigger-btn');
+      if (wrapper && menu && !wrapper.contains(e.target)) {
+        menu.style.display = 'none';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (btn) {
+          btn.style.borderColor = 'rgba(0,223,191,0.25)';
+          btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+        }
+      }
+    });
+  }
+
+  let selectedMonthText = 'Histórico Completo';
+  if (window.lbMonthFilter && window.lbMonthFilter !== 'all') {
+    const [y, m] = window.lbMonthFilter.split('-').map(Number);
+    const isCurrent = window.lbMonthFilter === curMonthKey;
+    selectedMonthText = `${monthNames[m - 1]} ${y}${isCurrent ? ' (Mes Actual)' : ''}`;
+  }
+
+  const dropdownItemsHTML = [];
   for (let m = 1; m <= 12; m++) {
     const key = `${curYear}-${String(m).padStart(2, '0')}`;
     const isCurrent = key === curMonthKey;
-    const label = `${monthNames[m - 1]} ${curYear}${isCurrent ? ' (Mes Actual)' : ''}`;
-    monthOptions.push(`<option value="${key}" ${window.lbMonthFilter === key ? 'selected' : ''}>${label}</option>`);
+    const isSelected = window.lbMonthFilter === key;
+    const label = `${monthNames[m - 1]} ${curYear}`;
+    dropdownItemsHTML.push(`
+      <button type="button" onclick="window.selectLbMonth('${key}')" class="lb-month-menu-item ${isSelected ? 'active' : ''}">
+        <span style="display:flex; align-items:center; gap:8px;">
+          <i class="fa-regular fa-calendar" style="font-size:0.75rem; opacity:${isSelected ? '1' : '0.5'};"></i>
+          <span>${label}</span>
+        </span>
+        <span style="display:flex; align-items:center; gap:6px;">
+          ${isCurrent ? '<span style="font-size:0.62rem; background:rgba(0,223,191,0.18); color:var(--primary); padding:1px 6px; border-radius:99px; font-weight:800; letter-spacing:0.3px;">Actual</span>' : ''}
+          ${isSelected ? '<i class="fa-solid fa-check" style="font-size:0.72rem; color:var(--primary);"></i>' : ''}
+        </span>
+      </button>
+    `);
   }
-  monthOptions.push(`<option value="all" ${window.lbMonthFilter === 'all' ? 'selected' : ''}>Histórico Completo</option>`);
+
+  const isAllSelected = window.lbMonthFilter === 'all';
+  dropdownItemsHTML.push(`
+    <div style="height:1px; background:var(--border); margin:4px 0;"></div>
+    <button type="button" onclick="window.selectLbMonth('all')" class="lb-month-menu-item ${isAllSelected ? 'active' : ''}">
+      <span style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-layer-group" style="font-size:0.75rem; opacity:${isAllSelected ? '1' : '0.5'};"></i>
+        <span>Histórico Completo</span>
+      </span>
+      ${isAllSelected ? '<i class="fa-solid fa-check" style="font-size:0.72rem; color:var(--primary);"></i>' : ''}
+    </button>
+  `);
+
+  const monthDropdownHTML = `
+    <style>
+      @keyframes lbDropdownScaleIn {
+        from {
+          opacity: 0;
+          transform: translateY(-8px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .lb-month-menu-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-align: left;
+        box-sizing: border-box;
+      }
+      .lb-month-menu-item:hover {
+        background: rgba(0, 223, 191, 0.08);
+        color: var(--primary);
+        transform: translateX(2px);
+      }
+      .lb-month-menu-item.active {
+        background: rgba(0, 223, 191, 0.14);
+        color: var(--primary);
+        font-weight: 800;
+      }
+      #lb-month-menu::-webkit-scrollbar {
+        width: 5px;
+      }
+      #lb-month-menu::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 99px;
+      }
+    </style>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <label style="font-size:0.72rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px;">Mes:</label>
+      <div style="position:relative;" id="lb-month-dropdown-wrapper">
+        <button type="button" onclick="window.toggleLbMonthDropdown()" id="lb-month-trigger-btn" style="display:flex; align-items:center; gap:8px; background:var(--surface-alt); color:var(--text-primary); border:1px solid rgba(0,223,191,0.25); padding:7px 14px; border-radius:12px; font-size:0.82rem; font-weight:700; cursor:pointer; outline:none; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+          <i class="fa-regular fa-calendar-days" style="color:var(--primary); font-size:0.85rem;"></i>
+          <span id="lb-month-selected-label">${selectedMonthText}</span>
+          <i class="fa-solid fa-chevron-down" id="lb-month-chevron" style="font-size:0.7rem; color:var(--text-muted); transition:transform 0.25s cubic-bezier(0.16,1,0.3,1); margin-left:3px;"></i>
+        </button>
+        
+        <div id="lb-month-menu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); width:220px; max-height:280px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:6px; box-shadow:0 14px 35px rgba(0,0,0,0.35); z-index:100; backdrop-filter:blur(14px);">
+          <div style="padding:4px 8px 6px; font-size:0.68rem; font-weight:800; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.06em; border-bottom:1px solid var(--border); margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">
+            <span>Período</span>
+            <span style="font-size:0.62rem; color:var(--primary);">${curYear}</span>
+          </div>
+          ${dropdownItemsHTML.join('')}
+        </div>
+      </div>
+    </div>
+  `;
 
   let subLabel = `${activeUnit} · Histórico Completo`;
   if (window.lbMonthFilter && window.lbMonthFilter !== 'all') {
@@ -1788,15 +1933,7 @@ async function initLeaderboardChart(user) {
       <div style="margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
           <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isStrictTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Mes:</label>
-            <div style="position:relative;">
-              <select onchange="window.setLeaderboardMonth(this.value)" style="background:var(--surface-alt); color:var(--text-primary); border:1px solid var(--border); padding:6px 28px 6px 12px; border-radius:10px; font-size:0.8rem; font-weight:700; cursor:pointer; outline:none; appearance:none; transition:all 0.2s;">
-                ${monthOptions.join('')}
-              </select>
-              <i class="fa-solid fa-chevron-down" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; color:var(--text-muted); pointer-events:none;"></i>
-            </div>
-          </div>
+          ${monthDropdownHTML}
         </div>
         <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${subLabel}</p>
       </div>
@@ -1899,15 +2036,7 @@ async function initLeaderboardChart(user) {
         <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isStrictTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
         
         <!-- Month Filter Selector -->
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Mes:</label>
-          <div style="position:relative;">
-            <select onchange="window.setLeaderboardMonth(this.value)" style="background:var(--surface-alt); color:var(--text-primary); border:1px solid var(--border); padding:6px 28px 6px 12px; border-radius:10px; font-size:0.8rem; font-weight:700; cursor:pointer; outline:none; appearance:none; transition:all 0.2s;">
-              ${monthOptions.join('')}
-            </select>
-            <i class="fa-solid fa-chevron-down" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; color:var(--text-muted); pointer-events:none;"></i>
-          </div>
-        </div>
+        ${monthDropdownHTML}
       </div>
       <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${subLabel}</p>
     </div>
