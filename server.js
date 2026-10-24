@@ -1316,7 +1316,72 @@ app.post('/api/upsert', async (req, res) => {
 });
 
 // ── PDF GENERATION HELPER ──
-async function generarPDF(moldePath, datos) {
+// ── ORDEN DE TRABAJO: payload del formulario → campos de molde_orden_v4.pdf ──
+const MOLDE_ORDEN = 'molde_orden_v4.pdf';
+function buildWorkOrderPdfData(raw, dealerName) {
+  const c = raw.comprador || {};
+  const e = raw.equipos || {};
+  const i = raw.instalacion || {};
+  const f = raw.finanzas || {};
+  const s = raw.firmas || {};
+  const X = (v) => (v ? 'X' : '');
+  const num = (v) => parseFloat(String(v || '').replace(/[^0-9.]/g, '')) || 0;
+  const todayStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+
+  // Payloads antiguos (agente n8n) no traen formaPago: se deduce de los montos
+  const formas = Array.isArray(f.formaPago) ? f.formaPago : [];
+  const legacy = !formas.length && f.cuotaInicialMarcada === undefined && !f.otroMetodo;
+  const financiado = formas.includes('Financed') || (legacy && (num(f.cantidad_financiar) > 0 || num(f.saldo_financiado) > 0));
+  const tarjeta = formas.includes('Credit Card') || (legacy && num(f.tarjetaMonto) > 0);
+  const efectivo = formas.includes('Cash') || (legacy && !financiado && !tarjeta && num(f.precioContado) > 0);
+  const inicial = f.cuotaInicialMarcada !== undefined ? !!f.cuotaInicialMarcada : num(f.cuotaInicial) > 0;
+
+  return {
+    fecha_orden: raw.fecha || todayStr,
+    comprador_1: [c.nombre || c.nombreCompleto, c.segundoNombre].filter(Boolean).join(' / '),
+    telefono: c.telefono || '',
+    email: c.email || '',
+    direccion: c.direccion || '',
+    ciudad: c.ciudad || '',
+    estado: c.estado || '',
+    zip: c.zipCode || c.zip || '',
+
+    terminos_previos: X(e.terminosPrevios),
+    equipo_softener: X(e.suavizadorCasa_entera || e.suavizadorCasa),
+    equipo_ro: X(e.osmosisReversa || e.osmosisReverso),
+    equipo_alkaline: X(e.aguaAlcalina),
+    agua_ciudad: X(e.aguaCiudad),
+    tipo_linea: e.tipoLinea || '',
+    producto_especifico: e.productoEspecifico || '',
+    equipo_well: X(e.aguaPozo),
+    equipo_otro: X(e.otro || e.otros || e.otro_texto),
+    equipo_otro_texto: e.otros || e.otro_texto || '',
+
+    fecha_inst: i.fechaEstimada || '',
+    hora_9_2: X(i.horario === '9:00am-2:00pm'),
+    hora_2_6: X(i.horario === '2:00pm-6:00pm'),
+    instrucciones: i.instruccionesEspeciales || '',
+
+    pago_efectivo: X(efectivo),
+    pago_financiado: X(financiado),
+    pago_tarjeta: X(tarjeta),
+    pago_inicial: X(inicial),
+    cuota_inicial: inicial ? String(f.cuotaInicial || '').replace(/^\s*\$\s*/, '') : '',
+    pago_otro: X(f.otroMetodo || f.otroMetodoTexto),
+    pago_otro_texto: f.otroMetodoTexto || '',
+
+    firma_comp1: s.comprador_1 || s.comprador || '',
+    firma_comp2: s.comprador_2 || '',
+    nombre_rep: dealerName || '',
+    firma_rep: s.representante || '',
+    fecha_c1: todayStr,
+    fecha_c2: (s.comprador_2 || c.segundoNombre) ? todayStr : '',
+    fecha_rep: todayStr,
+  };
+}
+
+// opciones.fitImages: las firmas conservan su proporción dentro del campo (alineadas a la izquierda)
+async function generarPDF(moldePath, datos, opciones = {}) {
   const pdfBuffer  = fs.readFileSync(moldePath);
   const pdfDoc     = await PDFDocument.load(pdfBuffer);
   const form       = pdfDoc.getForm();
@@ -1366,15 +1431,19 @@ async function generarPDF(moldePath, datos) {
               for (const p of pages) {
                 try { if (p.ref === widget.P()) { pageOfField = p; break; } } catch(_) {}
               }
+              let box = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+              if (opciones.fitImages) {
+                const dims = pngImage.scaleToFit(rect.width, rect.height);
+                box = { x: rect.x, y: rect.y + (rect.height - dims.height) / 2, width: dims.width, height: dims.height };
+              }
               // ── FIX: Draw white background first so transparent PNG areas ──
               // don't render as dark/black in PDF viewers
               pageOfField.drawRectangle({
-                x: rect.x, y: rect.y,
-                width: rect.width, height: rect.height,
+                ...box,
                 color: rgb(1, 1, 1),
                 borderWidth: 0,
               });
-              pageOfField.drawImage(pngImage, { x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+              pageOfField.drawImage(pngImage, box);
               textField.setText('');
             }
           } else {
@@ -1920,79 +1989,18 @@ app.post('/api/generar-orden', async (req, res) => {
     console.log('[/api/generar-orden] Received request. Payload size:', JSON.stringify(req.body).length);
     try {
         const rawData = req.body.datos || req.body;
-        const moldePath = path.join(__dirname, 'FORMULARIO-RENEW-WATER-main', 'molde_orden_v3.pdf');
+        const moldePath = path.join(__dirname, 'FORMULARIO-RENEW-WATER-main', MOLDE_ORDEN);
         
         if (!fs.existsSync(moldePath)) {
             console.error('[PDF ERROR] Molde no encontrado en:', moldePath);
             return res.status(404).json({ error: 'No se encontró el molde de la orden de trabajo' });
         }
 
-        const c = rawData.comprador || {};
-        const e = rawData.equipos || {};
-        const i = rawData.instalacion || {};
-        const f = rawData.finanzas || {};
-        const s = rawData.firmas || {};
-        const t = rawData.tarjeta || {};
-
-        const todayStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-        
-        const datos = {
-            "fecha_orden": todayStr,
-            "comprador_1": c.nombre || c.nombreCompleto || '',
-            "comprador_2": c.segundoNombre || '',
-            "telefono": c.telefono || '',
-            "email": c.email || '',
-            "direccion": c.direccion || '',
-            "ciudad": c.ciudad || '',
-            "estado": c.estado || '',
-            "zip": c.zipCode || '',
-
-            "equipo_softener": (e.suavizadorCasa_entera || e.suavizadorCasa) ? 'X' : '',
-            "equipo_ro": e.osmosisReverso ? 'X' : '',
-            "equipo_alkaline": e.aguaAlcalina ? 'X' : '',
-            "equipo_well": e.aguaPozo ? 'X' : '',
-            "equipo_otro_texto": e.otros || e.otro_texto || '',
-
-            "fecha_inst": i.fechaEstimada || '',
-            "num_personas": i.personasEnCasa || '',
-            "piso_elevado": i.tipoPiso === 'Raised' ? 'X' : '',
-            "piso_concreto": i.tipoPiso === 'Concrete-slab' ? 'X' : '',
-            "icemaker_yes": i.conexionRefrigerador === 'Yes' ? 'X' : '',
-            "icemaker_no": i.conexionRefrigerador === 'No' ? 'X' : '',
-            "hora_9_2": i.horario === '9:00am-2:00pm' ? 'X' : '',
-            "hora_2_6": i.horario === '2:00pm-6:00pm' ? 'X' : '',
-            "dureza": i.granossDureza || '',
-            "instrucciones": i.instruccionesEspeciales || '',
-
-            "precio_contado": f.precioContado || '',
-            "instalacion": f.instalacion || '',
-            "total_contado": f.precioContado || '',
-            "cuota_inicial": f.cuotaInicial || '',
-            "saldo_financiado": f.saldo_financiado || '',
-            "cantidad_financiar": f.cantidad_financiar || '',
-            "terminos_pago": f.terminos_pago || '',
-            "apr": f.apr || '',
-            "cargos_financieros": f.cargosFinancieros || '',
-            "total_pagos": f.totalPagos || '',
-
-            "cc_monto": f.tarjetaMonto || '',
-            "cc_num": f.tarjetaNumero || t.numero || '',
-            "cc_exp": f.tarjetaExpiracion || t.expiracion || '',
-            "cc_cvv": f.tarjetaCvv || t.cvv || '',
-
-            "firma_comp1": s.comprador_1 || s.comprador || '',
-            "firma_comp2": s.comprador_2 || '',
-            "nombre_rep": rawData.nombre_dealer || '',
-            "firma_rep": s.representante || '',
-
-            "fecha_c1": todayStr,
-            "fecha_c2": todayStr,
-            "fecha_rep": todayStr,
-            "proyectoId": rawData.proyectoId
-        };
+        const datos = buildWorkOrderPdfData(rawData, rawData.nombre_dealer || '');
+        datos.proyectoId = rawData.proyectoId;
 
         console.log('[PDF] Generando orden con molde:', moldePath, 'para proyecto:', datos.proyectoId);
-        const pdfBytes = await generarPDF(moldePath, datos);
+        const pdfBytes = await generarPDF(moldePath, datos, { fitImages: true });
         console.log('[PDF] Generado correctamente. Tamaño:', pdfBytes.length, 'bytes');
 
         // 1. Subir PDF a Supabase Storage
@@ -2232,63 +2240,14 @@ const handlerFormularioExterno = async (req, res) => {
         let pdfUrl = payload.pdf_url || payload.orden_url || payload.document_url || null;
         if (!pdfUrl) {
             console.log('[WEBHOOK-SYNC] Generando PDF automáticamente...');
-            const moldeName = isWorkOrder ? 'molde_orden_v3.pdf' : 'molde_credito_v9.pdf';
+            const moldeName = isWorkOrder ? MOLDE_ORDEN : 'molde_credito_v9.pdf';
             const moldePath = path.join(__dirname, 'FORMULARIO-RENEW-WATER-main', moldeName);
             if (fs.existsSync(moldePath)) {
                 let datosPDF = {};
                 const todayStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 
                 if (isWorkOrder) {
-                    const e = payload.equipos || {};
-                    const f = payload.finanzas || {};
-                    const t = payload.tarjeta || {};
-                    datosPDF = {
-                        "fecha_orden": todayStr,
-                        "comprador_1": comp.nombre || '',
-                        "comprador_2": comp.segundoNombre || '',
-                        "telefono": comp.telefono || '',
-                        "email": comp.email || '',
-                        "direccion": comp.direccion || '',
-                        "ciudad": comp.ciudad || '',
-                        "estado": comp.estado || '',
-                        "zip": comp.zipCode || '',
-                        "equipo_softener": (e.suavizadorCasa_entera || e.suavizadorCasa) ? 'X' : '',
-                        "equipo_ro": (e.osmosisReversa || e.osmosisReverso) ? 'X' : '',
-                        "equipo_alkaline": e.aguaAlcalina ? 'X' : '',
-                        "equipo_well": e.aguaPozo ? 'X' : '',
-                        "equipo_otro_texto": e.otros || e.otro_texto || '',
-                        "fecha_inst": inst.fechaEstimada || '',
-                        "num_personas": inst.personasEnCasa || '',
-                        "piso_elevado": inst.tipoPiso === 'Raised' ? 'X' : '',
-                        "piso_concreto": inst.tipoPiso === 'Concrete-slab' ? 'X' : '',
-                        "icemaker_yes": inst.conexionRefrigerador === 'Yes' ? 'X' : '',
-                        "icemaker_no": inst.conexionRefrigerador === 'No' ? 'X' : '',
-                        "hora_9_2": inst.horario === '9:00am-2:00pm' ? 'X' : '',
-                        "hora_2_6": inst.horario === '2:00pm-6:00pm' ? 'X' : '',
-                        "dureza": inst.granossDureza || '',
-                        "instrucciones": inst.instruccionesEspeciales || '',
-                        "precio_contado": f.precioContado || '',
-                        "instalacion": f.instalacion || '',
-                        "total_contado": f.precioContado || '',
-                        "cuota_inicial": f.cuotaInicial || '',
-                        "saldo_financiado": f.saldo_financiado || '',
-                        "cantidad_financiar": f.cantidad_financiar || '',
-                        "terminos_pago": f.terminos_pago || '',
-                        "apr": f.apr || '',
-                        "cargos_financieros": f.cargosFinancieros || '',
-                        "total_pagos": f.totalPagos || '',
-                        "cc_monto": f.tarjetaMonto || '',
-                        "cc_num": f.tarjetaNumero || t.numero || '',
-                        "cc_exp": f.tarjetaExpiracion || t.expiracion || '',
-                        "cc_cvv": f.tarjetaCvv || t.cvv || '',
-                        "firma_comp1": firmas.comprador_1 || firmas.comprador || '',
-                        "firma_comp2": firmas.comprador_2 || '',
-                        "nombre_rep": dealerName,
-                        "firma_rep": firmas.representante || '',
-                        "fecha_c1": todayStr,
-                        "fecha_c2": todayStr,
-                        "fecha_rep": todayStr
-                    };
+                    datosPDF = buildWorkOrderPdfData(payload, dealerName);
                 } else {
                     const ea = payload.empleoAplicante || payload.empleo || {};
                     const eco = payload.empleoCoAplicante || {};
@@ -2344,7 +2303,7 @@ const handlerFormularioExterno = async (req, res) => {
                 }
 
                 try {
-                    const pdfBytes = await generarPDF(moldePath, datosPDF);
+                    const pdfBytes = await generarPDF(moldePath, datosPDF, { fitImages: isWorkOrder });
                     const folder = isWorkOrder ? 'ordenes' : 'creditos';
                     const prefix = isWorkOrder ? 'orden_trabajo' : 'app_credito';
                     const fileName = `${folder}/${prefix}_${Date.now()}_${Math.round(Math.random() * 1E9)}.pdf`;

@@ -690,6 +690,10 @@
 
           <div class="equipment-list">
             <div class="equipment-item">
+              <input type="checkbox" id="eq_prev_terms" name="equipment_prev_terms" value="Previous installation terms">
+              <label for="eq_prev_terms">📝 Términos de instalación previos dados por el comprador; en caso de haber cambios pagará la diferencia (Previous installation terms)</label>
+            </div>
+            <div class="equipment-item">
               <input type="checkbox" id="eq_softener" name="equipment_softener" value="Whole House Water Softener">
               <label for="eq_softener">💧 Equipo de tratamiento para toda la casa (Whole House Water Softener)</label>
             </div>
@@ -700,6 +704,10 @@
             <div class="equipment-item">
               <input type="checkbox" id="eq_alkaline" name="equipment_alkaline" value="Alkaline Water Add-on">
               <label for="eq_alkaline">✨ Añadir Agua Alcalina (Alkaline Water Add-on)</label>
+            </div>
+            <div class="equipment-item">
+              <input type="checkbox" id="eq_city" name="equipment_city" value="City Water">
+              <label for="eq_city">🚰 Agua de Ciudad (City Water)</label>
             </div>
             <div class="equipment-item">
               <input type="checkbox" id="eq_well" name="equipment_well" value="Well Water">
@@ -715,6 +723,17 @@
           <div class="other-input-wrapper" id="other_equipment_wrapper">
             <label for="eq_other_text">Especifique el equipo</label>
             <input type="text" id="eq_other_text" name="equipment_other_text" placeholder="Describa el equipo adicional…" />
+          </div>
+
+          <div class="field-grid" style="margin-top: 1rem;">
+            <div class="field-group">
+              <label for="eq_line_type">Tipo de línea (Line type) <span class="optional-badge">Opcional</span></label>
+              <input type="text" id="eq_line_type" name="equipment_line_type" placeholder="Ej. PEX, cobre, PVC…" />
+            </div>
+            <div class="field-group span-2">
+              <label for="eq_product">Especifique el producto (Specify product) <span class="optional-badge">Opcional</span></label>
+              <input type="text" id="eq_product" name="equipment_product" placeholder="Modelo o producto" />
+            </div>
           </div>
 
         </div>
@@ -738,48 +757,12 @@
               <input type="text" id="wo_install_date" name="installDate" class="date-mask" placeholder="MM/DD/YYYY" required />
             </div>
 
-            <div class="field-group">
-              <label for="wo_people">Número de Personas en Casa <span class="required">*</span></label>
-              <input type="number" id="wo_people" name="numberOfPeople" placeholder="0" min="1" max="20" required />
-            </div>
-
-            <div class="field-group span-full">
-              <label>El Piso Es <span class="required">*</span></label>
-              <div class="pill-group">
-                <input type="radio" name="wo_floor" id="wo_floor_raised" value="Raised" required>         <label for="wo_floor_raised">⬆️ Elevado (Raised)</label>
-                <input type="radio" name="wo_floor" id="wo_floor_slab"   value="Concrete-slab"> <label for="wo_floor_slab">🏗️ Concreto (Concrete-slab)</label>
-                <input type="radio" name="wo_floor" id="wo_floor_other"  value="Otro" 
-                       onchange="toggleFloorOther(this)">                 <label for="wo_floor_other">❓ Otro</label>
-              </div>
-              <div class="other-input-wrapper" id="floor_other_wrapper">
-                <input type="text" id="wo_floor_other_text" name="floorOtherText" placeholder="Especifique el piso…" />
-              </div>
-            </div>
-
-            <div class="field-group span-full">
-              <label>Conexión para Refrigerador (Ice Maker hook-up) <span class="required">*</span></label>
-              <div class="pill-group">
-                <input type="radio" name="wo_icemaker" id="wo_ice_yes" value="Yes" required> <label for="wo_ice_yes"><i class="fa-solid fa-check text-green-500"></i> Sí</label>
-                <input type="radio" name="wo_icemaker" id="wo_ice_no"  value="No">  <label for="wo_ice_no"><i class="fa-solid fa-xmark text-red-500"></i> No</label>
-              </div>
-            </div>
-
             <div class="field-group span-full">
               <label>Horario de Instalación <span class="required">*</span></label>
               <div class="pill-group">
                 <input type="radio" name="wo_schedule" id="wo_sch_am"    value="9:00am-2:00pm" required>  <label for="wo_sch_am">🌅 9:00am – 2:00pm</label>
                 <input type="radio" name="wo_schedule" id="wo_sch_pm"    value="2:00pm-6:00pm">  <label for="wo_sch_pm">☀️ 2:00pm – 6:00pm</label>
-                <input type="radio" name="wo_schedule" id="wo_sch_other" value="Otro"
-                       onchange="toggleScheduleOther(this)">                                      <label for="wo_sch_other">📅 Otro</label>
               </div>
-              <div class="other-input-wrapper" id="schedule_other_wrapper">
-                <input type="text" id="wo_schedule_other_text" name="scheduleOtherText" placeholder="Especifique horario…" />
-              </div>
-            </div>
-
-            <div class="field-group">
-              <label for="wo_hardness">Granos de Dureza (Hardness, Grains) <span class="required">*</span></label>
-              <input type="text" id="wo_hardness" name="hardnessGrains" placeholder="Ej. 25 GPG" required />
             </div>
 
             <div class="field-group span-full">
@@ -793,96 +776,46 @@
       </div><!-- /Sección C WO -->
 
 
-      <!-- ── SECCIÓN D: Finanzas y Pago ── -->
+      <!-- ── SECCIÓN D: Forma de Pago / Términos ── -->
       <div class="form-section">
         <div class="section-header navy-grad">
           <div class="section-icon">💳</div>
           <div>
-            <h2>Sección D — Finanzas y Pago</h2>
-            <p>Condiciones económicas del contrato</p>
+            <h2>Sección D — Forma de Pago / Términos</h2>
+            <p>Payment Method and Terms</p>
           </div>
         </div>
         <div class="section-body">
           <div class="field-grid">
 
-            <div class="field-group">
-              <label for="wo_cash_price">Precio al Contado (Cash Price) <span class="required">*</span></label>
-              <input type="text" id="wo_cash_price" name="cashPrice" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_installation">Instalación (Installation) <span class="required">*</span></label>
-              <input type="text" id="wo_installation" name="installationCost" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_total_cash_price">Total Precio al Contado (Total Cash-Price) <span class="required">*</span></label>
-              <input type="text" id="wo_total_cash_price" name="totalCashPrice" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_down_payment">Total Cuota Inicial (Down Payment) <span class="required">*</span></label>
-              <input type="text" id="wo_down_payment" name="downPayment" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_balance_financed">Saldo Financiado (Balance Financed) <span class="required">*</span></label>
-              <input type="text" id="wo_balance_financed" name="balanceFinanced" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_amount_financed">Cantidad a Financiar (Amount Financed) <span class="required">*</span></label>
-              <input type="text" id="wo_amount_financed" name="amountFinanced" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_finance_charge">Cargos Financieros (Finance Charge) <span class="required">*</span></label>
-              <input type="text" id="wo_finance_charge" name="financeCharge" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_total_payments">Total de Pagos (Total of Payments) <span class="required">*</span></label>
-              <input type="text" id="wo_total_payments" name="totalPayments" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_terms">Términos de Pago (Terms of payment) <span class="required">*</span></label>
-              <input type="text" id="wo_terms" name="paymentTerms" placeholder="Ej. 36 meses, 0% interés" required />
-            </div>
-
-            <div class="field-group">
-              <label for="wo_apr">Porcentaje Anual (APR %) <span class="required">*</span></label>
-              <input type="number" id="wo_apr" name="apr" placeholder="0.00" min="0" step="0.01" max="100" required />
-            </div>
-
-            <div class="field-divider"></div>
-            <div class="sub-section-title">💳 Datos de Tarjeta de Crédito</div>
-
-            <div class="field-group">
-              <label for="wo_cc_amount">Monto a cobrar en Tarjeta (Credit Card Sale Amount) <span class="required">*</span></label>
-              <input type="text" id="wo_cc_amount" name="creditCardAmount" class="currency-mask" placeholder="$ 0.00" required />
-            </div>
-
-            <div class="field-group span-2">
-              <label for="wo_cc_number">Tarjeta de Crédito # <span class="required">*</span></label>
-              <div class="input-with-icon">
-                <input type="password" id="wo_cc_number" name="creditCardNumber"
-                       placeholder="•••• •••• •••• ••••" maxlength="19" autocomplete="off" required />
-                <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_number')"><i class="fa-solid fa-eye"></i>️</button>
+            <div class="field-group span-full">
+              <label>Forma de Pago (Payment Method) <span class="required">*</span></label>
+              <div class="pill-group">
+                <input type="checkbox" name="wo_payment" id="wo_pay_cash" value="Cash" required> <label for="wo_pay_cash">💵 Efectivo (Cash)</label>
+                <input type="checkbox" name="wo_payment" id="wo_pay_financed" value="Financed">  <label for="wo_pay_financed">🏦 Financiado (Financed)</label>
+                <input type="checkbox" name="wo_payment" id="wo_pay_card" value="Credit Card">   <label for="wo_pay_card">💳 Tarjeta de Crédito (Credit Card)</label>
               </div>
             </div>
 
-            <div class="field-group">
-              <label for="wo_cc_exp">Expiración (Exp MM/YY) <span class="required">*</span></label>
-              <input type="text" id="wo_cc_exp" name="creditCardExp" placeholder="MM/YY" maxlength="5" required />
+            <div class="field-group span-full">
+              <div class="pill-group">
+                <input type="checkbox" id="wo_pay_down" name="wo_pay_down" value="Down Payment"
+                       onchange="toggleWOExtra(this, 'down_payment_wrapper', 'wo_down_payment')"> <label for="wo_pay_down">💰 Inicial (Down Payment)</label>
+              </div>
+              <div class="other-input-wrapper" id="down_payment_wrapper">
+                <label for="wo_down_payment">Monto de la inicial</label>
+                <input type="text" id="wo_down_payment" name="downPayment" placeholder="$ 0.00" />
+              </div>
             </div>
 
-            <div class="field-group">
-              <label for="wo_cc_cvv">CVV <span class="required">*</span></label>
-              <div class="input-with-icon">
-                <input type="password" id="wo_cc_cvv" name="creditCardCVV"
-                       placeholder="•••" maxlength="4" autocomplete="off" required />
-                <button type="button" class="eye-toggle" onclick="togglePassword('wo_cc_cvv')"><i class="fa-solid fa-eye"></i>️</button>
+            <div class="field-group span-full">
+              <div class="pill-group">
+                <input type="checkbox" id="wo_pay_other" name="wo_pay_other" value="Other"
+                       onchange="toggleWOExtra(this, 'pay_other_wrapper', 'wo_pay_other_text')"> <label for="wo_pay_other">🔁 Otro Método de Pago (Other Payment Method)</label>
+              </div>
+              <div class="other-input-wrapper" id="pay_other_wrapper">
+                <label for="wo_pay_other_text">Especifique el método</label>
+                <input type="text" id="wo_pay_other_text" name="otherPaymentMethod" placeholder="Ej. Cheque, Zelle…" />
               </div>
             </div>
 

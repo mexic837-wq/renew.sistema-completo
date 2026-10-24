@@ -34,46 +34,36 @@ function collectWorkOrderData(formEl) {
 
   // ── Objeto equipos ──
   data.equipos = {
+    terminosPrevios: _woChecked('eq_prev_terms'),
     suavizadorCasa:  _woChecked('eq_softener'),
     osmosisReversa:  _woChecked('eq_ro'),
     aguaAlcalina:    _woChecked('eq_alkaline'),
+    aguaCiudad:      _woChecked('eq_city'),
+    tipoLinea:       _woVal('eq_line_type'),
+    productoEspecifico: _woVal('eq_product'),
     aguaPozo:        _woChecked('eq_well'),
+    otro:            _woChecked('eq_other'),
     otro_texto:      _woVal('eq_other_text'),
   };
 
   // ── Objeto instalacion ──
   data.instalacion = {
     fechaEstimada:        _woVal('wo_install_date'),
-    personasEnCasa:       _woVal('wo_people'),
-    tipoPiso:             _woRadio(formEl, 'wo_floor'),
-    conexionRefrigerador: _woRadio(formEl, 'wo_icemaker'),
     horario:              _woRadio(formEl, 'wo_schedule'),
-    granossDureza:        _woVal('wo_hardness'),
     instruccionesEspeciales: _woVal('wo_special_instructions'),
   };
 
-  // ── Objeto finanzas ──
+  // ── Objeto finanzas (Forma de Pago / Términos) ──
   data.finanzas = {
-    precioContado:       _woVal('wo_cash_price'),
-    instalacion:         _woVal('wo_installation'),
+    formaPago:           Array.from(formEl.querySelectorAll('input[name="wo_payment"]:checked')).map(el => el.value),
+    cuotaInicialMarcada: _woChecked('wo_pay_down'),
     cuotaInicial:        _woVal('wo_down_payment'),
-    saldo_financiado:    _woVal('wo_balance_financed'),
-    cantidad_financiar:  _woVal('wo_amount_financed'),
-    terminos_pago:       _woVal('wo_terms'),
-    apr:                 _woVal('wo_apr'),
-    cargosFinancieros:   _woVal('wo_finance_charge'),
-    totalPagos:          _woVal('wo_total_payments'),
-    tarjetaMonto:        _woVal('wo_cc_amount'),
-  };
-
-  // ── Objeto tarjeta ──
-  data.tarjeta = {
-    numero:     _woVal('wo_cc_number'),
-    expiracion: _woVal('wo_cc_exp'),
-    cvv:        _woVal('wo_cc_cvv'),
+    otroMetodo:          _woChecked('wo_pay_other'),
+    otroMetodoTexto:     _woVal('wo_pay_other_text'),
   };
 
   // ── Campo raíz ──
+  data.fecha = _woVal('wo_date');
   data.nombre_dealer = _woVal('wo_rep_name');
   data.negocio_procedencia = _woRadio(formEl, 'wo_business_section');
 

@@ -83,6 +83,12 @@ function toggleOtherEquipment(checkbox) {
   if (!checkbox.checked) document.getElementById('eq_other_text').value = '';
 }
 
+/** Muestra/oculta el campo extra de una casilla (Inicial, Otro método de pago) */
+function toggleWOExtra(checkbox, wrapperId, inputId) {
+  document.getElementById(wrapperId).classList.toggle('visible', checkbox.checked);
+  if (!checkbox.checked) document.getElementById(inputId).value = '';
+}
+
 /** Muestra/oculta el input de texto "Otro horario" */
 function toggleScheduleOther(radio) {
   const wrapper   = document.getElementById('schedule_other_wrapper');
