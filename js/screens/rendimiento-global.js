@@ -26,7 +26,30 @@ export async function renderRendimientoGlobal() {
                         <button id="range-weekly"  onclick="window.setGlobalRange('weekly')"  class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent">Semanal</button>
                         <button id="range-monthly" onclick="window.setGlobalRange('monthly')" class="range-tab active px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm">Mensual</button>
                         <button id="range-annual"  onclick="window.setGlobalRange('annual')"  class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent">Anual</button>
-                        <button id="range-custom"  onclick="window.toggleDatePicker()"        class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent flex items-center gap-1.5"><svg xmlns='http://www.w3.org/2000/svg' class='w-3 h-3' fill='none' viewBox='0 0 24 24' stroke='currentColor'><rect x='3' y='4' width='18' height='18' rx='2' stroke-width='2'/><line x1='16' y1='2' x2='16' y2='6' stroke-width='2'/><line x1='8' y1='2' x2='8' y2='6' stroke-width='2'/><line x1='3' y1='10' x2='21' y2='10' stroke-width='2'/></svg>Rango</button>
+                        
+                        <!-- Selector de Meses del Año -->
+                        <div class="relative inline-block" id="months-selector-wrapper">
+                            <button id="range-months-btn" onclick="window.toggleMonthsDropdown()" class="range-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent flex items-center gap-1.5">
+                                <svg xmlns='http://www.w3.org/2000/svg' class='w-3.5 h-3.5 text-tealAccent' fill='none' viewBox='0 0 24 24' stroke='currentColor'><rect x='3' y='4' width='18' height='18' rx='2' stroke-width='2'/><line x1='16' y1='2' x2='16' y2='6' stroke-width='2'/><line x1='8' y1='2' x2='8' y2='6' stroke-width='2'/><line x1='3' y1='10' x2='21' y2='10' stroke-width='2'/></svg>
+                                <span id="range-months-btn-text">Meses</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-gray-400"></i>
+                            </button>
+                            <!-- Dropdown de meses -->
+                            <div id="months-dropdown" class="hidden absolute right-0 mt-2 z-50 bg-white dark:bg-[#0c1322] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-3 min-w-[280px]">
+                                <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-100 dark:border-white/5">
+                                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Meses del Año (2026)</span>
+                                    <button onclick="window.closeMonthsDropdown()" class="text-gray-400 hover:text-red-400 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <div class="grid grid-cols-3 gap-1.5" id="months-grid-btns">
+                                    <!-- Dynamic month buttons -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Selector manual si desean fechas específicas -->
+                        <button id="range-custom" onclick="window.toggleDatePicker()" class="range-tab px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-500 hover:text-tealAccent flex items-center gap-1" title="Rango personalizado de fechas">
+                            <i class="fa-solid fa-sliders text-[11px]"></i>
+                        </button>
                     </div>
                     <!-- Custom date range (hidden by default) -->
                     <div id="custom-date-picker" class="hidden items-center gap-3 bg-white/90 dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3.5 py-2 shadow-lg">
@@ -75,8 +98,11 @@ export async function renderRendimientoGlobal() {
             <!-- KPI Cards (5 cols matching modern OS standard) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <!-- Prospectos -->
-                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-blue-400/30 transition-all">
-                    <p class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Prospectos</p>
+                <div onclick="window.showKpiDetailModal('prospectos')" class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-blue-400/50 hover:scale-[1.02] hover:shadow-lg transition-all cursor-pointer select-none">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Prospectos</p>
+                        <span class="text-[9px] font-bold text-blue-400/70 group-hover:text-blue-400 flex items-center gap-1 transition-colors">Ver lista <i class="fa-solid fa-arrow-right text-[8px]"></i></span>
+                    </div>
                     <div class="flex items-baseline gap-2">
                         <h3 id="kpi-total-contactos" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
                         <span id="kpi-prospectos-pct" class="text-xs font-bold text-blue-400"></span>
@@ -85,8 +111,11 @@ export async function renderRendimientoGlobal() {
                 </div>
 
                 <!-- Presentaciones -->
-                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-amber-400/30 transition-all">
-                    <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-1">Presentaciones</p>
+                <div onclick="window.showKpiDetailModal('presentaciones')" class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-amber-400/50 hover:scale-[1.02] hover:shadow-lg transition-all cursor-pointer select-none">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Presentaciones</p>
+                        <span class="text-[9px] font-bold text-amber-400/70 group-hover:text-amber-400 flex items-center gap-1 transition-colors">Ver lista <i class="fa-solid fa-arrow-right text-[8px]"></i></span>
+                    </div>
                     <div class="flex items-baseline gap-2">
                         <h3 id="kpi-proyectos-abiertos" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
                         <span id="kpi-presentaciones-pct" class="text-xs font-bold text-amber-400"></span>
@@ -95,8 +124,11 @@ export async function renderRendimientoGlobal() {
                 </div>
 
                 <!-- Ventas -->
-                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-emerald-400/30 transition-all">
-                    <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Ventas</p>
+                <div onclick="window.showKpiDetailModal('ventas')" class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-emerald-400/50 hover:scale-[1.02] hover:shadow-lg transition-all cursor-pointer select-none">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Ventas</p>
+                        <span class="text-[9px] font-bold text-emerald-400/70 group-hover:text-emerald-400 flex items-center gap-1 transition-colors">Ver lista <i class="fa-solid fa-arrow-right text-[8px]"></i></span>
+                    </div>
                     <div class="flex items-baseline gap-2">
                         <h3 id="kpi-ventas-totales" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
                         <span id="kpi-ventas-pct" class="text-xs font-bold text-emerald-400"></span>
@@ -105,8 +137,11 @@ export async function renderRendimientoGlobal() {
                 </div>
 
                 <!-- Declinados -->
-                <div class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-red-400/30 transition-all">
-                    <p class="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Declinados</p>
+                <div onclick="window.showKpiDetailModal('declinados')" class="bg-white/80 dark:bg-[#0c1322] p-5 rounded-2xl border border-gray-200/80 dark:border-white/5 shadow-sm group hover:border-red-400/50 hover:scale-[1.02] hover:shadow-lg transition-all cursor-pointer select-none">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[10px] font-bold text-red-400 uppercase tracking-wider">Declinados</p>
+                        <span class="text-[9px] font-bold text-red-400/70 group-hover:text-red-400 flex items-center gap-1 transition-colors">Ver lista <i class="fa-solid fa-arrow-right text-[8px]"></i></span>
+                    </div>
                     <div class="flex items-baseline gap-2">
                         <h3 id="kpi-declinados-totales" class="text-2xl font-bold text-gray-900 dark:text-white">0</h3>
                     </div>
@@ -247,8 +282,82 @@ export async function renderRendimientoGlobal() {
         updateGlobalData(window.globalActiveEco, window.globalTimeRange, window.globalDateFrom, window.globalDateTo, window.globalSelectedVendors);
     };
 
+    // Poblar botones de meses en el dropdown
+    const monthNamesList = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const monthShortList = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const monthsGrid = document.getElementById('months-grid-btns');
+    if (monthsGrid) {
+        const currentM = new Date().getMonth();
+        monthsGrid.innerHTML = monthShortList.map((m, idx) => `
+            <button onclick="window.selectSpecificMonth(${idx})" id="btn-month-opt-${idx}" class="month-grid-btn px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-center border border-gray-100 dark:border-white/5 hover:border-tealAccent hover:text-tealAccent dark:hover:text-tealAccent ${idx === currentM ? 'bg-tealAccent/10 text-tealAccent font-black' : 'text-gray-600 dark:text-gray-300'}">
+                ${m}
+            </button>
+        `).join('');
+    }
+
+    window.toggleMonthsDropdown = () => {
+        const dd = document.getElementById('months-dropdown');
+        if (dd) dd.classList.toggle('hidden');
+    };
+
+    window.closeMonthsDropdown = () => {
+        const dd = document.getElementById('months-dropdown');
+        if (dd) dd.classList.add('hidden');
+    };
+
+    window.selectSpecificMonth = (monthIndex) => {
+        const year = 2026;
+        // Del primer día del mes a las 00:00:00 al último día del mes a las 23:59:59
+        const start = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+        const end   = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+
+        window.globalDateFrom  = start;
+        window.globalDateTo    = end;
+        window.globalTimeRange = 'specific_month';
+        window.globalSelectedMonthIndex = monthIndex;
+
+        // Actualizar etiqueta del botón
+        const label = document.getElementById('range-months-btn-text');
+        if (label) label.textContent = `Mes: ${monthShortList[monthIndex]}`;
+
+        // Estilos activos
+        document.querySelectorAll('.range-tab').forEach(btn => {
+            btn.classList.remove('active', 'bg-white', 'dark:bg-[#0c1322]', 'text-tealAccent', 'shadow-sm');
+            btn.classList.add('text-gray-500');
+        });
+
+        const monthsBtn = document.getElementById('range-months-btn');
+        if (monthsBtn) {
+            monthsBtn.classList.add('active', 'bg-white', 'dark:bg-[#0c1322]', 'text-tealAccent', 'shadow-sm');
+            monthsBtn.classList.remove('text-gray-500');
+        }
+
+        // Resaltar en el grid
+        document.querySelectorAll('.month-grid-btn').forEach((b, i) => {
+            b.classList.toggle('bg-tealAccent', i === monthIndex);
+            b.classList.toggle('text-black', i === monthIndex);
+            b.classList.toggle('font-black', i === monthIndex);
+        });
+
+        window.closeMonthsDropdown();
+
+        // Ocultar picker personalizado si estuviera abierto
+        const picker = document.getElementById('custom-date-picker');
+        if (picker) { picker.classList.remove('visible'); picker.classList.add('hidden'); }
+        const rangeCustomBtn = document.getElementById('range-custom');
+        if (rangeCustomBtn) rangeCustomBtn.classList.remove('active');
+
+        updateGlobalData(window.globalActiveEco, 'specific_month', window.globalDateFrom, window.globalDateTo, window.globalSelectedVendors);
+    };
+
     window.setGlobalRange = (range) => {
         window.globalTimeRange = range;
+        
+        // Reset months label if switching away
+        const monthsLabel = document.getElementById('range-months-btn-text');
+        if (monthsLabel) monthsLabel.textContent = 'Meses';
+        window.closeMonthsDropdown();
+
         // Hide date picker if switching away from custom
         if (range !== 'custom') {
             window.globalDateFrom = null;
@@ -258,9 +367,14 @@ export async function renderRendimientoGlobal() {
             const rangeCustomBtn = document.getElementById('range-custom');
             if (rangeCustomBtn) rangeCustomBtn.classList.remove('active');
         }
+
         document.querySelectorAll('.range-tab').forEach(btn => {
             const match = btn.id === `range-${range}`;
             btn.classList.toggle('active', match);
+            btn.classList.toggle('bg-white', match);
+            btn.classList.toggle('dark:bg-[#0c1322]', match);
+            btn.classList.toggle('text-tealAccent', match);
+            btn.classList.toggle('shadow-sm', match);
             btn.classList.toggle('text-gray-500', !match);
             btn.classList.toggle('hover:text-tealAccent', !match);
         });
@@ -391,6 +505,10 @@ export async function renderRendimientoGlobal() {
         const wrapper = document.getElementById('vendor-selector-wrapper');
         const dd = document.getElementById('vendor-dropdown');
         if (wrapper && dd && !wrapper.contains(e.target)) dd.classList.remove('open');
+
+        const mWrapper = document.getElementById('months-selector-wrapper');
+        const mDd = document.getElementById('months-dropdown');
+        if (mWrapper && mDd && !mWrapper.contains(e.target)) mDd.classList.add('hidden');
     }, { once: false });
 
     // Initial load
@@ -466,19 +584,19 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const currentMonth = now.getMonth();
     const currentYear  = now.getFullYear();
 
-    // Build start/end bounds for each range
+    // Build start/end bounds for each range (estricto: del 1er día al último día)
     let rangeStart, rangeEnd;
     if (range === 'weekly') {
         const day = now.getDay(); // 0=Sun
         rangeStart = new Date(now); rangeStart.setDate(now.getDate() - day); rangeStart.setHours(0,0,0,0);
         rangeEnd   = new Date(now); rangeEnd.setHours(23,59,59,999);
     } else if (range === 'monthly') {
-        rangeStart = new Date(currentYear, currentMonth, 1);
-        rangeEnd   = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+        rangeStart = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+        rangeEnd   = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
     } else if (range === 'annual') {
-        rangeStart = new Date(currentYear, 0, 1);
-        rangeEnd   = new Date(currentYear, 11, 31, 23, 59, 59);
-    } else if (range === 'custom' && dateFrom && dateTo) {
+        rangeStart = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+        rangeEnd   = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+    } else if ((range === 'custom' || range === 'specific_month') && dateFrom && dateTo) {
         rangeStart = dateFrom;
         rangeEnd   = dateTo;
     } else {
@@ -496,7 +614,6 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             // Intento parsear DD/MM/YYYY o DD-MM-YYYY
             const parts = String(raw).split(/[\/\-]/);
             if (parts.length === 3) {
-                // Asume DD/MM/YYYY si el primero es > 12
                 if (parseInt(parts[0]) > 12) {
                     d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`);
                 } else {
@@ -510,35 +627,82 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
     const inRange = (dateStr) => {
         if (!rangeStart || !rangeEnd) return true;
         const d = safeDate(dateStr);
-        // Si no tiene fecha (ej. "Reciente"), lo incluimos por defecto para que no se vuelva invisible
-        // en los reportes globales.
-        if (!d) return true;
+        // Cuando hay un filtro de fechas activo, registros sin fecha válida NO se incluyen en el mes
+        if (!d) return false;
         return d >= rangeStart && d <= rangeEnd;
     };
 
-    // ── 4. KPIs based on Projects ──────────
+    // ── Helper de Detección de Ventas y Fechas ──
+    const isProjectClosedSale = (p) => {
+        if (!p) return false;
+        if (p.fecha_cierre) return true;
+        const est = String(p.estado || '').toLowerCase();
+        const fId = String(p.fase_id || '').toLowerCase();
+        const finishedTerms = ['completado', 'finalizado', 'finished', 'cerrado', 'closed', 'venta', 'liquidado'];
+        if (finishedTerms.some(t => est === t || fId === t)) return true;
+        if (p.fase_id === null && p.pipeline_id === 'pip_water') return true;
+        if (db && db.Admin_Fases) {
+            const fObj = db.Admin_Fases.find(f => String(f.id).toLowerCase() === fId);
+            if (fObj) {
+                const fNom = String(fObj.nombre || '').toLowerCase();
+                if (finishedTerms.some(t => fNom.includes(t)) || fNom.includes('comisión') || fNom.includes('comision')) return true;
+                if (db.Admin_Pipelines) {
+                    const pipeline = db.Admin_Pipelines.find(pip => pip.id === fObj.pipeline_id);
+                    if (pipeline && String(pipeline.nombre || '').toLowerCase().includes('solar')) {
+                        if (typeof fObj.orden === 'number' && fObj.orden >= 2) return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
 
+    const getProjectSaleDate = (p) => {
+        if (p.fecha_cierre) return p.fecha_cierre;
+        if (p.fecha) return p.fecha;
+        if (p.created_at) return p.created_at;
+        const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+        return cli ? (cli.fecha_cierre || cli.fecha_conversion || cli.fecha_registro || cli.fecha || cli.created_at) : null;
+    };
+
+    const getProjectActiveDate = (p) => {
+        if (p.fecha) return p.fecha;
+        if (p.created_at) return p.created_at;
+        const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id));
+        return cli ? (cli.fecha_registro || cli.fecha || cli.created_at) : null;
+    };
+
+    // ── 4. KPIs based on Projects & Clients ──────────
     const filteredClients = ecoClients.filter(c => inRange(c.fecha_registro || c.fecha || c.created_at));
-    const openProjects   = ecoProjects.filter(p => !isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
-    const closedProjects = ecoProjects.filter(p => isProjectFinished(p, db) && inRange(getProjectDate(p, db)));
+    const closedProjects = ecoProjects.filter(p => isProjectClosedSale(p) && inRange(getProjectSaleDate(p)));
+    const openProjects   = ecoProjects.filter(p => !isProjectClosedSale(p) && inRange(getProjectActiveDate(p)));
 
-    let countProspectos = 0;
-    let countDeclinados = 0;
+    let prospectosList = [];
+    let declinadosList = [];
 
     filteredClients.forEach(c => {
         if (c.macro_estado === 'Declinado') {
-            countDeclinados++;
+            declinadosList.push(c);
             return;
         }
         const clientProjects = ecoProjects.filter(p => String(p.cliente_id) === String(c.id));
-        // Lógica estricta de la App: Si no tiene proyectos en el ecosistema actual, es Prospecto.
-        if (clientProjects.length === 0) countProspectos++;
+        if (clientProjects.length === 0) {
+            prospectosList.push(c);
+        }
     });
 
-    const totalProspectos     = countProspectos;
-    const totalDeclinados     = countDeclinados;
+    const totalProspectos     = prospectosList.length;
+    const totalDeclinados     = declinadosList.length;
     const totalPresentaciones = openProjects.length;
     const totalVentas         = closedProjects.length;
+
+    // Guardar colecciones detalladas para los modales interactivos
+    window._currentFilteredProspectos     = prospectosList;
+    window._currentFilteredDeclinados     = declinadosList;
+    window._currentFilteredPresentaciones = openProjects;
+    window._currentFilteredVentas         = closedProjects;
+    window._currentFilteredEco            = ecosystem;
+    window._currentDateBounds             = { start: rangeStart, end: rangeEnd };
 
     // Tasa de Rendimiento
     const totalActivos  = totalPresentaciones + totalVentas;
@@ -589,13 +753,15 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     const leaderboardData = filteredVendors.map(v => {
         const vProjects = ecoProjects.filter(p => {
-            if (!inRange(getProjectDate(p, db))) return false;
+            const isFin = isProjectClosedSale(p);
+            const pDate = isFin ? getProjectSaleDate(p) : getProjectActiveDate(p);
+            if (!inRange(pDate)) return false;
             if (String(p.responsable_id) === String(v.id)) return true;
             const cli = ecoClients.find(c => String(c.id) === String(p.cliente_id));
             return cli && String(cli.vendedor_asignado_id) === String(v.id);
         });
         const vTotal   = vProjects.length;
-        const vClosed  = vProjects.filter(p => isProjectFinished(p, db)).length;
+        const vClosed  = vProjects.filter(p => isProjectClosedSale(p)).length;
         const vCloseRate = vTotal > 0 ? Math.round((vClosed / vTotal) * 100) : 0;
         
         let vCommissions = 0;
@@ -740,7 +906,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         const r = plotByMonth(currentYear, chartClientes, chartEnProceso, chartVentas);
         labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         subtitleText = `Resumen anual ${currentYear}.`;
-    } else if (range === 'custom' && rangeStart && rangeEnd) {
+    } else if ((range === 'custom' || range === 'specific_month') && rangeStart && rangeEnd) {
         const diffDays = Math.round((rangeEnd - rangeStart) / 86400000);
         if (diffDays <= 62) {
             const r = plotByDay(rangeStart, rangeEnd, chartClientes, chartEnProceso, chartVentas);
@@ -750,8 +916,12 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
             labels = r.lbs; dataProspectos = r.dp; dataPresentaciones = r.dpr; dataVentas = r.dv; dataDeclinados = r.dd;
         }
         const fmt = d => d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-        subtitleText = `Rango personalizado: ${fmt(rangeStart)} → ${fmt(rangeEnd)}.`;
-
+        if (range === 'specific_month' && window.globalSelectedMonthIndex !== undefined) {
+            const mFullNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            subtitleText = `Evolución de prospectos, presentaciones y ventas de ${mFullNames[window.globalSelectedMonthIndex]} 2026.`;
+        } else {
+            subtitleText = `Rango personalizado: ${fmt(rangeStart)} → ${fmt(rangeEnd)}.`;
+        }
     }
 
     const subtitle = document.getElementById('chart-subtitle');
@@ -796,3 +966,271 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
         }
     });
 }
+
+// ── Modal de Detalle de KPIs (Ventas, Declinados, Presentaciones, Prospectos) ──
+let _currentKpiModalData = [];
+let _currentKpiModalType = '';
+
+window.showKpiDetailModal = function(type) {
+    const db = getDB();
+    const workers = db.Usuarios || [];
+    const fases = db.Admin_Fases || [];
+
+    let items = [];
+    let config = {
+        title: 'Detalle de Métrica',
+        icon: 'fa-chart-pie',
+        color: 'text-tealAccent',
+        badgeBg: 'bg-tealAccent/10 text-tealAccent border-tealAccent/20',
+        emptyMsg: 'No hay registros en este período'
+    };
+
+    if (type === 'ventas') {
+        items = window._currentFilteredVentas || [];
+        config = {
+            title: 'Ventas Cerradas / Concretadas',
+            icon: 'fa-trophy',
+            color: 'text-emerald-400',
+            badgeBg: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+            emptyMsg: 'No hay ventas registradas en el período seleccionado.'
+        };
+    } else if (type === 'declinados') {
+        items = window._currentFilteredDeclinados || [];
+        config = {
+            title: 'Prospectos Declinados / Rechazados',
+            icon: 'fa-ban',
+            color: 'text-red-400',
+            badgeBg: 'bg-red-400/10 text-red-400 border-red-400/20',
+            emptyMsg: 'No hay prospectos declinados en el período seleccionado.'
+        };
+    } else if (type === 'presentaciones') {
+        items = window._currentFilteredPresentaciones || [];
+        config = {
+            title: 'Presentaciones / Proyectos en Proceso',
+            icon: 'fa-clock',
+            color: 'text-amber-400',
+            badgeBg: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
+            emptyMsg: 'No hay presentaciones activas en el período seleccionado.'
+        };
+    } else if (type === 'prospectos') {
+        items = window._currentFilteredProspectos || [];
+        config = {
+            title: 'Prospectos Registrados',
+            icon: 'fa-users',
+            color: 'text-blue-400',
+            badgeBg: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+            emptyMsg: 'No hay prospectos registrados en el período seleccionado.'
+        };
+    }
+
+    _currentKpiModalType = type;
+    _currentKpiModalData = items;
+
+    let container = document.getElementById('modal-kpi-detail-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'modal-kpi-detail-container';
+        document.body.appendChild(container);
+    }
+
+    const fmtDate = (dStr) => {
+        if (!dStr) return 'Sin fecha';
+        try {
+            const d = new Date(dStr.includes('T') ? dStr : dStr + 'T12:00:00');
+            if (isNaN(d.getTime())) return dStr;
+            return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (_) { return dStr; }
+    };
+
+    const renderList = (filterQuery = '') => {
+        const q = filterQuery.toLowerCase().trim();
+        const filtered = items.filter(item => {
+            if (!q) return true;
+            let cliName = '';
+            let repName = '';
+            let phone = '';
+            let faseName = '';
+
+            if (type === 'ventas' || type === 'presentaciones') {
+                const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(item.cliente_id)) || {};
+                cliName = `${cli.nombre || ''} ${cli.apellido || ''} ${item.nombre || ''}`.toLowerCase();
+                phone = `${cli.telefono || ''} ${cli.tel || ''}`.toLowerCase();
+                
+                const rep = workers.find(w => String(w.id) === String(item.responsable_id || cli.vendedor_asignado_id));
+                repName = rep ? `${rep.nombre || ''} ${rep.apellido || ''}`.toLowerCase() : '';
+
+                const f = fases.find(x => String(x.id) === String(item.fase_id));
+                faseName = f ? f.nombre.toLowerCase() : (item.fase_id || '');
+            } else {
+                cliName = `${item.nombre || ''} ${item.apellido || ''}`.toLowerCase();
+                phone = `${item.telefono || ''} ${item.tel || ''}`.toLowerCase();
+                const rep = workers.find(w => String(w.id) === String(item.vendedor_asignado_id || item.responsable_id));
+                repName = rep ? `${rep.nombre || ''} ${rep.apellido || ''}`.toLowerCase() : '';
+                faseName = (item.macro_estado || item.estado || '').toLowerCase();
+            }
+
+            return cliName.includes(q) || repName.includes(q) || phone.includes(q) || faseName.includes(q);
+        });
+
+        if (filtered.length === 0) {
+            return `
+                <div class="py-12 text-center text-gray-400">
+                    <i class="fa-solid fa-inbox text-3xl opacity-30 mb-3 block"></i>
+                    <p class="text-sm font-semibold">${filterQuery ? 'No se encontraron resultados para la búsqueda' : config.emptyMsg}</p>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-gray-100 dark:border-white/5 text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                            <th class="py-3 px-4">Cliente / Registro</th>
+                            <th class="py-3 px-4">Vendedor Asignado</th>
+                            <th class="py-3 px-4">Fecha</th>
+                            <th class="py-3 px-4">Fase / Estado</th>
+                            <th class="py-3 px-4 text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5 text-xs">
+                        ${filtered.map(item => {
+                            let cli = item;
+                            let p = null;
+                            let dateRaw = '';
+                            let rep = null;
+                            let faseLabel = '';
+                            let clientId = item.id;
+                            let projectId = null;
+
+                            if (type === 'ventas' || type === 'presentaciones') {
+                                p = item;
+                                projectId = p.id;
+                                cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
+                                clientId = cli.id || p.cliente_id;
+                                dateRaw = type === 'ventas' ? (p.fecha_cierre || p.fecha || p.created_at) : (p.fecha || p.created_at);
+                                rep = workers.find(w => String(w.id) === String(p.responsable_id || cli.vendedor_asignado_id));
+                                const fObj = fases.find(x => String(x.id) === String(p.fase_id));
+                                faseLabel = fObj ? fObj.nombre : (p.fase_id ? p.fase_id : (type === 'ventas' ? 'Venta Cerrada' : 'En Proceso'));
+                            } else {
+                                cli = item;
+                                clientId = cli.id;
+                                dateRaw = cli.fecha_registro || cli.fecha || cli.created_at;
+                                rep = workers.find(w => String(w.id) === String(cli.vendedor_asignado_id || cli.responsable_id));
+                                faseLabel = cli.macro_estado || cli.estado || (type === 'declinados' ? 'Declinado' : 'Prospecto');
+                            }
+
+                            const clientFullName = `${cli.nombre || 'Sin Nombre'} ${cli.apellido || ''}`.trim();
+                            const repFullName = rep ? `${rep.nombre || ''} ${rep.apellido || ''}`.trim() : (cli.vendedor_asignado_nombre || 'Sin asignar');
+                            const phone = cli.telefono || cli.tel || '';
+
+                            return `
+                                <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <span>${clientFullName}</span>
+                                        </div>
+                                        ${phone ? `<div class="text-[11px] text-gray-400 mt-0.5"><i class="fa-solid fa-phone text-[9px] mr-1"></i>${phone}</div>` : ''}
+                                    </td>
+                                    <td class="py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-tealAccent/10 text-tealAccent flex items-center justify-center text-[10px] font-black">
+                                                ${rep && rep.nombre ? rep.nombre[0].toUpperCase() : 'U'}
+                                            </div>
+                                            <span>${repFullName}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
+                                        ${fmtDate(dateRaw)}
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${config.badgeBg}">
+                                            ${faseLabel}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 text-right whitespace-nowrap">
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            ${projectId ? `
+                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.openKanbanDrawer === 'function') window.openKanbanDrawer('${projectId}');" class="px-2.5 py-1 rounded-lg bg-tealAccent text-black font-bold text-[11px] hover:brightness-110 transition-all shadow-sm flex items-center gap-1">
+                                                    <i class="fa-solid fa-folder-open text-[10px]"></i> Proyecto
+                                                </button>
+                                            ` : ''}
+                                            ${clientId ? `
+                                                <button onclick="window.closeKpiDetailModal(); if (typeof window.showClientDetail === 'function') window.showClientDetail('${clientId}');" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 font-bold text-[11px] hover:bg-gray-200 dark:hover:bg-white/20 transition-all flex items-center gap-1">
+                                                    <i class="fa-solid fa-user text-[10px]"></i> Cliente
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    };
+
+    container.innerHTML = `
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn" id="kpi-modal-backdrop" onclick="if(event.target === this) window.closeKpiDetailModal();">
+            <div class="relative bg-white dark:bg-[#0c1322] border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp">
+                <!-- Header -->
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-lg ${config.badgeBg}">
+                            <i class="fa-solid ${config.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-black text-gray-900 dark:text-white">${config.title}</h3>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-black bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white">${items.length}</span>
+                            </div>
+                            <p class="text-xs text-gray-400 font-medium">Ecosistema: Renew ${window._currentFilteredEco || 'Water'} · Registros filtrados del período</p>
+                        </div>
+                    </div>
+                    <button onclick="window.closeKpiDetailModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-gray-400 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Search Filter Bar -->
+                <div class="px-6 py-3 bg-gray-50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/5 flex items-center gap-3">
+                    <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
+                    <input type="text" id="kpi-modal-search" oninput="window.filterKpiModalList(this.value)" placeholder="Filtrar por nombre de cliente, vendedor, teléfono o fase..." class="w-full bg-transparent text-xs font-semibold text-gray-900 dark:text-white placeholder-gray-400 outline-none">
+                </div>
+
+                <!-- Table Content Container -->
+                <div class="p-6 overflow-y-auto flex-1" id="kpi-modal-body">
+                    ${renderList()}
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 bg-gray-50/50 dark:bg-white/[0.01] border-t border-gray-100 dark:border-white/5 flex items-center justify-between text-xs text-gray-400">
+                    <span>Mostrando <strong id="kpi-modal-visible-count" class="text-gray-700 dark:text-gray-200">${items.length}</strong> de ${items.length} registros</span>
+                    <button onclick="window.closeKpiDetailModal()" class="px-4 py-1.5 rounded-xl bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white font-bold text-xs hover:bg-gray-300 dark:hover:bg-white/20 transition-all">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    window.filterKpiModalList = (query) => {
+        const body = document.getElementById('kpi-modal-body');
+        if (body) body.innerHTML = renderList(query);
+    };
+
+    window.closeKpiDetailModal = () => {
+        const container = document.getElementById('modal-kpi-detail-container');
+        if (container) container.innerHTML = '';
+    };
+
+    // Close on Escape
+    const onKey = (e) => {
+        if (e.key === 'Escape') {
+            window.closeKpiDetailModal();
+            document.removeEventListener('keydown', onKey);
+        }
+    };
+    document.addEventListener('keydown', onKey);
+};

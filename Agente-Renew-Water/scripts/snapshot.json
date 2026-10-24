@@ -1,0 +1,1934 @@
+{
+ "fases": [
+  {
+   "id": "fase_33_z8j9",
+   "pipeline_id": "pip_water",
+   "orden": 1,
+   "nombre": "Aprobación",
+   "rol_encargado": "Encargado del Proyecto",
+   "usuarios_especificos": []
+  },
+  {
+   "id": "fase_35_nol4",
+   "pipeline_id": "pip_water",
+   "orden": 2,
+   "nombre": "Orden de Trabajo",
+   "rol_encargado": "Encargado del Proyecto",
+   "usuarios_especificos": []
+  },
+  {
+   "id": "fase_fase_4111_4ltv",
+   "pipeline_id": "pip_water",
+   "orden": 3,
+   "nombre": "Asignación de Técnicos",
+   "rol_encargado": "Encargado del Proyecto",
+   "usuarios_especificos": [
+    "c61b4efb-04d5-4432-bd42-35f2992b961b"
+   ]
+  },
+  {
+   "id": "fase_39_uivk",
+   "pipeline_id": "pip_water",
+   "orden": 4,
+   "nombre": "Certificado de Instalación",
+   "rol_encargado": "Asignación Específica",
+   "usuarios_especificos": [
+    "u1776914898040",
+    "u1776911854974"
+   ]
+  },
+  {
+   "id": "fase_34_nocd",
+   "pipeline_id": "pip_water",
+   "orden": 5,
+   "nombre": "Llamada de Renew",
+   "rol_encargado": "Call Center",
+   "usuarios_especificos": []
+  },
+  {
+   "id": "fase_37_t6bg",
+   "pipeline_id": "pip_water",
+   "orden": 6,
+   "nombre": "Firma de Contrato",
+   "rol_encargado": "Admin",
+   "usuarios_especificos": []
+  },
+  {
+   "id": "fase_36_51fk",
+   "pipeline_id": "pip_water",
+   "orden": 8,
+   "nombre": "Fotos de Instalación",
+   "rol_encargado": "Encargado del Proyecto",
+   "usuarios_especificos": []
+  },
+  {
+   "id": "fase_38_508a",
+   "pipeline_id": "pip_water",
+   "orden": 7,
+   "nombre": "Llamada de Financiera",
+   "rol_encargado": "Asignación Específica",
+   "usuarios_especificos": [
+    "u1776911854974",
+    "u1776914898040"
+   ]
+  },
+  {
+   "id": "fase_40_80vn",
+   "pipeline_id": "pip_water",
+   "orden": 9,
+   "nombre": "Comisión",
+   "rol_encargado": "Asignación Específica",
+   "usuarios_especificos": [
+    "u3",
+    "u1776911854974",
+    "u1776914898040"
+   ]
+  }
+ ],
+ "proyectos": [
+  {
+   "id": "proy_proy_11_roaw",
+   "cliente_id": "cli_cli_11_y4pk",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_aq0q",
+   "cliente_id": "cli_cli_11_9r23",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1776911854974",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_u1g1",
+   "cliente_id": "cli_cli_11_llk0",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_48lj",
+   "cliente_id": "cli_cli_11_gn91",
+   "fase_id": null,
+   "responsable_id": "bc6e7c35-ece8-48a4-9274-f1a4b928e3d4",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-09T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_id7x",
+   "cliente_id": "cli_cli_11_moo4",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_7s86",
+   "cliente_id": "cli_cli_11_x6s8",
+   "fase_id": null,
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_4q2y",
+   "cliente_id": "cli_cli_11_dj5m",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_tp2r",
+   "cliente_id": "cli_cli_11_dpot",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_jbq6",
+   "cliente_id": "cli_cli_100001_z22c",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_ppum",
+   "cliente_id": "cli_cli_11_ood7",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_wuw5",
+   "cliente_id": "cli_cli_11_2xjr",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_nlcd",
+   "cliente_id": "cli_cli_11_v591",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_1sea",
+   "cliente_id": "cli_cli_11_1k1n",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_99xp",
+   "cliente_id": "cli_cli_11_tjid",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_rvqf",
+   "cliente_id": "cli_cli_11_twp2",
+   "fase_id": null,
+   "responsable_id": "41248796-2e6b-45ec-bdce-b08a68c80be9",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_2ju2",
+   "cliente_id": "cli_cli_11_h1te",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_13cu",
+   "cliente_id": "cli_cli_11_p8kn",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_i50d",
+   "cliente_id": "cli_cli_11_185x",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_qe93",
+   "cliente_id": "cli_cli_11_qe93",
+   "fase_id": null,
+   "responsable_id": "cac3512f-e7e4-4760-8bf7-4cd3f762b7ae",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-03-17T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_i7yr",
+   "cliente_id": "cli_cli_11_2jo8",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_f3d5",
+   "cliente_id": "cli_cli_100001_h2mq",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_rdrp",
+   "cliente_id": "cli_cli_11_qvcd",
+   "fase_id": null,
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_url9",
+   "cliente_id": "cli_cli_11_6mly",
+   "fase_id": null,
+   "responsable_id": "7a643a42-1c8e-4f15-921a-4ac7361ae801",
+   "tecnico_id": "3327623f-290f-44dc-b320-b86dc50f2020",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_dnoe",
+   "cliente_id": "cli_cli_11_rf8j",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "536b723c-4c37-4dda-b2e0-df897ed94fd2",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_6e4o",
+   "cliente_id": "cli_cli_11_mls6",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_0vls",
+   "cliente_id": "cli_cli_11_jonh",
+   "fase_id": null,
+   "responsable_id": "bc6e7c35-ece8-48a4-9274-f1a4b928e3d4",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-09-03T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_21_w7h7",
+   "cliente_id": "cli_cli_21_w7h7",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-05-31T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_msrf",
+   "cliente_id": "cli_cli_11_tibi",
+   "fase_id": null,
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_nlag",
+   "cliente_id": "cli_cli_11_w3or",
+   "fase_id": null,
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_b79h",
+   "cliente_id": "cli_cli_100001_b4py",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_a0t8",
+   "cliente_id": "cli_cli_11_x6ag",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_21_3dra",
+   "cliente_id": "cli_cli_21_3dra",
+   "fase_id": null,
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-30T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_hch7",
+   "cliente_id": "cli_cli_11_vjdv",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_knbq",
+   "cliente_id": "cli_cli_11_jqqd",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_vt1z",
+   "cliente_id": "cli_cli_11_2emv",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": "2026-07-14T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_hg61",
+   "cliente_id": "cli_cli_11_5sdv",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_nseg",
+   "cliente_id": "cli_cli_11_nseg",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-30T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_0zf3",
+   "cliente_id": "cli_cli_11_zufd",
+   "fase_id": null,
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_5hsg",
+   "cliente_id": "cli_cli_11_v109",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-09T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_kj4n",
+   "cliente_id": "cli_cli_11_bzqw",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_12k1",
+   "cliente_id": "cli_cli_11_v4qa",
+   "fase_id": null,
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_jb8e",
+   "cliente_id": "cli_cli_11_o8f2",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_9fw9",
+   "cliente_id": "cli_cli_11_5a7l",
+   "fase_id": null,
+   "responsable_id": "7a643a42-1c8e-4f15-921a-4ac7361ae801",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_h5ue",
+   "cliente_id": "cli_cli_11_lbz5",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_2ypx",
+   "cliente_id": "cli_cli_11_z16t",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_cp9n",
+   "cliente_id": "cli_cli_11_xdls",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_r1zk",
+   "cliente_id": "cli_cli_11_wlmt",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_21_um2m",
+   "cliente_id": "cli_cli_21_um2m",
+   "fase_id": null,
+   "responsable_id": "41248796-2e6b-45ec-bdce-b08a68c80be9",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-12T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_pxeo",
+   "cliente_id": "cli_cli_11_f6q6",
+   "fase_id": null,
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": "2026-07-04T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_feif",
+   "cliente_id": "cli_cli_11_u3rr",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1776911854974",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_zdln",
+   "cliente_id": "cli_cli_11_214e",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_vag2",
+   "cliente_id": "cli_cli_11_j97p",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1776911854974",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_leed",
+   "cliente_id": "cli_cli_11_bhmj",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_inwl",
+   "cliente_id": "cli_cli_11_ztve",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_phv3",
+   "cliente_id": "cli_cli_11_gbt0",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_111_fv0m",
+   "cliente_id": "cli_cli_11_ulkz",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "e3b72f15-6a8a-4df7-a543-1c87080459d8",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_21_ik2u",
+   "cliente_id": "cli_cli_21_znyj",
+   "fase_id": "fase_36_51fk",
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_nh2x",
+   "cliente_id": "cli_cli_11_rbj6",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_21_4bsv",
+   "cliente_id": "cli_cli_21",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-06-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_o4eu",
+   "cliente_id": "cli_cli_11_b0s1",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_culr",
+   "cliente_id": "cli_cli_11_uby4",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1776911854974",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_gugu",
+   "cliente_id": "cli_cli_11_w36l",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_ezd2",
+   "cliente_id": "cli_cli_21_smzv",
+   "fase_id": null,
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_tvxz",
+   "cliente_id": "cli_cli_11_70wf",
+   "fase_id": null,
+   "responsable_id": "16474a72-479f-4369-bc5a-2c87d464cac5",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_rxkg",
+   "cliente_id": "cli_cli_11_4ymu",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_frpu",
+   "cliente_id": "cli_cli_11_73eg",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_eej4",
+   "cliente_id": "cli_cli_100001_ccvx",
+   "fase_id": "fase_39_uivk",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": "ee45c694-907c-4535-9096-3cb121a8d2c2",
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_ptqf",
+   "cliente_id": "cli_cli_11_ptqf",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-30T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_hkha",
+   "cliente_id": "cli_cli_11_e6fh",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_3q9s",
+   "cliente_id": "cli_cli_11_25pj",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_83tq",
+   "cliente_id": "cli_cli_11_83tq",
+   "fase_id": null,
+   "responsable_id": null,
+   "tecnico_id": null,
+   "fecha_cierre": "2026-02-10T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_9lbl",
+   "cliente_id": "cli_cli_11_8x64",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": "2026-07-28T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_4vr0",
+   "cliente_id": "cli_cli_11_u5rl",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_jfa5",
+   "cliente_id": "cli_cli_11_i48d",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_9cbg",
+   "cliente_id": "cli_cli_11_41ls",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_3jc7",
+   "cliente_id": "cli_cli_11_v8zh",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_4e7r",
+   "cliente_id": "cli_cli_11_mzqa",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_qlm4",
+   "cliente_id": "cli_cli_11_4mms",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "e3b72f15-6a8a-4df7-a543-1c87080459d8",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_zh5k",
+   "cliente_id": "cli_cli_11_uffm",
+   "fase_id": "fase_36_51fk",
+   "responsable_id": "462a0f77-6ee2-402b-85a5-11af3581cb8f",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_q0wt",
+   "cliente_id": "cli_cli_11_378u",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_ncgl",
+   "cliente_id": "cli_cli_11_oo43",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_3lt1",
+   "cliente_id": "cli_cli_11_hfrk",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_avxk",
+   "cliente_id": "cli_cli_11_eu1v",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c61b4efb-04d5-4432-bd42-35f2992b961b",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_8ypz",
+   "cliente_id": "cli_cli_11_ent2",
+   "fase_id": null,
+   "responsable_id": "u1776914898040",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_0be7",
+   "cliente_id": "cli_cli_100001_bxn0",
+   "fase_id": "fase_39_uivk",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_hn7f",
+   "cliente_id": "cli_cli_11_e9ft",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "e3b72f15-6a8a-4df7-a543-1c87080459d8",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_cd5d",
+   "cliente_id": "cli_cli_11_6xvd",
+   "fase_id": "fase_40_80vn",
+   "responsable_id": "f14c9c8b-ad0b-42d4-9bdd-7d71a6f22400",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_qc4a",
+   "cliente_id": "cli_cli_11_20lb",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_94ir",
+   "cliente_id": "cli_cli_11_s9m1",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_hec1",
+   "cliente_id": "cli_cli_11_hs81",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_uypc",
+   "cliente_id": "cli_cli_11_tfbb",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_qwqs",
+   "cliente_id": "cli_cli_11_5lcu",
+   "fase_id": null,
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_bnaq",
+   "cliente_id": "cli_cli_11_m533",
+   "fase_id": null,
+   "responsable_id": "7a643a42-1c8e-4f15-921a-4ac7361ae801",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_pzfh",
+   "cliente_id": "cli_cli_11_pzfh",
+   "fase_id": null,
+   "responsable_id": null,
+   "tecnico_id": null,
+   "fecha_cierre": "2026-03-18T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_yn51",
+   "cliente_id": "cli_cli_11_p25c",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_mhkm",
+   "cliente_id": "cli_cli_11_y1pv",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "efc3581a-6396-43e2-9b63-ac986ad5267e",
+   "fecha_cierre": "2026-09-03T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_uoin",
+   "cliente_id": "cli_cli_11_5lcu",
+   "fase_id": null,
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_z9go",
+   "cliente_id": "cli_cli_11_louj",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "efc3581a-6396-43e2-9b63-ac986ad5267e",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_21_poh5",
+   "cliente_id": "cli_cli_21_poh5",
+   "fase_id": "fase_37_t6bg",
+   "responsable_id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-05-29T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_2s1f",
+   "cliente_id": "cli_cli_11_mkxs",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_mrzu",
+   "cliente_id": "cli_cli_11_coor",
+   "fase_id": null,
+   "responsable_id": "41248796-2e6b-45ec-bdce-b08a68c80be9",
+   "tecnico_id": "ee45c694-907c-4535-9096-3cb121a8d2c2",
+   "fecha_cierre": "2026-06-11T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_f1r8",
+   "cliente_id": "cli_cli_11_61hi",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_uu5l",
+   "cliente_id": "cli_cli_11_60km",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_7i4y",
+   "cliente_id": "cli_cli_11_7i4y",
+   "fase_id": null,
+   "responsable_id": null,
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-30T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_37ym",
+   "cliente_id": "cli_cli_11_719c",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_ikox",
+   "cliente_id": "cli_cli_11_q6eo",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_n1o4",
+   "cliente_id": "cli_cli_11_21mv",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "fecha_cierre": "2026-07-28T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_27m3",
+   "cliente_id": "cli_cli_11_27m3",
+   "fase_id": null,
+   "responsable_id": "cac3512f-e7e4-4760-8bf7-4cd3f762b7ae",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-03-19T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_ibis",
+   "cliente_id": "cli_cli_11_gg9c",
+   "fase_id": null,
+   "responsable_id": "bc6e7c35-ece8-48a4-9274-f1a4b928e3d4",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-09T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_sguw",
+   "cliente_id": "cli_cli_11_jjox",
+   "fase_id": null,
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_kyqc",
+   "cliente_id": "cli_cli_11_dadx",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_r8r5",
+   "cliente_id": "cli_cli_11_tmbb",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_5hiz",
+   "cliente_id": "cli_cli_11_5d5r",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_9pmv",
+   "cliente_id": "cli_cli_11_yvs2",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_f9uz",
+   "cliente_id": "cli_cli_100001_zhgg",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_pn8t",
+   "cliente_id": "cli_cli_100001_zxz1",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_modp",
+   "cliente_id": "cli_cli_11_rz5y",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_yzyf",
+   "cliente_id": "cli_cli_11_800q",
+   "fase_id": null,
+   "responsable_id": "cac3512f-e7e4-4760-8bf7-4cd3f762b7ae",
+   "tecnico_id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_vxao",
+   "cliente_id": "cli_cli_11_vxao",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-30T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_e0ts",
+   "cliente_id": "cli_cli_11_iprr",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "e3b72f15-6a8a-4df7-a543-1c87080459d8",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_r7ui",
+   "cliente_id": "cli_cli_11_idve",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_nal0",
+   "cliente_id": "cli_cli_11_bf9e",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_cmhi",
+   "cliente_id": "cli_cli_100001_c70q",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_1cpi",
+   "cliente_id": "cli_cli_100001_2nox",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_f59e",
+   "cliente_id": "cli_cli_11_ujxc",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "bba32e6f-8418-4641-a62c-2c4a4581e192",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_21_v9yz",
+   "cliente_id": "cli_cli_21_v9yz",
+   "fase_id": null,
+   "responsable_id": null,
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-15T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_hif4",
+   "cliente_id": "cli_cli_11_s659",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1776911854974",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_211_e2pz",
+   "cliente_id": "cli_cli_21_8z99",
+   "fase_id": null,
+   "responsable_id": "u1776911854974",
+   "tecnico_id": "ee45c694-907c-4535-9096-3cb121a8d2c2",
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_njke",
+   "cliente_id": "cli_cli_11_zn17",
+   "fase_id": "fase_35_nol4",
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_1d63",
+   "cliente_id": "cli_cli_11_1tjz",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_ib5w",
+   "cliente_id": "cli_cli_100001_5426",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_fzr0",
+   "cliente_id": "cli_cli_11_rjit",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_7x0i",
+   "cliente_id": "cli_cli_100001_ha4u",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "u1777849695755",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_5emo",
+   "cliente_id": "cli_cli_11_kns2",
+   "fase_id": "fase_fase_4111_4ltv",
+   "responsable_id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_1g8o",
+   "cliente_id": "cli_cli_11_91c1",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_mmil",
+   "cliente_id": "cli_cli_11_yhri",
+   "fase_id": null,
+   "responsable_id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-07-02T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "VIRTUAL_cli_cli_11_od2f",
+   "cliente_id": "cli_cli_11_od2f",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-06-30T00:00:00+00:00",
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_61go",
+   "cliente_id": "cli_cli_11_yi4l",
+   "fase_id": "fase_33_z8j9",
+   "responsable_id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "tecnico_id": null,
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_kz0a",
+   "cliente_id": "cli_cli_11_qq1j",
+   "fase_id": "fase_39_uivk",
+   "responsable_id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "tecnico_id": "efc3581a-6396-43e2-9b63-ac986ad5267e",
+   "fecha_cierre": null,
+   "ultima_actividad": null
+  },
+  {
+   "id": "proy_proy_11_6rio",
+   "cliente_id": "cli_cli_11_o3xb",
+   "fase_id": null,
+   "responsable_id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "tecnico_id": null,
+   "fecha_cierre": "2026-08-20T00:00:00+00:00",
+   "ultima_actividad": null
+  }
+ ],
+ "usuarios": [
+  {
+   "id": "2d7ad07f-f11a-49d4-96d8-ef4ed6f70911",
+   "nombre": "Libni",
+   "apellido": "PC",
+   "telefono": "+1 4076393366",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "f14c9c8b-ad0b-42d4-9bdd-7d71a6f22400",
+   "nombre": "Alexis",
+   "apellido": "Moncada",
+   "telefono": "+1 7318207553",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "5a8ed29d-38e0-49e8-bb54-3c7d3096c792",
+   "nombre": "Luis Roberto",
+   "apellido": "Quiñones Martinez",
+   "telefono": "+1 5052783482",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "cac3512f-e7e4-4760-8bf7-4cd3f762b7ae",
+   "nombre": "Josseline",
+   "apellido": "Villegas",
+   "telefono": "+1 9545537569",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "c61b4efb-04d5-4432-bd42-35f2992b961b",
+   "nombre": "Franyeli",
+   "apellido": "Paolini",
+   "telefono": "+1 6896772003",
+   "rol": "CEO",
+   "unidades": [
+    "Renew Home",
+    "Call Center",
+    "RRHH",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "7a643a42-1c8e-4f15-921a-4ac7361ae801",
+   "nombre": "David",
+   "apellido": "Flores",
+   "telefono": "+1 3524349342",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": true
+  },
+  {
+   "id": "597b9bd6-9add-40c0-b514-badd82e0da42",
+   "nombre": "Felipe",
+   "apellido": "Alvarez",
+   "telefono": "+1 9418159020",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "u1776911854974",
+   "nombre": "Libni",
+   "apellido": "Paolini",
+   "telefono": "+1 4076393366",
+   "rol": "CEO",
+   "unidades": [
+    "Renew Home",
+    "Call Center",
+    "RRHH",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "u1776914898040",
+   "nombre": "Gabriel",
+   "apellido": "Rodríguez",
+   "telefono": "+58 414-5320119",
+   "rol": "Admin",
+   "unidades": [
+    "Renew Home",
+    "Call Center",
+    "RRHH",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "462a0f77-6ee2-402b-85a5-11af3581cb8f",
+   "nombre": "Juan Carlos",
+   "apellido": "Magoo",
+   "telefono": "+1 3057670107",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "68c5df1c-c1e1-4fb5-9f31-b16a15bd1384",
+   "nombre": "Valeria",
+   "apellido": "Rodriguez",
+   "telefono": "+1 9542978767",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "e4259cee-4646-4688-b9c2-0a98e30a6f6a",
+   "nombre": "Camilo",
+   "apellido": "Aldana",
+   "telefono": "+57 3213499007",
+   "rol": "Manager",
+   "unidades": [
+    "Renew Solar"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "c50e890a-c38f-432e-adfe-fece84ac7758",
+   "nombre": "Omar",
+   "apellido": "Indriago",
+   "telefono": "+1 3053704737",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "25745012-9fb0-4d2d-8e3d-7a1b86c832a3",
+   "nombre": "Julio",
+   "apellido": "Losada",
+   "telefono": "+1 5551234",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "u1776446477346",
+   "nombre": "Miguel",
+   "apellido": "Callcenter",
+   "telefono": "+1 762463473734",
+   "rol": "Call Center",
+   "unidades": [
+    "Call Center",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "u1776915317811",
+   "nombre": "María",
+   "apellido": "Virginia",
+   "telefono": "+58 4262685443",
+   "rol": "Admin",
+   "unidades": [
+    "Renew Home",
+    "Call Center",
+    "RRHH",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "536b723c-4c37-4dda-b2e0-df897ed94fd2",
+   "nombre": "Yocelyn",
+   "apellido": "Lamadrid",
+   "telefono": "+1 (689) 209-4161",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "bc6e7c35-ece8-48a4-9274-f1a4b928e3d4",
+   "nombre": "Henrry",
+   "apellido": "Alzualde",
+   "telefono": "+1 4076403042",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "9057cef4-e573-4657-9c5b-f7f1251d04a3",
+   "nombre": "Luis Jorge",
+   "apellido": "Ramayo Pupo",
+   "telefono": "+1 (954) 310-4521",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "41248796-2e6b-45ec-bdce-b08a68c80be9",
+   "nombre": "Ricardo Mario",
+   "apellido": "Albornoz Gómez",
+   "telefono": "+1 (321) 945-1366",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "fa1ab5aa-0e14-460a-a720-93b0226161d6",
+   "nombre": "Pedro",
+   "apellido": "Luis Pupo",
+   "telefono": null,
+   "rol": "Técnico",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "f03e9ec3-e8c7-45c3-b120-c9febcd4a80d",
+   "nombre": "Stephano",
+   "apellido": "Bianchi",
+   "telefono": "+1 3055225385",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "efc3581a-6396-43e2-9b63-ac986ad5267e",
+   "nombre": "Ramon",
+   "apellido": "Contreras",
+   "telefono": "+1 (321) 320-4748",
+   "rol": "Técnico",
+   "unidades": [],
+   "is_suspended": false
+  },
+  {
+   "id": "bba32e6f-8418-4641-a62c-2c4a4581e192",
+   "nombre": "Miguel",
+   "apellido": "Durantt Paolini",
+   "telefono": "+58 04167717376",
+   "rol": "Admin",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "e3b72f15-6a8a-4df7-a543-1c87080459d8",
+   "nombre": "Greyli",
+   "apellido": "Romero",
+   "telefono": "+1 4034379714",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "5fa8f7aa-86fd-44c4-a416-737a9d321123",
+   "nombre": "Bruno",
+   "apellido": "Maciel",
+   "telefono": "+1 4079533337",
+   "rol": "Manager",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "bf295f2c-eb1b-4402-8af2-597e9650f4e7",
+   "nombre": "José",
+   "apellido": "Camacho",
+   "telefono": "+1 9548824319",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": true
+  },
+  {
+   "id": "69f26d41-d649-4535-89f7-54651ea46429",
+   "nombre": "Jean  Franco",
+   "apellido": "Paolini",
+   "telefono": "+1 4076393372",
+   "rol": "[\"Técnico\",\"Vendedor\"]",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "d3428e76-64e4-47f7-8530-bcd0393b40af",
+   "nombre": "Danny",
+   "apellido": "Guillen",
+   "telefono": "+1 5551234",
+   "rol": "Supervisor",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "6da9328c-9bb9-4ac6-8f9c-607decbc1f03",
+   "nombre": "Ángel Samuel",
+   "apellido": "Aguilar Coreas",
+   "telefono": "+1 (725) 224-3059",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "75356cd4-caa6-4695-bb8c-3efad9127010",
+   "nombre": "Anabel Yriana",
+   "apellido": "Sifontes Sevilla",
+   "telefono": "+1 4074552895",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "3327623f-290f-44dc-b320-b86dc50f2020",
+   "nombre": "John",
+   "apellido": "Bolivar",
+   "telefono": "+1 ",
+   "rol": "Técnico",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": true
+  },
+  {
+   "id": "56d15325-d1ab-40f6-a619-4815a8f50419",
+   "nombre": "Angel",
+   "apellido": "Blanco",
+   "telefono": null,
+   "rol": "[\"Técnico\"]",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "u1777386857418",
+   "nombre": "Daniel",
+   "apellido": "Pereira",
+   "telefono": "+58 4167732288",
+   "rol": "Admin",
+   "unidades": [
+    "Renew Home",
+    "Call Center",
+    "RRHH",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "5540f040-3a4d-469c-9411-d73b581658b4",
+   "nombre": "Wilbers",
+   "apellido": "Pedroza",
+   "telefono": "+1 6892007339",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "8bd34214-2e22-4de9-9344-7ee62305a8a3",
+   "nombre": "Santiago",
+   "apellido": "García",
+   "telefono": "+58 4247318145",
+   "rol": "Call Center",
+   "unidades": [
+    "Call Center",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "5a12f06d-363e-425d-9077-a13b82f19ada",
+   "nombre": "Hernan",
+   "apellido": "Larez",
+   "telefono": "+1 3462197112",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "ee45c694-907c-4535-9096-3cb121a8d2c2",
+   "nombre": "Jesus",
+   "apellido": "Paolini",
+   "telefono": "+1 4074379170",
+   "rol": "[\"Técnico\",\"Vendedor\"]",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "u1777849695755",
+   "nombre": "Elines",
+   "apellido": "Borregales",
+   "telefono": "+1 3463641384",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "d8f8ab72-2bf1-4fe2-81d9-b7ce57125748",
+   "nombre": "José",
+   "apellido": "Sosa",
+   "telefono": "+1 ",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "6429da8e-c094-4da6-9ec0-0ff07d25194c",
+   "nombre": "Jimmy",
+   "apellido": "Palombizio",
+   "telefono": "+1 9146904770",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "c3eb70c7-d7cd-42d1-8d21-c66f449933a4",
+   "nombre": "Pablo",
+   "apellido": "Troconiz",
+   "telefono": "+1 6899865023",
+   "rol": "[\"Vendedor\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "16474a72-479f-4369-bc5a-2c87d464cac5",
+   "nombre": "Lester",
+   "apellido": "Carrasquero",
+   "telefono": "+1 3054909838",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "c91ddd8a-e517-4eac-a3c5-e4a99dafce71",
+   "nombre": "Andres",
+   "apellido": "Belandria",
+   "telefono": "+1 ",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Water"
+   ],
+   "is_suspended": false
+  },
+  {
+   "id": "e7dd71f9-dc72-41ef-a24c-643815f5d98a",
+   "nombre": "Oscar",
+   "apellido": "Chiquito",
+   "telefono": "+1 ",
+   "rol": "Vendedor",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": true
+  },
+  {
+   "id": "6db08c5d-802a-43c9-b0e9-fd893d1db90e",
+   "nombre": "Yheimy",
+   "apellido": "Rodriguez",
+   "telefono": "+1 ",
+   "rol": "Vendedor",
+   "unidades": [],
+   "is_suspended": false
+  },
+  {
+   "id": "e3788e93-af62-4729-894d-d8761b8f5de1",
+   "nombre": "Nicolas",
+   "apellido": "Garcia",
+   "telefono": "+1 9293029788",
+   "rol": "[\"Manager\"]",
+   "unidades": [
+    "Renew Home",
+    "Renew Solar",
+    "Renew Water"
+   ],
+   "is_suspended": false
+  }
+ ]
+}

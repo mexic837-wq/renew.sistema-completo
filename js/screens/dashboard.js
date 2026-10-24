@@ -1626,8 +1626,42 @@ async function initLeaderboardChart(user) {
   const isStrictTecnico = isTecnico && !isVendedor;
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
 
-  const projectCountByUserId = {};
+  // ── Month Filter State ──────────────────────────────────────────
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth() + 1; // 1-12
+  const curMonthKey = `${curYear}-${String(curMonth).padStart(2, '0')}`;
 
+  if (window.lbMonthFilter === undefined) {
+    window.lbMonthFilter = curMonthKey; // Default to current month
+  }
+
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const parseSafeDate = (raw) => {
+    if (!raw) return null;
+    let str = String(raw).trim();
+    if (/^\d{4}\s\d{2}\s\d{2}/.test(str)) str = str.replace(/\s/g, '-');
+    if (str.includes(' ') && !str.includes('T')) str = str.replace(' ', 'T');
+    if (!str.includes('T')) str += 'T12:00:00';
+    let d = new Date(str);
+    if (isNaN(d.getTime())) {
+      const parts = String(raw).split(/[\/\-]/);
+      if (parts.length === 3) {
+        if (parseInt(parts[0]) > 12) {
+          d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`);
+        } else {
+          d = new Date(`${parts[2]}-${parts[0]}-${parts[1]}T12:00:00`);
+        }
+      }
+    }
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const projectCountByUserId = {};
   window.lbLocationFilter = 'General';
 
   allProjects.forEach(p => {
@@ -1642,6 +1676,17 @@ async function initLeaderboardChart(user) {
     
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
     if (cli.macro_estado === 'Declinado' || p.estado === 'Declinado') return;
+
+    // ── Month Filter Check ───────────────────────────────────────
+    if (window.lbMonthFilter && window.lbMonthFilter !== 'all') {
+      const pDateRaw = p.fecha_cierre || p.fecha || p.created_at || cli.fecha_registro || cli.fecha || cli.created_at;
+      const pDate = parseSafeDate(pDateRaw);
+      if (!pDate) return; // Exclude records without valid dates from month filter
+      const pYear = pDate.getFullYear();
+      const pMonth = pDate.getMonth() + 1;
+      const pKey = `${pYear}-${String(pMonth).padStart(2, '0')}`;
+      if (pKey !== window.lbMonthFilter) return;
+    }
 
     if (isStrictTecnico) {
       const isFinished = isProjectFinished(p, db);
@@ -1715,13 +1760,50 @@ async function initLeaderboardChart(user) {
   leaderboardData.sort((a, b) => b.sales - a.sales);
   const maxSales = leaderboardData.length > 0 ? leaderboardData[0].sales : 1;
 
+  // ── Month Filter Helper & Options ─────────────────────────
+  window.setLeaderboardMonth = (val) => {
+    window.lbMonthFilter = val;
+    initLeaderboardChart(getCurrentUser());
+  };
+
+  const monthOptions = [];
+  for (let m = 1; m <= 12; m++) {
+    const key = `${curYear}-${String(m).padStart(2, '0')}`;
+    const isCurrent = key === curMonthKey;
+    const label = `${monthNames[m - 1]} ${curYear}${isCurrent ? ' (Mes Actual)' : ''}`;
+    monthOptions.push(`<option value="${key}" ${window.lbMonthFilter === key ? 'selected' : ''}>${label}</option>`);
+  }
+  monthOptions.push(`<option value="all" ${window.lbMonthFilter === 'all' ? 'selected' : ''}>Histórico Completo</option>`);
+
+  let subLabel = `${activeUnit} · Histórico Completo`;
+  if (window.lbMonthFilter && window.lbMonthFilter !== 'all') {
+    const [y, m] = window.lbMonthFilter.split('-').map(Number);
+    subLabel = `${activeUnit} · ${monthNames[m - 1]} ${y}`;
+  }
+
   // Empty state
   if (leaderboardData.length === 0) {
     tab.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;">
+      <div style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
+          <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isStrictTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Mes:</label>
+            <div style="position:relative;">
+              <select onchange="window.setLeaderboardMonth(this.value)" style="background:var(--surface-alt); color:var(--text-primary); border:1px solid var(--border); padding:6px 28px 6px 12px; border-radius:10px; font-size:0.8rem; font-weight:700; cursor:pointer; outline:none; appearance:none; transition:all 0.2s;">
+                ${monthOptions.join('')}
+              </select>
+              <i class="fa-solid fa-chevron-down" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; color:var(--text-muted); pointer-events:none;"></i>
+            </div>
+          </div>
+        </div>
+        <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${subLabel}</p>
+      </div>
+      <div style="text-align:center;padding:40px 20px; background:var(--surface-alt); border-radius:20px; border:1px solid var(--border);">
         <div style="font-size:3rem;margin-bottom:16px;opacity:.3;">\uD83D\uDCEB</div>
         <h3 style="color:var(--text-primary);font-size:1.1rem;margin:0 0 6px;">${t('lb_title')}</h3>
-        <p style="color:var(--text-muted);font-size:.85rem;margin:0;">${t('lb_no_sales')}</p>
+        <p style="color:var(--text-muted);font-size:.85rem;margin:0 0 16px;">No hay registros de ventas para el mes seleccionado (${subLabel}).</p>
+        <button onclick="window.setLeaderboardMonth('${curMonthKey}')" style="background:var(--primary); color:#0f172a; border:none; padding:8px 16px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer;">Ver Mes Actual</button>
       </div>`;
     return;
   }
@@ -1812,10 +1894,21 @@ async function initLeaderboardChart(user) {
 
   tab.innerHTML = `
     <div style="margin-bottom:20px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
         <h2 style="font-size:1.2rem;font-weight:900;color:var(--text-primary);margin:0;">\uD83C\uDFC6 ${isStrictTecnico ? 'Tabla de Posiciones' : t('lb_title')}</h2>
+        
+        <!-- Month Filter Selector -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Mes:</label>
+          <div style="position:relative;">
+            <select onchange="window.setLeaderboardMonth(this.value)" style="background:var(--surface-alt); color:var(--text-primary); border:1px solid var(--border); padding:6px 28px 6px 12px; border-radius:10px; font-size:0.8rem; font-weight:700; cursor:pointer; outline:none; appearance:none; transition:all 0.2s;">
+              ${monthOptions.join('')}
+            </select>
+            <i class="fa-solid fa-chevron-down" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; color:var(--text-muted); pointer-events:none;"></i>
+          </div>
+        </div>
       </div>
-      <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${activeUnit} \u00B7 Desde Junio 2026</p>
+      <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin:0;">${subLabel}</p>
     </div>
     <div style="background:linear-gradient(180deg, rgba(0,223,191,0.08) 0%, var(--surface-alt) 60%);border-radius:20px;padding:24px 12px 0;margin-bottom:16px;border:1px solid rgba(0,223,191,0.1);">
       <p style="text-align:center;font-size:.75rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin:0 0 18px;">${isStrictTecnico ? 'MEJORES TÉCNICOS' : (isCallCenter ? 'MEJORES OPERADORES' : t('lb_top_performers'))}</p>

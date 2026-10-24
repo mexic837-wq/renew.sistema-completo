@@ -1,0 +1,6 @@
+{
+  "name": "agente-renew-water",
+  "private": true,
+  "scripts": { "start": "node scripts/receptor.js" },
+  "dependencies": { "@supabase/supabase-js": "^2.45.0" }
+}

@@ -15,7 +15,7 @@ window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
 import { t, getLang, setLang } from './i18n.js';
-import { renderRendimientoGlobal } from './screens/rendimiento-global.js';
+import { renderRendimientoGlobal } from './screens/rendimiento-global.js?v=2';
 import { renderHRHub } from './screens/hrhub.js';
 import { renderCallCenterAdmin } from './screens/callCenterAdmin.js';
 import { openChat } from './components/internal-chat.js';
