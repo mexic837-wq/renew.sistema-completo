@@ -151,6 +151,7 @@ export async function renderCallCenter() {
 function renderFase1(screen, user) {
   _ccState.fase    = 1;
   _ccState.activeId = null;
+  ensureCardStyles();
   const pendientes = _ccState.prospectos;
 
   const fecha  = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -158,7 +159,7 @@ function renderFase1(screen, user) {
 
   const cards = pendientes.length > 0
     ? pendientes.map((p, i) => buildFase1Card(p, i, puedeBorrarLeads(user))).join('')
-    : `<div style="text-align:center;padding:60px 24px;opacity:0.5;">
+    : `<div style="grid-column:1/-1;text-align:center;padding:60px 24px;opacity:0.5;">
         <div style="font-size:3rem;margin-bottom:12px;"><i class="fa-solid fa-envelope-open"></i></div>
         <p style="font-size:14px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.1em;">Sin prospectos pendientes</p>
         <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">Los leads del scraper aparecerán aquí automáticamente</p>
@@ -188,7 +189,7 @@ function renderFase1(screen, user) {
       </div>
 
       <!-- CARDS -->
-      <div id="cc-phase1-list" style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+      <div id="cc-phase1-list" class="cc-grid">
         ${cards}
       </div>
     </div>
@@ -226,69 +227,104 @@ function renderFase1(screen, user) {
   }, 15000);
 }
 
-function buildFase1Card(p, index, puedeBorrar) {
-  const nombre  = p.nombre    || 'Nombre no disponible';
-  const tel     = p.telefono  || 'Sin número';
-  const dir     = p.direccion || 'Sin dirección';
-  const fuente  = p.fuente    || 'scraper';
-  const pipeline = p.pipeline || '';
-  const hora    = p.fecha_creacion
-    ? new Date(p.fecha_creacion).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    : '';
+const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  const org = origenDelLead(p);
-  const fuenteBadge = `<span title="${org.detalle ? org.detalle.replace(/"/g, '&quot;') : org.label}" style="display:inline-flex;align-items:center;gap:5px;background:${org.color}14;color:${org.color};border:1px solid ${org.color}40;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;padding:3px 9px;border-radius:6px;margin-bottom:6px;margin-right:6px;"><i class="fa-solid ${org.icon}"></i> Origen: ${org.label}</span>`;
-  const origenBadge = org.detalle && org.detalle.toLowerCase() !== org.label.toLowerCase() ? `<span style="display:inline-block;background:rgba(245,158,11,0.08);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;padding:3px 8px;border-radius:6px;margin-bottom:6px;margin-right:6px;">${org.detalle}</span>` : '';
-  const pipBadge   = pipeline ? `<span style="display:inline-block;background:rgba(139,92,246,0.1);color:#8b5cf6;border:1px solid rgba(139,92,246,0.2);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;padding:3px 8px;border-radius:6px;margin-bottom:6px;">${pipeline}</span>` : '';
-  const btnBorrar  = puedeBorrar
-    ? `<button class="btn-p1-borrar" data-id="${p.id}" title="Borrar lead"
-               style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;width:28px;height:26px;color:#ef4444;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-         <i class="fa-solid fa-trash-can"></i>
-       </button>`
-    : '';
+// Fecha y hora de entrada del lead + tiempo relativo
+function fechaEntrada(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  const fecha = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  const hora  = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const min   = Math.floor((Date.now() - d.getTime()) / 60000);
+  const rel   = min < 1 ? 'justo ahora'
+    : min < 60   ? `hace ${min} min`
+    : min < 1440 ? `hace ${Math.floor(min / 60)} h`
+    : `hace ${Math.floor(min / 1440)} d`;
+  return { texto: `${fecha} · ${hora}`, rel };
+}
+
+// Estilos de las tarjetas (una sola vez)
+function ensureCardStyles() {
+  if (document.getElementById('cc-card-styles')) return;
+  const st = document.createElement('style');
+  st.id = 'cc-card-styles';
+  st.textContent = `
+    .cc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px; padding:16px; }
+    .cc-p1-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; display:flex; flex-direction:column; gap:14px; transition:border-color .2s, box-shadow .2s, transform .2s; animation:fadeInUp .3s ease both; }
+    .cc-p1-card:hover { border-color:rgba(0,245,212,0.45); box-shadow:0 8px 28px rgba(15,23,42,0.07); transform:translateY(-1px); }
+    .cc-head { display:flex; align-items:flex-start; gap:12px; }
+    .cc-avatar { width:42px; height:42px; flex-shrink:0; border-radius:12px; background:rgba(0,245,212,0.12); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; letter-spacing:.02em; }
+    .cc-name { font-size:16px; font-weight:800; color:var(--text); margin:0; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cc-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .cc-chip { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; background:var(--bg); color:var(--text-secondary); border:1px solid var(--border); }
+    .cc-num { font-size:10px; font-weight:800; color:var(--text-secondary); opacity:.6; }
+    .cc-trash { width:30px; height:30px; border-radius:9px; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; transition:background .2s, color .2s; }
+    .cc-trash:hover { background:rgba(239,68,68,0.1); color:#ef4444; }
+    .cc-info { display:flex; flex-direction:column; gap:8px; }
+    .cc-row { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text); min-width:0; }
+    .cc-row i { width:14px; text-align:center; color:var(--text-secondary); font-size:12px; flex-shrink:0; }
+    .cc-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cc-row.cc-tel { font-weight:800; font-size:15px; }
+    .cc-row.cc-muted { color:var(--text-secondary); font-size:12px; }
+    .cc-rel { margin-left:auto; flex-shrink:0; font-size:10px; font-weight:700; color:var(--primary); background:rgba(0,245,212,0.1); padding:2px 8px; border-radius:999px; }
+    .cc-foot { display:flex; align-items:center; gap:6px; padding-top:12px; border-top:1px solid var(--border); }
+    .cc-ghost { height:36px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .2s; position:relative; }
+    .cc-ghost:hover { border-color:var(--primary); color:var(--primary); }
+    .cc-dot { width:6px; height:6px; border-radius:50%; background:#ef4444; position:absolute; top:6px; right:6px; }
+    .cc-accept { margin-left:auto; height:36px; padding:0 18px; border-radius:10px; border:none; background:var(--primary); color:#000; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:transform .15s, box-shadow .2s; }
+    .cc-accept:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,245,212,0.35); }
+    @media (max-width: 420px) { .cc-ghost .cc-lbl { display:none; } }
+  `;
+  document.head.appendChild(st);
+}
+
+function buildFase1Card(p, index, puedeBorrar) {
+  const nombre   = p.nombre    || 'Nombre no disponible';
+  const tel      = p.telefono  || 'Sin número';
+  const dir      = p.direccion || 'Sin dirección';
+  const pipeline = p.pipeline  || '';
+  const entrada  = fechaEntrada(p.fecha_creacion);
+  const org      = origenDelLead(p);
+  const iniciales = nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+  const detalle  = org.detalle && org.detalle.toLowerCase() !== org.label.toLowerCase() ? org.detalle : '';
 
   return `
     <div class="cc-p1-card" data-id="${p.id}" data-nombre="${encodeURIComponent(nombre)}" data-tel="${encodeURIComponent(tel)}" data-dir="${encodeURIComponent(dir)}"
-         style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px;position:relative;overflow:hidden;animation:fadeInUp 0.3s ease ${index * 0.06}s both;">
+         style="animation-delay:${Math.min(index, 12) * 0.04}s;">
 
-      <div style="position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:6px;">
-        ${btnBorrar}
-        <div style="background:rgba(0,245,212,0.08);border:1px solid rgba(0,245,212,0.18);border-radius:8px;padding:3px 10px;">
-          <span style="font-size:9px;font-weight:900;color:var(--primary);">#${String(index+1).padStart(2,'0')}</span>
+      <div class="cc-head">
+        <div class="cc-avatar">${escHtml(iniciales)}</div>
+        <div style="flex:1;min-width:0;">
+          <h3 class="cc-name" title="${escHtml(nombre)}">${escHtml(nombre)}</h3>
+          <div class="cc-chips">
+            <span class="cc-chip" style="color:${org.color};border-color:${org.color}33;background:${org.color}0f;" title="${escHtml(org.detalle || org.label)}">
+              <i class="fa-solid ${org.icon}"></i> ${escHtml(org.label)}${detalle ? ` · ${escHtml(detalle)}` : ''}
+            </span>
+            ${pipeline ? `<span class="cc-chip"><i class="fa-solid fa-layer-group"></i> ${escHtml(pipeline)}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span class="cc-num">#${String(index + 1).padStart(2, '0')}</span>
+          ${puedeBorrar ? `<button class="btn-p1-borrar cc-trash" data-id="${p.id}" title="Borrar lead"><i class="fa-solid fa-trash-can"></i></button>` : ''}
         </div>
       </div>
 
-      <div style="margin-bottom:6px;">${fuenteBadge}${origenBadge}${pipBadge}</div>
-      <h3 style="font-size:19px;font-weight:900;color:var(--text);margin:0 0 14px;line-height:1.2;">${nombre}</h3>
-
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
-          <span style="font-size:15px;"><i class="fa-solid fa-phone"></i></span>
-          <div style="flex:1;">
-            <p style="font-size:9px;color:var(--text-secondary);font-weight:700;text-transform:uppercase;margin:0;">Teléfono</p>
-            <p style="font-size:14px;font-weight:800;color:var(--text);margin:0;">${tel}</p>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-              <button class="btn-cc-call" data-tel="${tel}" style="background:rgba(0,245,212,0.1);color:var(--primary);border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-mobile-screen"></i> Llamar</button>
-              <button class="btn-cc-historial" data-id="${p.id}" style="background:rgba(245,158,11,0.1);color:#f59e0b;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-headphones"></i> Historial</button>
-              <button class="btn-cc-notas" data-id="${p.id}" data-notas="${encodeURIComponent(p.notas_pre || '')}" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-file-pen"></i> Notas${p.notas_pre ? ' <i class="fa-solid fa-circle text-[6px] text-red-500"></i>' : ''}</button>
-          </div>
+      <div class="cc-info">
+        <div class="cc-row cc-tel"><i class="fa-solid fa-phone"></i><span>${escHtml(tel)}</span></div>
+        <div class="cc-row" title="${escHtml(dir)}"><i class="fa-solid fa-location-dot"></i><span>${escHtml(dir)}</span></div>
+        <div class="cc-row cc-muted">
+          <i class="fa-regular fa-clock"></i>
+          <span>${entrada ? `Entró el ${entrada.texto}` : 'Fecha de entrada no registrada'}</span>
+          ${entrada ? `<span class="cc-rel">${entrada.rel}</span>` : ''}
         </div>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
-          <span style="font-size:15px;"><i class="fa-solid fa-location-dot"></i></span>
-          <div style="overflow:hidden;">
-            <p style="font-size:9px;color:var(--text-secondary);font-weight:700;text-transform:uppercase;margin:0;">Dirección</p>
-            <p style="font-size:12px;font-weight:700;color:var(--text);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${dir}</p>
-          </div>
-        </div>
-        ${hora ? `<p style="font-size:9px;color:var(--text-secondary);padding:0 2px;margin:0;">Recibido a las ${hora}</p>` : ''}
       </div>
 
-      <div>
-        <button class="btn-p1-aceptar" data-id="${p.id}"
-                style="width:100%;padding:14px;background:var(--primary);border:none;border-radius:14px;color:black;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(0,245,212,0.3);">
-          <i class="fa-solid fa-check"></i> Aceptar
-        </button>
+      <div class="cc-foot">
+        <button class="btn-cc-call cc-ghost" data-tel="${escHtml(tel)}" title="Llamar"><i class="fa-solid fa-phone"></i><span class="cc-lbl">Llamar</span></button>
+        <button class="btn-cc-historial cc-ghost" data-id="${p.id}" title="Historial de llamadas"><i class="fa-solid fa-clock-rotate-left"></i><span class="cc-lbl">Historial</span></button>
+        <button class="btn-cc-notas cc-ghost" data-id="${p.id}" data-notas="${encodeURIComponent(p.notas_pre || '')}" title="Notas"><i class="fa-regular fa-note-sticky"></i><span class="cc-lbl">Notas</span>${p.notas_pre ? '<span class="cc-dot"></span>' : ''}</button>
+        <button class="btn-p1-aceptar cc-accept" data-id="${p.id}"><i class="fa-solid fa-check"></i> Aceptar</button>
       </div>
     </div>
   `;
