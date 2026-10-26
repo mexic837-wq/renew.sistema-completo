@@ -825,3 +825,7 @@ input[type="date"] { cursor: pointer; }
   color: var(--text-muted);
   margin-top: 2px;
 }
+
+
+/* Atajos entre plantillas ocultos: cada plantilla se abre solo desde Plantillas */
+.tab-nav { display: none !important; }
