@@ -657,7 +657,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         gradient: 'linear-gradient(90deg,#2563eb,#0d9488)',
         iconBg: 'rgba(37,99,235,0.12)', iconColor: '#2563eb',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
-        action: () => window.showPlantillasModal(), delay: '0s'
+        action: () => window.showPlantillasModal(), delay: '0s', screen: 'plantillas'
       } : null,
       canInventory ? {
         name: 'Inventario Real', tag: null,
@@ -708,7 +708,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
-        action: () => window.showPlantillasModal(), delay: '0s'
+        action: () => window.showPlantillasModal(), delay: '0s', screen: 'plantillas'
       } : null,
       canInventory ? {
         name: 'Inventario Real', tag: null,

@@ -701,7 +701,13 @@ export function updateNavHighlight(activeScreen) {
         }
     }
 
-    const screenMatch = item.dataset.screen === activeScreen;
+    // Sub-pantallas resaltan su sección padre en el menú
+    const NAV_PARENT = {
+      'credit-app': 'plantillas', 'work-order': 'plantillas', 'contract-app': 'plantillas',
+      'plantilla-pozo': 'plantillas', 'confirmacion-instalacion': 'plantillas',
+      'detail': 'clients', 'new-client': 'clients'
+    };
+    const screenMatch = !!sc && (sc === activeScreen || sc === NAV_PARENT[activeScreen]);
     if (screenMatch) {
       item.classList.add('active');
     } else {
