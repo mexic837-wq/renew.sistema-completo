@@ -125,15 +125,13 @@ export function renderPlantillas() {
     </style>
 
     <!-- Header -->
-    <div class="plant-header">
-        <button class="plant-back-btn" onclick="window.appNavigate('dashboard')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-            </svg>
+    <div class="tpl-header">
+        <button class="tpl-back" onclick="window.appNavigate('dashboard')" title="Volver al inicio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
         </button>
         <div>
-            <h2 style="margin:0; font-size:1rem; font-weight:900; color:var(--text-primary);">Plantillas</h2>
-            <p style="margin:0; font-size:0.65rem; color:var(--primary,#00f5d4); font-weight:700; text-transform:uppercase; letter-spacing:1px;">Documentos oficiales</p>
+            <h2 class="tpl-title">Plantillas</h2>
+            <p class="tpl-sub">Documentos oficiales</p>
         </div>
     </div>
 

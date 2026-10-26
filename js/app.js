@@ -594,7 +594,7 @@ export function navigate(screen, param = null) {
   // Update Nav Highlight & Visibility
   // Toggle Navigation (Sidebar/Bottom-Nav)
   const bNav = document.getElementById('bottom-nav');
-  const isNavHidden = ['login', 'credit-app', 'work-order', 'contract-app'].includes(screen);
+  const isNavHidden = ['login'].includes(screen);
   
   if (isNavHidden) {
     document.body.classList.add('no-nav');
@@ -832,7 +832,7 @@ function handleHashChange() {
     // Toggle Bottom Nav & Highlight
     // Toggle Navigation (Sidebar/Bottom-Nav)
     const bNav = document.getElementById('bottom-nav');
-    const isNavHidden = ['login', 'hub', 'credit-app', 'work-order', 'contract-app'].includes(screen);
+    const isNavHidden = ['login', 'hub'].includes(screen);
     
     if (isNavHidden) {
       document.body.classList.add('no-nav');

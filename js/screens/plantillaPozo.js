@@ -11,9 +11,6 @@ export function renderPlantillaPozo(proyIdParam = null) {
 
   screen.innerHTML = `
   <style>
-    .ci-header { position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px; }
-    .ci-back { width:38px;height:38px;border-radius:50%;border:none;background:var(--surface-alt);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.2s; }
-    .ci-back:hover { background:rgba(14,165,233,.12);color:#0ea5e9; }
     .ci-body { padding:20px;display:flex;flex-direction:column;gap:20px;padding-bottom:160px; }
     .ci-section { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:visible; }
     .ci-section-hdr { padding:16px 20px;display:flex;align-items:center;gap:12px; }
@@ -29,13 +26,13 @@ export function renderPlantillaPozo(proyIdParam = null) {
     @media (max-width:360px) { .ci-grid { grid-template-columns:1fr; } }
   </style>
 
-  <div class="ci-header">
-    <button class="ci-back" onclick="window.appNavigate('plantillas')">
+  <div class="tpl-header">
+    <button class="tpl-back" onclick="window.appNavigate('plantillas')" title="Volver a Plantillas">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     </button>
     <div>
-      <h2 style="margin:0;font-size:1rem;font-weight:900;color:var(--text-primary);">Especificaciones de Pozo</h2>
-      <p style="margin:0;font-size:.65rem;color:#0ea5e9;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Renew Water</p>
+      <h2 class="tpl-title">Especificaciones de Pozo</h2>
+      <p class="tpl-sub">Renew Water</p>
     </div>
   </div>
 

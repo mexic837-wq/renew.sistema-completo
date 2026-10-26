@@ -2271,3 +2271,15 @@ body.is-tecnico #nav-btn-nuevo-cliente,
 body.is-callcenter #nav-btn-nuevo-cliente {
   display: none !important;
 }
+
+
+/* ── Plantillas: cabecera unificada (todas las plantillas comparten este diseño) ── */
+.tpl-header { position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:12px; padding:14px 20px 12px; background:var(--surface,#fff); border-bottom:1px solid var(--border,#e5e7eb); flex-shrink:0; }
+.tpl-back { width:38px; height:38px; border-radius:50%; border:none; background:var(--surface-alt,#f1f5f9); color:var(--text-secondary,#64748b); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all .2s; }
+.tpl-back:hover { background:rgba(0,245,212,.12); color:var(--primary,#00f5d4); }
+.tpl-title { margin:0; font-size:1rem; font-weight:900; color:var(--text-primary,#0f172a); letter-spacing:-0.3px; }
+.tpl-sub { margin:0; font-size:.65rem; font-weight:700; color:var(--primary,#00f5d4); text-transform:uppercase; letter-spacing:1px; }
+
+/* Plantillas en iframe: ahora conviven con el menú lateral como el resto */
+.iframe-screen.active { position:relative !important; inset:auto !important; z-index:1 !important; background:var(--bg,#f8fafc) !important; height:100dvh !important; }
+@media (max-width: 767px) { .iframe-screen.active { height:calc(100dvh - 64px) !important; } }
