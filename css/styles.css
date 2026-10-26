@@ -2283,3 +2283,33 @@ body.is-callcenter #nav-btn-nuevo-cliente {
 /* Plantillas en iframe: ahora conviven con el menú lateral como el resto */
 .iframe-screen.active { position:relative !important; inset:auto !important; z-index:1 !important; background:var(--bg,#f8fafc) !important; height:100dvh !important; }
 @media (max-width: 767px) { .iframe-screen.active { height:calc(100dvh - 64px) !important; } }
+
+
+/* ── Plantillas nativas (Confirmación de Instalación / Pozo): mismo diseño que el portal de formularios ── */
+.tpl-banner { background:linear-gradient(135deg,#0a4a6e 0%,#0e7fab 55%,#00c4a7 100%); padding:1rem 1.25rem; box-shadow:0 2px 20px rgba(0,0,0,.1); }
+.tpl-banner-inner { max-width:960px; margin:0 auto; display:flex; align-items:center; gap:1rem; }
+.tpl-banner img { height:48px; width:auto; max-width:150px; object-fit:contain; flex-shrink:0; display:block; }
+.tpl-banner h1 { margin:0; font-family:'Outfit',sans-serif; font-size:1.3rem; font-weight:800; color:#fff; letter-spacing:.3px; line-height:1.2; }
+.tpl-banner p { margin:2px 0 0; font-size:.78rem; font-weight:600; color:rgba(255,255,255,.85); letter-spacing:.8px; text-transform:uppercase; }
+
+#screen-confirmacion-instalacion, #screen-plantilla-pozo { background:var(--bg,#f8fafc); }
+#screen-confirmacion-instalacion .ci-body, #screen-plantilla-pozo .ci-body { max-width:960px; width:100%; margin:0 auto; box-sizing:border-box; padding:1.25rem 1rem 1.5rem; gap:1.5rem; }
+#screen-confirmacion-instalacion .ci-section, #screen-plantilla-pozo .ci-section { background:#fff; border:1px solid rgba(226,232,240,.8); border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,.04); overflow:hidden; transition:box-shadow .25s; }
+#screen-confirmacion-instalacion .ci-section:hover, #screen-plantilla-pozo .ci-section:hover { box-shadow:0 8px 30px rgba(14,127,171,.08); }
+#screen-confirmacion-instalacion .ci-section-hdr, #screen-plantilla-pozo .ci-section-hdr { padding:1rem 1.25rem; gap:.75rem; background:linear-gradient(135deg,#0a4a6e 0%,#0e7fab 100%); }
+#screen-confirmacion-instalacion .ci-body > .ci-section:nth-child(3n+2) .ci-section-hdr, #screen-plantilla-pozo .ci-body > .ci-section:nth-child(3n+2) .ci-section-hdr { background:linear-gradient(135deg,#0e7fab 0%,#00c4a7 100%); }
+#screen-confirmacion-instalacion .ci-body > .ci-section:nth-child(3n) .ci-section-hdr, #screen-plantilla-pozo .ci-body > .ci-section:nth-child(3n) .ci-section-hdr { background:linear-gradient(135deg,#06304a 0%,#0e5f84 100%); }
+#screen-confirmacion-instalacion .ci-section-icon, #screen-plantilla-pozo .ci-section-icon { width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,.2) !important; color:#fff; font-size:1.1rem; }
+#screen-confirmacion-instalacion .ci-section-hdr > div:last-child > div:first-child, #screen-plantilla-pozo .ci-section-hdr > div:last-child > div:first-child { font-family:'Outfit',sans-serif; font-size:1rem !important; font-weight:700 !important; color:#fff !important; line-height:1.3; }
+#screen-confirmacion-instalacion .ci-section-hdr > div:last-child > div:nth-child(2), #screen-plantilla-pozo .ci-section-hdr > div:last-child > div:nth-child(2) { font-size:.75rem !important; color:rgba(255,255,255,.75) !important; font-weight:500 !important; }
+#screen-confirmacion-instalacion .ci-section-body, #screen-plantilla-pozo .ci-section-body { padding:1.25rem; }
+#screen-confirmacion-instalacion .ci-label, #screen-plantilla-pozo .ci-label { font-size:.72rem; font-weight:600; color:#64748b; letter-spacing:.5px; margin-bottom:4px; }
+#screen-confirmacion-instalacion .ci-input, #screen-plantilla-pozo .ci-input { min-height:52px; padding:14px 16px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; color:#0f172a; font-family:'Inter',sans-serif; font-size:16px; }
+#screen-confirmacion-instalacion .ci-input:focus, #screen-plantilla-pozo .ci-input:focus { border-color:#00c4a7; background:#fff; box-shadow:0 0 0 3px rgba(0,196,167,.15); }
+#screen-confirmacion-instalacion .ci-checkbox.checked, #screen-plantilla-pozo .ci-checkbox.checked { background:#00c4a7; border-color:#00c4a7; }
+#screen-confirmacion-instalacion .ci-submit, #screen-plantilla-pozo .ci-submit { position:sticky; bottom:0; left:auto; right:auto; width:100%; max-width:960px; margin:0 auto; box-sizing:border-box; padding:1.25rem; background:#fff; border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.08); border-top:1px solid rgba(226,232,240,.8); z-index:80; }
+#screen-confirmacion-instalacion .ci-btn-submit, #screen-plantilla-pozo .ci-btn-submit { min-height:52px; padding:0 2rem; border-radius:12px; background:linear-gradient(135deg,#0e7fab 0%,#00c4a7 100%); font-family:'Outfit',sans-serif; font-weight:700; letter-spacing:.3px; box-shadow:0 4px 14px rgba(14,127,171,.3); transition:transform .25s, box-shadow .25s; }
+#screen-confirmacion-instalacion .ci-btn-submit:hover:not(:disabled), #screen-plantilla-pozo .ci-btn-submit:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 24px rgba(14,127,171,.4); }
+@media (max-width: 767px) {
+  #screen-confirmacion-instalacion .ci-submit, #screen-plantilla-pozo .ci-submit { bottom:64px; }
+}

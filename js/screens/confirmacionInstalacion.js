@@ -13,7 +13,7 @@ export function renderConfirmacionInstalacion() {
 
   screen.innerHTML = `
   <style>
-    .ci-body { padding:20px;display:flex;flex-direction:column;gap:20px;padding-bottom:160px; }
+    .ci-body { padding:20px;display:flex;flex-direction:column;gap:20px;padding-bottom:20px; }
     .ci-section { background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden; }
     .ci-section-hdr { padding:16px 20px;display:flex;align-items:center;gap:12px; }
     .ci-section-icon { width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
@@ -52,6 +52,16 @@ export function renderConfirmacionInstalacion() {
     <div>
       <h2 class="tpl-title">Confirmación de Instalación</h2>
       <p class="tpl-sub">Renew Water</p>
+    </div>
+  </div>
+
+  <div class="tpl-banner">
+    <div class="tpl-banner-inner">
+      <img src="FORMULARIO-RENEW-WATER-main/assets/images/logo.png" alt="Renew Water">
+      <div>
+        <h1>RENEW WATER</h1>
+        <p>Portal Comercial &amp; Contratos</p>
+      </div>
     </div>
   </div>
 
