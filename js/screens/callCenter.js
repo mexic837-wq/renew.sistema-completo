@@ -197,6 +197,7 @@ function renderFase1(screen, user) {
 
   // EVENTS
   screen.onclick = (e) => handleFase1Click(screen, user, e);
+  if (screen._fase2Handler) { screen.removeEventListener('click', screen._fase2Handler); screen._fase2Handler = null; }
   if (screen._ccTickInterval) { clearInterval(screen._ccTickInterval); screen._ccTickInterval = null; }
 
   // ── AUTO-POLLING: Refresca prospectos cada 15s ──────────
@@ -244,6 +245,69 @@ function fechaEntrada(iso) {
   return { texto: `${fecha} · ${hora}`, rel };
 }
 
+// Modal de notas del lead. onSave(notas) debe lanzar error si falla.
+function abrirModalNotas(nombre, notas, onSave) {
+  ensureCardStyles();
+  const MAX = 1000;
+  const wrap = document.createElement('div');
+  wrap.id = 'modal-cc-pre-notas';
+  wrap.className = 'ccn-overlay';
+  wrap.innerHTML = `
+    <div class="ccn-card" role="dialog" aria-modal="true" aria-labelledby="ccn-title">
+      <div class="ccn-head">
+        <div class="ccn-icon"><i class="fa-regular fa-note-sticky"></i></div>
+        <div style="flex:1;min-width:0;">
+          <h3 id="ccn-title" class="ccn-title">Notas del lead</h3>
+          <p class="ccn-sub">${escHtml(nombre)}</p>
+        </div>
+        <button type="button" class="ccn-x" data-ccn="close" title="Cerrar (Esc)"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <textarea class="ccn-text" maxlength="${MAX}" placeholder="Ej. No contestó, llamar mañana a las 10am...">${escHtml(notas)}</textarea>
+      <div class="ccn-meta"><span>Ctrl + Enter para guardar</span><span class="ccn-count"></span></div>
+      <div class="ccn-actions">
+        <button type="button" class="ccn-btn ccn-cancel" data-ccn="close">Cancelar</button>
+        <button type="button" class="ccn-btn ccn-save" data-ccn="save"><i class="fa-solid fa-check"></i> Guardar notas</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  const text  = wrap.querySelector('.ccn-text');
+  const count = wrap.querySelector('.ccn-count');
+  const save  = wrap.querySelector('.ccn-save');
+  const upd   = () => { count.textContent = `${text.value.length}/${MAX}`; };
+  upd();
+  requestAnimationFrame(() => { wrap.classList.add('ccn-open'); text.focus(); text.setSelectionRange(text.value.length, text.value.length); });
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    wrap.classList.remove('ccn-open');
+    setTimeout(() => wrap.remove(), 200);
+  };
+  const doSave = async () => {
+    if (save.disabled) return;
+    save.disabled = true;
+    save.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...';
+    try {
+      await onSave(text.value.trim());
+      close();
+    } catch (err) {
+      showToast('Error al guardar notas', 'error');
+      save.disabled = false;
+      save.innerHTML = '<i class="fa-solid fa-check"></i> Guardar notas';
+    }
+  };
+  const onKey = (ev) => {
+    if (ev.key === 'Escape') close();
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) doSave();
+  };
+  document.addEventListener('keydown', onKey);
+  text.addEventListener('input', upd);
+  wrap.addEventListener('click', (ev) => {
+    if (ev.target === wrap || ev.target.closest('[data-ccn="close"]')) close();
+    else if (ev.target.closest('[data-ccn="save"]')) doSave();
+  });
+}
+
 // Estilos de las tarjetas (una sola vez)
 function ensureCardStyles() {
   if (document.getElementById('cc-card-styles')) return;
@@ -275,6 +339,26 @@ function ensureCardStyles() {
     .cc-accept { margin-left:auto; height:38px; padding:0 28px; border-radius:10px; border:none; background:var(--primary); color:#000; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:transform .15s, box-shadow .2s; }
     .cc-accept:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,245,212,0.35); }
     @media (max-width: 420px) { .cc-ghost .cc-lbl { display:none; } }
+    .ccn-overlay { position:fixed; inset:0; z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,0.45); backdrop-filter:blur(6px); opacity:0; transition:opacity .2s; }
+    .ccn-overlay.ccn-open { opacity:1; }
+    .ccn-card { width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:22px; box-shadow:0 24px 60px rgba(15,23,42,0.25); transform:translateY(12px) scale(.98); transition:transform .2s; }
+    .ccn-open .ccn-card { transform:none; }
+    .ccn-head { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .ccn-icon { width:42px; height:42px; flex-shrink:0; border-radius:12px; background:rgba(0,245,212,0.12); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:17px; }
+    .ccn-title { margin:0; font-size:16px; font-weight:800; color:var(--text); }
+    .ccn-sub { margin:2px 0 0; font-size:12px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ccn-x { width:34px; height:34px; flex-shrink:0; border-radius:10px; border:none; background:var(--bg); color:var(--text-secondary); cursor:pointer; font-size:14px; transition:all .2s; }
+    .ccn-x:hover { background:rgba(239,68,68,0.1); color:#ef4444; }
+    .ccn-text { width:100%; box-sizing:border-box; min-height:140px; resize:vertical; padding:14px; border-radius:14px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; font-size:14px; line-height:1.5; outline:none; transition:border-color .2s, box-shadow .2s; }
+    .ccn-text:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(0,245,212,0.12); }
+    .ccn-meta { display:flex; justify-content:space-between; margin:8px 2px 18px; font-size:11px; color:var(--text-secondary); }
+    .ccn-actions { display:flex; gap:10px; }
+    .ccn-btn { height:44px; border-radius:12px; font-size:14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:all .2s; }
+    .ccn-cancel { flex:1; border:1px solid var(--border); background:transparent; color:var(--text-secondary); }
+    .ccn-cancel:hover { color:var(--text); border-color:var(--text-secondary); }
+    .ccn-save { flex:2; border:none; background:var(--primary); color:#000; }
+    .ccn-save:hover { box-shadow:0 8px 20px rgba(0,245,212,0.35); transform:translateY(-1px); }
+    .ccn-save:disabled { opacity:.6; cursor:default; transform:none; box-shadow:none; }
   `;
   document.head.appendChild(st);
 }
@@ -331,13 +415,13 @@ function buildFase1Card(p, index, puedeBorrar) {
 }
 
 async function handleFase1Click(screen, user, e) {
+  if (_ccState.fase !== 1) return;
   // ── BORRAR (solo Admin / CEO) ─────────────────────────────
   const btnDel = e.target.closest('.btn-p1-borrar');
   if (btnDel) {
     const id   = btnDel.dataset.id;
     const pros = _ccState.prospectos.find(p => p.id === id);
     if (!puedeBorrarLeads(user) || !confirm(`¿Borrar el lead "${pros?.nombre || id}"? Esta acción no se puede deshacer.`)) {
-      screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
       return;
     }
     try {
@@ -348,7 +432,6 @@ async function handleFase1Click(screen, user, e) {
       renderFase1(screen, user);
     } catch (err) {
       showToast('No se pudo borrar el lead', 'error');
-      screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     }
     return;
   }
@@ -358,7 +441,7 @@ async function handleFase1Click(screen, user, e) {
   if (btnAcc) {
     const id  = btnAcc.dataset.id;
     const pros = _ccState.prospectos.find(p => p.id === id);
-    if (!pros) { screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true }); return; }
+    if (!pros) return;
 
     _ccState.activeId = id;
     // Confirma la aceptación: estado pasa a 'pendiente' (activo)
@@ -378,7 +461,6 @@ async function handleFase1Click(screen, user, e) {
     } else {
         showToast('Zadarma API no cargada', 'error');
     }
-    screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     return;
   }
 
@@ -404,7 +486,6 @@ async function handleFase1Click(screen, user, e) {
     } finally {
         btnHist.innerHTML = oldHtml;
         btnHist.disabled = false;
-        screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
     }
     return;
   }
@@ -412,61 +493,24 @@ async function handleFase1Click(screen, user, e) {
   // ── NOTAS PRE-ACEPTACIÓN ─────────────────────────────────
   const btnNotas = e.target.closest('.btn-cc-notas');
   if (btnNotas) {
-      const id = btnNotas.dataset.id;
-      const currentNotes = decodeURIComponent(btnNotas.dataset.notas || '');
-      
-      const noteHtml = `
-          <div id="modal-cc-pre-notas" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999999] flex items-center justify-center transition-opacity duration-300 opacity-0">
-              <div class="bg-[var(--bg)] w-full max-w-sm rounded-[2rem] shadow-2xl p-6 border border-[var(--border)] transform scale-95 transition-all duration-300">
-                  <div class="flex justify-between items-center mb-4">
-                      <h3 class="text-lg font-black text-[var(--text)]">Anotaciones del Lead</h3>
-                      <button id="btn-close-cc-notas" class="w-8 h-8 rounded-full bg-[var(--surface)] text-gray-500 hover:text-red-500 flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
-                  </div>
-                  <textarea id="inp-cc-pre-notas" rows="4" class="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 text-sm text-[var(--text)] mb-4 outline-none focus:border-[var(--primary)]" placeholder="Ej. No contestó, Llamar mañana...">${currentNotes}</textarea>
-                  <button id="btn-save-cc-notas" class="w-full py-3 bg-[var(--primary)] text-black rounded-xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all">Guardar Notas</button>
-              </div>
-          </div>
-      `;
-      document.body.insertAdjacentHTML('beforeend', noteHtml);
-      const modal = document.getElementById('modal-cc-pre-notas');
-      setTimeout(() => {
-          modal.classList.remove('opacity-0');
-          modal.querySelector('div').classList.remove('scale-95');
-          document.getElementById('inp-cc-pre-notas').focus();
-      }, 10);
-
-      const closeModal = () => {
-          modal.classList.add('opacity-0');
-          modal.querySelector('div').classList.add('scale-95');
-          setTimeout(() => modal.remove(), 300);
-          screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
-      };
-
-      document.getElementById('btn-close-cc-notas').onclick = closeModal;
-      document.getElementById('btn-save-cc-notas').onclick = async () => {
-          const newNotes = document.getElementById('inp-cc-pre-notas').value.trim();
-          const btn = document.getElementById('btn-save-cc-notas');
-          btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-          btn.disabled = true;
-
-          try {
-              await patchProspecto(id, { notas_pre: newNotes });
-              const pros = _ccState.prospectos.find(p => p.id === id);
-              if (pros) pros.notas_pre = newNotes;
-              showToast('Notas guardadas', 'success');
-              modal.remove();
-              renderFase1(screen, user);
-          } catch (e) {
-              showToast('Error al guardar notas', 'error');
-              btn.innerHTML = 'Guardar Notas';
-              btn.disabled = false;
-          }
-      };
-      
+      if (document.getElementById('modal-cc-pre-notas')) return;
+      const id   = btnNotas.dataset.id;
+      const pros = _ccState.prospectos.find(p => p.id === id);
+      const currentNotes = pros ? (pros.notas_pre || '') : decodeURIComponent(btnNotas.dataset.notas || '');
+      abrirModalNotas(pros?.nombre || 'Lead', currentNotes, async (newNotes) => {
+          const res = await fetch(`/api/cc-prospectos/${id}`, {
+              method:  'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({ notas_pre: newNotes })
+          });
+          if (!res.ok) throw new Error('Server error');
+          if (pros) pros.notas_pre = newNotes;
+          showToast('Notas guardadas', 'success');
+          renderFase1(screen, user);
+      });
       return;
   }
 
-  screen.addEventListener('click', handleFase1Click.bind(null, screen, user), { once: true });
 }
 
 // ═══════════════════════════════════════════════════════════════
