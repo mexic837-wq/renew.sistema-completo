@@ -250,7 +250,7 @@ function ensureCardStyles() {
   const st = document.createElement('style');
   st.id = 'cc-card-styles';
   st.textContent = `
-    .cc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px; padding:16px; }
+    .cc-grid { display:flex; flex-direction:column; gap:12px; padding:16px; }
     .cc-p1-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; display:flex; flex-direction:column; gap:14px; transition:border-color .2s, box-shadow .2s, transform .2s; animation:fadeInUp .3s ease both; }
     .cc-p1-card:hover { border-color:rgba(0,245,212,0.45); box-shadow:0 8px 28px rgba(15,23,42,0.07); transform:translateY(-1px); }
     .cc-head { display:flex; align-items:flex-start; gap:12px; }
@@ -268,11 +268,11 @@ function ensureCardStyles() {
     .cc-row.cc-tel { font-weight:800; font-size:15px; }
     .cc-row.cc-muted { color:var(--text-secondary); font-size:12px; }
     .cc-rel { margin-left:auto; flex-shrink:0; font-size:10px; font-weight:700; color:var(--primary); background:rgba(0,245,212,0.1); padding:2px 8px; border-radius:999px; }
-    .cc-foot { display:flex; align-items:center; gap:6px; padding-top:12px; border-top:1px solid var(--border); }
+    .cc-foot { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-top:12px; border-top:1px solid var(--border); }
     .cc-ghost { height:36px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .2s; position:relative; }
     .cc-ghost:hover { border-color:var(--primary); color:var(--primary); }
     .cc-dot { width:6px; height:6px; border-radius:50%; background:#ef4444; position:absolute; top:6px; right:6px; }
-    .cc-accept { margin-left:auto; height:36px; padding:0 18px; border-radius:10px; border:none; background:var(--primary); color:#000; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:transform .15s, box-shadow .2s; }
+    .cc-accept { margin-left:auto; height:38px; padding:0 28px; border-radius:10px; border:none; background:var(--primary); color:#000; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:transform .15s, box-shadow .2s; }
     .cc-accept:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,245,212,0.35); }
     @media (max-width: 420px) { .cc-ghost .cc-lbl { display:none; } }
   `;
