@@ -2418,3 +2418,32 @@ body.is-callcenter #nav-btn-nuevo-cliente {
   .notif-item { padding: 14px; gap: 12px; }
   .notif-icon { width: 42px; height: 42px; }
 }
+
+/* ── Barra inferior móvil: botón + centrado al estilo Instagram/TikTok ── */
+@media (max-width: 767px) {
+  #bottom-nav .nav-item[data-screen="dashboard"] { order: 1; }
+  #bottom-nav .nav-item[data-screen="mi-calendario"] { order: 2; }
+  #bottom-nav .nav-item-plus { order: 3; }
+  #bottom-nav .nav-item[data-screen="notificaciones"] { order: 4; }
+  #bottom-nav .nav-item[data-screen="menu"] { order: 5; }
+
+  #bottom-nav .nav-item-plus {
+    top: 0;
+    height: auto;
+    padding: 0;
+    justify-content: center;
+    align-self: center;
+  }
+  #bottom-nav .nav-item-plus .plus-circle {
+    width: 54px;
+    height: 40px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, #00dfbf 0%, #05d564 100%);
+    box-shadow: 0 6px 16px rgba(0, 223, 191, 0.45);
+    color: #04342c;
+  }
+  #bottom-nav .nav-item-plus:active .plus-circle { transform: scale(0.92); }
+  #bottom-nav .nav-item-plus span,
+  #bottom-nav .nav-item-plus .cta-kbd { display: none; }
+}
