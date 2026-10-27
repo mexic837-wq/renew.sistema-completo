@@ -2061,7 +2061,7 @@ async function initLeaderboardChart(user) {
 function showProfileModal() {
   const user = getCurrentUser();
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
+  overlay.className = 'modal-overlay profile-modal';
   overlay.style.position = 'absolute'; // Fill the #app relative container
   overlay.style.inset = '0';
   overlay.style.zIndex = '1000';
@@ -2120,13 +2120,15 @@ function showProfileModal() {
   const roleColor = rol.toLowerCase() === 'admin' ? 'badge-red' : 'badge-green';
 
   overlay.innerHTML = `
-    <div class="modal-sheet" style="padding:0; text-align:center; width:100%; border-radius: 24px 24px 0 0; position:absolute; bottom:0; left:0; height:80vh; max-height:80vh; display:flex; flex-direction:column; overflow:hidden;">
+    <div class="modal-sheet profile-sheet" style="padding:0; text-align:center; width:100%; border-radius: 24px 24px 0 0; position:absolute; bottom:0; left:0; height:80vh; max-height:80vh; display:flex; flex-direction:column; overflow:hidden;">
       
       <!-- Fixed Handle area -->
+      <button class="profile-close" aria-label="Cerrar" type="button">&times;</button>
       <div class="modal-handle" style="width: 40px; height: 5px; background: var(--border); border-radius: 99px; margin: 12px auto; cursor:pointer; flex-shrink:0;"></div>
       
       <!-- Scrollable Profile Content -->
-      <div style="flex:1; overflow-y:auto; padding: 20px 24px 40px;">
+      <div class="profile-body" style="flex:1; overflow-y:auto; padding: 20px 24px 40px;">
+        <div class="profile-left">
         <!-- Center Profile Image -->
         <div class="avatar-btn" style="width:88px; height:88px; font-size:2.2rem; cursor:default; margin: 0 auto 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); ${user.foto ? `background-image: url(${user.foto}); background-size: cover; background-position: center; color: transparent;` : ''}">
           ${user.foto ? '' : (user.initials || (user.nombre[0] + (user.apellido ? user.apellido[0] : ''))).toUpperCase()}
@@ -2136,7 +2138,8 @@ function showProfileModal() {
         <span class="badge ${roleColor}" style="padding:4px 14px; font-size:0.75rem">${rol}</span>
         
         <div class="divider" style="margin:24px 0"></div>
-      
+        </div>
+        <div class="profile-right">
       <!-- Info Fields -->
       <div style="text-align:left; display:flex; flex-direction:column; gap:12px; margin-bottom:24px">
         <div class="field-group" style="margin-bottom:0">
@@ -2157,11 +2160,11 @@ function showProfileModal() {
       <div style="text-align:left; margin-bottom:32px">
         <label style="font-size:.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:16px">Departamentos Autorizados</label>
         <div style="display:flex; justify-content:space-around">
-          ${unitsHtml}
+          <div class="profile-units" style="display:flex; justify-content:space-around">${unitsHtml}</div>
         </div>
       </div>
-      
-
+        </div>
+      </div>
     </div>
   `;
 
@@ -2185,6 +2188,10 @@ function showProfileModal() {
   const sheet = overlay.querySelector('.modal-sheet');
   handle.style.cursor = 'pointer';
   handle.addEventListener('click', closeModal);
+  const btnCloseProfile = overlay.querySelector('.profile-close');
+  if (btnCloseProfile) btnCloseProfile.addEventListener('click', closeModal);
+  const onEsc = e => { if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onEsc); } };
+  document.addEventListener('keydown', onEsc);
 
   let touchStartY = 0;
   handle.addEventListener('touchstart', e => {

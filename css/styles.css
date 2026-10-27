@@ -2523,3 +2523,30 @@ body.is-callcenter #nav-btn-nuevo-cliente {
   #modal-nuevo-cliente .doc-btn { transition: var(--transition); }
   #modal-nuevo-cliente .doc-btn:hover { border-color: var(--primary) !important; background: rgba(0,223,191,.05); }
 }
+
+/* ── Perfil: tarjeta de escritorio en 2 columnas ── */
+.profile-close { display: none; }
+@media (min-width: 900px) {
+  .profile-modal { display: flex !important; align-items: center; justify-content: center; background: rgba(11, 17, 32, 0.55) !important; backdrop-filter: blur(6px); }
+  .profile-modal .profile-sheet {
+    position: relative !important; bottom: auto !important; left: auto !important;
+    width: min(880px, 92vw) !important; height: auto !important; max-height: 88vh !important;
+    border-radius: 24px !important; border: 1px solid var(--border);
+    box-shadow: 0 30px 80px rgba(0,0,0,.35) !important; animation: none !important;
+  }
+  .profile-modal .modal-handle { display: none !important; }
+  .profile-close { display: flex; position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--surface-alt); color: var(--text-secondary); font-size: 1.4rem; line-height: 1; align-items: center; justify-content: center; cursor: pointer; z-index: 2; transition: var(--transition); }
+  .profile-close:hover { background: var(--border); color: var(--text-primary); }
+  .profile-body { display: grid !important; grid-template-columns: 300px 1fr; gap: 0; padding: 0 !important; overflow: hidden !important; }
+  .profile-left { padding: 48px 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(160deg, rgba(0,223,191,.14), rgba(5,213,100,.06) 60%, transparent); border-right: 1px solid var(--border); }
+  .profile-left .divider { display: none; }
+  .profile-left h2 { margin-top: 4px; }
+  .profile-right { padding: 44px 36px; text-align: left; overflow-y: auto; }
+  .profile-right label { font-size: .7rem !important; font-weight: 700 !important; letter-spacing: .08em; text-transform: uppercase; }
+  .profile-right input { background: var(--surface-alt) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; padding: 13px 14px !important; }
+  .profile-right > div:last-child { margin-bottom: 0 !important; }
+  .profile-right > div:last-child > div { display: block !important; }
+  .profile-units { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+  .profile-units > div { padding: 16px 8px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); transition: var(--transition); }
+  .profile-units > div:hover { border-color: var(--primary); transform: translateY(-2px); }
+}
