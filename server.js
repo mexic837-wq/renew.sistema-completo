@@ -1512,32 +1512,24 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
     console.log('[/api/generar-confirmacion-instalacion] Petición recibida.');
     try {
         let d = req.body.datos || req.body;
-        const moldePath = path.join(__dirname, 'confirmacion_instalacion_water_molde.pdf');
+        const moldePath = path.join(__dirname, 'confirmacion_instalacion_water_molde_v2.pdf');
 
         if (!fs.existsSync(moldePath)) {
             return res.status(404).json({ error: 'No se encontró el PDF de confirmación molde' });
         }
 
         // Mapeo de datos (radio buttons y booleanos -> 'X' o vacío porque son TextFields en el PDF)
-        d.p1_yes = d.enseno_programar === 'si' ? 'X' : '';
-        d.p1_no  = d.enseno_programar === 'no' ? 'X' : '';
-        d.p2_yes = d.acuerdo_ubicacion === 'si' ? 'X' : '';
-        d.p2_no  = d.acuerdo_ubicacion === 'no' ? 'X' : '';
-        d.p3_yes = d.info_congelamiento === 'si' ? 'X' : '';
-        d.p3_no  = d.info_congelamiento === 'no' ? 'X' : '';
+        // Las 3 observaciones van en una sola confirmación Sí/No + iniciales
+        d.obs_yes = d.confirmacion_cliente === 'si' ? 'X' : '';
+        d.obs_no  = d.confirmacion_cliente === 'no' ? 'X' : '';
+        d.obs_iniciales = d.iniciales || '';
 
-        d.chk_agua_municipal = d.agua_municipal ? 'X' : '';
-        d.chk_ice_maker = d.ice_maker ? 'X' : '';
         d.chk_water_treatment = d.water_treatment ? 'X' : '';
         d.chk_reverse_osmosis = d.reverse_osmosis ? 'X' : '';
         d.chk_well_water = d.well_water ? 'X' : '';
-        d.chk_ultraviolet = d.ultraviolet ? 'X' : '';
-        d.chk_big_blue = d.big_blue ? 'X' : '';
-        d.chk_spin_down = d.spin_down ? 'X' : '';
-        d.chk_other_equip = d.other_equip ? 'X' : '';
 
         console.log('[PDF] Generando confirmación con molde:', moldePath);
-        const pdfBytes = await generarPDF(moldePath, d);
+        const pdfBytes = await generarPDF(moldePath, d, { fitImages: true });
 
         // Subir a Supabase
         const fileName = `confirmaciones/confirmacion_instalacion_${Date.now()}.pdf`;

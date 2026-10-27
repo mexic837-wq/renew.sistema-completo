@@ -153,33 +153,17 @@ export function renderConfirmacionInstalacion() {
       </div>
       <div class="ci-section-body">
 
-        <!-- P1 -->
         <div class="ci-field">
-          <label class="ci-label">¿Se enseñó cómo programar el LED del equipo?</label>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-            <div class="ci-radio-btn" data-group="enseno_programar" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
-            <div class="ci-radio-btn" data-group="enseno_programar" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
-            <input class="ci-input" type="text" id="ci-ini-1" placeholder="Iniciales" style="width:90px;flex-shrink:0">
-          </div>
-        </div>
-
-        <!-- P2 -->
-        <div class="ci-field">
-          <label class="ci-label">¿El cliente está de acuerdo con el lugar de instalación?</label>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-            <div class="ci-radio-btn" data-group="acuerdo_ubicacion" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
-            <div class="ci-radio-btn" data-group="acuerdo_ubicacion" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
-            <input class="ci-input" type="text" id="ci-ini-2" placeholder="Iniciales" style="width:90px;flex-shrink:0">
-          </div>
-        </div>
-
-        <!-- P3 -->
-        <div class="ci-field">
-          <label class="ci-label">¿Se informó al cliente sobre precauciones de congelamiento?</label>
+          <label class="ci-label">El cliente confirma que:</label>
+          <ol style="margin:4px 0 10px 18px;padding:0;font-size:.8rem;color:var(--text-secondary);line-height:1.5;">
+            <li>Se le enseñó a programar el cabezal (pantalla L.E.D.)</li>
+            <li>Está de acuerdo con el lugar donde se instaló el sistema</li>
+            <li>Se le informó cómo proteger el sistema en caso de congelamiento</li>
+          </ol>
           <div style="display:flex;gap:8px;align-items:center;">
-            <div class="ci-radio-btn" data-group="info_congelamiento" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
-            <div class="ci-radio-btn" data-group="info_congelamiento" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
-            <input class="ci-input" type="text" id="ci-ini-3" placeholder="Iniciales" style="width:90px;flex-shrink:0">
+            <div class="ci-radio-btn" data-group="confirmacion_cliente" data-val="si" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
+            <div class="ci-radio-btn" data-group="confirmacion_cliente" data-val="no" onclick="window.ciPickRadio(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
+            <input class="ci-input" type="text" id="ci-iniciales" placeholder="Iniciales" style="width:90px;flex-shrink:0">
           </div>
         </div>
       </div>
@@ -197,44 +181,19 @@ export function renderConfirmacionInstalacion() {
       <div class="ci-section-body" id="ci-equip-list">
 
         <div class="ci-check-row">
-          <div class="ci-checkbox" data-key="agua_municipal" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Agua Municipal (City Water)</span>
-        </div>
-        <div class="ci-check-row">
-          <div class="ci-checkbox" data-key="ice_maker" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Conexión Ice Maker / Refrigerador</span>
-        </div>
-        <div class="ci-check-row">
           <div class="ci-checkbox" data-key="water_treatment" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Water Treatment / Whole House Softener</span>
+          <span class="ci-check-label">Sistema de tratamiento de agua para toda la casa</span>
           <input class="ci-input ci-serial" type="text" id="ci-serial-water" placeholder="# Serie">
         </div>
         <div class="ci-check-row">
           <div class="ci-checkbox" data-key="reverse_osmosis" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Reverse Osmosis (RO)</span>
+          <span class="ci-check-label">Sistema de ósmosis inversa</span>
           <input class="ci-input ci-serial" type="text" id="ci-serial-ro" placeholder="# Serie">
         </div>
         <div class="ci-check-row">
           <div class="ci-checkbox" data-key="well_water" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Well Water System</span>
+          <span class="ci-check-label">Sistema de agua de pozo</span>
           <input class="ci-input ci-serial" type="text" id="ci-serial-well" placeholder="# Serie">
-        </div>
-        <div class="ci-check-row">
-          <div class="ci-checkbox" data-key="ultraviolet" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Ultraviolet (UV) System</span>
-        </div>
-        <div class="ci-check-row">
-          <div class="ci-checkbox" data-key="big_blue" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Big Blue Filter</span>
-        </div>
-        <div class="ci-check-row">
-          <div class="ci-checkbox" data-key="spin_down" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Spin Down / Pre-Filter</span>
-        </div>
-        <div class="ci-check-row">
-          <div class="ci-checkbox" data-key="other_equip" onclick="window.ciToggleChk(this)"></div>
-          <span class="ci-check-label">Otro (Other)</span>
-          <input class="ci-input ci-serial" type="text" id="ci-other-equip-text" placeholder="Especifique">
         </div>
       </div>
     </div>
@@ -464,25 +423,14 @@ window.ciSubmit = async () => {
     fecha_instalacion: fechaInst,
     instalador,
     representante_ventas: _val('ci-rep-ventas'),
-    enseno_programar:   _getRadio('enseno_programar'),
-    iniciales_1:        _val('ci-ini-1'),
-    acuerdo_ubicacion:  _getRadio('acuerdo_ubicacion'),
-    iniciales_2:        _val('ci-ini-2'),
-    info_congelamiento: _getRadio('info_congelamiento'),
-    iniciales_3:        _val('ci-ini-3'),
-    agua_municipal:     _isChecked('agua_municipal'),
-    ice_maker:          _isChecked('ice_maker'),
+    confirmacion_cliente: _getRadio('confirmacion_cliente'),
+    iniciales:          _val('ci-iniciales'),
     water_treatment:    _isChecked('water_treatment'),
     serial_water:       _val('ci-serial-water'),
     reverse_osmosis:    _isChecked('reverse_osmosis'),
     serial_ro:          _val('ci-serial-ro'),
     well_water:         _isChecked('well_water'),
     serial_well:        _val('ci-serial-well'),
-    ultraviolet:        _isChecked('ultraviolet'),
-    big_blue:           _isChecked('big_blue'),
-    spin_down:          _isChecked('spin_down'),
-    other_equip:        _isChecked('other_equip'),
-    other_equip_text:   _val('ci-other-equip-text'),
     costo_instalacion:  _val('ci-costo-instalacion'),
     costo_millas:       _val('ci-costo-millas'),
     costo_extra:        _val('ci-costo-extra'),
