@@ -1,6 +1,6 @@
 ---
 name: reporte-pdf-renew
-description: Genera un PDF de reporte con la marca Renew (logo y paleta de colores de la empresa) que resume las implementaciones, cambios, correcciones y pendientes hechos en el sistema Renew. Úsala siempre que el usuario pida un reporte, informe, resumen, bitácora, "changelog" o PDF de lo que se hizo, cambió o implementó en el sistema (de hoy, de la semana, de un periodo, de una sesión o de un módulo como Leads, Plantillas o Call Center), aunque no diga la palabra "PDF" o "skill".
+description: Genera un PDF de reporte con la marca Renew (logo y paleta de colores de la empresa) que resume las implementaciones, cambios, y correcciones hechos en el sistema Renew. Úsala siempre que el usuario pida un reporte, informe, resumen, bitácora, "changelog" o PDF de lo que se hizo, cambió o implementó en el sistema (de hoy, de la semana, de un periodo, de una sesión o de un módulo como Leads, Plantillas o Call Center), aunque no diga la palabra "PDF" o "skill".
 ---
 
 # Reporte PDF de cambios del sistema Renew
@@ -17,7 +17,7 @@ Responde al usuario en español, breve y claro.
    git log --since="2026-10-24" --until="2026-10-27" --pretty=format:"%h|%ad|%s" --date=short
    git show --stat <hash>     # solo si el título del commit no basta para entenderlo
    ```
-   Combina eso con lo que ya sabes de la conversación (decisiones, pendientes, cosas que el usuario pidió y aún no están). Los commits son la fuente de verdad de lo que **sí está en `main`**; lo que solo se habló pero no se subió va en "Pendientes".
+   Combina eso con lo que ya sabes de la conversación. Los commits son la fuente de verdad de lo que **sí está en `main`**: reporta solo eso, no lo que apenas se habló.
 3. **Agrupa por módulo, no por commit.** Varios commits del mismo tema son un solo cambio para el lector. Módulos típicos: Leads / Call Center, Clientes, Plantillas, Menú y navegación, Webhooks e integraciones (n8n, Zadarma), Seguridad, Infraestructura.
 4. **Redacta cada cambio** con un `tipo`, un `titulo` corto (verbo + resultado, p. ej. "Los leads ahora son una lista compartida") y un `detalle` de 1–3 frases en lenguaje llano: qué veía antes el usuario, qué ve ahora. Pon el hash en `commit`; `archivos` solo si aporta (máximo 3).
 5. **Escribe el JSON** y genera el PDF (ver abajo).
@@ -32,7 +32,7 @@ Responde al usuario en español, breve y claro.
 | `correccion` | Un error que se arregló | ámbar |
 | `seguridad` | Riesgos encontrados o cerrados | rojo |
 
-Los pendientes y recomendaciones van en la lista `pendientes` (morado) y los datos de contexto en `notas`. Sé honesto: si algo se subió pero no se probó en producción, o falta correr `deploy.sh`, dilo en `notas` o `pendientes`; un reporte que oculta eso pierde la confianza del lector.
+El reporte **no incluye secciones de "Pendientes" ni "Notas"**: el usuario no las quiere en el PDF. Si hay pendientes (p. ej. correr `deploy.sh`), díselos en tu respuesta en el chat, no en el documento.
 
 ## Generar el PDF
 
@@ -67,8 +67,6 @@ El script imprime el PDF con Chrome o Edge en modo headless, así que no necesit
       ]
     }
   ],
-  "pendientes": ["Correr deploy.sh en el servidor para publicar los cambios."],
-  "notas": ["Los cambios visuales no se probaron en el navegador antes de subirse."]
 }
 ```
 

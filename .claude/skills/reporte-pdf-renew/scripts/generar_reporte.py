@@ -13,12 +13,10 @@ datos.json (todos los campos son opcionales salvo "secciones"):
   "resumen": "Texto corto con lo más importante.",
   "secciones": [
     {"nombre": "Leads", "items": [
-      {"tipo": "nuevo|mejora|correccion|seguridad|pendiente",
+      {"tipo": "nuevo|mejora|correccion|seguridad",
        "titulo": "...", "detalle": "...", "commit": "abc1234", "archivos": ["js/x.js"]}
     ]}
   ],
-  "pendientes": ["..."],
-  "notas": ["..."]
 }
 
 El PDF se imprime con Chrome/Edge en modo headless (ya viene en Windows y Mac),
@@ -44,7 +42,6 @@ TIPOS = {
     "mejora":     ("Mejora",     "#0e7fab", "#e7f3f9"),
     "correccion": ("Corrección", "#f59e0b", "#fef6e4"),
     "seguridad":  ("Seguridad",  "#ef4444", "#fdeceb"),
-    "pendiente":  ("Pendiente",  "#8b5cf6", "#f1ecfd"),
 }
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -125,12 +122,6 @@ def construir_html(d):
           {"".join(items_html)}
         </section>""")
 
-    def lista(titulo_l, filas, clase):
-        if not filas:
-            return ""
-        lis = "".join(f"<li>{esc(x)}</li>" for x in filas)
-        return f'<section class="{clase}"><h3><i></i>{titulo_l}</h3><ul>{lis}</ul></section>'
-
     resumen = f'<div class="resumen">{parrafos(d.get("resumen"))}</div>' if d.get("resumen") else ""
 
     return f"""<!doctype html>
@@ -172,9 +163,6 @@ def construir_html(d):
   .tag {{ padding: 2px 8px; border-radius: 99px; font-size: 7pt; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; white-space: nowrap; }}
   .chips {{ display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }}
   .chip {{ padding: 1px 7px; border-radius: 6px; background: #f1f5f9; color: #475569; font: 600 7.5pt Consolas, 'Courier New', monospace; }}
-  ul {{ margin: 0; padding-left: 18px; }} li {{ margin: 0 0 4px; }}
-  .pend h3 {{ color: #7c3aed; }} .pend h3 i {{ background: #8b5cf6; }}
-  .notas h3 {{ color: #475569; }} .notas h3 i {{ background: #94a3b8; }}
   .contenido {{ padding-top: 0; }}
 </style></head>
 <body>
@@ -189,8 +177,6 @@ def construir_html(d):
     {('<div class="cards">' + cards + '</div>') if cards else ''}
     {resumen}
     {"".join(bloques)}
-    {lista("Pendientes y próximos pasos", d.get("pendientes"), "pend")}
-    {lista("Notas", d.get("notas"), "notas")}
   </div>
 </body></html>"""
 
