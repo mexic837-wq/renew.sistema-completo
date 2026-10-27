@@ -10,83 +10,120 @@ let selectedSede = null;
 let selectedEcosistema = null;
 let currentDealId = null;
 
+const SEDES = [
+  { id: 'orlando',  nombre: 'Orlando',    estado: 'Florida' },
+  { id: 'miami',    nombre: 'Miami',      estado: 'Florida' },
+  { id: 'dallas',   nombre: 'Dallas',     estado: 'Texas' },
+  { id: 'new_york', nombre: 'Nueva York', estado: 'New York' }
+];
+
+const ECOSISTEMAS = [
+  { id: 'solar', nombre: 'Renew Solar', icon: 'fa-sun',     desc: 'Paneles y energía solar' },
+  { id: 'water', nombre: 'Renew Water', icon: 'fa-droplet', desc: 'Tratamiento y filtración de agua' },
+  { id: 'home',  nombre: 'Renew Home',  icon: 'fa-house',   desc: 'Soluciones para el hogar' }
+];
+
+function escHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function itemsDe(sede, eco) {
+  return getInventario().filter(item => {
+    const matchesSede = item.locacion === sede;
+    const matchesEco = !eco || (item.category === eco) || (item.ecosistema && item.ecosistema.toLowerCase().includes(eco));
+    return matchesSede && matchesEco;
+  });
+}
+
 export function renderInventoryTech(dealId = null) {
   currentDealId = dealId;
+  selectedSede = null;
+  selectedEcosistema = null;
   const screen = document.getElementById('screen-inventory-tech');
   if (!screen) return;
 
   const user = getCurrentUser();
   const isAdmin = user && window.getUserRoles(user).some(r => ['admin', 'ceo', 'ceo-renew', 'supervisión'].includes(r));
 
-  // Initial State: Paso 1
+  const sedeCards = SEDES.map(s => {
+    const items = itemsDe(s.id);
+    const unidades = items.reduce((a, i) => a + (Number(i.stockActual) || 0), 0);
+    return `
+      <button class="inv-card inv-sede" data-sede="${s.id}">
+        <span class="inv-card-icon"><i class="fa-solid fa-location-dot"></i></span>
+        <span class="inv-card-body">
+          <span class="inv-card-title">Sede ${s.nombre}</span>
+          <span class="inv-card-sub">${s.estado}${isAdmin ? ` · ${items.length} artículos · ${unidades} uds` : ''}</span>
+        </span>
+        <i class="fa-solid fa-chevron-right inv-card-arrow"></i>
+      </button>`;
+  }).join('');
+
+  const ecoCards = ECOSISTEMAS.map(e => `
+      <button class="inv-card inv-eco inv-eco-${e.id}" data-eco="${e.id}">
+        <span class="inv-card-icon"><i class="fa-solid ${e.icon}"></i></span>
+        <span class="inv-card-body">
+          <span class="inv-card-title">${e.nombre}</span>
+          <span class="inv-card-sub">${e.desc}</span>
+          <span class="inv-card-count" data-eco-count="${e.id}"></span>
+        </span>
+        <i class="fa-solid fa-chevron-right inv-card-arrow"></i>
+      </button>`).join('');
+
   screen.innerHTML = `
-    <div class="dash-header" style="padding-bottom: 0;">
-      <div class="dash-header-top" style="display: flex; align-items: center; justify-content: center; position: relative; min-height: 60px;">
-        <button id="btn-inventory-back" style="position: absolute; left: 0; background: none; border: none; color: var(--text); padding: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-          <i class="fa-solid fa-arrow-left text-xl"></i>
-        </button>
-        <div class="dash-greeting" style="text-align: center;">
-          <h1 style="margin: 0; font-size: 1.2rem;">Inventario <i class="fa-solid fa-box"></i></h1>
-          <p style="color:var(--text-muted); font-size:0.75rem; margin-top:2px;">Registro de Uso Técnico</p>
+    <div class="inv-wrap">
+      <div class="inv-header">
+        <button id="btn-inventory-back" class="inv-back" aria-label="Volver"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="inv-header-text">
+          <h1>Inventario <i class="fa-solid fa-box"></i></h1>
+          <p>Registro de uso técnico</p>
         </div>
       </div>
-    </div>
-    
-    <div id="inv-step-1" class="menu-body" style="padding: 24px;">
-      <p class="menu-section-label">Paso 1: Seleccione su Sede</p>
-      <div id="inv-step-1-grid" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
-        <button class="btn-sede shadow-sm" data-sede="orlando" style="padding: 32px; background: var(--surface-alt); border: 2px solid var(--border); border-radius: 16px; font-size: 1.2rem; font-weight: bold; color: var(--text-primary); cursor: pointer; transition: 0.2s;">Sede Orlando</button>
-        <button class="btn-sede shadow-sm" data-sede="miami" style="padding: 32px; background: var(--surface-alt); border: 2px solid var(--border); border-radius: 16px; font-size: 1.2rem; font-weight: bold; color: var(--text-primary); cursor: pointer; transition: 0.2s;">Sede Miami</button>
-        <button class="btn-sede shadow-sm" data-sede="dallas" style="padding: 32px; background: var(--surface-alt); border: 2px solid var(--border); border-radius: 16px; font-size: 1.2rem; font-weight: bold; color: var(--text-primary); cursor: pointer; transition: 0.2s;">Sede Dallas</button>
-        <button class="btn-sede shadow-sm" data-sede="new_york" style="padding: 32px; background: var(--surface-alt); border: 2px solid var(--border); border-radius: 16px; font-size: 1.2rem; font-weight: bold; color: var(--text-primary); cursor: pointer; transition: 0.2s;">Sede Nueva York</button>
-      </div>
-    </div>
 
-    <div id="inv-step-2" class="menu-body" style="padding: 24px; display: none;">
-      <button id="btn-back-1" class="btn btn-outline" style="margin-bottom: 24px;">← Volver a Sedes</button>
-      <p class="menu-section-label">Paso 2: Seleccione el Ecosistema</p>
-      <div id="inv-step-2-grid" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
-        <button class="btn-eco" data-eco="solar" style="padding: 24px; background: #0d948820; border: 2px solid #0d9488; border-radius: 12px; font-size: 1.1rem; font-weight: bold; color: var(--text-primary); cursor: pointer; text-align: left;"><i class="fa-solid fa-sun mr-3"></i> Renew Solar</button>
-        <button class="btn-eco" data-eco="water" style="padding: 24px; background: #0284c720; border: 2px solid #0284c7; border-radius: 12px; font-size: 1.1rem; font-weight: bold; color: var(--text-primary); cursor: pointer; text-align: left;"><i class="fa-solid fa-droplet mr-3"></i> Renew Water</button>
-        <button class="btn-eco" data-eco="home" style="padding: 24px; background: #f59e0b20; border: 2px solid #f59e0b; border-radius: 12px; font-size: 1.1rem; font-weight: bold; color: var(--text-primary); cursor: pointer; text-align: left;"><i class="fa-solid fa-house mr-3"></i> Renew Home</button>
+      <div class="inv-crumbs" id="inv-crumbs">
+        <span class="inv-crumb active" data-crumb="1"><b>1</b> Sede</span>
+        <i class="fa-solid fa-chevron-right"></i>
+        <span class="inv-crumb" data-crumb="2"><b>2</b> Ecosistema</span>
+        <i class="fa-solid fa-chevron-right"></i>
+        <span class="inv-crumb" data-crumb="3"><b>3</b> Material</span>
       </div>
-    </div>
 
-    <div id="inv-step-3" class="menu-body" style="padding: 24px; display: none;">
-      <button id="btn-back-2" class="btn btn-outline" style="margin-bottom: 24px;">← Volver a Ecosistemas</button>
-      <p class="menu-section-label" id="form-title">Formulario de Retiro</p>
-      
-      <div class="inventory-form-container" style="background: var(--surface-alt); padding: 32px; border-radius: 20px; border: 1px solid var(--border); margin-top: 16px; box-shadow: var(--shadow-sm);">
-        <div class="field-group" style="margin-bottom:20px; position: relative;">
-          <p style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); margin-bottom: 12px;">PRODUCTO</p>
-          
-          <!-- Trigger Dropdown UI -->
-          <div id="inv-item-trigger" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: 0.2s; min-height: 70px;">
-              <div id="inv-trigger-content">
-                  <p id="inv-trigger-placeholder" style="color: var(--text-muted); font-size: 0.9rem; font-weight:700;">Seleccione un artículo...</p>
-              </div>
-              <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 0.8rem; transition: transform 0.3s;"></i>
+      <div id="inv-step-1" class="inv-step">
+        <p class="inv-label">Seleccione su sede</p>
+        <div id="inv-step-1-grid" class="inv-grid inv-grid-2">${sedeCards}</div>
+      </div>
+
+      <div id="inv-step-2" class="inv-step" style="display:none;">
+        <button id="btn-back-1" class="inv-link"><i class="fa-solid fa-arrow-left"></i> Volver a sedes</button>
+        <p class="inv-label">Seleccione el ecosistema</p>
+        <div id="inv-step-2-grid" class="inv-grid inv-grid-3">${ecoCards}</div>
+      </div>
+
+      <div id="inv-step-3" class="inv-step" style="display:none;">
+        <button id="btn-back-2" class="inv-link"><i class="fa-solid fa-arrow-left"></i> Volver a ecosistemas</button>
+        <p class="inv-label" id="form-title">Retiro de material</p>
+
+        <div class="inv-work">
+          <div class="inv-panel inv-list-panel">
+            <div class="inv-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="inv-search-input" type="text" placeholder="Buscar artículo o código..." autocomplete="off">
+            </div>
+            <div id="inv-item-list-container" class="inv-items"></div>
           </div>
 
-          <!-- Collapsible List Container -->
-          <div id="inv-item-list-wrapper" style="display: none; position: relative; z-index: 10; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 16px; margin-top: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; animation: slideInUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-              <div id="inv-item-list-container" class="custom-item-selector" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 12px;">
-                  <!-- Se poblará dinámicamente -->
-              </div>
+          <div class="inv-panel inv-action-panel">
+            <p class="inv-mini-label">Artículo seleccionado</p>
+            <div id="inv-trigger-content" class="inv-selected">
+              <p id="inv-trigger-placeholder" class="inv-empty"><i class="fa-solid fa-hand-pointer"></i>Elija un artículo de la lista</p>
+            </div>
+            <input type="hidden" id="inv-item-select" value="">
+            <div class="inv-actions">
+              <button id="btn-sub-stock-inv" class="inv-round inv-minus" aria-label="Retirar 1 unidad"><i class="fa-solid fa-minus"></i></button>
+              ${isAdmin ? `<button id="btn-add-stock-inv" class="inv-round inv-plus" aria-label="Agregar 1 unidad"><i class="fa-solid fa-plus"></i></button>` : ''}
+            </div>
+            <p class="inv-hint">Cada toque ${isAdmin ? 'retira o agrega' : 'retira'} 1 unidad.</p>
           </div>
-
-          <input type="hidden" id="inv-item-select" value="">
-        </div>
-        
-        <div style="display: flex; justify-content: center; gap: 32px; margin-top: 32px; padding-bottom: 24px;">
-            <button id="btn-sub-stock-inv" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; color: #ef4444; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 25px rgba(239, 68, 68, 0.25);">
-                <i class="fa-solid fa-minus"></i>
-            </button>
-            ${isAdmin ? `
-            <button id="btn-add-stock-inv" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; color: #10b981; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.25);">
-                <i class="fa-solid fa-plus"></i>
-            </button>
-            ` : ''}
         </div>
       </div>
     </div>
@@ -97,32 +134,38 @@ export function renderInventoryTech(dealId = null) {
   const step2 = document.getElementById('inv-step-2');
   const step3 = document.getElementById('inv-step-3');
 
-  document.querySelectorAll('.btn-sede').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      selectedSede = e.target.dataset.sede;
-      step1.style.display = 'none';
-      step2.style.display = 'block';
+  function mostrarPaso(n) {
+    step1.style.display = n === 1 ? 'block' : 'none';
+    step2.style.display = n === 2 ? 'block' : 'none';
+    step3.style.display = n === 3 ? 'block' : 'none';
+    screen.querySelectorAll('.inv-crumb').forEach(c => {
+      const k = Number(c.dataset.crumb);
+      c.classList.toggle('active', k === n);
+      c.classList.toggle('done', k < n);
+    });
+  }
+
+  document.querySelectorAll('.inv-sede').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedSede = btn.dataset.sede;
+      ECOSISTEMAS.forEach(e => {
+        const el = screen.querySelector(`[data-eco-count="${e.id}"]`);
+        if (el) el.textContent = `${itemsDe(selectedSede, e.id).length} artículos`;
+      });
+      mostrarPaso(2);
     });
   });
 
-  document.querySelectorAll('.btn-eco').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      selectedEcosistema = e.target.dataset.eco;
-      step2.style.display = 'none';
-      step3.style.display = 'block';
+  document.querySelectorAll('.inv-eco').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedEcosistema = btn.dataset.eco;
+      mostrarPaso(3);
       populateItems();
     });
   });
 
-  document.getElementById('btn-back-1').addEventListener('click', () => {
-    step2.style.display = 'none';
-    step1.style.display = 'block';
-  });
-
-  document.getElementById('btn-back-2').addEventListener('click', () => {
-    step3.style.display = 'none';
-    step2.style.display = 'block';
-  });
+  document.getElementById('btn-back-1').addEventListener('click', () => mostrarPaso(1));
+  document.getElementById('btn-back-2').addEventListener('click', () => mostrarPaso(2));
 
   const btnSubStock = document.getElementById('btn-sub-stock-inv');
   if (btnSubStock) {
@@ -154,48 +197,43 @@ export function renderInventoryTech(dealId = null) {
     });
   }
 
+  function renderSelected(item) {
+    const triggerContent = document.getElementById('inv-trigger-content');
+    triggerContent.innerHTML = `
+      <span class="inv-sel-id">${escHtml(item.id)}</span>
+      <span class="inv-sel-name">${escHtml(item.nombreItem)}</span>
+      <span class="inv-sel-eco">${escHtml(item.ecosistema || '')}</span>
+      ${isAdmin ? `<span class="inv-sel-stock"><b>${item.stockActual}</b> unidades disponibles</span>` : ''}
+    `;
+  }
+
   function populateItems() {
-    const trigger = document.getElementById('inv-item-trigger');
-    const wrapper = document.getElementById('inv-item-list-wrapper');
     const listContainer = document.getElementById('inv-item-list-container');
     const triggerContent = document.getElementById('inv-trigger-content');
     const hiddenInput = document.getElementById('inv-item-select');
-    const chevron = trigger.querySelector('.fa-chevron-down');
-    
+    const searchInput = document.getElementById('inv-search-input');
+
     listContainer.innerHTML = '';
     hiddenInput.value = '';
-    
-    // Toggle dropdown
-    trigger.onclick = () => {
-        const isHidden = wrapper.style.display === 'none';
-        wrapper.style.display = isHidden ? 'block' : 'none';
-        chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-        trigger.style.borderColor = isHidden ? 'var(--tealAccent)' : 'var(--border)';
-    };
+    searchInput.value = '';
+    triggerContent.innerHTML = `<p id="inv-trigger-placeholder" class="inv-empty"><i class="fa-solid fa-hand-pointer"></i>Elija un artículo de la lista</p>`;
 
-    let formTitle = `RETIRO DE MATERIAL - SEDE ${selectedSede.toUpperCase()} (${selectedEcosistema.toUpperCase()})`;
-    
-    let clienteNombre = null;
+    let formTitle = `Retiro de material · Sede ${escHtml(selectedSede.replace('_', ' '))} · ${escHtml(selectedEcosistema)}`;
+
     if (currentDealId) {
         const db = getDB();
         const proj = (db.Proyectos_Dinamicos || []).find(p => p.id === currentDealId);
         if (proj) {
-            clienteNombre = proj.nombre_cliente;
-            formTitle = `RETIRO DE MATERIAL<br><span style="font-size:0.75rem; color:var(--tealAccent);">PROYECTO: ${clienteNombre}</span>`;
+            formTitle = `Retiro de material · Proyecto: ${escHtml(proj.nombre_cliente)}`;
         }
     }
-    
+
     document.getElementById('form-title').innerHTML = formTitle;
 
-    const invData = getInventario();
-    const filtered = invData.filter(item => {
-        const matchesSede = item.locacion === selectedSede;
-        const matchesEco = (item.category === selectedEcosistema) || (item.ecosistema && item.ecosistema.toLowerCase().includes(selectedEcosistema));
-        return matchesSede && matchesEco;
-    });
+    const filtered = itemsDe(selectedSede, selectedEcosistema);
 
     if (filtered.length === 0) {
-        listContainer.innerHTML = `<p style="text-align:center; padding:12px; color:var(--text-muted); font-size:0.7rem;">Sin existencias en esta línea</p>`;
+        listContainer.innerHTML = `<p class="inv-empty" style="grid-column:1/-1;"><i class="fa-solid fa-box-open"></i>Sin existencias en esta línea</p>`;
         return;
     }
 
@@ -215,51 +253,35 @@ export function renderInventoryTech(dealId = null) {
     });
 
     filtered.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'inv-item-card';
-      card.style.cssText = `
-        padding: 16px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        cursor: pointer;
-        transition: 0.2s;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      `;
-      
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'inv-item';
+      card.dataset.search = `${item.id} ${item.nombreItem} ${item.ecosistema || ''}`.toLowerCase();
       card.innerHTML = `
-        <span style="font-size: 7px; font-weight: 900; color: var(--tealAccent); opacity: 0.8;">${item.id}</span>
-        <span style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">${item.nombreItem}</span>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 8px; color: var(--text-muted); font-weight: 600;">${item.ecosistema || ''}</span>
-            ${isAdmin ? `<span style="font-size: 9px; font-weight: 900; color: var(--tealAccent); background: rgba(0, 245, 212, 0.1); padding: 2px 6px; border-radius: 4px;">STOCK: ${item.stockActual}</span>` : ''}
-        </div>
+        <span class="inv-item-id">${escHtml(item.id)}</span>
+        <span class="inv-item-name">${escHtml(item.nombreItem)}</span>
+        <span class="inv-item-foot">
+          <span class="inv-item-eco">${escHtml(item.ecosistema || '')}</span>
+          ${isAdmin ? `<span class="inv-item-stock">Stock: ${item.stockActual}</span>` : ''}
+        </span>
       `;
 
       card.addEventListener('click', () => {
-          // Update hidden input
           hiddenInput.value = item.id;
-          
-          // Update Trigger Display
-          triggerContent.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:2px;">
-                <span style="font-size: 7px; font-weight: 900; color: var(--tealAccent); opacity: 0.8;">${item.id}</span>
-                <span style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">${item.nombreItem}</span>
-                ${isAdmin ? `<span style="font-size: 10px; font-weight: 900; color: var(--tealAccent); margin-top: 4px;">DISPONIBLE: ${item.stockActual} unidades</span>` : ''}
-            </div>
-          `;
-          
-          // Close list
-          wrapper.style.display = 'none';
-          chevron.style.transform = 'rotate(0deg)';
-          trigger.style.borderColor = 'var(--tealAccent)';
-          trigger.style.background = 'rgba(0, 245, 212, 0.05)';
+          listContainer.querySelectorAll('.inv-item').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          renderSelected(item);
       });
 
       listContainer.appendChild(card);
     });
+
+    searchInput.oninput = () => {
+      const q = searchInput.value.trim().toLowerCase();
+      listContainer.querySelectorAll('.inv-item').forEach(c => {
+        c.style.display = !q || c.dataset.search.includes(q) ? '' : 'none';
+      });
+    };
   }
 
   async function handleInventoryChange(mode = 'withdrawal') {
@@ -346,14 +368,9 @@ export function renderInventoryTech(dealId = null) {
 
     showToast(mode === 'withdrawal' ? '1 unidad retirada' : '1 unidad agregada', 'success');
     
-    // Update displayed stock immediately in the trigger UI without clearing selection
-    const triggerContent = document.getElementById('inv-trigger-content');
-    triggerContent.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:2px;">
-          <span style="font-size: 7px; font-weight: 900; color: var(--tealAccent); opacity: 0.8;">${item.id}</span>
-          <span style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">${item.nombreItem}</span>
-          ${isAdmin ? `<span style="font-size: 10px; font-weight: 900; color: var(--tealAccent); margin-top: 4px;">DISPONIBLE: ${item.stockActual} unidades</span>` : ''}
-      </div>
-    `;
+    // Update displayed stock immediately without clearing selection
+    renderSelected(item);
+    const stockTag = document.querySelector('#inv-item-list-container .inv-item.selected .inv-item-stock');
+    if (stockTag) stockTag.textContent = `Stock: ${item.stockActual}`;
   }
 }
