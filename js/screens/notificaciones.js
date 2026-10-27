@@ -196,24 +196,23 @@ export async function renderNotificaciones() {
                     : 'background: rgba(0, 245, 212, 0.15); color: var(--primary);';
       const iconClass = item.type === 'meeting' ? 'fa-video' : item.type === 'asignacion' ? 'fa-clipboard-user' : item.type === 'evento_calendario' ? 'fa-calendar-check' : item.type === 'observador' ? 'fa-eye' : item.type === 'adelanto' ? 'fa-hand-holding-dollar' : item.type === 'chat_mention' ? 'fa-comments' : 'fa-bullhorn';
 
+      const tipoLabel = item.type === 'meeting' ? 'Reunión' : item.type === 'asignacion' ? 'Asignación' : item.type === 'evento_calendario' ? 'Evento' : item.type === 'observador' ? 'Observador' : item.type === 'chat_mention' ? 'Mención' : 'Anuncio';
+      const esNuevo = (new Date() - item.date) < 3 * 24 * 3600 * 1000;
+
       return `
-        <div class="notif-item border-b border-gray-100 dark:border-white/5" data-id="${item.id}" data-type="${item.type}" style="display: flex; align-items: flex-start; padding: 20px 24px; cursor: pointer; transition: all 0.25s ease; position: relative; ${isUnread ? 'background: linear-gradient(to right, rgba(0,245,212,0.03), transparent);' : ''}">
-          
-          ${isUnread ? '<div class="unread-border" style="position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--primary); box-shadow: 0 0 12px var(--primary-glow); border-radius: 0 4px 4px 0;"></div>' : ''}
-
-          <div style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; margin-right: 18px; ${iconContainerStyle} box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <i class="fa-solid ${iconClass}"></i>
-          </div>
-          
-          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <h4 class="notif-title" style="margin: 0; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); transition: all 0.2s; ${isUnread ? 'font-weight: 800;' : 'font-weight: 500; opacity: 0.7;'}">${item.title}</h4>
-              <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 12px; flex-shrink: 0; font-weight: 600;">${dateStr}</span>
+        <div class="notif-item${isUnread ? ' unread' : ''}" data-id="${item.id}" data-type="${item.type}">
+          <div class="notif-icon" style="${iconContainerStyle}"><i class="fa-solid ${iconClass}"></i></div>
+          <div class="notif-body">
+            <div class="notif-top">
+              <span class="notif-tag">${tipoLabel}</span>
+              ${esNuevo ? '<span class="notif-new">Nuevo</span>' : ''}
+              <span class="notif-date">${dateStr}</span>
             </div>
-            <p class="notif-msg" style="margin: 0; font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s; ${isUnread ? 'font-weight: 700;' : 'font-weight: 400; opacity: 0.6;'}">${item.message}</p>
+            <h4 class="notif-title">${item.title}</h4>
+            <p class="notif-msg">${item.message}</p>
           </div>
-
-          ${isUnread ? '<div class="unread-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); margin-left: 16px; align-self: center; flex-shrink: 0;"></div>' : ''}
+          ${isUnread ? '<div class="unread-dot"></div>' : ''}
+          <i class="fa-solid fa-chevron-right notif-arrow"></i>
         </div>
       `;
     }).join('');
@@ -221,18 +220,27 @@ export async function renderNotificaciones() {
 
   screen.innerHTML = `
     <div id="notif-list-view" style="width: 100%;">
-      <div class="dash-header" style="padding-bottom: 12px; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.03); margin-bottom: 20px;">
-        <div class="dash-header-top" style="max-width: 800px; margin: 0 auto; width: 100%;">
-          <div class="dash-greeting">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-              <div class="greeting-time" style="margin-bottom:0;">Mantente al día con el equipo</div>
-            </div>
-            <h1 style="font-size:1.3rem;">Anuncios <i class="fa-solid fa-bullhorn"></i></h1>
+      <div class="notif-wrap">
+        <div class="notif-hero">
+          <div>
+            <p class="notif-eyebrow">Mantente al día con el equipo</p>
+            <h1 class="notif-h1">Anuncios <i class="fa-solid fa-bullhorn"></i></h1>
+          </div>
+          <div class="notif-stats">
+            <div class="notif-stat"><b>${allItems.length}</b><span>Total</span></div>
+            <div class="notif-stat accent"><b>${allItems.filter(i => !i.isRead).length}</b><span>Sin leer</span></div>
           </div>
         </div>
-      </div>
-      <div class="notifs-container" style="min-height: calc(100vh - 150px); padding-bottom: 120px; max-width: 800px; margin: 0 auto; width: 100%;">
+        ${allItems.length ? `
+        <div class="notif-filters">
+          <button class="notif-chip active" data-filter="all">Todos</button>
+          <button class="notif-chip" data-filter="unread">Sin leer</button>
+          <button class="notif-chip" data-filter="anuncio">Anuncios</button>
+          <button class="notif-chip" data-filter="meeting">Reuniones</button>
+        </div>` : ''}
+        <div class="notifs-container notif-list">
           ${listHtml}
+        </div>
       </div>
     </div>
 
@@ -254,6 +262,18 @@ export async function renderNotificaciones() {
         </div>
     </div>
   `;
+
+  // Filtros de la lista
+  screen.querySelectorAll('.notif-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      screen.querySelectorAll('.notif-chip').forEach(c => c.classList.toggle('active', c === chip));
+      const f = chip.dataset.filter;
+      screen.querySelectorAll('.notif-item').forEach(el => {
+        const ok = f === 'all' || (f === 'unread' && el.classList.contains('unread')) || el.dataset.type === f;
+        el.style.display = ok ? '' : 'none';
+      });
+    });
+  });
 
   // Attach event listeners for each item
   const items = screen.querySelectorAll('.notif-item');
@@ -474,16 +494,9 @@ export async function renderNotificaciones() {
               }
               
               // Actualizar UI para quitar la marca de no leído de forma animada
-              el.style.background = 'transparent';
-              const border = el.querySelector('.unread-border');
-              if (border) border.style.opacity = '0';
+              el.classList.remove('unread');
               const dot = el.querySelector('.unread-dot');
-              if (dot) dot.style.opacity = '0';
-              
-              const title = el.querySelector('.notif-title');
-              const msg = el.querySelector('.notif-msg');
-              if (title) { title.style.fontWeight = '500'; title.style.opacity = '0.7'; }
-              if (msg) { msg.style.fontWeight = '400'; msg.style.color = 'var(--text-secondary)'; msg.style.opacity = '0.6'; }
+              if (dot) dot.remove();
               
               item.isRead = true;
           }
