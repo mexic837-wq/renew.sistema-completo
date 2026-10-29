@@ -7,10 +7,40 @@ import { getCurrentUser, navigate } from '../app.js';
 import { t } from '../i18n.js';
 
 let activeTeamDept = 'Todos';
-let activeTeamSede = 'Todas';
+let activeTeamSede = null; // clave de sede, 'todas' (admin/CEO) o 'general'
+
+const SEDES_EQUIPO = [
+  ['miami', 'Miami'], ['orlando', 'Orlando'], ['dallas', 'Dallas'], ['houston', 'Houston'], ['austin', 'Austin'],
+  ['north_carolina', 'North Carolina'], ['new_york', 'Nueva York'], ['tampa', 'Tampa'], ['venezuela', 'Venezuela'],
+  ['brasil', 'Brasil'], ['colombia', 'Colombia'], ['remoto', 'Remoto']
+];
+
+// "Nueva York", "new york", "New_York" → new_york
+function normSede(v) {
+  const k = String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/[\s-]+/g, '_');
+  return k === 'nueva_york' ? 'new_york' : k;
+}
 let teamSearchQuery = '';
 let allTeamWorkers = [];
 let teamScope = null; // 'equipo' | 'todos' (solo Manager de Venta)
+
+function _isAdminOrCeo(user) {
+  return window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'ceo-renew', 'desarrollador', 'desenvolvedor'].includes(r));
+}
+
+function _sedeOptionsHtml() {
+  const user = getCurrentUser();
+  const sel = k => (activeTeamSede === k ? 'selected' : '');
+  if (_isAdminOrCeo(user)) {
+    return `<option value="todas" ${sel('todas')}>Todas las sedes</option>` +
+      SEDES_EQUIPO.map(([k, n]) => `<option value="${k}" ${sel(k)}>${n}</option>`).join('');
+  }
+  // Resto de roles: su propia sede y General (todos)
+  const mine = normSede(user && user.sede);
+  const own = SEDES_EQUIPO.find(([k]) => k === mine);
+  return (own ? `<option value="${own[0]}" ${sel(own[0])}>${own[1]} (mi sede)</option>` : '') +
+    `<option value="general" ${sel('general')}>General</option>`;
+}
 
 export async function renderMiEquipo() {
   const screen = document.getElementById('screen-mi-equipo');
@@ -20,6 +50,14 @@ export async function renderMiEquipo() {
   const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
   if (activeTeamDept === 'Todos') {
      activeTeamDept = 'Todos'; // We start showing everyone
+  }
+
+  // Sede predeterminada: admin/CEO ven todas; el resto, la suya (con opción General)
+  if (activeTeamSede === null) {
+    const isTop = _isAdminOrCeo(user);
+    const mine = normSede(user && user.sede);
+    const isSupUser = window.isSupervisorUser && window.isSupervisorUser(user);
+    activeTeamSede = isTop ? 'todas' : (isSupUser ? 'general' : (SEDES_EQUIPO.some(([k]) => k === mine) ? mine : 'general'));
   }
 
   // UI Initial Skeleton
@@ -53,19 +91,7 @@ export async function renderMiEquipo() {
               </div>
             </div>
             <select id="team-sede-filter" style="border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;padding:0 12px;outline:none; cursor:pointer;">
-               <option value="Todas" ${activeTeamSede === 'Todas' ? 'selected' : ''}>Todas las sedes</option>
-               <option value="Miami" ${activeTeamSede === 'Miami' ? 'selected' : ''}>Miami</option>
-               <option value="Orlando" ${activeTeamSede === 'Orlando' ? 'selected' : ''}>Orlando</option>
-               <option value="Dallas" ${activeTeamSede === 'Dallas' ? 'selected' : ''}>Dallas</option>
-               <option value="Houston" ${activeTeamSede === 'Houston' ? 'selected' : ''}>Houston</option>
-               <option value="Austin" ${activeTeamSede === 'Austin' ? 'selected' : ''}>Austin</option>
-               <option value="North Carolina" ${activeTeamSede === 'North Carolina' ? 'selected' : ''}>North Carolina</option>
-               <option value="Nueva York" ${activeTeamSede === 'Nueva York' ? 'selected' : ''}>Nueva York</option>
-               <option value="Tampa" ${activeTeamSede === 'Tampa' ? 'selected' : ''}>Tampa</option>
-               <option value="Venezuela" ${activeTeamSede === 'Venezuela' ? 'selected' : ''}>Venezuela</option>
-               <option value="Brasil" ${activeTeamSede === 'Brasil' ? 'selected' : ''}>Brasil</option>
-               <option value="Colombia" ${activeTeamSede === 'Colombia' ? 'selected' : ''}>Colombia</option>
-               <option value="Remoto" ${activeTeamSede === 'Remoto' ? 'selected' : ''}>Remoto</option>
+               ${_sedeOptionsHtml()}
             </select>
           </div>
       </div>
@@ -284,12 +310,9 @@ function _renderTeamGrid() {
       });
     }
 
-    // Filter by Sede
-    if (activeTeamSede !== 'Todas') {
-       filtered = filtered.filter(w => {
-           const sede = (w.sede || '').toLowerCase().replace(/_/g, ' ');
-           return sede.includes(activeTeamSede.toLowerCase());
-       });
+    // Filter by Sede ('todas' y 'general' no filtran)
+    if (activeTeamSede && activeTeamSede !== 'todas' && activeTeamSede !== 'general') {
+       filtered = filtered.filter(w => normSede(w.sede) === activeTeamSede);
     }
 
     // Filter by Search
