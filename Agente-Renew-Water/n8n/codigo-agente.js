@@ -90,10 +90,10 @@ async function handleDecisions() {
 // ---------- Proyectos del usuario (según la fase en la que está cada uno) ----------
 async function misProyectos() {
   const all = await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null');
-  const cand = all.filter((p) => p.fase_id !== FASE_1 && sigueAbierto(p, ctx) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
+  const cand = all.filter((p) => sigueAbierto(p, ctx) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
   await nombresClientes(ctx, cand.map((p) => p.cliente_id));
   // SEGURIDAD: un representante nunca ve proyectos de otros aunque comparta rol en la fase
-  const mine = cand.filter((p) => puedeTrabajar(user, p, ctx.CL[p.cliente_id], ctx.F[p.fase_id]));
+  const mine = cand.filter((p) => puedeTrabajar(user, p, ctx.CL[p.cliente_id], ctx.F[p.fase_id], ctx.users));
   if (mine.length < cand.length) await auditar({ tel: from, uid: user.id, nivel: nivelTexto(user), accion: 'proyectos_filtrados', detalle: `${cand.length - mine.length} proyectos fuera de su alcance` });
   return mine;
 }
@@ -290,6 +290,7 @@ async function handleTexto() {
   } else {
     delete sd.pendingText[user.id];
   }
+  if (proy.fase_id === FASE_1) await subirAOT(proy, user.id); // crédito aprobado: sigue con la Orden de Trabajo
   if (proy.fase_id === FASE_OT) return handleOT(proy);
   if (proy.fase_id === FASE_TEC) return handleTecnico(proy);
   if (proy.fase_id === FASE_CERT && proy.tecnico_id) return handleCert(proy);

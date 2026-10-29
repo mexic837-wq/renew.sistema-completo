@@ -61,14 +61,31 @@ function camposFase(faseId, campos) {
   return campos.filter((c) => c.fase_id === faseId && !ESPECIALES.includes(c.tipo) && !/test_probe/.test(c.id) && !vistos.has(c.etiqueta) && vistos.add(c.etiqueta));
 }
 
+// La MISMA persona que la app muestra en "En manos de" para las fases por rol
+// (técnico asignado, o el primer usuario con ese rol: Call Center, Admin/Oficina, Finanzas, CEO...)
+function responsableUnico(fase, proy, users) {
+  const rol = String(fase.rol_encargado || '').toLowerCase();
+  const activos = users.filter((u) => !u.is_suspended);
+  const porRol = (txt) => activos.find((u) => rolesDe(u.rol).some((r) => String(r).toLowerCase().trim().includes(txt)));
+  if (/t[eé]cnic/.test(rol)) return activos.find((u) => proy.tecnico_id && String(u.id) === String(proy.tecnico_id)) || null;
+  if (rol.includes('call')) return porRol('call');
+  if (rol.includes('admin') || rol.includes('oficina')) return porRol('admin');
+  if (rol.includes('financ')) return porRol('financ');
+  if (rol === 'ceo') return porRol('ceo');
+  return porRol(rol);
+}
+
+// A quién le toca la fase actual de un proyecto (a quién persigue el agente)
 function encargadosDe(fase, proy, users) {
   const activos = users.filter((u) => !u.is_suspended);
   const ids = new Set();
   const rol = fase.rol_encargado;
-  if (rol === 'Encargado del Proyecto') { if (proy.responsable_id) ids.add(proy.responsable_id); (fase.usuarios_especificos || []).forEach((i) => ids.add(i)); }
-  else if (rol === 'Asignación Específica') { (fase.usuarios_especificos || []).forEach((i) => ids.add(i)); if (fase.id === 'fase_39_uivk' && proy.tecnico_id) ids.add(proy.tecnico_id); }
-  else activos.filter((u) => rolesDe(u.rol).some((r) => sinAcentos(r) === sinAcentos(rol))).forEach((u) => ids.add(u.id));
-  return activos.filter((u) => ids.has(u.id));
+  const add = (v) => String(v || '').split(',').map((x) => x.trim()).filter(Boolean).forEach((i) => ids.add(i));
+  (fase.usuarios_especificos || []).forEach(add);
+  if (rol === 'Encargado del Proyecto' || /vendedor|representante/.test(sinAcentos(rol))) add(proy.responsable_id);
+  else if (rol === 'Asignación Específica') { if (fase.id === FASE_CERT && proy.tecnico_id) add(proy.tecnico_id); }
+  else { const u = responsableUnico(fase, proy, users); if (u) add(u.id); } // una sola persona, no todo el rol
+  return activos.filter((u) => ids.has(String(u.id)));
 }
 
 async function cargarCtx() {
@@ -349,19 +366,20 @@ function puedeVerCliente(u, cli) {
 
 // ¿Puede TRABAJAR este proyecto en esta fase? Dueños sí; los roles por fase (Call Center, Contabilidad...)
 // solo si es su fase. Representantes, managers y técnicos NUNCA por rol: solo lo suyo.
-function puedeTrabajar(u, p, cli, fase) {
+function puedeTrabajar(u, p, cli, fase, users) {
   if (puedeVerProyecto(u, p, cli)) return true;
   if (!fase) return false;
   if ((fase.usuarios_especificos || []).map(String).includes(String(u.id))) return true; // asignado a mano por el admin
   const rol = sinAcentos(fase.rol_encargado);
   if (rol === 'encargado del proyecto' || rol === 'asignacion especifica') return false;
   if ([...ROLES_REP, ...ROLES_MANAGER, ...ROLES_TEC].includes(rol)) return false;
-  return rolesDe(u.rol).some((r) => sinAcentos(r) === rol);
+  const resp = users && responsableUnico(fase, p, users); // solo quien aparece "En manos de"
+  return !!resp && String(resp.id) === String(u.id);
 }
 // Encargados de una fase que además tienen derecho a ver ese proyecto
 function encargadosAutorizados(fase, proy, ctx) {
   const cli = ctx.CL && ctx.CL[proy.cliente_id];
-  return encargadosDe(fase, proy, ctx.users).filter((u) => puedeTrabajar(u, proy, cli, fase));
+  return encargadosDe(fase, proy, ctx.users).filter((u) => puedeTrabajar(u, proy, cli, fase, ctx.users));
 }
 
 // ---------- Auditoría y límites ----------
@@ -595,8 +613,9 @@ async function consultar(user, text, ctx, from) {
 // Qué le falta a un proyecto en su fase actual (null = nada que pedir)
 function lineaPendiente(p, ctx, resp) {
   const fase = ctx.F[p.fase_id];
-  if (!fase || p.fase_id === FASE_1) return null;
+  if (!fase) return null;
   const cli = ctx.N[p.cliente_id] || p.cliente_id;
+  if (p.fase_id === FASE_1) return `✅ *${cli}*: crédito aprobado. Falta la Orden de Trabajo: escríbeme *orden ${cli}* y te pido solo lo que falte.`;
   if (p.fase_id === FASE_OT) {
     const r = resp.find((x) => x.proyecto_id === p.id && x.campo_id === CAMPO_OT);
     if (!faltaValor(r) && /Completado/i.test(r.valor)) return null;
@@ -616,7 +635,7 @@ async function pendientesDe(user, ctx) {
   const pros = await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`);
   pros.filter(esWaterCli).forEach((c) => out.push({ key: 'prospecto:' + c.id, line: `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*?` }));
   const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
-    .filter((p) => p.fase_id !== FASE_1 && sigueAbierto(p, ctx));
+    .filter((p) => sigueAbierto(p, ctx));
   await nombresClientes(ctx, ps.map((p) => p.cliente_id));
   const mios = ps.filter((p) => encargadosAutorizados(ctx.F[p.fase_id], p, ctx).some((u) => u.id === user.id));
   if (mios.length) {
@@ -635,3 +654,14 @@ function encabezadoRecordatorio(nombre, veces) {
 }
 const listaCorta = (lines, max = 12) => lines.slice(0, max).join('\n') + (lines.length > max ? `\n… y ${lines.length - max} más (escríbeme *hola* para verlos todos)` : '');
 const RE_SALUDO = /^\s*¡?\s*(hola+|holi|buen[oa]s?(\s+(d[ií]as|tardes|noches))?|hey|qu[eé]\s+tal|saludos|hello|hi)\b[\s!.,¿?a-záéíóúñ]*$/i;
+
+// Proyecto que quedó en Aprobación: el crédito ya está aprobado, pasa a Orden de Trabajo
+async function subirAOT(proy, quien) {
+  const [p0] = await sel('proyectos_dinamicos', `select=actividad&id=eq.${proy.id}`);
+  await patch('proyectos_dinamicos', `id=eq.${proy.id}`, {
+    fase_id: FASE_OT,
+    actividad: [...((p0 && p0.actividad) || []), { tipo: 'CAMBIO_FASE', label: 'Avance: Aprobación → Orden de Trabajo (crédito aprobado)', de: FASE_1, a: FASE_OT, timestamp: new Date().toISOString(), responsable_id: quien }],
+    ultima_actividad: 'Pasó a Orden de Trabajo',
+  });
+  proy.fase_id = FASE_OT;
+}

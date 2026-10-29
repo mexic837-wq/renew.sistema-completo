@@ -31,7 +31,7 @@ for (const c of pros.filter(esWaterCli)) {
   if (u) add(u, 'prospecto:' + c.id, `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*? (si fue rechazada, dime el motivo)`);
 }
 const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
-  .filter((p) => p.fase_id !== FASE_1 && sigueAbierto(p, ctx));
+  .filter((p) => sigueAbierto(p, ctx));
 if (ps.length) {
   await nombresClientes(ctx, ps.map((p) => p.cliente_id));
   const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(ps.map((p) => p.id))}`);

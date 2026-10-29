@@ -1,11 +1,17 @@
-import { getClientesMaestro, createDynamicDeal, updateClientMaestro, getDB, getDeptArray, uploadFile, getAdminWorkers, getCurrentUser } from '../api.js';
+import { getClientesMaestro, createDynamicDeal, updateClientMaestro, getDB, getDeptArray, uploadFile, getAdminWorkers, getCurrentUser, isProjectFinished } from '../api.js';
 // Removed import from ../app.js to break circular dependency
 import { showToast } from '../components/toast.js';
 import { t } from '../i18n.js';
 
 
 let editingClientId = null;
-let currentClientsTab = 'prospectos'; // 'prospectos' | 'clientes'
+let currentClientsTab = 'prospectos'; // 'prospectos' | 'clientes' (en proceso) | 'cerrados' | 'declinados' | 'kanban'
+
+// Vista de "Citas" solo para quien es únicamente técnico (si además es Admin, Vendedor, etc. ve sus clientes)
+function esTecnicoPuro(user) {
+  const roles = user ? window.getUserRoles(user) : [];
+  return roles.some(r => /t[eé]cn[io]co/i.test(r)) && roles.every(r => /t[eé]cn[io]co/i.test(r));
+}
 let activeDeptFilter = null;
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -136,7 +142,7 @@ export async function renderClients() {
   try {
     const container = document.getElementById('lista-clientes-movil');
     const user = getCurrentUser();
-    const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+    const isTecnico = esTecnicoPuro(user);
     if (!container) return;
 
     // ── Populate header greeting & avatar ───────────────────
@@ -179,7 +185,7 @@ export async function renderClients() {
     if (nameEl) {
       const fullUserName = user && user.nombre ? user.nombre : (user && user.email ? user.email.split('@')[0] : 'Usuario');
       const firstName = fullUserName.split(' ')[0];
-      const titleBase = isTecnico ? (t('clients_title_tech') || 'Mis Citas') : 'Cartera de Clientes';
+      const titleBase = isTecnico ? (t('clients_title_tech') || 'Mis Citas') : 'Mis Clientes';
       nameEl.textContent = isTecnico ? `${titleBase} - ${firstName}` : titleBase;
       console.log('Title updated to:', nameEl.textContent);
     }
@@ -248,6 +254,10 @@ export async function renderClients() {
     `;
 
     // ── Wire up tab switching ─────────────────────────────────
+    const tabCerrados = document.querySelector('[data-clients-tab="cerrados"]');
+    const isCallCenterTabs = window.getUserRoles(user).some(r => r.includes('call'));
+    if (tabCerrados) tabCerrados.style.display = (isTecnico || isCallCenterTabs) ? 'none' : '';
+    if ((isTecnico || isCallCenterTabs) && currentClientsTab === 'cerrados') currentClientsTab = 'clientes';
     document.querySelectorAll('[data-clients-tab]').forEach(btn => {
       const isCallCenter = window.getUserRoles(user).some(r => r.includes('call'));
 
@@ -272,7 +282,7 @@ export async function renderClients() {
         } else if (tabKey === 'declinados') {
           btn.textContent = 'Declinados';
         } else {
-          btn.textContent = tabKey === 'prospectos' ? 'Mis Prospectos' : 'Mis Clientes';
+          btn.textContent = { prospectos: 'Prospectos', clientes: 'Clientes en Proceso', cerrados: 'Clientes Cerrados' }[tabKey] || btn.textContent;
         }
       }
 
@@ -385,7 +395,7 @@ async function _renderList(user, container) {
 
   const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(r));
   const isCallCenterRole = window.getUserRoles(user).some(r => r.includes('call'));
-  const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+  const isTecnico = esTecnicoPuro(user);
   const isSupervisorRole = window.isSupervisorUser(user);
   const supTeamIds = isSupervisorRole ? window.getTeamIds(user) : [];
 
@@ -489,7 +499,11 @@ async function _renderList(user, container) {
   // --- NEW: Calculate and update tab counters ---
   let countProspectos = 0;
   let countClientes = 0;
+  let countCerrados = 0;
   let countDeclinados = 0;
+  // Un cliente está "cerrado" cuando la venta ya se hizo en todos sus proyectos de este pipeline
+  const proyectosDelFiltro = (cps) => cps.filter(p => !activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id));
+  const esCerrado = (cps) => { const ps = proyectosDelFiltro(cps); return ps.length > 0 && ps.every(p => isProjectFinished(p, db)); };
 
   baseClientes.forEach(c => {
       if (c.macro_estado === 'Declinado') {
@@ -517,10 +531,10 @@ async function _renderList(user, container) {
         if (activePipelineObj) {
           const hasProjectInPipeline = clientProjects.some(p => String(p.pipeline_id) === String(activePipelineObj.id));
           if (!hasProjectInPipeline && !isProspectoMacro) countProspectos++;
-          if (hasProjectInPipeline) countClientes++;
+          if (hasProjectInPipeline) { if (esCerrado(clientProjects)) countCerrados++; else countClientes++; }
         } else {
           if (clientProjects.length === 0 && !isProspectoMacro) countProspectos++;
-          if (clientProjects.length > 0) countClientes++;
+          if (clientProjects.length > 0) { if (esCerrado(clientProjects)) countCerrados++; else countClientes++; }
         }
       }
   });
@@ -532,13 +546,15 @@ async function _renderList(user, container) {
   if (btnPros) {
       if (isTecnico) btnPros.innerHTML = (t('clients_tab_prospects_tech') || 'Nuevas Citas') + ` <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
       else if (isCallCenterRole) btnPros.innerHTML = `Leads Pendientes <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
-      else btnPros.innerHTML = `Mis Prospectos <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
+      else btnPros.innerHTML = `Prospectos <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
   }
   if (btnCli) {
       if (isTecnico) btnCli.innerHTML = (t('clients_tab_clients_tech') || 'Citas Cerradas') + ` <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
       else if (isCallCenterRole) btnCli.innerHTML = `Mis Llamadas <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
-      else btnCli.innerHTML = `Mis Clientes <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
+      else btnCli.innerHTML = `Clientes en Proceso <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
   }
+  const btnCer = document.querySelector('[data-clients-tab="cerrados"]');
+  if (btnCer) btnCer.innerHTML = `Clientes Cerrados <span style="font-size:0.8em;opacity:0.8">(${countCerrados})</span>`;
   if (btnDec) {
       btnDec.innerHTML = `Declinados <span style="font-size:0.8em;opacity:0.8">(${countDeclinados})</span>`;
   }
@@ -593,7 +609,8 @@ async function _renderList(user, container) {
       }
       
       const hasProject = clientProjects.some(p => (!activePipelineObj || String(p.pipeline_id) === String(activePipelineObj.id)));
-      return hasProject;
+      if (!hasProject) return false;
+      return currentClientsTab === 'cerrados' ? esCerrado(clientProjects) : !esCerrado(clientProjects);
     });
   }
 

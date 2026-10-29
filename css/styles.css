@@ -2550,3 +2550,8 @@ body.is-callcenter #nav-btn-nuevo-cliente {
   .profile-units > div { padding: 16px 8px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); transition: var(--transition); }
   .profile-units > div:hover { border-color: var(--primary); transform: translateY(-2px); }
 }
+
+/* ── Clientes: 5 pestañas sin romper el ancho en celular ── */
+.clients-tabs-fix .dash-tabs-container { overflow-x: auto; scrollbar-width: none; }
+.clients-tabs-fix .dash-tabs-container::-webkit-scrollbar { display: none; }
+.clients-tabs-fix .dash-tab { white-space: nowrap; flex-shrink: 0; }

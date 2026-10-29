@@ -64,7 +64,7 @@
   </style>
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css?v=8" />
+  <link rel="stylesheet" href="css/styles.css?v=9" />
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFoQ242PO7RbV_EVjrT7Qt1uDDxuMqLE4&libraries=places"
     defer></script>
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
@@ -363,12 +363,13 @@
           </div>
         </div>
 
-        <!-- Tabs: Mis Prospectos / Mis Clientes -->
+        <!-- Tabs: Prospectos / Clientes en Proceso / Clientes Cerrados / Declinados / Kanban -->
         <div class="dash-tabs-wrapper clients-tabs-fix">
 
           <div class="dash-tabs-container">
-            <button class="dash-tab active" data-clients-tab="prospectos" id="clients-tab-prospectos">Mis Prospectos</button>
-            <button class="dash-tab" data-clients-tab="clientes" id="clients-tab-clientes">Mis Clientes</button>
+            <button class="dash-tab active" data-clients-tab="prospectos" id="clients-tab-prospectos">Prospectos</button>
+            <button class="dash-tab" data-clients-tab="clientes" id="clients-tab-clientes">Clientes en Proceso</button>
+            <button class="dash-tab" data-clients-tab="cerrados" id="clients-tab-cerrados">Clientes Cerrados</button>
             <button class="dash-tab" data-clients-tab="declinados" id="clients-tab-declinados">Declinados</button>
             <button class="dash-tab" data-clients-tab="kanban" id="clients-tab-kanban"><i class="fa-solid fa-kanban"></i> Kanban</button>
           </div>
@@ -1169,7 +1170,7 @@
 
   <!-- ── Archivos principales de la aplicación ── -->
   <script type="module" src="./js/api.js?v=66"></script>
-  <script type="module" src="./js/app.js?v=1028"></script>
+  <script type="module" src="./js/app.js?v=1029"></script>
 
   <!-- Zadarma WebRTC -->
   <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"></script>
