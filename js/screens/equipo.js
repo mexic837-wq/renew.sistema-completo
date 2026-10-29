@@ -57,6 +57,8 @@ export async function renderMiEquipo() {
                <option value="Miami" ${activeTeamSede === 'Miami' ? 'selected' : ''}>Miami</option>
                <option value="Orlando" ${activeTeamSede === 'Orlando' ? 'selected' : ''}>Orlando</option>
                <option value="Dallas" ${activeTeamSede === 'Dallas' ? 'selected' : ''}>Dallas</option>
+               <option value="Houston" ${activeTeamSede === 'Houston' ? 'selected' : ''}>Houston</option>
+               <option value="Austin" ${activeTeamSede === 'Austin' ? 'selected' : ''}>Austin</option>
                <option value="Nueva York" ${activeTeamSede === 'Nueva York' ? 'selected' : ''}>Nueva York</option>
                <option value="Tampa" ${activeTeamSede === 'Tampa' ? 'selected' : ''}>Tampa</option>
                <option value="Venezuela" ${activeTeamSede === 'Venezuela' ? 'selected' : ''}>Venezuela</option>
