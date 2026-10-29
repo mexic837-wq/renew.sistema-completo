@@ -37,6 +37,13 @@ export function renderConfirmacionInstalacion() {
     .sig-wrapper { border:2px dashed var(--border);border-radius:16px;overflow:hidden;position:relative;background:#fff; }
     .sig-canvas { display:block;width:100%;height:140px;touch-action:none; }
     .sig-clear { position:absolute;top:8px;right:10px;background:rgba(239,68,68,.1);border:none;color:#ef4444;font-size:.7rem;font-weight:800;padding:4px 10px;border-radius:6px;cursor:pointer; }
+    .ci-notice { display:flex;gap:12px;padding:14px 16px;border-radius:14px;border:1px solid rgba(14,165,233,.28);border-left:4px solid #0ea5e9;background:rgba(14,165,233,.07);margin-top:6px; }
+    .ci-notice.important { border-color:rgba(245,158,11,.35);border-left-color:#f59e0b;background:rgba(245,158,11,.08); }
+    .ci-notice-icon { width:32px;height:32px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(14,165,233,.15);color:#0ea5e9;font-size:.9rem; }
+    .ci-notice.important .ci-notice-icon { background:rgba(245,158,11,.18);color:#d97706; }
+    .ci-notice-title { font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--text-primary);margin-bottom:4px; }
+    .ci-notice p { margin:0;font-size:.82rem;line-height:1.5;color:var(--text-primary);font-weight:600; }
+    .ci-notice p.en { margin-top:6px;font-size:.74rem;font-weight:500;color:var(--text-secondary);font-style:italic; }
     .ci-submit { position:fixed;bottom:70px;left:0;right:0;padding:16px;background:var(--surface);border-top:1px solid var(--border);z-index:99; }
     .ci-btn-submit { width:100%;padding:16px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);color:#fff;border:none;border-radius:16px;font-size:1rem;font-weight:800;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px; }
     .ci-btn-submit:active { transform:scale(.97); }
@@ -138,6 +145,14 @@ export function renderConfirmacionInstalacion() {
         <div class="ci-field">
           <label class="ci-label">Representante de Ventas</label>
           <input class="ci-input" type="text" id="ci-rep-ventas" placeholder="Nombre del vendedor">
+        </div>
+        <div class="ci-notice">
+          <div class="ci-notice-icon"><i class="fa-solid fa-location-dot"></i></div>
+          <div>
+            <div class="ci-notice-title">Ubicación del equipo</div>
+            <p>El lugar de instalación del equipo de tratamiento de agua va a ser determinado por el personal de instalación de RENEW WATER y el comprador(es), en la mejor localización posible.</p>
+            <p class="en">The placement of the water treatment equipment is to be determined by RENEW WATER installation personnel and purchaser(s), as to the best possible location.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -243,6 +258,14 @@ export function renderConfirmacionInstalacion() {
         </div>
       </div>
       <div class="ci-section-body">
+        <div class="ci-notice important" style="margin:0 0 14px;">
+          <div class="ci-notice-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>
+            <div class="ci-notice-title">Lea antes de firmar</div>
+            <p>Con fecha de hoy certifico que han sido instalados y entregados satisfactoriamente en nuestra propiedad los artículos indicados.</p>
+            <p class="en">I hereby certify that the items described above have been satisfactorily delivered and installed today in the above property address.</p>
+          </div>
+        </div>
         <div class="sig-wrapper">
           <canvas id="ci-sig-canvas" class="sig-canvas"></canvas>
           <button class="sig-clear" onclick="window.ciClearSig()">Limpiar</button>

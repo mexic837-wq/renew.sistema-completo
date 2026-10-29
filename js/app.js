@@ -42,7 +42,7 @@ import { renderMisRecibos } from './screens/recibos.js?v=3';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderCatalogo } from './screens/catalogo.js';
 import { renderPlantillas }  from './screens/plantillas.js';
-import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
+import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js?v=2';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
 import { _renderToolsForPipeline } from './screens/dashboard.js?v=14';
