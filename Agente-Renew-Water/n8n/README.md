@@ -56,6 +56,26 @@ apikey: <EVOLUTION_API_KEY>
 
 Para reenviar un enlace: *reenviar enlace <cliente>*.
 
+## Seguridad: quién puede ver qué
+El agente **deniega por defecto**. La autorización la decide el código (`comun.js`, sección SEGURIDAD), nunca la IA: el modelo solo recibe datos ya filtrados.
+
+| Quién escribe | Qué puede ver |
+|---|---|
+| **Representante** | Solo SUS clientes y proyectos. |
+| **Manager de Venta** | Los suyos + los de los representantes a su cargo (`usuarios.equipo_ids`). |
+| **Técnico** | Solo los proyectos donde es el técnico asignado. |
+| **Admin / CEO** | Información general: cifras y estado de proyectos. **Nunca** teléfonos, direcciones, montos, crédito, ID ni comisiones (eso se ve en la app). |
+| **Otros roles** (Call Center, Contabilidad…) | Solo lo que hoy está en la fase que les toca. |
+| **Cliente** | Solo el estado de su propio proceso (fase, fecha de instalación, técnico, enlace de sus documentos). Sin precios, pagos ni datos de otros. |
+| **Número desconocido** | No se le responde nada. |
+
+Consultas por WhatsApp (solo lectura): *mis clientes*, *cómo va <cliente>*, *mi equipo*, *clientes de <representante>*, *resumen general* (solo Admin/CEO).
+Si alguien pregunta por un cliente que no es suyo, la respuesta es idéntica a si no existiera ("No encontré…"): no se revela nada.
+
+Además: avisos y recordatorios solo llegan a quien le corresponde el cliente; límite de 20 mensajes/hora para números externos; las órdenes escritas dentro de un mensaje no cambian las reglas.
+Todo queda en la tabla `agente_auditoria` (ejecuta `supabase_agente_auditoria.sql`). Intentos negados de la última semana:
+`select fecha, telefono, nivel, accion, detalle from agente_auditoria where permitido = false and fecha > now() - interval '7 days' order by fecha desc;`
+
 ## Notas
 - **Orden de Trabajo completa (Estación 2):** pre-carga datos de `clientes_maestro`, pide los bloques faltantes (Comprador, Equipos, Instalación, Finanzas y foto de ID opcional), deja tarjeta en `"0"` y firmas en blanco, muestra resumen y al confirmar con **SI** llama a `POST https://renewgroup.site/api/generar-orden` (que sube el PDF a `archivos_renew`, actualiza el proyecto/cliente y dispara el webhook `aplicacion-credito-o-trabajo` al grupo de WhatsApp).
 - **Avance fase por fase (Estaciones 3 a 9):** lee los campos reales de `admin_campos_formulario` y los encargados de `admin_fases`. Con `AUTO_ADVANCE=true`, al completarse una estación avanza a la siguiente y envía automáticamente las preguntas de la nueva estación a sus encargados.

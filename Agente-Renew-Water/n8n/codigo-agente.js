@@ -20,8 +20,14 @@ let text = text0;
 if (!mediaNode && !text) return [{ json: { ignorado: 'tipo de mensaje no soportado' } }];
 
 const ctx = await cargarCtx();
-const user = ctx.users.find((u) => !u.is_suspended && norm(u.telefono) === from);
-if (!user) return [{ json: { ignorado: 'número desconocido ' + from } }];
+// Coincidencia por los últimos 10 dígitos (tolera +1, paréntesis, guiones y el 0 troncal)
+const ult10 = (t) => digits(t).slice(-10);
+const user = ctx.users.find((u) => !u.is_suspended && ult10(u.telefono).length >= 10 && ult10(u.telefono) === ult10(from));
+if (!user) {
+  // No es del equipo: si es un cliente solo ve su propio estado; si no, no se le responde nada
+  sd.seen.push(m.key.id); if (sd.seen.length > 500) sd.seen = sd.seen.slice(-250);
+  return [{ json: await atenderCliente(ctx, from, text, !!mediaNode) }];
+}
 const nombreUser = user.nombre.trim();
 const say = (t) => sendText(from, t);
 
@@ -86,8 +92,11 @@ async function handleDecisions() {
 // ---------- Proyectos del usuario (según la fase en la que está cada uno) ----------
 async function misProyectos() {
   const all = await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null');
-  const mine = all.filter((p) => p.fase_id !== FASE_1 && sigueAbierto(p, ctx) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
-  await nombresClientes(ctx, mine.map((p) => p.cliente_id));
+  const cand = all.filter((p) => p.fase_id !== FASE_1 && sigueAbierto(p, ctx) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
+  await nombresClientes(ctx, cand.map((p) => p.cliente_id));
+  // SEGURIDAD: un representante nunca ve proyectos de otros aunque comparta rol en la fase
+  const mine = cand.filter((p) => puedeTrabajar(user, p, ctx.CL[p.cliente_id], ctx.F[p.fase_id]));
+  if (mine.length < cand.length) await auditar({ tel: from, uid: user.id, nivel: nivelTexto(user), accion: 'proyectos_filtrados', detalle: `${cand.length - mine.length} proyectos fuera de su alcance` });
   return mine;
 }
 
@@ -606,7 +615,8 @@ try {
   if (mediaNode) accion = await handleMedia();
   else {
     const esperaSi = esSi(text) && [...Object.values(sd.drafts), ...Object.values(sd.cert)].some((x) => x && x._owner === user.id && (x._confirmando || x._preguntaGenerar));
-    if (!esperaSi) accion = await handleDecisions();
+    if (!esperaSi) accion = await consultar(user, text, ctx, from);
+    if (!accion && !esperaSi) accion = await handleDecisions();
     if (!accion) accion = await handleTexto();
   }
   sd.seen.push(m.key.id); if (sd.seen.length > 500) sd.seen = sd.seen.slice(-250);

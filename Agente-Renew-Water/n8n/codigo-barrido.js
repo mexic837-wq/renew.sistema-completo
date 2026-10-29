@@ -26,7 +26,7 @@ if (ps.length) {
   for (const p of ps) {
     const fase = ctx.F[p.fase_id]; if (!fase || p.fase_id === FASE_1) continue; // Estación 1: solo la decisión de crédito
     const cli = ctx.N[p.cliente_id] || p.cliente_id;
-    const dest = encargadosDe(fase, p, ctx.users);
+    const dest = encargadosAutorizados(fase, p, ctx); // solo a quien le corresponde ese cliente
     let linea = null;
     if (p.fase_id === FASE_OT) {
       const r = resp.find((x) => x.proyecto_id === p.id && x.campo_id === CAMPO_OT);
