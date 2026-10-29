@@ -587,3 +587,51 @@ async function consultar(user, text, ctx, from) {
   if ((a.manager || a.admin) && repU) l.push(`🧑‍💼 Representante: ${repU.nombre.trim()}`);
   return responder(l.join('\n'), 'consulta_estado', cliP.nombre);
 }
+
+// ============================================================================
+// INSISTENCIA: el agente persigue los pendientes como un coordinador de RR.HH.
+// No suelta a nadie hasta tener los datos: recuerda, vuelve a recordar y escala al manager.
+// ============================================================================
+// Qué le falta a un proyecto en su fase actual (null = nada que pedir)
+function lineaPendiente(p, ctx, resp) {
+  const fase = ctx.F[p.fase_id];
+  if (!fase || p.fase_id === FASE_1) return null;
+  const cli = ctx.N[p.cliente_id] || p.cliente_id;
+  if (p.fase_id === FASE_OT) {
+    const r = resp.find((x) => x.proyecto_id === p.id && x.campo_id === CAMPO_OT);
+    if (!faltaValor(r) && /Completado/i.test(r.valor)) return null;
+    return sd.drafts[p.id] && sd.drafts[p.id]._firmaUrl
+      ? `✍️ *${cli}*: la Orden de Trabajo espera la firma del cliente. Llámalo para que firme (o escríbeme *reenviar enlace ${cli}*).`
+      : `📋 *${cli}*: falta la Orden de Trabajo. Escríbeme *orden ${cli}* y te pido solo lo que falte.`;
+  }
+  if (p.fase_id === FASE_TEC && !p.tecnico_id) return `🛠 *${cli}*: falta asignar el técnico. Respóndeme con el número del técnico y la fecha y hora de instalación.`;
+  if (p.fase_id === FASE_CERT && sd.cert[p.id] && sd.cert[p.id]._firmaUrl) return `✍️ *${cli}*: la Confirmación de Instalación espera la firma del cliente.`;
+  const pend = camposFase(p.fase_id, ctx.campos).filter((c) => faltaValor(resp.find((x) => x.proyecto_id === p.id && x.campo_id === c.id)));
+  return pend.length ? `📎 *${cli}* (${fase.nombre}): ${pend.map((c) => preguntaCampo(c, ctx)).join('; ')}` : null;
+}
+
+// Todo lo que una persona le debe al agente ahora mismo (solo de clientes que le corresponden)
+async function pendientesDe(user, ctx) {
+  const out = [];
+  const pros = await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`);
+  pros.filter(esWaterCli).forEach((c) => out.push({ key: 'prospecto:' + c.id, line: `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*?` }));
+  const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
+    .filter((p) => p.fase_id !== FASE_1 && sigueAbierto(p, ctx));
+  await nombresClientes(ctx, ps.map((p) => p.cliente_id));
+  const mios = ps.filter((p) => encargadosAutorizados(ctx.F[p.fase_id], p, ctx).some((u) => u.id === user.id));
+  if (mios.length) {
+    const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(mios.map((p) => p.id))}`);
+    mios.forEach((p) => { const l = lineaPendiente(p, ctx, resp); if (l) out.push({ key: `proy:${p.id}:${p.fase_id}`, line: l }); });
+  }
+  return out;
+}
+
+// Tono según cuántas veces ya se le recordó (cada vez más firme, siempre respetuoso)
+function encabezadoRecordatorio(nombre, veces) {
+  if (veces <= 0) return `Hola ${nombre} 👋, soy el asistente de Renew Water. Para seguir avanzando necesito esto:`;
+  if (veces === 1) return `${nombre}, te escribo de nuevo 🙏. Sigo esperando esto para no frenar a tus clientes:`;
+  if (veces === 2) return `${nombre}, ya es el tercer aviso ⏰. Estos clientes están detenidos esperando tus datos:`;
+  return `${nombre}, esto sigue pendiente después de ${veces + 1} avisos ⚠️. Necesito que me lo pases hoy:`;
+}
+const listaCorta = (lines, max = 12) => lines.slice(0, max).join('\n') + (lines.length > max ? `\n… y ${lines.length - max} más (escríbeme *hola* para verlos todos)` : '');
+const RE_SALUDO = /^\s*¡?\s*(hola+|holi|buen[oa]s?(\s+(d[ií]as|tardes|noches))?|hey|qu[eé]\s+tal|saludos|hello|hi)\b[\s!.,¿?a-záéíóúñ]*$/i;

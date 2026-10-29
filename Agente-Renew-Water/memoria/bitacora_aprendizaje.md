@@ -20,3 +20,6 @@ Formato: `[AAAA-MM-DD HH:mm] Observación / regla aprendida`
 - [2026-10-29 13:30] REGLA (usuario): al terminar la instalación se pregunta de qué sede se retiró el material y qué se usó; se descuenta de inventario_global de esa sede y se informa a técnico y vendedor.
 
 - [2026-10-29 15:10] REGLA DE SEGURIDAD (usuario): el agente nunca filtra información. Representante: solo sus clientes. Manager de Venta: los suyos y los de su equipo. Cliente: solo lo suyo. Admin/CEO: información general con limitaciones (sin contacto, montos, crédito, ID ni comisiones). Número desconocido: no se responde. La autorización se decide en código (comun.js), nunca con la IA.
+
+- [2026-10-29 15:40] REGLA (usuario): el agente debe insistir como un coordinador de RR.HH. hasta obtener los datos: saludo = lista de pendientes; recordatorios cada 4 h en horario laboral; escala al Manager de Venta al 3er aviso y a Admin/CEO al 6º.
+- [2026-10-29 15:40] REGLA (usuario): el crédito aprobado pasa el proyecto directo a Orden de Trabajo (no se queda en Aprobación aunque falte la aplicación cargada).

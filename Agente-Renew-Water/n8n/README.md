@@ -56,6 +56,13 @@ apikey: <EVOLUTION_API_KEY>
 
 Para reenviar un enlace: *reenviar enlace <cliente>*.
 
+## Insistencia (como un coordinador de RR.HH.)
+- **Saludo:** si alguien escribe *hola*, el agente le responde con TODO lo que tiene pendiente.
+- **Barrido:** corre cada 2 h, pero solo escribe de 8:00 a 20:00 (hora de Florida) y como mucho cada 4 h por pendiente. El tono sube con cada aviso (1º amable → 3º "ya es el tercer aviso" → 4º+ "necesito que me lo pases hoy").
+- **Escalamiento:** desde el 3er aviso sin respuesta se le avisa a su **Manager de Venta** (1 vez al día); desde el 6º, a **Admin/CEO** con un resumen (1 vez al día).
+- Cuando el dato llega, el contador de ese pendiente se borra solo.
+- `BARRIDO_SEND` viene en `true` (envía de verdad). Ponlo en `false` para solo simular.
+
 ## Seguridad: quién puede ver qué
 El agente **deniega por defecto**. La autorización la decide el código (`comun.js`, sección SEGURIDAD), nunca la IA: el modelo solo recibe datos ya filtrados.
 

@@ -38,12 +38,10 @@ async function crearProyectoWater(cli) {
   const now = new Date().toISOString();
   const actividad = [{ tipo: 'DECISION_CREDITO', label: 'Aplicación de Crédito ACEPTADA (confirmado por WhatsApp)', timestamp: now, responsable_id: user.id }];
   const app = cli.adjuntos_oficina && cli.adjuntos_oficina.app_url;
-  let fase = FASE_1;
-  if (app) {
-    actividad.push({ tipo: 'FORMULARIO_COMPLETADO', campo: 'Aplicación de Crédito', label: 'Aplicación de Crédito', archivo: app, timestamp: now, responsable_id: user.id });
-    actividad.push({ tipo: 'CAMBIO_FASE', label: 'Avance automático: Aprobación → Orden de Trabajo (Aplicación de Crédito completada)', de: FASE_1, a: FASE_OT, timestamp: now, responsable_id: 'agente-renew-water' });
-    fase = FASE_OT;
-  }
+  if (app) actividad.push({ tipo: 'FORMULARIO_COMPLETADO', campo: 'Aplicación de Crédito', label: 'Aplicación de Crédito', archivo: app, timestamp: now, responsable_id: user.id });
+  // El crédito aprobado es la aprobación: el proyecto pasa directo a Orden de Trabajo
+  actividad.push({ tipo: 'CAMBIO_FASE', label: 'Avance automático: Aprobación → Orden de Trabajo (crédito aprobado)', de: FASE_1, a: FASE_OT, timestamp: now, responsable_id: 'agente-renew-water' });
+  const fase = FASE_OT;
   await insert('proyectos_dinamicos', { id, cliente_id: cli.id, pipeline_id: 'pip_water', fase_id: fase, responsable_id: user.id, fecha: now.split('T')[0], colaboradores: [], discusion: [], actividad, ultima_actividad: 'Proyecto creado por Agente tras aceptación de crédito' });
   await patch('clientes_maestro', `id=eq.${cli.id}`, { estado: 'En Proceso', macro_estado: 'En Proceso', vendedor_asignado_id: user.id });
   return { id, fase };
@@ -239,7 +237,7 @@ async function handleCampos(proy) {
     await guardarRespuesta(proy.id, c.id, v);
     guardados.push(c.etiqueta);
   }
-  if (!guardados.length) { await say(`No logré identificar los datos para *${cli}* (${fase.nombre}). Necesito:\n${pedibles.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`); return 'no_entendido'; }
+  if (!guardados.length) { await say(`No logré identificar datos para *${cli}* (${fase.nombre}) en tu mensaje. Para avanzar necesito:\n${pedibles.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}\n\nEscríbeme *hola* para ver todo lo que tienes pendiente.`); return 'no_entendido'; }
   const res = await revisarFase(proy, ctx, user.id);
   let out = `✅ Guardé ${guardados.join(', ')} de *${cli}*.`;
   if (res.estado === 'faltan') out += `\n\nAún me falta que me pases estos datos para poder avanzar de fase:\n${res.pend.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`;
@@ -546,6 +544,14 @@ async function procesarFirma(evf) {
   return { firma: evf.tipo, proyecto: proy.id };
 }
 
+// ---------- Saludo: responde con TODO lo que la persona tiene pendiente ----------
+async function handleSaludo() {
+  const items = await pendientesDe(user, ctx);
+  if (!items.length) { await say(`Hola ${nombreUser} 👋. No tienes nada pendiente conmigo por ahora. ¡Buen trabajo! 💪`); return 'saludo_sin_pendientes'; }
+  await say(`Hola ${nombreUser} 👋. Tienes *${items.length}* pendiente${items.length === 1 ? '' : 's'} que necesito para avanzar:\n\n${listaCorta(items.map((x) => x.line), 25)}\n\nPásamelos por aquí (escribe el nombre del cliente en cada mensaje) y yo sigo con el resto.`);
+  return 'saludo_pendientes';
+}
+
 // ---------- Medios ----------
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
 async function handleMedia() {
@@ -615,7 +621,8 @@ try {
   if (mediaNode) accion = await handleMedia();
   else {
     const esperaSi = esSi(text) && [...Object.values(sd.drafts), ...Object.values(sd.cert)].some((x) => x && x._owner === user.id && (x._confirmando || x._preguntaGenerar));
-    if (!esperaSi) accion = await consultar(user, text, ctx, from);
+    if (!esperaSi && RE_SALUDO.test(text) && text.length <= 40) accion = await handleSaludo();
+    if (!accion && !esperaSi) accion = await consultar(user, text, ctx, from);
     if (!accion && !esperaSi) accion = await handleDecisions();
     if (!accion) accion = await handleTexto();
   }
