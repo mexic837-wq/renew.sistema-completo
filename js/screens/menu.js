@@ -162,13 +162,98 @@ export async function renderMenu() {
   // Soporte Técnico
   const btnSupport = document.getElementById('btn-menu-support');
   if (btnSupport) {
-    btnSupport.addEventListener('click', () => {
-      window.location.href = 'mailto:miguel@renewsolarus.com?subject=Soporte Técnico Renew OS';
-    });
+    btnSupport.addEventListener('click', () => mostrarModalSoporte());
   }
 
   // Re-render on language change
   window.addEventListener('langchange', () => renderMenu(), { once: true });
+}
+
+// ── Soporte Técnico: contactos con enlace directo a WhatsApp y Gmail ──
+const SOPORTE_CONTACTOS = [
+  { nombre: 'Miguel Durantt', rol: 'Soporte Técnico', email: 'miguel@renewsolarus.com', telefono: '+58 416 7717376', wa: '584167717376' },
+  { nombre: 'José Daniel Pereira', rol: 'Soporte Técnico', email: 'daniel@renewsolarus.com', telefono: '+58 416 7732288', wa: '584167732288' }
+];
+
+function mostrarModalSoporte() {
+  document.getElementById('support-modal')?.remove();
+
+  if (!document.getElementById('support-modal-styles')) {
+    const st = document.createElement('style');
+    st.id = 'support-modal-styles';
+    st.textContent = `
+      #support-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(11,17,32,.55); backdrop-filter: blur(6px); animation: supFade .2s ease both; }
+      .sup-card { position: relative; width: min(520px, 100%); max-height: 92vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.35); animation: supUp .3s cubic-bezier(.16,1,.3,1) both; }
+      .sup-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border: none; border-radius: 50%; background: var(--surface-alt); color: var(--text-secondary); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); }
+      .sup-close:hover { background: var(--border); color: var(--text-primary); }
+      .sup-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+      .sup-head-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #04342c; background: linear-gradient(135deg, #00dfbf, #05d564); }
+      .sup-head h3 { margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--text-primary); }
+      .sup-sub { margin: 0 0 20px; font-size: .85rem; color: var(--text-muted); }
+      .sup-list { display: flex; flex-direction: column; gap: 14px; }
+      .sup-person { padding: 18px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 18px; }
+      .sup-person-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+      .sup-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #04342c; background: linear-gradient(135deg, #00dfbf, #05d564); }
+      .sup-name { font-weight: 800; font-size: 1rem; color: var(--text-primary); }
+      .sup-role { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+      .sup-row { display: flex; align-items: center; gap: 10px; font-size: .85rem; color: var(--text-secondary); margin-bottom: 6px; word-break: break-all; }
+      .sup-row i { width: 16px; text-align: center; color: var(--text-muted); }
+      .sup-actions { display: flex; gap: 10px; margin-top: 14px; }
+      .sup-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border-radius: 12px; font-size: .82rem; font-weight: 800; text-decoration: none; transition: var(--transition); border: 1px solid transparent; }
+      .sup-btn:hover { transform: translateY(-2px); }
+      .sup-wa { background: #25d366; color: #052e14; box-shadow: 0 6px 16px rgba(37,211,102,.3); }
+      .sup-mail { background: var(--surface); color: var(--text-primary); border-color: var(--border); }
+      .sup-mail:hover { border-color: var(--primary); }
+      @keyframes supFade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes supUp { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+      @media (max-width: 600px) {
+        #support-modal { align-items: flex-end; padding: 0; }
+        .sup-card { width: 100%; border-radius: 24px 24px 0 0; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); }
+        .sup-actions { flex-direction: column; }
+      }`;
+    document.head.appendChild(st);
+  }
+
+  const iniciales = n => n.split(' ').filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+  const msg = encodeURIComponent('Hola, necesito ayuda con Renew OS.');
+  const asunto = encodeURIComponent('Soporte Técnico Renew OS');
+
+  const modal = document.createElement('div');
+  modal.id = 'support-modal';
+  modal.innerHTML = `
+    <div class="sup-card" role="dialog" aria-label="Soporte Técnico">
+      <button class="sup-close" aria-label="Cerrar" type="button">&times;</button>
+      <div class="sup-head">
+        <div class="sup-head-icon"><i class="fa-solid fa-headset"></i></div>
+        <h3>Soporte Técnico</h3>
+      </div>
+      <p class="sup-sub">¿Algo no funciona? Escríbenos y te ayudamos.</p>
+      <div class="sup-list">
+        ${SOPORTE_CONTACTOS.map(c => `
+          <div class="sup-person">
+            <div class="sup-person-top">
+              <div class="sup-avatar">${iniciales(c.nombre)}</div>
+              <div>
+                <div class="sup-name">${c.nombre}</div>
+                <div class="sup-role">${c.rol}</div>
+              </div>
+            </div>
+            <div class="sup-row"><i class="fa-brands fa-whatsapp"></i><span>${c.telefono}</span></div>
+            <div class="sup-row"><i class="fa-regular fa-envelope"></i><span>${c.email}</span></div>
+            <div class="sup-actions">
+              <a class="sup-btn sup-wa" href="https://wa.me/${c.wa}?text=${msg}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+              <a class="sup-btn sup-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(c.email)}&su=${asunto}" target="_blank" rel="noopener noreferrer"><i class="fa-regular fa-envelope"></i> Correo</a>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const cerrar = () => { modal.remove(); document.removeEventListener('keydown', onEsc); };
+  const onEsc = e => { if (e.key === 'Escape') cerrar(); };
+  document.addEventListener('keydown', onEsc);
+  modal.addEventListener('click', e => { if (e.target === modal) cerrar(); });
+  modal.querySelector('.sup-close').addEventListener('click', cerrar);
 }
 
 function mostrarModalNotificaciones(user) {
