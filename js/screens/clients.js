@@ -16,6 +16,25 @@ function cleanDisplay(val) {
   return s.replace(/,\s*=/g, ', ').trim();
 }
 
+// Ciudad del cliente: campo ciudad o, si no existe, se saca de la dirección
+// ("123 Main St, Miami, FL 33101, USA" → "Miami")
+function getClientCity(c) {
+  if (!c) return '';
+  const direct = cleanDisplay(c.ciudad || c.city || '');
+  if (direct) return direct;
+  const parts = cleanDisplay(c.direccion || '').split(',').map(x => x.trim()).filter(Boolean);
+  while (parts.length && /^(usa|us|u\.s\.a?\.?|united states|ee\.? ?uu\.?|estados unidos)$/i.test(parts[parts.length - 1])) parts.pop();
+  if (parts.length < 2) return '';
+  const isState = x => /^[A-Za-z]{2}(\s+\d{5}(-\d{4})?)?$/.test(x) || /^[A-Za-z .]+\s+\d{5}(-\d{4})?$/.test(x) || /^\d{5}(-\d{4})?$/.test(x);
+  let i = parts.length - 1;
+  while (i > 0 && isState(parts[i])) i--;
+  const city = parts[i];
+  if (!/\d/.test(city)) return city;
+  // "Miami FL 33136" en una sola parte
+  const m = (parts[i + 1] || parts[i]).match(/^([A-Za-z .]+?)\s+[A-Za-z]{2}\s+\d{5}/);
+  return m ? m[1].trim() : '';
+}
+
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Buenos días ☀️';
@@ -651,6 +670,7 @@ async function _renderList(user, container) {
       const repHtml = `
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px;">
           <i class="fa-solid fa-user-tie"></i> <span>Rep: <strong>${repName}</strong></span>
+          ${getClientCity(c) ? `<span style="opacity:.5;">·</span><i class="fa-solid fa-location-dot" style="color:var(--primary);"></i> <strong style="color:var(--text-secondary);">${getClientCity(c)}</strong>` : ''}
         </div>
       `;
 
@@ -2303,6 +2323,7 @@ function _renderKanban(user, container, filteredClients, db) {
                     <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
                         <i class="fa-solid fa-phone" style="color:var(--text-muted);font-size:0.65rem;flex-shrink:0;"></i>
                         <span style="font-size:0.78rem;color:var(--text-secondary);">${c.telefono || '\u2014'}</span>
+                        ${getClientCity(c) ? `<i class="fa-solid fa-location-dot" style="color:var(--text-muted);font-size:0.65rem;flex-shrink:0;margin-left:6px;"></i><span style="font-size:0.78rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${getClientCity(c)}</span>` : ''}
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                         <div style="display:flex;align-items:center;gap:5px;min-width:0;">
