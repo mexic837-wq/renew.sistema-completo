@@ -287,7 +287,7 @@ function _renderTeamGrid() {
     // Filter by Sede
     if (activeTeamSede !== 'Todas') {
        filtered = filtered.filter(w => {
-           const sede = (w.sede || '').toLowerCase();
+           const sede = (w.sede || '').toLowerCase().replace(/_/g, ' ');
            return sede.includes(activeTeamSede.toLowerCase());
        });
     }
@@ -334,7 +334,7 @@ function _renderTeamGrid() {
           <div class="team-name">${w.nombre} ${w.apellido || ''}</div>
           <div class="team-role">${window.getUserRoles(w).some(r => r.includes('vendedor')) ? 'Representante de Ventas' : window.rolLabel(window.getUserRoles(w)[0] || 'Colaborador')}</div>
           <div class="team-sede" style="font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
-             <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> Sede ${w.sede || 'No asignada'}
+             <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> Sede ${(w.sede || 'No asignada').replace(/_/g, ' ')}
           </div>
           
           <div class="team-units" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:-8px; margin-bottom:15px; opacity: 0.8;">
