@@ -36,7 +36,7 @@ import { renderClients } from './screens/clients.js?v=13';
 import { renderCallCenter } from './screens/callCenter.js';
 import { renderMiCalendario } from './screens/calendar.js?v=7';
 import { renderMiMapa } from './screens/mapa.js?v=2';
-import { renderMiEquipo } from './screens/equipo.js?v=3';
+import { renderMiEquipo } from './screens/equipo.js?v=4';
 import { renderPartners } from './screens/partners.js';
 import { renderMisRecibos } from './screens/recibos.js?v=3';
 import { renderListaPrecios } from './screens/listadeprecios.js';
