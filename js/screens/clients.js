@@ -16,23 +16,112 @@ function cleanDisplay(val) {
   return s.replace(/,\s*=/g, ', ').trim();
 }
 
-// Ciudad del cliente: campo ciudad o, si no existe, se saca de la dirección
-// ("123 Main St, Miami, FL 33101, USA" → "Miami")
+// Ciudad del cliente: campo ciudad o, si no existe, se saca de la dirección.
+// Entiende direcciones con o sin comas:
+//   "123 Main St, Miami, FL 33101, USA"      → Miami
+//   "2111 Pennington dr Arlington tx 76014"  → Arlington
+//   "500 Ocean Dr Apt 4B Miami Beach FL"     → Miami Beach
+const US_STATES = {
+  al: 'alabama', ak: 'alaska', az: 'arizona', ar: 'arkansas', ca: 'california', co: 'colorado', ct: 'connecticut',
+  de: 'delaware', dc: 'district of columbia', fl: 'florida', ga: 'georgia', hi: 'hawaii', id: 'idaho', il: 'illinois',
+  in: 'indiana', ia: 'iowa', ks: 'kansas', ky: 'kentucky', la: 'louisiana', me: 'maine', md: 'maryland',
+  ma: 'massachusetts', mi: 'michigan', mn: 'minnesota', ms: 'mississippi', mo: 'missouri', mt: 'montana',
+  ne: 'nebraska', nv: 'nevada', nh: 'new hampshire', nj: 'new jersey', nm: 'new mexico', ny: 'new york',
+  nc: 'north carolina', nd: 'north dakota', oh: 'ohio', ok: 'oklahoma', or: 'oregon', pa: 'pennsylvania',
+  pr: 'puerto rico', ri: 'rhode island', sc: 'south carolina', sd: 'south dakota', tn: 'tennessee', tx: 'texas',
+  ut: 'utah', vt: 'vermont', va: 'virginia', wa: 'washington', wv: 'west virginia', wi: 'wisconsin', wy: 'wyoming'
+};
+const STATE_NAMES = Object.values(US_STATES).sort((a, b) => b.split(' ').length - a.split(' ').length);
+const STREET_SUFFIX = new Set(['st', 'street', 'str', 'ave', 'av', 'avenue', 'rd', 'road', 'dr', 'drive', 'blvd', 'boulevard',
+  'ln', 'lane', 'ct', 'court', 'cir', 'circle', 'way', 'pl', 'place', 'pkwy', 'parkway', 'hwy', 'highway', 'ter', 'terrace',
+  'trl', 'trail', 'loop', 'run', 'path', 'cv', 'cove', 'pt', 'point', 'sq', 'square', 'xing', 'crossing', 'row', 'walk',
+  'aly', 'alley', 'bnd', 'bend', 'pass', 'pike', 'expy', 'fwy', 'tpke', 'plz', 'plaza', 'cres', 'crescent', 'grv', 'grove',
+  'hl', 'hill', 'hts', 'heights', 'pt', 'blf', 'cswy', 'mnr', 'manor', 'ovl', 'oval', 'rdg', 'ridge', 'vw', 'view', 'trce', 'trace']);
+const SAINT_NEXT = new Set(['lucie', 'cloud', 'petersburg', 'augustine', 'johns', 'louis', 'paul', 'charles', 'george']);
+const DIRECTIONALS = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw', 'north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest']);
+const UNIT_WORDS = new Set(['apt', 'apartment', 'unit', 'ste', 'suite', 'lot', 'bldg', 'building', 'floor', 'rm', 'room', 'spc', 'space', 'trlr']);
+const COUNTRY_RE = /\s*,?\s*(usa|u\.s\.a\.?|u\.s\.|us|united states( of america)?|ee\.?\s?uu\.?|estados unidos)\s*$/i;
+
+function _titleCity(str) {
+  return str.toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase()).replace(/\bSt\b\.?/g, 'St.').trim();
+}
+
 function getClientCity(c) {
   if (!c) return '';
   const direct = cleanDisplay(c.ciudad || c.city || '');
-  if (direct) return direct;
-  const parts = cleanDisplay(c.direccion || '').split(',').map(x => x.trim()).filter(Boolean);
-  while (parts.length && /^(usa|us|u\.s\.a?\.?|united states|ee\.? ?uu\.?|estados unidos)$/i.test(parts[parts.length - 1])) parts.pop();
-  if (parts.length < 2) return '';
-  const isState = x => /^[A-Za-z]{2}(\s+\d{5}(-\d{4})?)?$/.test(x) || /^[A-Za-z .]+\s+\d{5}(-\d{4})?$/.test(x) || /^\d{5}(-\d{4})?$/.test(x);
-  let i = parts.length - 1;
-  while (i > 0 && isState(parts[i])) i--;
-  const city = parts[i];
-  if (!/\d/.test(city)) return city;
-  // "Miami FL 33136" en una sola parte
-  const m = (parts[i + 1] || parts[i]).match(/^([A-Za-z .]+?)\s+[A-Za-z]{2}\s+\d{5}/);
-  return m ? m[1].trim() : '';
+  if (direct) return _titleCity(direct);
+
+  let addr = cleanDisplay(c.direccion || '').replace(/\s+/g, ' ').trim();
+  if (!addr) return '';
+  addr = addr.replace(COUNTRY_RE, '').trim();
+
+  // Partes separadas por comas: si alguna es "solo ciudad" (sin números ni estado), úsala
+  const parts = addr.split(',').map(x => x.trim()).filter(Boolean);
+
+  // Trabajamos con palabras para soportar direcciones sin comas
+  let words = addr.replace(/,/g, ' , ').split(' ').filter(Boolean);
+  const low = () => words.map(w => w.toLowerCase().replace(/\.$/, ''));
+  const popComma = () => { while (words.length && words[words.length - 1] === ',') words.pop(); };
+
+  // 1) Quitar ZIP del final (33101 o 33101-1234)
+  popComma();
+  if (words.length && /^\d{5}(-\d{4})?$/.test(words[words.length - 1])) words.pop();
+  popComma();
+
+  // 2) Quitar estado del final (código "TX" o nombre "Texas", "New York")
+  let removedState = false;
+  if (words.length) {
+    const last = low()[words.length - 1];
+    if (last.length === 2 && US_STATES[last]) { words.pop(); removedState = true; }
+    else {
+      for (const name of STATE_NAMES) {
+        const n = name.split(' ').length;
+        if (words.length > n && low().slice(-n).join(' ') === name) { words.splice(-n, n); removedState = true; break; }
+      }
+    }
+  }
+  popComma();
+  // ZIP antes del estado ("Miami 33101 FL")
+  if (words.length && /^\d{5}(-\d{4})?$/.test(words[words.length - 1])) { words.pop(); popComma(); }
+  if (!words.length) return '';
+
+  // 3) Si quedan comas, la última parte suele ser la ciudad
+  const lastComma = words.lastIndexOf(',');
+  if (lastComma >= 0) {
+    const tail = words.slice(lastComma + 1);
+    if (tail.length && !tail.some(w => /\d/.test(w))) return _titleCity(tail.join(' '));
+    words = tail.length ? tail : words.slice(0, lastComma);
+  }
+
+  // 4) Sin comas: la ciudad son las palabras después del tipo de calle / número de apartamento
+  const lw = low();
+  let start = -1;
+  for (let i = 0; i < lw.length; i++) {
+    if (STREET_SUFFIX.has(lw[i]) && i > 0 && !(lw[i] === 'st' && SAINT_NEXT.has(lw[i + 1]))) start = i + 1;
+    else if (UNIT_WORDS.has(lw[i]) || lw[i].startsWith('#')) {
+      start = i + 1;
+      if (!lw[i].startsWith('#') || lw[i] === '#') {
+        // saltar el valor del apartamento ("Apt 4B", "# 12")
+        if (start < lw.length && /\d/.test(lw[start])) start++;
+      }
+    }
+  }
+  if (start >= 0) {
+    while (start < lw.length && DIRECTIONALS.has(lw[start]) && start < lw.length - 1) start++;
+    const city = words.slice(start).filter(w => !/\d/.test(w));
+    if (city.length && city.length <= 4) return _titleCity(city.join(' '));
+  }
+
+  // 5) Último recurso: palabras finales sin números (solo si había estado o comas)
+  if (removedState || parts.length > 1 || (!/\d/.test(addr) && words.length <= 3)) {
+    const tail = [];
+    for (let i = words.length - 1; i >= 0 && tail.length < 2; i--) {
+      if (/\d/.test(words[i]) || STREET_SUFFIX.has(lw[i])) break;
+      tail.unshift(words[i]);
+    }
+    if (tail.length) return _titleCity(tail.join(' '));
+  }
+  return '';
 }
 
 function getGreeting() {
