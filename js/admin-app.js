@@ -6463,7 +6463,7 @@ window.mostrarDetalleEventoCalendario = async function(event) {
 
               let mappedWorkers = workers.map(w => {
                   const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-                  const rol = window.getUserRoles(w).join(", ") || 'Sin rol';
+                  const rol = window.getUserRoles(w).map(r => window.rolLabel(r)).join(", ") || 'Sin rol';
                   const email = w.email || '';
                   const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
                   
@@ -9110,7 +9110,7 @@ function openKanbanDrawer(projectId, targetPhaseId = null) {
                           </div>
                           <div>
                               <div class="text-xs font-bold text-gray-800">${w.nombre} ${w.apellido||''}</div>
-                              <div class="text-[10px] text-gray-500">${window.getUserRoles(w).join(", ")}</div>
+                              <div class="text-[10px] text-gray-500">${window.getUserRoles(w).map(r => window.rolLabel(r)).join(", ")}</div>
                           </div>
                       </div>
                       <button class="add-obs-btn text-[10px] font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" data-id="${w.id}">Añadir</button>
@@ -9752,7 +9752,7 @@ async function showClientDetail(id) {
 
         filteredWorkers.forEach(w => {
             const name = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-            const opt = `<option value="${w.id}">${name} (${window.getUserRoles(w).join(", ") || 'Staff'})</option>`;
+            const opt = `<option value="${w.id}">${name} (${window.getUserRoles(w).map(r => window.rolLabel(r)).join(", ") || 'Staff'})</option>`;
             selAssigned.innerHTML += opt;
             if (selEditAssigned) selEditAssigned.innerHTML += opt;
         });

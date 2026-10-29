@@ -48,10 +48,12 @@ window.SUPERVISOR_LABEL = 'Manager de Venta';
 window.isSupervisorUser = function(user) {
   return window.getUserRoles(user).some(r => SUPERVISOR_ROLES.includes(r));
 };
-// Nombre visible de un rol (el valor guardado sigue siendo "Supervisor")
+// Nombre visible de un rol (los valores guardados siguen siendo "Supervisor" y "Vendedor")
 window.rolLabel = function(rol) {
   const r = String(rol || '').toLowerCase().trim();
-  return SUPERVISOR_ROLES.includes(r) ? window.SUPERVISOR_LABEL : rol;
+  if (SUPERVISOR_ROLES.includes(r)) return window.SUPERVISOR_LABEL;
+  if (r === 'vendedor') return 'Representante de Ventas';
+  return rol;
 };
 // IDs (string) del equipo a cargo, leídos del usuario más reciente en la BD
 window.getTeamIds = function(user) {
