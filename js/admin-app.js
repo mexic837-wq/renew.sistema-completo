@@ -5563,7 +5563,7 @@ window.renderView = async function renderView() {
                                 ${['Vendedor', 'Técnico', 'Admin', 'Call Center', 'Manager', 'Supervisión', 'CEO'].map(r => `
                                     <label class="flex items-center gap-2 cursor-pointer group">
                                         <input type="checkbox" class="aud-check aud-role w-3.5 h-3.5 rounded border-gray-300 text-sky-500 focus:ring-sky-500" value="${r}">
-                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${r}</span>
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-sky-500 transition-colors">${window.rolLabel ? window.rolLabel(r) : r}</span>
                                     </label>
                                 `).join('')}
                             </div>
@@ -7166,7 +7166,7 @@ function renderConstructor() {
                   <option value="Representante de Ventas" ${f.rol_encargado === 'Representante de Ventas' || f.rol_encargado === 'Vendedor' ? 'selected' : ''}>Representante de Ventas</option>
                   <option value="Técnico" ${f.rol_encargado === 'Técnico' ? 'selected' : ''}>Técnico</option>
                   <option value="Call Center" ${f.rol_encargado === 'Call Center' ? 'selected' : ''}>Call Center</option>
-                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Supervisión</option>
+                  <option value="Supervisión" ${f.rol_encargado === 'Supervisión' ? 'selected' : ''}>Manager de Venta</option>
                   <option value="Manager" ${f.rol_encargado === 'Manager' ? 'selected' : ''}>Manager</option>
                   <option value="Encargado del Proyecto" ${f.rol_encargado === 'Encargado del Proyecto' || f.rol_encargado === 'Project Manager' ? 'selected' : ''}>Encargado del Proyecto</option>
                   <option value="Administración" ${f.rol_encargado === 'Administración' || f.rol_encargado === 'Admin' ? 'selected' : ''}>Administración</option>
@@ -11826,7 +11826,7 @@ window.populateRolesDropdowns = function() {
     const generateCheckboxes = (rolesArray) => rolesArray.map(r => `
         <label class="flex items-center gap-2 cursor-pointer w-full hover:bg-gray-50 p-1 rounded transition-colors">
             <input type="checkbox" name="rol-checkbox" value="${r.nombre}" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300">
-            <span class="text-sm text-gray-700 font-medium">${r.nombre}</span>
+            <span class="text-sm text-gray-700 font-medium">${window.rolLabel ? window.rolLabel(r.nombre) : r.nombre}</span>
         </label>
     `).join('');
 

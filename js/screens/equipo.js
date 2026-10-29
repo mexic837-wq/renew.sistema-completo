@@ -10,6 +10,7 @@ let activeTeamDept = 'Todos';
 let activeTeamSede = 'Todas';
 let teamSearchQuery = '';
 let allTeamWorkers = [];
+let teamScope = null; // 'equipo' | 'todos' (solo Manager de Venta)
 
 export async function renderMiEquipo() {
   const screen = document.getElementById('screen-mi-equipo');
@@ -33,6 +34,9 @@ export async function renderMiEquipo() {
         </div>
       </div>
       
+      <!-- Fila 0: Mi equipo / Todos (Manager de Venta) -->
+      <div id="team-scope-filter" style="display:none; justify-content:center; padding:12px 20px 0;"></div>
+
       <!-- Fila 1: Filtro de departamento -->
       <div id="team-dept-filter" style="display:flex; justify-content: center; overflow-x:auto; gap:8px; padding:16px 20px 8px; margin-top:4px; scrollbar-width:none;">
       </div>
@@ -174,6 +178,26 @@ export async function renderMiEquipo() {
     </style>
   `;
 
+  // Mi equipo / Todos (solo Manager de Venta)
+  const isSup = window.isSupervisorUser && window.isSupervisorUser(user);
+  if (isSup && !teamScope) teamScope = 'equipo';
+  const scopeContainer = document.getElementById('team-scope-filter');
+  if (scopeContainer && isSup) {
+    const nTeam = window.getTeamIds(user).length;
+    scopeContainer.style.display = 'flex';
+    scopeContainer.innerHTML = `
+      <div style="display:inline-flex; padding:4px; gap:4px; background:var(--surface-alt); border:1px solid var(--border); border-radius:14px;">
+        ${[['equipo', `Mi equipo (${nTeam})`, 'fa-user-group'], ['todos', 'Todos', 'fa-users']].map(([k, label, icon]) => `
+          <button class="team-scope-btn" data-scope="${k}" style="padding:7px 16px; border:none; border-radius:10px; font-size:0.78rem; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .2s; ${teamScope === k ? 'background:var(--surface); color:var(--primary-dark,#00bfa3); box-shadow:var(--shadow-sm);' : 'background:transparent; color:var(--text-muted);'}">
+            <i class="fa-solid ${icon}"></i>${label}
+          </button>`).join('')}
+      </div>`;
+    scopeContainer.querySelectorAll('.team-scope-btn').forEach(b => b.addEventListener('click', () => {
+      teamScope = b.dataset.scope;
+      renderMiEquipo();
+    }));
+  }
+
   // Render Department Pills
   const deptContainer = document.getElementById('team-dept-filter');
   if (deptContainer) {
@@ -241,6 +265,13 @@ function _renderTeamGrid() {
 
     let filtered = allTeamWorkers.filter(w => !w.is_suspended);
 
+    // Manager de Venta: por defecto solo las personas a su cargo
+    const me = getCurrentUser();
+    if (teamScope === 'equipo' && window.isSupervisorUser && window.isSupervisorUser(me)) {
+      const teamIds = new Set(window.getTeamIds(me));
+      filtered = filtered.filter(w => teamIds.has(String(w.id)));
+    }
+
     // Filter by Dept
     if (activeTeamDept !== 'Todos') {
       filtered = filtered.filter(w => {
@@ -278,7 +309,7 @@ function _renderTeamGrid() {
       grid.innerHTML = `
         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
           <i class="fas fa-users-slash" style="font-size: 3rem; opacity: 0.2; margin-bottom: 16px;"></i>
-          <p style="font-weight: 600;">No se encontraron compañeros con estos filtros.</p>
+          <p style="font-weight: 600;">${teamScope === 'equipo' && window.getTeamIds(getCurrentUser()).length === 0 ? 'Aún no tienes personas asignadas a tu equipo. Pide a un administrador que las asigne desde el panel de usuarios.' : 'No se encontraron compañeros con estos filtros.'}</p>
         </div>
       `;
       return;
@@ -298,7 +329,7 @@ function _renderTeamGrid() {
             }
           </div>
           <div class="team-name">${w.nombre} ${w.apellido || ''}</div>
-          <div class="team-role">${window.getUserRoles(w).some(r => r.includes('vendedor')) ? 'Representante de Ventas' : (window.getUserRoles(w)[0] || 'Colaborador')}</div>
+          <div class="team-role">${window.getUserRoles(w).some(r => r.includes('vendedor')) ? 'Representante de Ventas' : window.rolLabel(window.getUserRoles(w)[0] || 'Colaborador')}</div>
           <div class="team-sede" style="font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
              <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i> Sede ${w.sede || 'No asignada'}
           </div>

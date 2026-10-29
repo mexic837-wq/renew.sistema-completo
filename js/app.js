@@ -25,27 +25,27 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
-import { renderDashboard } from './screens/dashboard.js?v=13';
+import { renderDashboard } from './screens/dashboard.js?v=14';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js';
 import { renderAcademy }    from './screens/academy.js';
-import { renderMenu }       from './screens/menu.js?v=2';
+import { renderMenu }       from './screens/menu.js?v=3';
 import { renderInventoryTech } from './screens/inventory.js';
-import { renderClients } from './screens/clients.js?v=10';
+import { renderClients } from './screens/clients.js?v=11';
 import { renderCallCenter } from './screens/callCenter.js';
-import { renderMiCalendario } from './screens/calendar.js?v=6';
-import { renderMiMapa } from './screens/mapa.js';
-import { renderMiEquipo } from './screens/equipo.js';
+import { renderMiCalendario } from './screens/calendar.js?v=7';
+import { renderMiMapa } from './screens/mapa.js?v=2';
+import { renderMiEquipo } from './screens/equipo.js?v=2';
 import { renderPartners } from './screens/partners.js';
-import { renderMisRecibos } from './screens/recibos.js?v=2';
+import { renderMisRecibos } from './screens/recibos.js?v=3';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderCatalogo } from './screens/catalogo.js';
 import { renderPlantillas }  from './screens/plantillas.js';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
-import { _renderToolsForPipeline } from './screens/dashboard.js?v=13';
+import { _renderToolsForPipeline } from './screens/dashboard.js?v=14';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -728,7 +728,7 @@ export function updateNavHighlight(activeScreen) {
     const roleEl = document.getElementById('sidebar-user-role');
     const avatarEl = document.getElementById('sidebar-user-avatar');
     if (nameEl) nameEl.textContent = (user.nombre || user.name || 'Usuario').split(' ')[0];
-    if (roleEl) roleEl.textContent = user.rol || user.role || 'Conectado';
+    if (roleEl) roleEl.textContent = String(user.rol || user.role || 'Conectado').split(',').map(r => window.rolLabel ? window.rolLabel(r.trim()) : r.trim()).join(', ');
     if (avatarEl && !avatarEl.querySelector('img')) {
       if (user.foto || user.avatar) {
         avatarEl.innerHTML = `<img src="${user.foto || user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar" />`;

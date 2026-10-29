@@ -405,6 +405,7 @@ export async function renderDashboard() {
       <div class="dash-tabs-container">
         <button class="dash-tab active" data-target="tab-inicio">Inicio</button>
         <button class="dash-tab" data-target="tab-rendimiento">${t('dash_tab_perf')}</button>
+        ${window.isSupervisorUser(user) ? `<button class="dash-tab" data-target="tab-equipo">Mi Equipo</button>` : ''}
         ${((user.permisos && 'app_ranking' in user.permisos) ? user.permisos.app_ranking : true) ? `<button class="dash-tab" data-target="tab-leaderboard">${t('dash_tab_rank')}</button>` : ''}
       </div>
     </div>
@@ -451,6 +452,8 @@ export async function renderDashboard() {
         <div id="rank-banner-rendimiento" style="margin-top:20px;"></div>
       </div>
 
+      <div id="tab-equipo" class="dash-tab-content" style="display:none; padding:0 0 24px;"></div>
+
       <div id="tab-leaderboard" class="dash-tab-content" style="display:none; padding:0 0 24px;">
         <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:12px; margin-top:8px;">${t('dash_top_sellers')}</h3>
         <div style="background:var(--surface-alt); padding:16px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.05);">
@@ -480,6 +483,7 @@ export async function renderDashboard() {
       document.getElementById(id).style.display = 'block';
       if (id === 'tab-rendimiento' && !window.rendimientoChartInstance) initRendimientoChart(user);
       if (id === 'tab-leaderboard' && !window.leaderboardChartInstance) initLeaderboardChart(user);
+      if (id === 'tab-equipo') initTeamPerformance(user);
     });
   });
 }
@@ -502,6 +506,8 @@ function _buildPipelineChips(user, activeUnit) {
   const isHighRole   = allRoles.some(r => ['admin', 'administrador', 'ceo', 'partner'].includes(r));
 
   const pipelineNames = ['Renew Solar', 'Renew Water', 'Renew Home'];
+  const isSupChips = window.isSupervisorUser(user);
+  const supChipTeam = isSupChips ? window.getTeamIds(user) : [];
   
   // Pre-calculate project presence and technician assignments to fix O(N*M) delay
   const projectClientIds = new Set(allProyectos.map(p => String(p.cliente_id)));
@@ -531,12 +537,7 @@ function _buildPipelineChips(user, activeUnit) {
         const isTecnicoOfProject = userTecnicoProjectClientIds.has(String(c.id));
 
         // Supervisor logic
-        const isSupervisorOfRep = allRoles.some(r => r === 'supervisor' || r === 'supervisión') && 
-          (user.equipo_ids || []).some(id => 
-            c.creador_id === id || 
-            (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
-            (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id))
-          );
+        const isSupervisorOfRep = isSupChips && window.clientBelongsTo(c, supChipTeam, allProyectos);
 
         if (c.creador_id !== user.id && 
             !(c.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) && 
@@ -599,6 +600,7 @@ function _buildPipelineChips(user, activeUnit) {
           const id = activeTab.dataset.target;
           if (id === 'tab-rendimiento') initRendimientoChart(user);
           else if (id === 'tab-leaderboard') initLeaderboardChart(user);
+          else if (id === 'tab-equipo') initTeamPerformance(user);
       }
     });
   });
@@ -901,7 +903,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       const roleEl = document.getElementById('sidebar-user-role');
       const avatarEl = document.getElementById('sidebar-user-avatar');
       if (nameEl) nameEl.textContent = (user.nombre || user.name || 'Usuario').split(' ')[0];
-      if (roleEl) roleEl.textContent = user.rol || user.role || 'Conectado';
+      if (roleEl) roleEl.textContent = String(user.rol || user.role || 'Conectado').split(',').map(r => window.rolLabel ? window.rolLabel(r.trim()) : r.trim()).join(', ');
       if (avatarEl) {
         if (user.foto || user.avatar) {
           avatarEl.innerHTML = `<img src="${user.foto || user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar" />`;
@@ -1724,8 +1726,15 @@ async function initLeaderboardChart(user) {
     }
   });
 
+  // Manager de Venta: por defecto ve el ranking de su equipo
+  const isSupLb = window.isSupervisorUser(user);
+  if (isSupLb && !window.lbScopeFilter) window.lbScopeFilter = 'equipo';
+  const lbTeamIds = new Set([...window.getTeamIds(user), String(user.id)]);
+  const lbOnlyTeam = isSupLb && window.lbScopeFilter === 'equipo';
+
   const leaderboardData = [];
   workers.forEach(w => {
+    if (lbOnlyTeam && !lbTeamIds.has(String(w.id))) return;
     const count = projectCountByUserId[w.id] || 0;
     const isWHighRole = window.getUserRoles(w).some(r => ['admin', 'administrador', 'ceo'].includes(r));
     const hasUnitAccess = isWHighRole || (w.unidades && w.unidades.some(u => u.toLowerCase() === activeUnit.toLowerCase() || activeUnit.toLowerCase().includes(u.toLowerCase().replace('renew ', '').trim())));
@@ -1741,7 +1750,9 @@ async function initLeaderboardChart(user) {
     }
 
     let shouldInclude = false;
-    if (isStrictTecnico) {
+    if (lbOnlyTeam) {
+        shouldInclude = true;
+    } else if (isStrictTecnico) {
         shouldInclude = isWTecnico || w.id === user.id;
     } else if (isCallCenter) {
         shouldInclude = isWCall || w.id === user.id;
@@ -1858,6 +1869,16 @@ async function initLeaderboardChart(user) {
     </button>
   `);
 
+  window.setLeaderboardScope = (val) => {
+    window.lbScopeFilter = val;
+    initLeaderboardChart(getCurrentUser());
+  };
+  const scopeToggleHTML = isSupLb ? `
+    <div style="display:inline-flex; padding:3px; gap:3px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px;">
+      ${[['equipo', 'Mi equipo'], ['general', 'General']].map(([k, label]) => `
+        <button type="button" onclick="window.setLeaderboardScope('${k}')" style="padding:6px 14px; border:none; border-radius:9px; font-size:0.75rem; font-weight:800; cursor:pointer; ${window.lbScopeFilter === k ? 'background:var(--surface); color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,.08);' : 'background:transparent; color:var(--text-muted);'}">${label}</button>`).join('')}
+    </div>` : '';
+
   const monthDropdownHTML = `
     <style>
       @keyframes lbDropdownScaleIn {
@@ -1905,7 +1926,8 @@ async function initLeaderboardChart(user) {
         border-radius: 99px;
       }
     </style>
-    <div style="display:flex; align-items:center; gap:8px;">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      ${scopeToggleHTML}
       <label style="font-size:0.72rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px;">Mes:</label>
       <div style="position:relative;" id="lb-month-dropdown-wrapper">
         <button type="button" onclick="window.toggleLbMonthDropdown()" id="lb-month-trigger-btn" style="display:flex; align-items:center; gap:8px; background:var(--surface-alt); color:var(--text-primary); border:1px solid rgba(0,223,191,0.25); padding:7px 14px; border-radius:12px; font-size:0.82rem; font-weight:700; cursor:pointer; outline:none; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); box-shadow:0 2px 8px rgba(0,0,0,0.06);">
@@ -2116,7 +2138,7 @@ function showProfileModal() {
   }).join('');
 
   const fullName = `${user.nombre} ${user.apellido}`;
-  const rol = window.getUserRoles(user)[0] || 'Representante de Ventas';
+  const rol = window.rolLabel(window.getUserRoles(user)[0] || 'Representante de Ventas');
   const roleColor = rol.toLowerCase() === 'admin' ? 'badge-red' : 'badge-green';
 
   overlay.innerHTML = `
@@ -2235,3 +2257,170 @@ window.addEventListener('themechange', () => {
     else initRendimientoChart(user);
   }
 });
+
+// ============================================================
+//  MANAGER DE VENTA — Mi Equipo: cómo van las ventas de su equipo
+// ============================================================
+async function initTeamPerformance(user) {
+  const tab = document.getElementById('tab-equipo');
+  if (!tab) return;
+
+  const db = getDB();
+  const workers = await getAdminWorkers();
+  const teamIds = window.getTeamIds(user);
+  const members = workers.filter(w => teamIds.includes(String(w.id)) && !w.is_suspended);
+
+  const activeUnit = localStorage.getItem('active_unit') || 'Renew Solar';
+  const activeKey = activeUnit.toLowerCase().replace('renew', '').trim();
+  const pipelines = db.Admin_Pipelines || [];
+  const pipeline = pipelines.find(pip => {
+    const n = (pip.nombre || '').toLowerCase();
+    return n === activeUnit.toLowerCase() || (activeKey && n.includes(activeKey));
+  });
+
+  if (!window.teamPerfPeriod) window.teamPerfPeriod = 'mes';
+  const period = window.teamPerfPeriod;
+  const now = new Date();
+  const inPeriod = (d) => {
+    if (period === 'global') return true;
+    if (!d || isNaN(d.getTime())) return false;
+    if (period === 'anio') return d.getFullYear() === now.getFullYear();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  };
+
+  const escH = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const first = v => String(v || '').split(',')[0].trim();
+  const clientsById = new Map((db.Clientes_Maestro || []).map(c => [String(c.id), c]));
+
+  // Mismo criterio que el Leaderboard para atribuir la venta al representante
+  const repOf = (p, cli) => first(cli.vendedor_asignado_id) || first(cli.responsable_id) || first(cli.creador_id)
+    || first(p.responsable_id) || first(p.asignado_a) || first(p.creador_id);
+
+  const stats = {};
+  members.forEach(m => { stats[String(m.id)] = { ventas: 0, enProceso: 0, prospectos: 0 }; });
+
+  const projectClientIds = new Set();
+  (db.Proyectos_Dinamicos || []).forEach(p => {
+    projectClientIds.add(String(p.cliente_id));
+    if (pipeline) {
+      if (String(p.pipeline_id) !== String(pipeline.id)) return;
+    } else if (activeKey) {
+      const pp = pipelines.find(x => String(x.id) === String(p.pipeline_id));
+      if (!(pp?.nombre || '').toLowerCase().includes(activeKey)) return;
+    }
+    const cli = clientsById.get(String(p.cliente_id)) || {};
+    if (cli.macro_estado === 'Declinado' || p.estado === 'Declinado') return;
+    const rep = String(repOf(p, cli));
+    if (!stats[rep]) return;
+    if (isProjectFinished(p, db)) {
+      const raw = getProjectDate(p, db);
+      if (inPeriod(raw ? new Date(raw) : null)) stats[rep].ventas++;
+    } else {
+      stats[rep].enProceso++;
+    }
+  });
+
+  (db.Clientes_Maestro || []).forEach(c => {
+    if (projectClientIds.has(String(c.id))) return;
+    const depts = getDeptArray(c).map(d => d.toLowerCase());
+    if (activeKey && depts.length && !depts.some(d => d.includes(activeKey))) return;
+    const rep = String(first(c.vendedor_asignado_id) || first(c.responsable_id) || first(c.creador_id));
+    if (stats[rep]) stats[rep].prospectos++;
+  });
+
+  const rows = members.map(m => ({ m, ...stats[String(m.id)] })).sort((a, b) => b.ventas - a.ventas || b.enProceso - a.enProceso);
+  const tot = rows.reduce((acc, r) => ({ ventas: acc.ventas + r.ventas, enProceso: acc.enProceso + r.enProceso, prospectos: acc.prospectos + r.prospectos }), { ventas: 0, enProceso: 0, prospectos: 0 });
+  const maxVentas = Math.max(1, ...rows.map(r => r.ventas));
+  const periodLabel = { mes: 'este mes', anio: 'este año', global: 'histórico' }[period];
+
+  window.setTeamPerfPeriod = (v) => { window.teamPerfPeriod = v; initTeamPerformance(getCurrentUser()); };
+
+  const kpi = (label, value, icon, color) => `
+    <div class="tp-kpi">
+      <span class="tp-kpi-icon" style="background:${color}1f; color:${color};"><i class="fa-solid ${icon}"></i></span>
+      <div><b>${value}</b><span>${label}</span></div>
+    </div>`;
+
+  const avatar = (w) => {
+    const ini = ((w.nombre || 'U')[0] + ((w.apellido || '')[0] || '')).toUpperCase();
+    return w.foto
+      ? `<img src="${escH(w.foto)}" class="tp-avatar" alt="">`
+      : `<div class="tp-avatar tp-avatar-ini">${escH(ini)}</div>`;
+  };
+
+  const listHtml = rows.length ? rows.map((r, i) => `
+    <div class="tp-row">
+      <span class="tp-pos">${i + 1}</span>
+      ${avatar(r.m)}
+      <div class="tp-info">
+        <div class="tp-name">${escH(`${r.m.nombre || ''} ${r.m.apellido || ''}`.trim())}</div>
+        <div class="tp-sub"><i class="fa-solid fa-location-dot"></i> ${escH(r.m.sede || 'Sin sede')}</div>
+        <div class="tp-bar"><span style="width:${Math.round((r.ventas / maxVentas) * 100)}%"></span></div>
+      </div>
+      <div class="tp-nums">
+        <div><b>${r.ventas}</b><span>Ventas</span></div>
+        <div><b>${r.enProceso}</b><span>En proceso</span></div>
+        <div><b>${r.prospectos}</b><span>Prospectos</span></div>
+      </div>
+    </div>`).join('') : `
+    <div class="tp-empty">
+      <i class="fa-solid fa-user-group"></i>
+      <p>Aún no tienes personas asignadas a tu equipo.</p>
+      <span>Un administrador puede asignarlas desde el panel de usuarios.</span>
+    </div>`;
+
+  tab.innerHTML = `
+    <style>
+      .tp-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin:8px 0 16px; }
+      .tp-head h3 { margin:0; font-size:1.1rem; color:var(--text-primary); }
+      .tp-head p { margin:2px 0 0; font-size:.78rem; color:var(--text-muted); }
+      .tp-seg { display:inline-flex; padding:3px; gap:3px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; }
+      .tp-seg button { padding:6px 14px; border:none; border-radius:9px; font-size:.75rem; font-weight:800; cursor:pointer; background:transparent; color:var(--text-muted); }
+      .tp-seg button.on { background:var(--surface); color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+      .tp-kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px; }
+      .tp-kpi { display:flex; align-items:center; gap:12px; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:16px; }
+      .tp-kpi-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .tp-kpi b { display:block; font-size:1.35rem; line-height:1.1; color:var(--text-primary); }
+      .tp-kpi span { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+      .tp-list { display:flex; flex-direction:column; gap:10px; }
+      .tp-row { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:16px; }
+      .tp-pos { width:24px; text-align:center; font-weight:900; color:var(--text-muted); font-size:.85rem; }
+      .tp-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+      .tp-avatar-ini { display:flex; align-items:center; justify-content:center; font-weight:800; color:#04342c; background:linear-gradient(135deg,#00dfbf,#05d564); }
+      .tp-info { flex:1; min-width:0; }
+      .tp-name { font-weight:800; color:var(--text-primary); font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .tp-sub { font-size:.72rem; color:var(--text-muted); margin-top:2px; }
+      .tp-bar { height:6px; background:var(--surface-alt); border-radius:99px; margin-top:8px; overflow:hidden; }
+      .tp-bar span { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#00dfbf,#05d564); }
+      .tp-nums { display:flex; gap:18px; text-align:center; }
+      .tp-nums b { display:block; font-size:1.05rem; color:var(--text-primary); }
+      .tp-nums span { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); }
+      .tp-nums div:first-child b { color:var(--primary); }
+      .tp-empty { text-align:center; padding:40px 20px; background:var(--surface-alt); border:1px solid var(--border); border-radius:20px; color:var(--text-muted); }
+      .tp-empty i { font-size:2rem; opacity:.4; margin-bottom:10px; }
+      .tp-empty p { margin:0 0 4px; font-weight:700; color:var(--text-primary); }
+      .tp-empty span { font-size:.8rem; }
+      @media (max-width: 767px) {
+        .tp-kpis { grid-template-columns:repeat(2, 1fr); }
+        .tp-row { flex-wrap:wrap; }
+        .tp-nums { width:100%; justify-content:space-around; padding-top:8px; border-top:1px solid var(--border); }
+      }
+    </style>
+    <div class="tp-head">
+      <div>
+        <h3>Mi Equipo</h3>
+        <p>${escH(activeUnit)} · ventas ${periodLabel}</p>
+      </div>
+      <div class="tp-seg">
+        ${[['mes', 'Mensual'], ['anio', 'Anual'], ['global', 'Global']].map(([k, l]) => `<button type="button" class="${period === k ? 'on' : ''}" onclick="window.setTeamPerfPeriod('${k}')">${l}</button>`).join('')}
+      </div>
+    </div>
+    <div class="tp-kpis">
+      ${kpi('Personas', members.length, 'fa-user-group', '#0e7fab')}
+      ${kpi('Ventas ' + periodLabel, tot.ventas, 'fa-trophy', '#00bfa3')}
+      ${kpi('En proceso', tot.enProceso, 'fa-spinner', '#f59e0b')}
+      ${kpi('Prospectos', tot.prospectos, 'fa-user-plus', '#8b5cf6')}
+    </div>
+    <div class="tp-list">${listHtml}</div>
+  `;
+}

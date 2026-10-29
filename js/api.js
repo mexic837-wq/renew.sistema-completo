@@ -42,6 +42,34 @@ window.getUserRoles = function(user) {
   }
   return [...new Set(rawRoles.filter(Boolean).map(r => r.toLowerCase().trim()))];
 };
+// ── Manager de Venta (antes "Supervisor"): su equipo son los usuarios de equipo_ids ──
+const SUPERVISOR_ROLES = ['supervisor', 'supervisión', 'supervision', 'manager de venta'];
+window.SUPERVISOR_LABEL = 'Manager de Venta';
+window.isSupervisorUser = function(user) {
+  return window.getUserRoles(user).some(r => SUPERVISOR_ROLES.includes(r));
+};
+// Nombre visible de un rol (el valor guardado sigue siendo "Supervisor")
+window.rolLabel = function(rol) {
+  const r = String(rol || '').toLowerCase().trim();
+  return SUPERVISOR_ROLES.includes(r) ? window.SUPERVISOR_LABEL : rol;
+};
+// IDs (string) del equipo a cargo, leídos del usuario más reciente en la BD
+window.getTeamIds = function(user) {
+  if (!user) return [];
+  const db = (typeof window.getDB === 'function' && window.getDB()) || cachedDB;
+  const fresh = ((db && db.Usuarios) || []).find(u => String(u.id) === String(user.id));
+  const ids = (fresh && Array.isArray(fresh.equipo_ids) && fresh.equipo_ids.length) ? fresh.equipo_ids : (user.equipo_ids || []);
+  return ids.map(String);
+};
+// ¿El cliente pertenece a alguno de estos usuarios? (vendedor, responsable, creador o proyectos)
+window.clientBelongsTo = function(c, ids, projects = []) {
+  if (!c || !ids || !ids.length) return false;
+  const set = new Set(ids.map(String));
+  const csv = v => String(v || '').split(',').map(x => x.trim()).filter(Boolean);
+  if ([...csv(c.vendedor_asignado_id), ...csv(c.responsable_id), ...csv(c.creador_id)].some(id => set.has(id))) return true;
+  return projects.some(p => String(p.cliente_id) === String(c.id) &&
+    [...csv(p.responsable_id), ...csv(p.creador_id), ...csv(p.vendedor_id)].some(id => set.has(id)));
+};
 export function logout() {
   localStorage.removeItem('rs_user');
   if (window.appNavigate) window.appNavigate('login');

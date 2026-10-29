@@ -278,6 +278,8 @@ async function _renderList(user, container) {
   const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(r));
   const isCallCenterRole = window.getUserRoles(user).some(r => r.includes('call'));
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eé]cn[io]co/i.test(r));
+  const isSupervisorRole = window.isSupervisorUser(user);
+  const supTeamIds = isSupervisorRole ? window.getTeamIds(user) : [];
 
   // Pre-map projects by client to fix O(N*M) performance issue
   const projectsByClient = new Map();
@@ -320,13 +322,7 @@ async function _renderList(user, container) {
       );
 
       // Supervisor logic
-      const isSupervisorOfRep = (userRolNorm === 'supervisor' || userRolNorm === 'supervisión') && 
-        (user.equipo_ids || []).some(id => 
-          String(c.creador_id) === String(id) || 
-          (c.responsable_id || '').split(',').map(x=>x.trim()).includes(String(id)) || 
-          (c.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(id)) ||
-          clientProjects.some(p => String(p.responsable_id) === String(id) || String(p.creador_id) === String(id))
-        );
+      const isSupervisorOfRep = isSupervisorRole && window.clientBelongsTo(c, supTeamIds, clientProjects);
 
       // Leads no asignados o provenientes de la web oficial deben ser visibles para el equipo comercial en "Mis Prospectos"
       const isUnassignedLead = (!c.vendedor_asignado_id && !c.creador_id && !c.responsable_id) || c.origen_tipo === 'sitio_web';
@@ -713,7 +709,7 @@ async function _renderList(user, container) {
       }
 
       // ── CALL CENTER & SUPERVISOR: show read-only lead info (no vendor flow) ──
-      const isSupervisor = (userRolNorm === 'supervisor' || userRolNorm === 'supervisión');
+      const isSupervisor = isSupervisorRole;
       const isOwner = String(client.creador_id) === String(user.id) || 
                       (client.responsable_id || '').split(',').map(x=>x.trim()).includes(String(user.id)) ||
                       (client.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(user.id));

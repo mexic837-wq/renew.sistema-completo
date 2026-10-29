@@ -14,8 +14,16 @@ export function renderMisRecibos() {
   const isAdmin   = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRole);
   const isTecnico = /t[eé]cn[io]co/i.test(user?.rol || '');
 
-  // Admins see ALL, others see only their own
-  const allRecibos = isAdmin ? getRecibos() : getRecibos(user.id);
+  // Admins see ALL; Manager de Venta: los suyos + los de su equipo; others see only their own
+  const isSup = !isAdmin && window.isSupervisorUser(user);
+  const supTeamIds = isSup ? window.getTeamIds(user) : [];
+  let allRecibos = isAdmin ? getRecibos() : getRecibos(user.id);
+  if (isSup) {
+    const seen = new Set(allRecibos.map(r => r.id));
+    supTeamIds.forEach(tid => getRecibos(tid).forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); allRecibos.push(r); } }));
+  }
+  const showWorker = isAdmin || isSup;
+  let supScope = 'todos'; // todos | mios | equipo
   allRecibos.sort((a, b) => {
     const dateA = new Date(a.fecha_recibo || a.created_at || 0);
     const dateB = new Date(b.fecha_recibo || b.created_at || 0);
@@ -64,13 +72,19 @@ export function renderMisRecibos() {
       </div>
       ` : ''}
 
+      ${isSup ? `
+      <div id="recibos-scope-filter" style="display:inline-flex; padding:4px; gap:4px; margin-bottom:14px; background:var(--surface-alt); border:1px solid var(--border); border-radius:14px;">
+        ${[['todos', 'Todos'], ['mios', 'Míos'], ['equipo', 'Mi equipo']].map(([k, label]) => `
+          <button class="rscope-btn" data-scope="${k}" style="padding:7px 16px; border:none; border-radius:10px; font-size:0.78rem; font-weight:800; cursor:pointer; ${k === 'todos' ? 'background:var(--surface); color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,.08);' : 'background:transparent; color:var(--text-muted);'}">${label}</button>`).join('')}
+      </div>` : ''}
+
       <!-- Dept filters -->
       <div id="recibos-dept-filter" style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;"></div>
 
 
       <!-- Receipts list -->
       <div id="recibos-list">
-        ${_renderRecibosList(isAdmin ? allRecibos.filter(r => r.tipo === 'vendedor' && !(r.datos_json && r.datos_json.subtipo === 'oficina')) : allRecibos, isAdmin)}
+        ${_renderRecibosList(isAdmin ? allRecibos.filter(r => r.tipo === 'vendedor' && !(r.datos_json && r.datos_json.subtipo === 'oficina')) : allRecibos, isAdmin, showWorker)}
       </div>
     </div>
 
@@ -93,6 +107,20 @@ export function renderMisRecibos() {
 
   // Back button
   document.getElementById('recibos-back-btn')?.addEventListener('click', () => window.appNavigate('dashboard'));
+
+  // Todos / Míos / Mi equipo (Manager de Venta)
+  document.querySelectorAll('#recibos-scope-filter .rscope-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      supScope = btn.dataset.scope;
+      document.querySelectorAll('#recibos-scope-filter .rscope-btn').forEach(b => {
+        const on = b === btn;
+        b.style.background = on ? 'var(--surface)' : 'transparent';
+        b.style.color = on ? 'var(--primary)' : 'var(--text-muted)';
+        b.style.boxShadow = on ? '0 1px 4px rgba(0,0,0,.08)' : 'none';
+      });
+      applyReciboFilters();
+    });
+  });
 
   // Filter buttons
   let currentFilter = 'vendedor'; // default to vendedor
@@ -214,7 +242,12 @@ export function renderMisRecibos() {
     const allowedDepts = units.map(u => u.replace('Renew ', '').toLowerCase());
     
     let filtered = [];
-    if (currentFilter === 'mis_recibos') {
+    if (!isAdmin) {
+      // No-admin: sus recibos (y los de su equipo si es Manager de Venta)
+      filtered = allRecibos.slice();
+      if (isSup && supScope === 'mios') filtered = filtered.filter(r => String(r.trabajador_id) === String(user.id));
+      if (isSup && supScope === 'equipo') filtered = filtered.filter(r => supTeamIds.includes(String(r.trabajador_id)));
+    } else if (currentFilter === 'mis_recibos') {
       filtered = allRecibos.filter(r => r.trabajador_id === user.id);
     } else if (currentFilter === 'oficina') {
       const dbLocal = window.getDB ? window.getDB() : {};
@@ -270,7 +303,7 @@ export function renderMisRecibos() {
       return dateB - dateA;
     });
 
-    document.getElementById('recibos-list').innerHTML = _renderRecibosList(filtered, isAdmin);
+    document.getElementById('recibos-list').innerHTML = _renderRecibosList(filtered, isAdmin, showWorker);
     _attachReciboCardListeners();
   }
 
@@ -306,7 +339,7 @@ export function renderMisRecibos() {
   };
 }
 
-function _renderRecibosList(recibos, isAdmin) {
+function _renderRecibosList(recibos, isAdmin, showWorker = isAdmin) {
   if (!recibos.length) return `
     <div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:16px;opacity:0.3;">
@@ -362,7 +395,7 @@ function _renderRecibosList(recibos, isAdmin) {
         <div style="flex:1;min-width:0;">
           <p style="font-size:0.65rem;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1px;margin:0;">${label}</p>
           <p style="font-size:0.95rem;font-weight:800;color:var(--text-primary);margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.cliente_nombre || '—'}</p>
-          ${isAdmin && r.trabajador_nombre ? `<p style="font-size:0.7rem;color:var(--text-muted);margin:0;"><i class="fa-solid fa-user"></i> ${r.trabajador_nombre}</p>` : ''}
+          ${showWorker && r.trabajador_nombre ? `<p style="font-size:0.7rem;color:var(--text-muted);margin:0;"><i class="fa-solid fa-user"></i> ${r.trabajador_nombre}</p>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <p style="font-size:1.05rem;font-weight:900;color:${color};margin:0;">${monto}</p>

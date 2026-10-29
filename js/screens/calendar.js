@@ -480,7 +480,7 @@ export async function renderMiCalendario() {
 
                     let mappedWorkers = workers.map(w => {
                         const fullName = `${w.nombre || ''} ${w.apellido || ''}`.trim();
-                        const rol = window.getUserRoles(w)[0] || 'Sin rol';
+                        const rol = window.rolLabel(window.getUserRoles(w)[0] || 'Sin rol');
                         const email = w.email || '';
                         const workerData = JSON.stringify({ id: w.id, nombre: fullName, email }).replace(/"/g, '&quot;');
                         

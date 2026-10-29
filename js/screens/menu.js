@@ -293,7 +293,7 @@ function mostrarModalCuenta(user) {
           </div>
           <div>
             <p style="margin:0; font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Rol Organizacional</p>
-            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${window.getUserRoles(user).some(r => r.includes('vendedor')) ? 'Representante de Ventas' : (window.getUserRoles(user)[0] || 'N/A')}</p>
+            <p style="margin:2px 0 0; font-size:0.9rem; font-weight:700; color:var(--text-primary);">${window.getUserRoles(user).some(r => r.includes('vendedor')) ? 'Representante de Ventas' : window.rolLabel(window.getUserRoles(user)[0] || 'N/A')}</p>
           </div>
         </div>
 
