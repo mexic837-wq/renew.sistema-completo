@@ -101,20 +101,22 @@ async function misProyectos() {
 // ---------- Orden de Trabajo (Estación 2) ----------
 const money = (v) => { const n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/[^0-9.\-]/g, '')); return '$' + (isNaN(n) ? 0 : n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
 const numv = (v) => { const n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; };
-const tieneEquipo = (d) => d.suavizador || d.osmosis || d.alcalina || d.pozo || d.otroEquipo;
+
+// ---------- Orden de Trabajo: campos del PDF oficial (orden_trabajo_oficial.pdf → molde_orden_v4.pdf) ----------
+const tieneEquipo = (d) => d.suavizador || d.osmosis || d.alcalina || d.aguaCiudad || d.pozo || d.otroEquipo;
+const FORMAS_PAGO = { Cash: 'Efectivo', Financed: 'Financiado', 'Credit Card': 'Tarjeta de crédito' };
 const OT_REQ = [
-  ['Comprador', 'nombre', 'nombre completo del comprador'], ['Comprador', 'telefono', 'teléfono'], ['Comprador', 'email', 'email'],
+  ['Comprador', 'nombre', 'nombre completo del comprador'], ['Comprador', 'telefono', 'teléfono'], ['Comprador', 'email', 'email (o "no tiene")'],
   ['Comprador', 'direccion', 'dirección de instalación'], ['Comprador', 'ciudad', 'ciudad'], ['Comprador', 'estado', 'estado'], ['Comprador', 'zipCode', 'zip code'],
-  ['Equipos', '_equipo', 'equipos (suavizador / ósmosis / alcalina / pozo / otro)'],
-  ['Instalación', 'fechaEstimada', 'fecha estimada de instalación'], ['Instalación', 'personasEnCasa', 'personas en casa'],
-  ['Instalación', 'tipoPiso', 'tipo de piso (concreto o elevado)'], ['Instalación', 'conexionRefrigerador', 'conexión al refrigerador (sí/no)'], ['Instalación', 'horario', 'horario (9am-2pm o 2pm-6pm)'],
-  ['Finanzas', 'precioContado', 'precio de contado'],
-  ['Finanzas', 'cuotaInicial', 'cuota inicial', 'fin'], ['Finanzas', 'terminosPago', 'términos de pago', 'fin'], ['Finanzas', 'apr', 'APR', 'fin'],
+  ['Equipos', '_equipo', 'equipos (suavizador para toda la casa / ósmosis para la cocina / agua alcalina / agua de ciudad / agua de pozo / otro)'],
+  ['Instalación', 'fechaEstimada', 'fecha estimada de instalación'], ['Instalación', 'horario', 'hora (9:00am-2:00pm o 2:00pm-6:00pm)'],
+  ['Forma de pago', '_pago', 'forma de pago (efectivo / financiado / tarjeta de crédito / otro)'], ['Forma de pago', '_inicial', 'pago inicial (monto, o "no")'],
 ];
 function faltantesOT(d) {
-  return OT_REQ.filter(([, k, , fin]) => {
-    if (fin && d.sinFinanciamiento) return false;
+  return OT_REQ.filter(([, k]) => {
     if (k === '_equipo') return !tieneEquipo(d);
+    if (k === '_pago') return !((d.formaPago || []).length || d.otroMetodoTexto);
+    if (k === '_inicial') return d.cuotaInicialMarcada === undefined;
     return d[k] === undefined || d[k] === null || String(d[k]).trim() === '';
   });
 }
@@ -124,12 +126,14 @@ function preguntasOT(falt) {
   return Object.entries(g).map(([b, l]) => `*${b}:* ${l.join(', ')}`).join('\n');
 }
 function resumenOT(d, cli) {
-  const eq = [d.suavizador && 'Suavizador', d.osmosis && 'Ósmosis', d.alcalina && 'Alcalina', d.pozo && 'Pozo', d.otroEquipo].filter(Boolean).join(', ');
-  const fin = d.sinFinanciamiento ? 'Sin financiamiento (todo en ceros)' : `Cuota inicial ${money(d.cuotaInicial)} · Financiar ${money(d.cantidadFinanciar)} · Términos ${d.terminosPago} · APR ${d.apr}`;
+  const eq = [d.terminosPrevios && 'Términos de instalación previos', d.suavizador && 'Suavizador para toda la casa', d.osmosis && 'Ósmosis inversa (cocina)', d.alcalina && 'Agua alcalina',
+    d.aguaCiudad && `Agua de ciudad${d.tipoLinea ? ` (línea ${d.tipoLinea})` : ''}`, d.productoEspecifico && `Producto: ${d.productoEspecifico}`, d.pozo && 'Agua de pozo', d.otroEquipo && `Otro: ${d.otroEquipo}`].filter(Boolean).join(', ');
+  const pago = [...(d.formaPago || []).map((f) => FORMAS_PAGO[f] || f), d.otroMetodoTexto && `Otro: ${d.otroMetodoTexto}`].filter(Boolean).join(' + ');
   return [`📋 *Resumen de la Orden de Trabajo de ${cli}*`, '',
     `👤 ${d.nombre}${d.segundoNombre ? ' / ' + d.segundoNombre : ''} · ${d.telefono} · ${d.email}`, `📍 ${d.direccion}, ${d.ciudad}, ${d.estado} ${d.zipCode}`,
-    `💧 ${eq}`, `🛠 ${d.fechaEstimada} · ${d.personasEnCasa} personas · piso ${d.tipoPiso} · refrigerador ${d.conexionRefrigerador} · ${d.horario}`,
-    `💵 Contado ${money(d.precioContado)} · ${fin}`, `📷 Foto ID: ${d.fotoId || d.fotoIdUrl ? 'sí' : 'no'}`, '', 'Tarjeta en 0. El cliente firma desde un enlace en su teléfono.',
+    `💧 ${eq}`, `🛠 ${d.fechaEstimada} · ${d.horario}${d.instruccionesEspeciales ? ` · ${d.instruccionesEspeciales}` : ''}`,
+    `💵 ${pago}${d.cuotaInicialMarcada ? ` · Pago inicial ${money(d.cuotaInicial)}` : ' · Sin pago inicial'}`,
+    `📷 Foto ID: ${d.fotoId || d.fotoIdUrl ? 'sí' : 'no'}`, '', 'El cliente firma desde un enlace en su teléfono.',
     'Responde *SI* para generar la orden y enviársela al cliente para que la firme, o dime qué corregir.'].join('\n');
 }
 
@@ -138,24 +142,48 @@ const prefillOT = (f) => Object.fromEntries(Object.entries({ nombre: f.nombre, t
 const tengoOT = (d) => [d.nombre && 'nombre', d.telefono && 'teléfono', d.email && 'email', d.direccion && 'dirección', d.ciudad && 'ciudad', d.estado && 'estado', d.zipCode && 'zip', (d.fotoIdUrl || d.fotoId) && 'foto del ID'].filter(Boolean).join(', ') || 'nada todavía';
 
 function armarDatosOT(proy, d) {
-  const precio = numv(d.precioContado), inst = numv(d.instalacionCosto), cuota = numv(d.cuotaInicial);
-  const sinFin = !!d.sinFinanciamiento;
-  const saldo = sinFin ? 0 : (d.saldoFinanciado !== undefined ? numv(d.saldoFinanciado) : precio + inst - cuota);
-  const cant = sinFin ? 0 : (d.cantidadFinanciar !== undefined ? numv(d.cantidadFinanciar) : saldo);
-  const cargos = sinFin ? 0 : numv(d.cargosFinancieros);
-  const total = sinFin ? 0 : (d.totalPagos !== undefined ? numv(d.totalPagos) : cant + cargos);
-  const datos = {
-    comprador: { nombre: d.nombre, segundoNombre: d.segundoNombre || '', telefono: d.telefono, email: d.email, direccion: d.direccion, ciudad: d.ciudad, estado: d.estado, zipCode: d.zipCode, fotoId: d.fotoId || '', fotoIdUrl: d.fotoIdUrl || '' },
-    equipos: { suavizadorCasa: !!d.suavizador, osmosisReversa: !!d.osmosis, osmosisReverso: !!d.osmosis, aguaAlcalina: !!d.alcalina, aguaPozo: !!d.pozo, otro_texto: d.otroEquipo || '' },
-    instalacion: { fechaEstimada: d.fechaEstimada, personasEnCasa: String(d.personasEnCasa), tipoPiso: d.tipoPiso, conexionRefrigerador: d.conexionRefrigerador, horario: d.horario, granossDureza: String(d.granossDureza || 0), instruccionesEspeciales: d.instruccionesEspeciales || '' },
-    finanzas: { precioContado: money(precio), instalacion: money(inst), cuotaInicial: money(sinFin ? 0 : cuota), saldo_financiado: money(saldo), cantidad_financiar: money(cant), terminos_pago: sinFin ? '0' : String(d.terminosPago), apr: sinFin ? '0' : String(d.apr), cargosFinancieros: money(cargos), totalPagos: money(total), tarjetaMonto: money(d.tarjetaMonto || 0) },
-    tarjeta: { numero: '0', expiracion: '0', cvv: '0' },
+  const formas = Array.isArray(d.formaPago) ? d.formaPago.filter((f) => FORMAS_PAGO[f]) : [];
+  return {
+    fecha: hoyUS(),
+    comprador: { nombre: d.nombre, segundoNombre: d.segundoNombre || '', telefono: d.telefono, email: /^no\b/i.test(String(d.email || '')) ? '' : d.email, direccion: d.direccion, ciudad: d.ciudad, estado: d.estado, zipCode: d.zipCode, fotoId: d.fotoId || '', fotoIdUrl: d.fotoIdUrl || '' },
+    equipos: { terminosPrevios: !!d.terminosPrevios, suavizadorCasa: !!d.suavizador, osmosisReversa: !!d.osmosis, osmosisReverso: !!d.osmosis, aguaAlcalina: !!d.alcalina,
+      aguaCiudad: !!d.aguaCiudad, tipoLinea: d.tipoLinea || '', productoEspecifico: d.productoEspecifico || '', aguaPozo: !!d.pozo, otro: !!d.otroEquipo, otro_texto: d.otroEquipo || '' },
+    instalacion: { fechaEstimada: d.fechaEstimada, horario: d.horario, instruccionesEspeciales: d.instruccionesEspeciales || '' },
+    finanzas: { formaPago: formas, cuotaInicialMarcada: !!d.cuotaInicialMarcada, cuotaInicial: d.cuotaInicialMarcada ? String(numv(d.cuotaInicial).toFixed(2)) : '', otroMetodo: !!d.otroMetodoTexto, otroMetodoTexto: d.otroMetodoTexto || '' },
     nombre_dealer: `${user.nombre} ${user.apellido || ''}`.replace(/\s+/g, ' ').trim(),
     negocio_procedencia: 'Renew Water',
     firmas: { comprador_1: '', comprador_2: '', representante: '' },
     _tipo: 'orden_trabajo', _timestamp: new Date().toISOString(), proyectoId: proy.id, clienteId: proy.cliente_id,
   };
-  return datos;
+}
+
+// ---------- Dudas: el agente explica (solo con esta información, nunca inventa precios ni políticas) ----------
+const GLOSARIO_OT = `
+ORDEN DE TRABAJO RENEW WATER (orden_trabajo_oficial):
+- Comprador / segundo comprador: quienes compran y firman. El teléfono, email y dirección son los del cliente donde se instala.
+- Términos de instalación previos: se marca si el comprador ya dio condiciones de instalación antes; si cambian, el comprador paga la diferencia.
+- Suavizador para toda la casa (Whole House Water Softener): sistema que trata el agua de toda la casa.
+- Ósmosis inversa para la cocina (Reverse Osmosis): filtro de agua para beber, se instala en la cocina.
+- Agua alcalina (add-on): complemento que se añade al sistema.
+- Agua de ciudad / agua de pozo: de dónde viene el agua de la casa. Si es de ciudad, se indica el tipo de línea (la tubería de la casa, por ejemplo cobre, PEX o PVC) y se puede especificar el producto.
+- Otro: cualquier otro equipo, se escribe cuál.
+- Fecha estimada y hora de instalación: la fecha aproximada y el bloque horario, 9:00am-2:00pm o 2:00pm-6:00pm.
+- Instrucciones especiales: acceso a la casa, mascotas, lugar preferido para el equipo, horarios, etc.
+- El lugar exacto del equipo lo deciden el personal de instalación de Renew Water y el comprador, en la mejor ubicación posible.
+- Nota de cancelación: una vez autorizada la instalación, si el cliente cancela debe pagar la instalación y la desinstalación, con un costo de $1,200.00; en caso de disputa el comprador cubre los gastos legales.
+- Forma de pago: efectivo, financiado o tarjeta de crédito (se puede combinar), pago inicial (down payment) con su monto, u otro método.
+- Al firmar, el cliente acepta los términos del contrato, que está aplicando a crédito y autoriza a obtener su reporte de crédito; si es financiado paga intereses mensuales además del precio.
+- Términos de pago y APR: YA NO se piden en la Orden de Trabajo nueva. APR es la tasa de interés anual del financiamiento y los términos de pago son el plazo y las cuotas; los define la financiera en la aplicación de crédito.
+- Firma: el cliente firma desde un enlace que le llega por WhatsApp (también puede firmar en el teléfono del vendedor).
+PROCESO RENEW WATER: crédito aprobado → Orden de Trabajo (firma del cliente) → asignación de técnico con fecha y hora → instalación y Confirmación de Instalación firmada por el cliente (ahí se registra la venta) → llamada de Renew → firma de contrato → llamada de la financiera → fotos de instalación → comisión.`;
+const esPregunta = (t) => /\?|^\s*¿|\b(qu[eé] es|qu[eé] son|qu[eé] significa|c[oó]mo (se|lo|la)|para qu[eé]|por qu[eé]|cu[aá]l es)\b/i.test(t);
+
+async function handleDuda() {
+  const r = await llm(`Eres el asistente de Renew Water y respondes dudas de vendedores y técnicos por WhatsApp. Usa ÚNICAMENTE esta información:${GLOSARIO_OT}
+Si la respuesta no está ahí, responde que eso lo confirma su Manager de Venta o Administración. No inventes precios, comisiones ni políticas. Nunca des datos de clientes. Responde en español, breve (máximo 5 líneas). Devuelve JSON: {"respuesta": string}.`, `Pregunta:\n${text}`);
+  if (!r.respuesta) return null;
+  await say(`💡 ${r.respuesta}`);
+  return 'duda_respondida';
 }
 
 async function handleOT(proy) {
@@ -196,18 +224,32 @@ async function handleOT(proy) {
       'Cuando firme, guardo la orden oficial en su proyecto y te pregunto por el técnico.'].join('\n'));
     return 'ot_enviada_firma';
   }
-  const ext = await llm(
-    `Extraes datos de una Orden de Trabajo de instalación de agua desde el mensaje de un vendedor. Devuelve SOLO un objeto JSON incluyendo UNICAMENTE las claves que aparezcan en el mensaje (omite las que no se mencionen, NUNCA inventes). Claves posibles: nombre, segundoNombre, telefono, email, direccion, ciudad, estado (2 letras, ej FL), zipCode, suavizador (bool), osmosis (bool), alcalina (bool), pozo (bool), otroEquipo (texto), fechaEstimada (MM/DD/YYYY; hoy es ${new Date().toISOString().slice(0, 10)}), personasEnCasa (número), tipoPiso ("Concrete-slab" para concreto o "Raised" para elevado), conexionRefrigerador ("Yes" o "No"), horario ("9:00am-2:00pm" o "2:00pm-6:00pm"), granossDureza (número), instruccionesEspeciales (texto), sinFinanciamiento (bool: true si dice sin financiamiento o de contado), precioContado, instalacionCosto, cuotaInicial, saldoFinanciado, cantidadFinanciar, terminosPago, apr, cargosFinancieros, totalPagos, tarjetaMonto. Nota: si el vendedor envía 4 números seguidos en la línea de finanzas (ej. "10000, 400, 700, 70"), corresponden en orden a: precioContado, cuotaInicial, terminosPago, apr. Si solo pide ver qué falta, devuelve {}.`,
+  const hoyISO = new Date().toISOString().slice(0, 10);
+  const ext0 = await llm(
+    `Extraes datos de la Orden de Trabajo de Renew Water desde el mensaje de un vendedor. Responde SOLO JSON: {"datos": {...}, "duda": string|null}.
+"datos" incluye ÚNICAMENTE las claves que el mensaje menciona (NUNCA inventes ni supongas): nombre, segundoNombre, telefono, email ("no tiene" si dice que no tiene), direccion, ciudad, estado (2 letras, ej FL), zipCode, terminosPrevios (bool), suavizador (bool: suavizador o sistema para toda la casa), osmosis (bool: ósmosis inversa / cocina), alcalina (bool), aguaCiudad (bool), tipoLinea (texto), productoEspecifico (texto), pozo (bool: agua de pozo), otroEquipo (texto), fechaEstimada (MM/DD/YYYY; hoy es ${hoyISO}; si no dice el año, la próxima fecha futura), horario ("9:00am-2:00pm" si la hora es antes de las 2pm o dice "en la mañana"; "2:00pm-6:00pm" si es a las 2pm o más tarde), instruccionesEspeciales (texto), formaPago (lista con "Cash" = efectivo/contado, "Financed" = financiado/crédito/financiera, "Credit Card" = tarjeta), cuotaInicialMarcada (true si hay pago inicial/entrada/down payment, false si dice que no hay), cuotaInicial (número: el monto del pago inicial; "2k" = 2000), otroMetodoTexto (texto).
+El precio total NO es un campo de la orden: no lo guardes en ninguna clave.
+"duda": si el mensaje pregunta qué significa algo o cómo llenarlo, respóndelo en máximo 3 líneas usando SOLO esta información:${GLOSARIO_OT}
+Si no hay pregunta, "duda" es null.`,
     `Mensaje del vendedor:\n${text}`);
-  for (const [k, v] of Object.entries(ext)) { if (v === null || v === '' || v === undefined) continue; d[k] = v; }
+  const ext = ext0 && ext0.datos && typeof ext0.datos === 'object' ? ext0.datos : (ext0 || {});
+  const PERMITIDAS = ['nombre', 'segundoNombre', 'telefono', 'email', 'direccion', 'ciudad', 'estado', 'zipCode', 'terminosPrevios', 'suavizador', 'osmosis', 'alcalina', 'aguaCiudad', 'tipoLinea', 'productoEspecifico', 'pozo', 'otroEquipo', 'fechaEstimada', 'horario', 'instruccionesEspeciales', 'formaPago', 'cuotaInicialMarcada', 'cuotaInicial', 'otroMetodoTexto'];
+  for (const [k, v] of Object.entries(ext)) {
+    if (!PERMITIDAS.includes(k) || v === null || v === '' || v === undefined) continue;
+    if (k === 'formaPago') { const l = [].concat(v).filter((f) => FORMAS_PAGO[f]); if (l.length) d.formaPago = [...new Set([...(d.formaPago || []), ...l])]; continue; }
+    if (k === 'horario' && !['9:00am-2:00pm', '2:00pm-6:00pm'].includes(v)) continue;
+    d[k] = v;
+  }
+  if (d.cuotaInicial !== undefined && d.cuotaInicialMarcada === undefined && numv(d.cuotaInicial) > 0) d.cuotaInicialMarcada = true;
+  const duda = ext0 && typeof ext0.duda === 'string' && ext0.duda.trim() ? `💡 ${ext0.duda.trim()}\n\n` : '';
   d._confirmando = false;
   const falt = faltantesOT(d);
   if (falt.length) {
-    await say(`Gracias ${nombreUser}. Para la Orden de Trabajo de *${cli}* aún me falta:\n\n${preguntasOT(falt)}`);
+    await say(`${duda}Gracias ${nombreUser}. Para la Orden de Trabajo de *${cli}* aún me falta:\n\n${preguntasOT(falt)}`);
     return 'ot_faltan_datos';
   }
   d._confirmando = true;
-  await say(resumenOT(d, cli));
+  await say(duda + resumenOT(d, cli));
   return 'ot_confirmacion';
 }
 
@@ -624,6 +666,8 @@ try {
     const esperaSi = esSi(text) && [...Object.values(sd.drafts), ...Object.values(sd.cert)].some((x) => x && x._owner === user.id && (x._confirmando || x._preguntaGenerar));
     if (!esperaSi && RE_SALUDO.test(text) && text.length <= 40) accion = await handleSaludo();
     if (!accion && !esperaSi) accion = await consultar(user, text, ctx, from);
+    const conBorrador = [...Object.values(sd.drafts), ...Object.values(sd.cert)].some((x) => x && x._owner === user.id);
+    if (!accion && !esperaSi && !conBorrador && esPregunta(text)) accion = await handleDuda();
     if (!accion && !esperaSi) accion = await handleDecisions();
     if (!accion) accion = await handleTexto();
   }

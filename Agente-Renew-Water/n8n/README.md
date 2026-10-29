@@ -56,6 +56,9 @@ apikey: <EVOLUTION_API_KEY>
 
 Para reenviar un enlace: *reenviar enlace <cliente>*.
 
+La Orden de Trabajo sigue el PDF oficial (`orden_trabajo_oficial.pdf` → `molde_orden_v4.pdf`): comprador, equipos (suavizador, ósmosis, alcalina, agua de ciudad con tipo de línea y producto, pozo, otro, términos previos), fecha y hora (9-2 / 2-6), instrucciones especiales y forma de pago (efectivo / financiado / tarjeta, pago inicial, otro). Ya no pide personas en casa, piso, refrigerador, términos de pago ni APR.
+**Dudas:** si el vendedor pregunta qué significa algo ("¿qué es APR?", "¿qué es tipo de línea?"), el agente responde con la información de la orden y del proceso, sin inventar precios ni políticas.
+
 ## Insistencia (como un coordinador de RR.HH.)
 - **Saludo:** si alguien escribe *hola*, el agente le responde con TODO lo que tiene pendiente.
 - **Barrido:** corre cada 2 h, pero solo escribe de 8:00 a 20:00 (hora de Florida) y como mucho cada 4 h por pendiente. El tono sube con cada aviso (1º amable → 3º "ya es el tercer aviso" → 4º+ "necesito que me lo pases hoy").
