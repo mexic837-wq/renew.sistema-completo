@@ -2120,11 +2120,12 @@ function bindGlobalEvents() {
         p.fase_id = newFaseId;
         
         // AUTO-SET CLOSURE DATE IF FINISHED
-        const { isProjectFinished } = await import('./api.js');
+        const { isProjectFinished, isVentaWaterEnCurso } = await import('./api.js');
         const isNowFinished = isProjectFinished(p, db);
         if (isNowFinished) {
             p.fecha_cierre = p.fecha_cierre || new Date().toISOString().split('T')[0];
-            p.estado = 'Completado';
+            // Water: la venta ya cuenta, pero el proyecto sigue en el pipeline hasta Comisión
+            if (!isVentaWaterEnCurso(p, db)) p.estado = 'Completado';
             console.log(`[KANBAN] Project ${projectId} marked as closed today.`);
         } else if (p.estado === 'Completado' || oldFaseId === 'Completado' || oldFaseId === null) {
             // If moved BACK from finished to open

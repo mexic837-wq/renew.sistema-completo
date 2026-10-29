@@ -9,6 +9,7 @@ const FASE_1 = 'fase_33_z8j9', FASE_OT = 'fase_35_nol4', CAMPO_OT = 'campo_19_0f
 const GATES = { campo_12_iq3s: 'si', campo_campo_241_8jov: 'si', campo_16_zhmp: 'si' }; // desplegables que deben ser "Si" para avanzar
 const sd = $getWorkflowStaticData('global');
 sd.seen = sd.seen || []; sd.drafts = sd.drafts || {}; sd.reg = sd.reg || {}; sd.active = sd.active || {}; sd.pendingText = sd.pendingText || {};
+sd.inst = sd.inst || {}; sd.cert = sd.cert || {}; // borradores de instalación (E3) y confirmación (E4)
 
 const http = async (o) => {
   try { return await this.helpers.httpRequest(o); }
@@ -72,12 +73,16 @@ function encargadosDe(fase, proy, users) {
 
 async function cargarCtx() {
   const [users, fases] = await Promise.all([
-    sel('usuarios', 'select=id,nombre,apellido,telefono,rol,is_suspended'),
+    sel('usuarios', 'select=id,nombre,apellido,telefono,rol,is_suspended,sede,unidades'),
     sel('admin_fases', 'select=id,nombre,orden,rol_encargado,usuarios_especificos&pipeline_id=eq.pip_water&order=orden.asc'),
   ]);
   const campos = await sel('admin_campos_formulario', `select=id,fase_id,etiqueta,tipo,opciones&fase_id=${inList(fases.map((f) => f.id))}`);
   const F = Object.fromEntries(fases.map((f) => [f.id, f]));
-  const tecnicos = users.filter((u) => !u.is_suspended && rolesDe(u.rol).some((r) => sinAcentos(r) === 'tecnico'));
+  // Técnicos activos de Water (si el usuario no tiene unidades cargadas, se incluye), en orden alfabético estable
+  const tecnicos = users
+    .filter((u) => !u.is_suspended && rolesDe(u.rol).some((r) => sinAcentos(r) === 'tecnico'))
+    .filter((u) => !Array.isArray(u.unidades) || !u.unidades.length || u.unidades.some((x) => /water/i.test(x)))
+    .sort((a, b) => `${a.nombre} ${a.apellido || ''}`.localeCompare(`${b.nombre} ${b.apellido || ''}`));
   return { users, fases, F, campos, tecnicos, N: {} };
 }
 async function nombresClientes(ctx, ids) {
@@ -95,20 +100,22 @@ function preguntaCampo(c, ctx) {
   return c.etiqueta;
 }
 
-const OT_PREGUNTAS = [
-  'Para la *Orden de Trabajo* necesito, por bloques (puedes mandarlo todo junto o por partes):',
+const TEC_PREGUNTA = (ctx) => `¿Ya tienes el técnico asignado? Respóndeme con el *número* del técnico y la *fecha y hora* de instalación (ej. "2, 15 de noviembre 10am"):
+
+${listaTecnicos(ctx)}`;
+const CERT_PREGUNTAS = [
+  'Para la *Confirmación de Instalación* necesito:',
+  '💧 *Equipos instalados* y su número de serie: sistema para toda la casa / ósmosis inversa / pozo.',
+  '💵 *Costos adicionales* si hubo (instalación, millas, trabajo extra, otro). Si no hubo, escribe "sin costos".',
+  '📦 *Inventario:* ¿de qué *sede* retiraste el material y qué usaste (con cantidades)?',
   '',
-  '👤 *Comprador:* nombre completo, segundo comprador (si hay), teléfono, email, dirección, ciudad, estado y zip.',
-  '💧 *Equipos:* suavizador / ósmosis / alcalina / pozo / otro.',
-  '🛠 *Instalación:* fecha estimada, personas en casa, piso (concreto o elevado), conexión al refrigerador (sí/no), horario (9am-2pm o 2pm-6pm), dureza del agua e instrucciones especiales.',
-  '💵 *Finanzas:* precio de contado, costo de instalación, cuota inicial, monto a financiar, términos de pago y APR. Si no hay financiamiento, escribe "sin financiamiento".',
-  '📷 Si tienes la foto del ID del comprador, envíala con el nombre del cliente.',
-  '',
-  'La tarjeta y las firmas las dejo en 0 / en blanco.',
+  'Con eso armo el documento y se lo mando al cliente para que lo firme.',
 ].join('\n');
 
 function cuerpoFase(faseId, ctx) {
-  if (faseId === FASE_OT) return OT_PREGUNTAS;
+  if (faseId === FASE_OT) return '¿Quieres que genere la *Orden de Trabajo*? Responde *SI* y te pido solo los datos que no estén en el sistema.';
+  if (faseId === FASE_TEC) return TEC_PREGUNTA(ctx);
+  if (faseId === FASE_CERT) return CERT_PREGUNTAS;
   const cs = camposFase(faseId, ctx.campos);
   return cs.length ? cs.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n') : '';
 }
@@ -119,8 +126,9 @@ async function notificarFase(proy, faseId, ctx, excluirUserId) {
   const cli = ctx.N[proy.cliente_id] || proy.cliente_id;
   const cuerpo = cuerpoFase(faseId, ctx);
   const encs = encargadosDe(fase, proy, ctx.users);
-  const incluyeActual = encs.some((u) => u.id === excluirUserId);
-  const otros = encs.filter((u) => u.id !== excluirUserId);
+  const excl = [].concat(excluirUserId || []);
+  const incluyeActual = encs.some((u) => excl.includes(u.id));
+  const otros = encs.filter((u) => !excl.includes(u.id));
   for (const u of otros) {
     await sendSafe(norm(u.telefono), `Hola ${u.nombre.trim()} 👋, acabo de avanzar a *${cli}* a la fase *${fase.nombre}*.\n\nPor favor pásame estos datos cuando los tengas para proseguir:\n${cuerpo}\n\nQuedo pendiente por aquí para registrarlo y seguir avanzando.`);
   }
@@ -167,4 +175,126 @@ async function revisarFase(proy, ctx, quien) {
   if (!AUTO_ADVANCE) return { estado: 'completa_sin_avance' };
   const sig = await avanzar(proy, ctx, quien, quien);
   return sig ? { estado: 'avanzo', sig } : { estado: 'ultima' };
+}
+
+// ---------- Fases con flujo propio ----------
+const FASE_TEC = 'fase_fase_4111_4ltv', FASE_CERT = 'fase_39_uivk';
+const esSi = (t) => /^\s*(s[ií]|si+|ok|okay|confirmo|confirmado|correcto|dale|listo|perfecto|claro|de una|adelante|genera\w*|hazl[ao])\W*$/i.test(String(t || ''));
+const esNo = (t) => /^\s*(no|todav[ií]a no|a[uú]n no|despu[eé]s|luego|m[aá]s tarde)\b/i.test(String(t || ''));
+
+// Teléfono para WhatsApp: los de 10 dígitos son de EE. UU. (+1)
+const waNum = (t) => { const d = norm(t); return d.length === 10 ? '1' + d : d; };
+
+// ---------- Ficha del cliente (lo que ya existe en el sistema, para NO pedírselo al vendedor) ----------
+const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','PR','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+const STATE_NAMES = { florida: 'FL', texas: 'TX', 'new york': 'NY', 'north carolina': 'NC', georgia: 'GA', california: 'CA', 'south carolina': 'SC', 'new jersey': 'NJ' };
+const SUFIJOS_CALLE = new Set(['st','street','ave','av','avenue','rd','road','dr','drive','blvd','ln','lane','ct','court','cir','circle','way','pl','place','pkwy','hwy','ter','terrace','trl','trail','loop','run','path','cv','pt','sq','xing','row','walk','bnd','pass','pike','plz','cres','grv','hl','hts','rdg','trce']);
+const UNIDAD = new Set(['apt','apartment','unit','ste','suite','lot','bldg','floor','rm','spc','trlr']);
+const TITULO = (s) => String(s || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).trim();
+
+// "2111 Pennington dr Arlington tx 76014" -> { ciudad: 'Arlington', estado: 'TX', zip: '76014' }
+function partesDireccion(addr) {
+  let a = String(addr || '').replace(/\s+/g, ' ').replace(/\s*,?\s*(usa|u\.s\.a\.?|united states|ee\.?\s?uu\.?|estados unidos)\s*$/i, '').trim();
+  const out = { ciudad: '', estado: '', zip: '' };
+  if (!a) return out;
+  let w = a.replace(/,/g, ' , ').split(' ').filter(Boolean);
+  const pop = () => { while (w.length && w[w.length - 1] === ',') w.pop(); };
+  pop();
+  if (w.length && /^\d{5}(-\d{4})?$/.test(w[w.length - 1])) out.zip = w.pop().slice(0, 5);
+  pop();
+  const last = (w[w.length - 1] || '').replace(/\.$/, '').toUpperCase();
+  if (US_STATES.includes(last)) { out.estado = last; w.pop(); }
+  else {
+    for (const [name, code] of Object.entries(STATE_NAMES)) {
+      const n = name.split(' ').length;
+      if (w.length > n && w.slice(-n).join(' ').toLowerCase() === name) { out.estado = code; w.splice(-n, n); break; }
+    }
+  }
+  pop();
+  const coma = w.lastIndexOf(',');
+  if (coma >= 0) { const tail = w.slice(coma + 1); if (tail.length && !tail.some((x) => /\d/.test(x))) { out.ciudad = TITULO(tail.join(' ')); return out; } w = tail.length ? tail : w.slice(0, coma); }
+  const lw = w.map((x) => x.toLowerCase().replace(/\.$/, ''));
+  let ini = -1;
+  for (let i = 0; i < lw.length; i++) {
+    if (SUFIJOS_CALLE.has(lw[i]) && i > 0 && !(lw[i] === 'st' && /^(lucie|cloud|petersburg|augustine|johns|louis)$/.test(lw[i + 1] || ''))) ini = i + 1;
+    else if (UNIDAD.has(lw[i]) || lw[i].startsWith('#')) { ini = i + 1; if (ini < lw.length && /\d/.test(lw[ini])) ini++; }
+  }
+  if (ini >= 0) { const c = w.slice(ini).filter((x) => !/\d/.test(x)); if (c.length && c.length <= 4) out.ciudad = TITULO(c.join(' ')); }
+  return out;
+}
+
+async function fichaCliente(clienteId) {
+  const [c] = await sel('clientes_maestro', `select=*&id=eq.${clienteId}`);
+  if (!c) return {};
+  const p = partesDireccion(c.direccion);
+  const estado = [c.state_id, c.estado_geo, p.estado].find((x) => x && x !== '-' && String(x).length <= 3);
+  return {
+    id: c.id, nombre: c.nombre, telefono: c.telefono, email: c.email, direccion: c.direccion,
+    ciudad: c.ciudad || p.ciudad || undefined, estado: estado ? String(estado).toUpperCase() : undefined,
+    zipCode: c.zip || c.zip_code || p.zip || undefined,
+    fotoIdUrl: c.adjunto_id_url || c.id_photo || undefined,
+    coAplicanteIdUrl: (c.adjuntos_oficina && c.adjuntos_oficina.co_applicant_id_url) || undefined,
+  };
+}
+
+// ---------- Firma virtual del cliente (página /firmar.html del sistema) ----------
+async function crearFirma(tipo, proy, cliNombre, datos, creadoPor) {
+  const r = await http({
+    method: 'POST', url: `${APP_URL}/api/firmas/solicitud`,
+    headers: { 'Content-Type': 'application/json', 'x-agente-token': E.WEBHOOK_TOKEN },
+    body: { tipo, proyecto_id: proy.id, cliente_id: proy.cliente_id, cliente_nombre: cliNombre, datos, creado_por: creadoPor },
+    json: true, timeout: 120000,
+  });
+  if (!r || !r.url) throw new Error('El sistema no devolvió el enlace de firma');
+  return r;
+}
+
+// Manda el enlace al cliente y devuelve si se pudo
+async function enviarFirmaCliente(telCliente, cliNombre, documento, url, quien) {
+  if (!telCliente) return false;
+  const nombre = String(cliNombre || '').split(' ')[0];
+  return sendSafe(waNum(telCliente), `Hola ${nombre} 👋, te escribe el asistente de *Renew Water*.\n\n${quien} preparó tu *${documento}*. Revísala y fírmala desde tu teléfono aquí:\n${url}\n\nEl enlace es personal y vence en 7 días.`);
+}
+
+// ---------- Técnicos (lista numerada estable) ----------
+const listaTecnicos = (ctx) => ctx.tecnicos.map((t, i) => `${i + 1}. ${`${t.nombre} ${t.apellido || ''}`.trim()}${t.sede ? ` (${String(t.sede).replace(/_/g, ' ')})` : ''}`).join('\n');
+
+// ---------- Inventario ----------
+const SEDES_INV = { orlando: 'Orlando', miami: 'Miami', dallas: 'Dallas', houston: 'Houston', austin: 'Austin', north_carolina: 'North Carolina', new_york: 'Nueva York', tampa: 'Tampa' };
+const esItemWater = (i) => sinAcentos(i.category) === 'water' || /water|agua/i.test(i.ecosistema || '') || /economica|clasica|pozo/i.test(sinAcentos(i.ecosistema));
+
+async function inventarioWater(sede) {
+  const q = 'select=id,nombre_item,ecosistema,category,locacion,stock_actual' + (sede ? `&locacion=eq.${sede}` : '');
+  return (await sel('inventario_global', q)).filter(esItemWater);
+}
+
+// Descuenta del stock y deja el movimiento en historial_inventario (ligado al proyecto)
+async function descontarInventario(items, proy, cliNombre, tecnico, sede) {
+  const hechos = [];
+  let n = 0;
+  for (const it of items) {
+    const [row] = await sel('inventario_global', `select=id,nombre_item,stock_actual&id=eq.${encodeURIComponent(it.id)}`);
+    if (!row) continue;
+    const antes = Number(row.stock_actual) || 0;
+    const despues = Math.max(0, antes - it.cantidad);
+    await patch('inventario_global', `id=eq.${encodeURIComponent(it.id)}`, { stock_actual: despues });
+    // historial_inventario usa "fecha" como clave: se separa cada movimiento por milisegundos
+    await insert('historial_inventario', {
+      fecha: new Date(Date.now() + n++).toISOString(),
+      tecnico_nombre: `${tecnico.nombre} ${tecnico.apellido || ''}`.trim(), item_nombre: row.nombre_item, item_id: row.id,
+      cantidad_retirada: it.cantidad, sede, ecosistema: 'water', proyecto_id: proy.id, cliente_nombre: cliNombre,
+      tipo_movimiento: 'Salida (Proyecto)',
+    });
+    hechos.push({ nombre: row.nombre_item, cantidad: it.cantidad, antes, despues, sinStock: antes < it.cantidad });
+  }
+  return hechos;
+}
+
+// Proyectos que el agente sigue persiguiendo: con fase y, si ya tienen fecha de cierre,
+// solo los Water que pasaron Certificado de Instalación (venta hecha, pipeline aún abierto)
+function sigueAbierto(p, ctx) {
+  if (!p.fase_id || !ctx.F[p.fase_id]) return false;
+  if (!p.fecha_cierre) return true;
+  const cert = ctx.F[FASE_CERT];
+  return !!cert && ctx.F[p.fase_id].orden > cert.orden;
 }

@@ -37,6 +37,25 @@ apikey: <EVOLUTION_API_KEY>
 2. Verifica en Supabase: proyecto nuevo en `pip_water`, cliente `En Proceso`.
 3. Barrido: déjalo con `BARRIDO_SEND=false` y ejecútalo manual (Execute node) para ver los mensajes simulados; cuando estén bien, pon `true`.
 
+## 5. Firma virtual del cliente (una sola vez)
+1. Ejecuta `supabase_solicitudes_firma.sql` (raíz del repo) en el SQL Editor de Supabase.
+2. En el servidor de la app crea `/home/apps/renew-group-system/.env` con:
+   ```
+   AGENTE_TOKEN=<el mismo valor que WEBHOOK_TOKEN del nodo Config>
+   ```
+   (opcional `AGENTE_WEBHOOK_URL`, por defecto `https://n8n.renewgroup.site/webhook/agente-renew-sistema`). Luego `deploy.sh`.
+3. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
+
+## Flujo Renew Water (por WhatsApp)
+1. **Crédito:** "¿fue aceptada?" → crea el proyecto (*En Proceso*) y lo pasa a Orden de Trabajo.
+2. **Orden de Trabajo:** "¿la genero?" → toma del sistema nombre, teléfono, email, dirección, ciudad, estado, zip y foto del ID; **solo pide lo que falta**; resumen → *SI* → borrador + enlace de firma al **cliente y al vendedor** (`/firmar.html`).
+3. **Cliente firma** → el sistema genera la orden oficial, la guarda y la manda al grupo de aplicaciones; el agente avanza a Asignación de Técnicos.
+4. **Técnico:** lista numerada → número + fecha y hora → guarda técnico y fecha, le escribe al técnico con dirección, equipos y lo que debe reportar → avanza a Certificado de Instalación.
+5. **Al terminar la instalación** (técnico o vendedor): equipos + serie, costos, **sede de donde retiró** y material usado → resumen → *SI* → **descuenta el inventario** de esa sede (historial ligado al proyecto), avisa a técnico y vendedor y manda la **Confirmación de Instalación** a firmar.
+6. **Cliente firma** → el PDF queda como certificado, el cliente pasa a *Cliente*, **la venta cuenta** y el agente sigue con el resto del pipeline (Llamada, Contrato, Financiera, Fotos, Comisión).
+
+Para reenviar un enlace: *reenviar enlace <cliente>*.
+
 ## Notas
 - **Orden de Trabajo completa (Estación 2):** pre-carga datos de `clientes_maestro`, pide los bloques faltantes (Comprador, Equipos, Instalación, Finanzas y foto de ID opcional), deja tarjeta en `"0"` y firmas en blanco, muestra resumen y al confirmar con **SI** llama a `POST https://renewgroup.site/api/generar-orden` (que sube el PDF a `archivos_renew`, actualiza el proyecto/cliente y dispara el webhook `aplicacion-credito-o-trabajo` al grupo de WhatsApp).
 - **Avance fase por fase (Estaciones 3 a 9):** lee los campos reales de `admin_campos_formulario` y los encargados de `admin_fases`. Con `AUTO_ADVANCE=true`, al completarse una estación avanza a la siguiente y envía automáticamente las preguntas de la nueva estación a sus encargados.

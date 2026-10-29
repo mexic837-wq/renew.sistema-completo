@@ -1,3 +1,5 @@
+// Variables locales del servidor (.env, no se sube a git): AGENTE_TOKEN, AGENTE_WEBHOOK_URL
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -1532,7 +1534,8 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
         const pdfBytes = await generarPDF(moldePath, d, { fitImages: true });
 
         // Subir a Supabase
-        const fileName = `confirmaciones/confirmacion_instalacion_${Date.now()}.pdf`;
+        const esBorrador = !!d._borrador;
+        const fileName = `${esBorrador ? 'confirmaciones/borradores' : 'confirmaciones'}/confirmacion_instalacion_${Date.now()}.pdf`;
         const { error: uploadError } = await supabase.storage
             .from('archivos_renew')
             .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
@@ -1550,7 +1553,7 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
                 if (proy?.cliente_id) targetClienteId = proy.cliente_id;
             }
 
-            if (targetClienteId) {
+            if (targetClienteId && !esBorrador) {
                 const { data: cli } = await supabase.from('clientes_maestro')
                     .select('adjuntos_oficina').eq('id', targetClienteId).single();
                 let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
@@ -1567,6 +1570,137 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
         res.json({ success: true, url: finalUrl });
     } catch (err) {
         console.error('[/api/generar-confirmacion-instalacion] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── FIRMA VIRTUAL DEL CLIENTE (enlace único por WhatsApp) ──
+// El agente Renew Water crea una solicitud con los datos de la plantilla y un borrador en PDF.
+// El cliente abre /firmar.html?t=TOKEN, revisa el borrador y firma; aquí se genera el PDF oficial
+// con su firma y se avisa al agente (n8n) para que siga con el pipeline.
+// Requiere en el .env del servidor: AGENTE_TOKEN (mismo valor que WEBHOOK_TOKEN del workflow)
+// y opcionalmente AGENTE_WEBHOOK_URL (por defecto el webhook del agente en n8n).
+const FIRMA_TIPOS = {
+    orden_trabajo: { titulo: 'Orden de Trabajo', endpoint: '/api/generar-orden' },
+    confirmacion_instalacion: { titulo: 'Confirmación de Instalación', endpoint: '/api/generar-confirmacion-instalacion' },
+};
+const FIRMA_DIAS_VIGENCIA = 7;
+
+function agenteAutorizado(req) {
+    const token = process.env.AGENTE_TOKEN;
+    return !!token && req.headers['x-agente-token'] === token;
+}
+
+// Genera el PDF llamando al endpoint propio (así se reutiliza exactamente la misma lógica)
+async function generarPdfInterno(tipo, datos) {
+    const conf = FIRMA_TIPOS[tipo];
+    const r = await fetch(`http://127.0.0.1:${port}${conf.endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datos }),
+    });
+    if (!r.ok) throw new Error(`No se pudo generar ${conf.titulo} (${r.status})`);
+    if (tipo === 'orden_trabajo') return r.headers.get('x-document-url');
+    const j = await r.json();
+    return j.url;
+}
+
+// 1) El agente crea la solicitud (genera también el borrador para que el cliente lo revise)
+app.post('/api/firmas/solicitud', async (req, res) => {
+    try {
+        if (!agenteAutorizado(req)) return res.status(401).json({ error: 'No autorizado' });
+        const { tipo, proyecto_id, cliente_id, cliente_nombre, datos, creado_por } = req.body || {};
+        if (!FIRMA_TIPOS[tipo]) return res.status(400).json({ error: 'Tipo de documento no válido' });
+        if (!datos || typeof datos !== 'object') return res.status(400).json({ error: 'Faltan los datos del documento' });
+
+        const preview_url = await generarPdfInterno(tipo, { ...datos, _borrador: true });
+        const token = require('crypto').randomBytes(24).toString('hex');
+        const expira_en = new Date(Date.now() + FIRMA_DIAS_VIGENCIA * 864e5).toISOString();
+        const { error } = await supabase.from('solicitudes_firma').insert({
+            token, tipo, proyecto_id: proyecto_id || null, cliente_id: cliente_id || null,
+            cliente_nombre: cliente_nombre || null, datos, preview_url, estado: 'pendiente',
+            creado_por: creado_por || null, expira_en,
+        });
+        if (error) throw new Error(error.message);
+        res.json({ success: true, token, url: `${PUBLIC_BASE_URL}/firmar.html?t=${token}`, preview_url, expira_en });
+    } catch (err) {
+        console.error('[/api/firmas/solicitud] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+async function leerSolicitud(token) {
+    if (!/^[a-f0-9]{48}$/.test(String(token || ''))) return null;
+    const { data } = await supabase.from('solicitudes_firma').select('*').eq('token', token).maybeSingle();
+    return data || null;
+}
+
+// 2) La página pública consulta la solicitud (solo lo necesario para mostrarla)
+app.get('/api/firmas/:token', async (req, res) => {
+    const s = await leerSolicitud(req.params.token);
+    if (!s) return res.status(404).json({ error: 'Enlace no válido' });
+    const vencida = s.estado === 'pendiente' && s.expira_en && new Date(s.expira_en) < new Date();
+    res.json({
+        tipo: s.tipo, titulo: FIRMA_TIPOS[s.tipo]?.titulo || 'Documento',
+        cliente_nombre: s.cliente_nombre, estado: vencida ? 'vencida' : s.estado,
+        preview_url: s.preview_url, pdf_url: s.estado === 'firmado' ? s.pdf_url : null, firmado_en: s.firmado_en,
+    });
+});
+
+// 3) El cliente firma: se genera el PDF oficial con su firma y se avisa al agente
+app.post('/api/firmas/:token', async (req, res) => {
+    try {
+        const s = await leerSolicitud(req.params.token);
+        if (!s) return res.status(404).json({ error: 'Enlace no válido' });
+        if (s.estado !== 'pendiente') return res.status(409).json({ error: 'Este documento ya fue firmado' });
+        if (s.expira_en && new Date(s.expira_en) < new Date()) return res.status(410).json({ error: 'El enlace venció. Pide uno nuevo a tu representante.' });
+
+        const { firma, firmante_nombre, confirmacion_cliente, iniciales } = req.body || {};
+        if (typeof firma !== 'string' || !firma.startsWith('data:image/png;base64,') || firma.length > 1.5e6) {
+            return res.status(400).json({ error: 'Firma no válida' });
+        }
+
+        // Marca la solicitud como en proceso para evitar dobles firmas
+        const { data: tomada } = await supabase.from('solicitudes_firma')
+            .update({ estado: 'procesando' }).eq('token', s.token).eq('estado', 'pendiente').select('token');
+        if (!tomada || !tomada.length) return res.status(409).json({ error: 'Este documento ya está siendo firmado' });
+
+        const datos = { ...s.datos, _borrador: false };
+        if (s.tipo === 'orden_trabajo') {
+            datos.firmas = { ...(datos.firmas || {}), comprador_1: firma };
+        } else {
+            datos.firma_comprador = firma;
+            if (confirmacion_cliente === 'si' || confirmacion_cliente === 'no') datos.confirmacion_cliente = confirmacion_cliente;
+            if (iniciales) datos.iniciales = String(iniciales).slice(0, 8);
+        }
+
+        let pdf_url;
+        try {
+            pdf_url = await generarPdfInterno(s.tipo, datos);
+        } catch (e) {
+            await supabase.from('solicitudes_firma').update({ estado: 'pendiente' }).eq('token', s.token);
+            throw e;
+        }
+
+        const firmado_en = new Date().toISOString();
+        await supabase.from('solicitudes_firma').update({
+            estado: 'firmado', firmado_en, pdf_url,
+            firmante_nombre: firmante_nombre ? String(firmante_nombre).slice(0, 120) : null,
+            firma_ip: String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(),
+        }).eq('token', s.token);
+
+        // Avisar al agente para que continúe (no bloquea la respuesta al cliente)
+        if (process.env.AGENTE_TOKEN) {
+            fetch(process.env.AGENTE_WEBHOOK_URL || 'https://n8n.renewgroup.site/webhook/agente-renew-sistema', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-agente-token': process.env.AGENTE_TOKEN },
+                body: JSON.stringify({ event: 'firma.completada', token: s.token, tipo: s.tipo, proyecto_id: s.proyecto_id, cliente_id: s.cliente_id, pdf_url, firmado_en }),
+            }).catch(err => console.error('[FIRMA] No se pudo avisar al agente:', err.message));
+        }
+
+        res.json({ success: true, pdf_url });
+    } catch (err) {
+        console.error('[/api/firmas/:token] Error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1996,7 +2130,9 @@ app.post('/api/generar-orden', async (req, res) => {
         console.log('[PDF] Generado correctamente. Tamaño:', pdfBytes.length, 'bytes');
 
         // 1. Subir PDF a Supabase Storage
-        const fileName = `ordenes/orden_trabajo_${Date.now()}_${Math.round(Math.random() * 1E9)}.pdf`;
+        // _borrador: vista previa para firmar (no toca al cliente ni avisa al grupo de aplicaciones)
+        const esBorrador = !!rawData._borrador;
+        const fileName = `${esBorrador ? 'ordenes/borradores' : 'ordenes'}/orden_trabajo_${Date.now()}_${Math.round(Math.random() * 1E9)}.pdf`;
         console.log('[STORAGE] Subiendo archivo:', fileName);
         const { error: uploadError } = await supabase.storage
             .from('archivos_renew')
@@ -2012,7 +2148,7 @@ app.post('/api/generar-orden', async (req, res) => {
             
             // 2. Actualizar la base de datos (resolviendo cliente_id)
             const proyId = rawData.proyectoId;
-            if (proyId) {
+            if (proyId && !esBorrador) {
                 console.log(`[PDF-SYNC-ORDEN] <i class="fa-solid fa-magnifying-glass"></i> Buscando vinculación para Proyecto: "${proyId}"`);
                 try {
                     // Búsqueda Flexible
@@ -2086,14 +2222,14 @@ app.post('/api/generar-orden', async (req, res) => {
 
         // 3. Procesar foto del ID si existe
         let idPhotoUrl = null;
-        if (rawData.comprador?.fotoId) {
+        if (rawData.comprador?.fotoId && !esBorrador) {
             idPhotoUrl = await uploadBase64ToSupabase(rawData.comprador.fotoId, 'ordenes_ids');
             if (idPhotoUrl) rawData.comprador.fotoIdUrl = idPhotoUrl;
         }
 
-        // Webhook Trigger a n8n
+        // Webhook Trigger a n8n (solo la orden oficial)
         const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';
-        fetch(WEBHOOK_URL, {
+        if (!esBorrador) fetch(WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

@@ -12,3 +12,9 @@ Formato: `[AAAA-MM-DD HH:mm] Observaci贸n / regla aprendida`
 - [2026-10-22 13:10] REGLA NUEVA (usuario): al completar la Aplicaci髇 de Cr閐ito solo se crea un PROSPECTO; el vendedor decide Crear Proyecto (aceptado) o Declinar (rechazado, con motivo). La primera pregunta del agente es siempre aceptada/rechazada. Antes de esto no existe proyecto ni Estaci髇 1.
 - [2026-10-22 13:10] Modelo: clientes_maestro.macro_estado Prospecto/En Proceso/Declinado/Cliente. 69 prospectos al momento.
 - [2026-10-22 13:10] Los 9 avances E1->E2 de la primera corrida eran proyectos ya creados (ya aceptados).
+
+- [2026-10-29 13:30] REGLA (usuario): nunca pedir al vendedor datos que ya est茅n en el sistema (nombre, tel茅fono, email, direcci贸n, ciudad, estado, zip, foto del ID). Solo pedir lo que falta.
+- [2026-10-29 13:30] REGLA (usuario): el cliente firma la Orden de Trabajo y la Confirmaci贸n de Instalaci贸n desde un enlace (/firmar.html) que se env铆a al cliente y al vendedor. Sin firma no hay documento oficial.
+- [2026-10-29 13:30] REGLA (usuario): En Proceso desde que se aprueba el cr茅dito. La venta cuenta al firmarse la Confirmaci贸n de Instalaci贸n (fin de Certificado de Instalaci贸n); el agente sigue con el resto del pipeline hasta Comisi贸n.
+- [2026-10-29 13:30] REGLA (usuario): Orden de instalaci贸n = Certificado de Instalaci贸n = Confirmaci贸n de Instalaci贸n (mismo documento).
+- [2026-10-29 13:30] REGLA (usuario): al terminar la instalaci贸n se pregunta de qu茅 sede se retir贸 el material y qu茅 se us贸; se descuenta de inventario_global de esa sede y se informa a t茅cnico y vendedor.

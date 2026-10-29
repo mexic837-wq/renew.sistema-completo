@@ -27,6 +27,9 @@
 
 - **`clientes_maestro`**: Contiene nombre, teléfono, dirección y correo del cliente final. **Ciclo de vida:** `macro_estado` = `'Prospecto'` (tras la Aplicación de Crédito, sin proyecto) → `'En Proceso'` (aceptado, "Crear Proyecto") o `'Declinado'` (con `motivo_declinado`). `vendedor_asignado_id` = vendedor dueño del prospecto. La Aplicación de Crédito queda en `adjuntos_oficina.app_url`.
 
+- **`solicitudes_firma`**: enlaces de firma del cliente (`token`, `tipo` orden_trabajo|confirmacion_instalacion, `proyecto_id`, `datos` jsonb, `preview_url`, `estado` pendiente|procesando|firmado, `pdf_url`). La crea el servidor (`POST /api/firmas/solicitud`) y al firmar avisa al agente con el evento `firma.completada`.
+- **`inventario_global`** (`id`, `nombre_item`, `ecosistema`, `category`, `locacion` = sede, `stock_actual`) y **`historial_inventario`** (`fecha` es la clave, `item_id`, `cantidad_retirada`, `sede`, `proyecto_id`, `tipo_movimiento` = 'Salida (Proyecto)').
+
 - **Storage Bucket**: Todos los archivos e imágenes recibidos por WhatsApp se suben al bucket `archivos_renew` y se registran en `respuestas_dinamicas.valor` con el prefijo `/api/storage-proxy/archivos_renew/{ruta}`.
 
 ## 2. Las 9 Estaciones de `pip_water` y sus Encargados

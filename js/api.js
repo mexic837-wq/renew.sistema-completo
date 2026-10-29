@@ -148,7 +148,8 @@ function applyPostProcessing(freshDB) {
         const isFinished = isProjectFinished(p, freshDB);
 
         if (isFinished) {
-            if (p.estado !== 'Completado') {
+            // Water: la venta cuenta desde Certificado de Instalación, pero el proyecto sigue en el pipeline
+            if (p.estado !== 'Completado' && !isVentaWaterEnCurso(p, freshDB)) {
                 p.estado = 'Completado';
             }
             // Preserve original fecha_cierre if present; fallback to real project/client date if missing
@@ -2914,6 +2915,13 @@ async function _checkAndPromoteVendor(db, userId) {
   }
 }
 
+// Proyecto Water con la venta ya hecha (pasó Certificado de Instalación) pero que aún no termina el pipeline
+export function isVentaWaterEnCurso(p, db) {
+  if (!p || !p.fase_id || p.fase_id === 'Completado') return false;
+  const pip = (db && db.Admin_Pipelines || []).find(x => x.id === p.pipeline_id);
+  return !!pip && String(pip.nombre || '').toLowerCase().includes('water');
+}
+
 export function isProjectFinished(p, db) {
   if (!p) return false;
   
@@ -2944,6 +2952,11 @@ export function isProjectFinished(p, db) {
           if (typeof faseObj.orden === 'number' && faseObj.orden >= 2) {
              return true;
           }
+        }
+        // WATER: la venta queda hecha al pasar la fase "Certificado de Instalación" (el pipeline sigue hasta Comisión)
+        if (pipeline && String(pipeline.nombre || '').toLowerCase().includes('water') && typeof faseObj.orden === 'number') {
+          const cert = db.Admin_Fases.find(f => f.pipeline_id === faseObj.pipeline_id && /certificad/i.test(f.nombre || ''));
+          if (cert && typeof cert.orden === 'number' && faseObj.orden > cert.orden) return true;
         }
       }
     }
