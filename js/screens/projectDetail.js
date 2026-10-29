@@ -120,7 +120,7 @@ export async function renderDetail(dealId) {
   `;
 
   const backBtn = document.getElementById('pd-back-btn');
-  if (backBtn) backBtn.addEventListener('click', () => navigate('dashboard'));
+  if (backBtn) backBtn.addEventListener('click', () => (window.returnFromDetail ? window.returnFromDetail() : navigate('dashboard')));
 
   try {
     const deal = await getDealById(dealId);
@@ -498,7 +498,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   `;
 
   const backBtn2 = document.getElementById('pd-back-btn2');
-  if (backBtn2) backBtn2.addEventListener('click', () => navigate('dashboard'));
+  if (backBtn2) backBtn2.addEventListener('click', () => (window.returnFromDetail ? window.returnFromDetail() : navigate('dashboard')));
 
   const undoBtn = document.getElementById('pd-undo-project-btn');
   if (undoBtn) {

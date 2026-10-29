@@ -28,7 +28,7 @@ import { renderHub }       from './screens/hub.js';
 import { renderDashboard } from './screens/dashboard.js?v=14';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
-import { renderDetail }     from './screens/projectDetail.js';
+import { renderDetail }     from './screens/projectDetail.js?v=2';
 import { renderAcademy }    from './screens/academy.js';
 import { renderMenu }       from './screens/menu.js?v=3';
 import { renderInventoryTech } from './screens/inventory.js';
@@ -485,6 +485,37 @@ setInterval(window.verificarAnunciosNuevos, 30000);
 // ── Router ──────────────────────────────────────────────────
 const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'plantilla-pozo', 'mis-adelantos'];
 
+// Recuerda de qué pantalla (y en qué posición) se abrió el detalle de un proyecto,
+// para que la flecha de volver regrese ahí en vez de a Inicio
+function _rememberDetailOrigin(nextScreen) {
+  if (nextScreen !== 'detail') return;
+  const activeEl = document.querySelector('.screen.active');
+  const from = activeEl ? activeEl.id.replace('screen-', '') : null;
+  if (!from || from === 'detail' || from === 'login') return;
+  window._detailReturn = {
+    screen: from,
+    scrollY: window.scrollY,
+    screenScroll: activeEl.scrollTop,
+    appScroll: (document.getElementById('app') || {}).scrollTop || 0
+  };
+}
+
+// Vuelve a la pantalla de origen del detalle y restaura su scroll
+window.returnFromDetail = function() {
+  const ret = window._detailReturn;
+  window._detailReturn = null;
+  if (!ret) { navigate('dashboard'); return; }
+  navigate(ret.screen);
+  const restore = () => {
+    const el = document.getElementById(`screen-${ret.screen}`);
+    if (el) el.scrollTop = ret.screenScroll || 0;
+    const app = document.getElementById('app');
+    if (app) app.scrollTop = ret.appScroll || 0;
+    window.scrollTo({ top: ret.scrollY || 0, behavior: 'instant' });
+  };
+  [80, 350, 800].forEach(ms => setTimeout(restore, ms));
+};
+
 export function navigate(screen, param = null) {
   // Auth guard
   const user = getCurrentUser();
@@ -509,6 +540,8 @@ export function navigate(screen, param = null) {
       return;
     }
   }
+
+  _rememberDetailOrigin(screen);
 
   // Hide all screens
   SCREENS.forEach(id => {
@@ -766,6 +799,7 @@ function handleHashChange() {
       navigate('dashboard');
       return;
     }
+    _rememberDetailOrigin(screen);
     // Render without pushing to history again
     SCREENS.forEach(id => {
       const el = document.getElementById(`screen-${id}`);
