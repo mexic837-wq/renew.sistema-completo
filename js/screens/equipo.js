@@ -377,7 +377,7 @@ function _renderTeamGrid() {
           
           <div class="team-contact">
             ${w.email ? `
-              <a href="mailto:${w.email}" class="contact-icon" title="${w.email}">
+              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(w.email)}" target="_blank" rel="noopener noreferrer" class="contact-icon" title="Enviar correo a ${w.email}">
                 <i class="fas fa-envelope"></i>
               </a>
             ` : ''}
