@@ -55,7 +55,7 @@ async function handleDecisions() {
     await say(`Anotado, ${nombreUser}. Dejé al prospecto como Declinado (motivo: "${text.slice(0, 120)}").`);
     return 'rechazo_con_motivo';
   }
-  const pend = (await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos,adjuntos_oficina&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`)).filter(esWater);
+  const pend = (await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos,adjuntos_oficina&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`)).filter(esWater).filter(esDePrueba);
   if (!pend.length) return null;
   const ext = await llm(
     'Un vendedor responde por WhatsApp sobre prospectos cuya Aplicación de Crédito ya se envió. Detecta si informa que una aplicación fue ACEPTADA (aprobada) o RECHAZADA (negada). Responde SOLO JSON: {"decisiones":[{"cliente_id": string, "decision": "aceptada"|"rechazada", "motivo": string|null}]}. Lista vacía si el mensaje no habla de aprobación/rechazo. Si solo hay un prospecto y dice "aceptada/aprobada/sí" o "rechazada/negada/no", aplica a ese. NUNCA adivines.',
@@ -93,7 +93,7 @@ async function misProyectos() {
   const cand = all.filter((p) => sigueAbierto(p, ctx) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
   await nombresClientes(ctx, cand.map((p) => p.cliente_id));
   // SEGURIDAD: un representante nunca ve proyectos de otros aunque comparta rol en la fase
-  const mine = cand.filter((p) => puedeTrabajar(user, p, ctx.CL[p.cliente_id], ctx.F[p.fase_id], ctx.users));
+  const mine = cand.filter((p) => proyDePrueba(p, ctx) && puedeTrabajar(user, p, ctx.CL[p.cliente_id], ctx.F[p.fase_id], ctx.users));
   if (mine.length < cand.length) await auditar({ tel: from, uid: user.id, nivel: nivelTexto(user), accion: 'proyectos_filtrados', detalle: `${cand.length - mine.length} proyectos fuera de su alcance` });
   return mine;
 }

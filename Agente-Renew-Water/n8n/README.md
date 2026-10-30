@@ -37,6 +37,13 @@ apikey: <EVOLUTION_API_KEY>
 2. Verifica en Supabase: proyecto nuevo en `pip_water`, cliente `En Proceso`.
 3. Barrido: déjalo con `BARRIDO_SEND=false` y ejecútalo manual (Execute node) para ver los mensajes simulados; cuando estén bien, pon `true`.
 
+## Modo prueba (un solo cliente)
+En el nodo **Config**:
+- `SOLO_CLIENTE` = nombre completo (o id) del cliente de prueba, p. ej. `Miguel prueba agenteia`. El agente solo pregunta, responde y avanza ese cliente; los demás clientes y encargados no reciben nada.
+- `BARRIDO_SIEMPRE` = `true` para que el primer mensaje salga aunque sea fuera de 8:00-20:00 (Florida).
+- Para que escriba primero sin esperar las 2 h: abre el workflow y ejecuta el nodo **Cada 2 horas** (Execute step / Execute workflow).
+Al terminar la prueba, deja `SOLO_CLIENTE` vacío y `BARRIDO_SIEMPRE` en `false`.
+
 ## 5. Firma virtual del cliente (una sola vez)
 1. Ejecuta `supabase_solicitudes_firma.sql` (raíz del repo) en el SQL Editor de Supabase.
 2. En el servidor de la app crea `/home/apps/renew-group-system/.env` con:

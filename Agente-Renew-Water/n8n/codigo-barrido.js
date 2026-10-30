@@ -8,7 +8,7 @@
 const SEND = E.BARRIDO_SEND === 'true';
 const H = 3600 * 1000, CADA = 4 * H, DIA = 24 * H;
 const horaFL = Number(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false })) % 24;
-if (!E.BARRIDO_SIEMPRE && (horaFL < 8 || horaFL >= 20)) return [{ json: { resultado: `Fuera de horario laboral (${horaFL}h en Florida): no se envían recordatorios` } }];
+if (E.BARRIDO_SIEMPRE !== 'true' && (horaFL < 8 || horaFL >= 20)) return [{ json: { resultado: `Fuera de horario laboral (${horaFL}h en Florida): no se envían recordatorios` } }];
 
 sd.cnt = sd.cnt || {}; // veces que ya se recordó cada pendiente
 const ahora = Date.now();
@@ -26,14 +26,15 @@ const add = (u, key, line) => {
 };
 
 const pros = await sel('clientes_maestro', 'select=id,nombre,departamento,departamentos_activos,vendedor_asignado_id&macro_estado=eq.Prospecto');
-for (const c of pros.filter(esWaterCli)) {
+for (const c of pros.filter(esWaterCli).filter(esDePrueba)) {
   const u = ctx.users.find((x) => x.id === c.vendedor_asignado_id && !x.is_suspended);
   if (u) add(u, 'prospecto:' + c.id, `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*? (si fue rechazada, dime el motivo)`);
 }
-const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
+let ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
   .filter((p) => sigueAbierto(p, ctx));
+if (ps.length) await nombresClientes(ctx, ps.map((p) => p.cliente_id));
+ps = ps.filter((p) => proyDePrueba(p, ctx));
 if (ps.length) {
-  await nombresClientes(ctx, ps.map((p) => p.cliente_id));
   await cargarInstalaciones(ctx, ps);
   const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(ps.map((p) => p.id))}`);
   for (const p of ps) {

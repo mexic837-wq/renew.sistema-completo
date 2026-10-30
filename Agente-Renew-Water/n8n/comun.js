@@ -23,6 +23,10 @@ const patch = (table, filter, body) => http({ method: 'PATCH', url: `${SB}/rest/
 const insert = (table, body) => http({ method: 'POST', url: `${SB}/rest/v1/${table}`, headers: { ...SBH, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body, json: true });
 const inList = (ids) => `in.(${[...new Set(ids)].join(',')})`;
 const sendText = (number, text) => http({ method: 'POST', url: `${EVO}/message/sendText/${INST}`, headers: { ...EVH, 'Content-Type': 'application/json' }, body: { number, text }, json: true });
+// Modo prueba: con SOLO_CLIENTE (nombre o id) el agente solo trabaja con ese cliente y no toca a nadie más
+const SOLO = sinAcentos(E.SOLO_CLIENTE || '');
+const esDePrueba = (c) => !SOLO || (!!c && (String(c.id) === String(E.SOLO_CLIENTE).trim() || sinAcentos(c.nombre).includes(SOLO)));
+const proyDePrueba = (p, ctx) => !SOLO || esDePrueba({ id: p.cliente_id, nombre: ctx.N[p.cliente_id] || (ctx.CL && ctx.CL[p.cliente_id] || {}).nombre });
 const sendSafe = async (number, text) => { try { await sendText(number, text); return true; } catch (e) { console.log('sendText falló', e.message); return false; } };
 
 async function llm(system, user) {
@@ -446,7 +450,7 @@ async function clientesPorTelefono(from) {
 
 async function atenderCliente(ctx, from, text, conArchivo) {
   if (limitar('ext_' + from, 20, 3600e3)) return { ignorado: 'límite de mensajes por hora' };
-  const cands = await clientesPorTelefono(from);
+  const cands = (await clientesPorTelefono(from)).filter(esDePrueba);
   if (!cands.length) {
     await auditar({ tel: from, accion: 'numero_desconocido', permitido: false, detalle: text });
     return { ignorado: 'número desconocido ' + from }; // no se responde nada
@@ -503,9 +507,9 @@ async function cargarVisibles(u, ctx) {
     selAll('clientes_maestro', 'select=id,nombre,vendedor_asignado_id,macro_estado,departamento,departamentos_activos'),
   ]);
   const CL = Object.fromEntries(cs.map((c) => [c.id, c]));
-  const proyectos = ps.filter((p) => puedeVerProyecto(u, p, CL[p.cliente_id]));
+  const proyectos = ps.filter((p) => puedeVerProyecto(u, p, CL[p.cliente_id]) && esDePrueba(CL[p.cliente_id]));
   const conProyecto = new Set(ps.map((p) => p.cliente_id));
-  const prospectos = cs.filter((c) => c.macro_estado === 'Prospecto' && esWaterCli(c) && !conProyecto.has(c.id) && puedeVerCliente(u, c));
+  const prospectos = cs.filter((c) => c.macro_estado === 'Prospecto' && esWaterCli(c) && !conProyecto.has(c.id) && puedeVerCliente(u, c) && esDePrueba(c));
   return { ps, cs, CL, proyectos, prospectos };
 }
 const nomFase = (p, ctx) => (p.fase_id && ctx.F[p.fase_id] ? ctx.F[p.fase_id].nombre : 'Completado');
@@ -640,11 +644,11 @@ function lineaPendiente(p, ctx, resp, opts = {}) {
 async function pendientesDe(user, ctx) {
   const out = [];
   const pros = await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`);
-  pros.filter(esWaterCli).forEach((c) => out.push({ key: 'prospecto:' + c.id, line: `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*?` }));
+  pros.filter(esWaterCli).filter(esDePrueba).forEach((c) => out.push({ key: 'prospecto:' + c.id, line: `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*?` }));
   const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
     .filter((p) => sigueAbierto(p, ctx));
   await nombresClientes(ctx, ps.map((p) => p.cliente_id));
-  const mios = ps.filter((p) => encargadosAutorizados(ctx.F[p.fase_id], p, ctx).some((u) => u.id === user.id));
+  const mios = ps.filter((p) => proyDePrueba(p, ctx) && encargadosAutorizados(ctx.F[p.fase_id], p, ctx).some((u) => u.id === user.id));
   if (mios.length) {
     await cargarInstalaciones(ctx, mios);
     const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(mios.map((p) => p.id))}`);
