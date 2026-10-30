@@ -617,7 +617,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
   
   const isTecnico   = allRoles.some(r => /t[eéÉ]cn[io]co/i.test(r) || r === 'tecnico' || r === 'técnico');
   const isVendedor  = allRoles.some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
-  const isStrictTecnico = isTecnico && !isVendedor;
+  const isStrictTecnico = isTecnico && window.getUserRoles(user).every(r => /t[eéÉ]cn[io]co/i.test(r));
   const isAdmin     = allRoles.some(r => ['admin', 'administrador', 'desenvolvedor', 'ceo'].includes(r));
   const isVentas    = allRoles.some(r => r.includes('vendedor') || r.includes('representante') || ['supervisor', 'supervisión', 'manager', 'partner'].includes(r));
   const canInventoryRoles = ['contabilidad','finanzas','procesador','ceo','admin','administrador','desarrollador','partner'];
@@ -903,7 +903,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
       const roleEl = document.getElementById('sidebar-user-role');
       const avatarEl = document.getElementById('sidebar-user-avatar');
       if (nameEl) nameEl.textContent = (user.nombre || user.name || 'Usuario').split(' ')[0];
-      if (roleEl) roleEl.textContent = String(user.rol || user.role || 'Conectado').split(',').map(r => window.rolLabel ? window.rolLabel(r.trim()) : r.trim()).join(', ');
+      if (roleEl) roleEl.textContent = window.rolesDisplay(user);
       if (avatarEl) {
         if (user.foto || user.avatar) {
           avatarEl.innerHTML = `<img src="${user.foto || user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar" />`;
@@ -1039,7 +1039,7 @@ async function initRendimientoChart(user) {
   
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
   const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
-  const isStrictTecnico = isTecnico && !isVendedor;
+  const isStrictTecnico = isTecnico && window.getUserRoles(user).every(r => /t[eéÉ]cn[io]co/i.test(r));
   const userProjects = allProjects.filter(p => {
     const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(p.cliente_id)) || {};
     const isAssignedVendor = (cli.vendedor_asignado_id || '').split(',').map(id=>id.trim()).includes(String(user.id));
@@ -1626,7 +1626,7 @@ async function initLeaderboardChart(user) {
 
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
   const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
-  const isStrictTecnico = isTecnico && !isVendedor;
+  const isStrictTecnico = isTecnico && window.getUserRoles(user).every(r => /t[eéÉ]cn[io]co/i.test(r));
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
 
   // ── Month Filter State ──────────────────────────────────────────

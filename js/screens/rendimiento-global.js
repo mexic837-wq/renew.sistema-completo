@@ -482,7 +482,7 @@ export async function renderRendimientoGlobal() {
                        class="w-4 h-4 accent-teal-400 rounded"
                        ${(window.globalSelectedVendors.length === 0 || window.globalSelectedVendors.includes(v.id)) ? 'checked' : ''}>
                 <span class="text-xs font-bold text-gray-700 dark:text-gray-200">${v.nombre} ${v.apellido || ''}</span>
-                <span class="ml-auto text-[9px] font-black uppercase text-gray-400">${v.rol || ''}</span>
+                <span class="ml-auto text-[9px] font-black uppercase text-gray-400">${v.rol ? window.rolesDisplay(v) : ''}</span>
             </label>
         `).join('');
         
@@ -795,7 +795,7 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
                         </div>
                         <div>
                             <p class="text-sm font-black text-gray-900 dark:text-white leading-none">${v.nombre || 'Sin Nombre'} ${v.apellido || ''}</p>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">${v.rol || 'Representante'}</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">${v.rol ? window.rolesDisplay(v) : 'Representante'}</p>
                         </div>
                     </div>
                 </td>

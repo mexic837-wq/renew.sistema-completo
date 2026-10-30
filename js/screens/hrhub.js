@@ -356,7 +356,7 @@ export async function renderHRHub() {
                         ${avatar}
                         <div class="flex flex-col">
                             <span class="font-bold text-gray-900 dark:text-white text-xs tracking-tight">${emp.nombre} ${emp.apellido || ''}</span>
-                            <span class="text-[8px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">${emp.rol || 'N/A'}</span>
+                            <span class="text-[8px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">${emp.rol ? window.rolesDisplay(emp) : 'N/A'}</span>
                         </div>
                     </div>
                 </td>
@@ -472,7 +472,7 @@ export async function renderHRHub() {
                 <div class="flex items-center justify-between mt-3 pointer-events-none">
                     <div class="flex items-center gap-2">
                         ${avatar}
-                        <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400 truncate max-w-[120px]">${emp.rol || 'Sin Rol'}</span>
+                        <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400 truncate max-w-[120px]">${emp.rol ? window.rolesDisplay(emp) : 'Sin Rol'}</span>
                     </div>
                 </div>
             `;
@@ -967,7 +967,7 @@ export async function renderHRHub() {
         // Populate workers select - include all workers
         const allowedWorkers = empleadosData.sort((a,b) => a.nombre.localeCompare(b.nombre));
         select.innerHTML = '<option value="">Seleccione un trabajador...</option>' + 
-            allowedWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol || 'Sin Rol'})</option>`).join('');
+            allowedWorkers.map(e => `<option value="${e.id}">${e.nombre} ${e.apellido || ''} (${e.rol ? window.rolesDisplay(e) : 'Sin Rol'})</option>`).join('');
 
         if (window.showModal) {
             window.showModal(modal);

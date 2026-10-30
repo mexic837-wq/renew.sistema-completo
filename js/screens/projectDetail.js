@@ -148,8 +148,8 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   const isCompleted = curFidx === -1;
   const currentFaseObj = isCompleted ? fases[fases.length - 1] : fases[curFidx];
   const currentUser = getCurrentUser();
-  const roleStr = (currentUser?.rol || '').toLowerCase();
-  const isAdmin = ['admin','administrador','ceo','desarrollador'].includes(roleStr);
+  const roleStr = window.getUserRoles(currentUser).join(' ');
+  const isAdmin = window.getUserRoles(currentUser).some(r => ['admin','administrador','ceo','desarrollador'].includes(r));
   const isResponsable = currentUser?.id === deal.responsable_id || currentUser?.id === deal.asignado_a || (Array.isArray(deal.colaboradores) && deal.colaboradores.some(c => c.id === currentUser?.id));
   const isAssigned = deal.asignado_a === currentUser?.id || deal.responsable_id === currentUser?.id || (Array.isArray(deal.tecnicos) && deal.tecnicos.some(t => t.id === currentUser?.id)) || (Array.isArray(deal.colaboradores) && deal.colaboradores.some(c => c.id === currentUser?.id));
   const isPM = ['project manager', 'manager de ventas', 'account manager', 'supervisión', 'supervisor', 'manager', 'oficina'].some(r => roleStr.includes(r));

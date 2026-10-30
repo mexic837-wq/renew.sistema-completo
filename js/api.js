@@ -12,13 +12,30 @@ export function getCurrentUser() {
   const user = JSON.parse(raw);
   
   if (cachedDB && cachedDB.Admin_Roles) {
-    const roleDef = cachedDB.Admin_Roles.find(r => (r.nombre || '').toLowerCase() === (user.rol || '').toLowerCase());
-    if (roleDef && roleDef.permisos) {
-      user.permisos = { ...(user.permisos || {}), ...roleDef.permisos };
-    }
+    // Con varios roles se suman los permisos: si alguno de sus roles lo permite, lo tiene
+    const roles = window.getUserRoles(user);
+    const merged = {};
+    cachedDB.Admin_Roles
+      .filter(r => roles.includes((r.nombre || '').toLowerCase().trim()))
+      .forEach(r => {
+        Object.entries(r.permisos || {}).forEach(([k, v]) => {
+          merged[k] = typeof v === 'boolean' ? (merged[k] === true || v) : v;
+        });
+      });
+    user.permisos = { ...(user.permisos || {}), ...merged };
   }
   return user;
 }
+// Roles para mostrar: "Admin, Técnico" (sin corchetes ni comillas)
+window.rolesDisplay = function(user) {
+  if (!user) return 'Conectado';
+  let raw = user.rol || user.role || '';
+  if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+    try { raw = JSON.parse(raw); } catch (e) { raw = raw.replace(/[\[\]"]/g, ''); }
+  }
+  const list = (Array.isArray(raw) ? raw : String(raw).split(',')).map(r => String(r).trim()).filter(Boolean);
+  return list.length ? [...new Set(list)].map(r => window.rolLabel ? window.rolLabel(r) : r).join(', ') : 'Conectado';
+};
 window.getUserRoles = function(user) {
   if (!user) return [];
   const rawRoles = [];
@@ -901,7 +918,7 @@ async function _syncReceiptToClient(projectId, url, label, forceTipo = null) {
     let trabajadorId = isVendedor ? fallbackVendedor.split(',')[0].trim() : fallbackTecnico.split(',')[0].trim();
     let user = (db.Usuarios || []).find(u => String(u.id).trim() === String(trabajadorId).trim());
     if (!user && sessionUser && sessionUser.id) {
-        const sRole = (sessionUser.rol || '').toLowerCase();
+        const sRole = window.getUserRoles(sessionUser).join(' ');
         const isSessVendedor = sRole.includes('vendedor') || sRole.includes('representante');
         const isSessTecnico = sRole.includes('tecnico') || sRole.includes('técnico');
         if ((isVendedor && isSessVendedor) || (!isVendedor && isSessTecnico)) {
@@ -2522,7 +2539,7 @@ export async function addObserver(projectId, observerUser) {
 
   const currentUser = getCurrentUser();
   const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
-  const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
+  const isAdmin = window.getUserRoles(currentUser).some(r => adminRoles.includes(r));
   const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id)) || (p.asignado_a === currentUser?.id) || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
   if (!isAdmin && !isResponsable) throw new Error('Sin permisos para agregar colaboradores');
 
@@ -2559,7 +2576,7 @@ export async function removeObserver(projectId, observerId) {
 
   const currentUser = getCurrentUser();
   const adminRoles = ['admin', 'administrador', 'ceo', 'desarrollador', 'supervisión'];
-  const isAdmin = adminRoles.includes((currentUser?.rol || '').toLowerCase());
+  const isAdmin = window.getUserRoles(currentUser).some(r => adminRoles.includes(r));
   const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(currentUser?.id)) || (p.asignado_a === currentUser?.id) || (Array.isArray(p.colaboradores) && p.colaboradores.some(c => c.id === currentUser?.id));
   if (!isAdmin && !isResponsable) throw new Error('Sin permisos');
 

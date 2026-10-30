@@ -291,7 +291,7 @@ function showMentions(query, atIndex) {
             </div>
             <div>
                 <p class="text-xs font-black dark:text-white">${u.nombre} ${u.apellido || ''}</p>
-                <p class="text-[9px] text-gray-400 uppercase font-bold">${u.rol || 'Miembro'}</p>
+                <p class="text-[9px] text-gray-400 uppercase font-bold">${u.rol ? window.rolesDisplay(u) : 'Miembro'}</p>
             </div>
         </div>
     `).join('');

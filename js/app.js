@@ -687,7 +687,7 @@ export function updateNavHighlight(activeScreen) {
   const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
   const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
-  const isStrictTecnico = isTecnico && !isVendedor;
+  const isStrictTecnico = isTecnico && window.getUserRoles(user).every(r => /t[eéÉ]cn[io]co/i.test(r));
 
   // Global role classes for CSS
   document.body.classList.toggle('is-tecnico', !!isStrictTecnico);
@@ -761,7 +761,7 @@ export function updateNavHighlight(activeScreen) {
     const roleEl = document.getElementById('sidebar-user-role');
     const avatarEl = document.getElementById('sidebar-user-avatar');
     if (nameEl) nameEl.textContent = (user.nombre || user.name || 'Usuario').split(' ')[0];
-    if (roleEl) roleEl.textContent = String(user.rol || user.role || 'Conectado').split(',').map(r => window.rolLabel ? window.rolLabel(r.trim()) : r.trim()).join(', ');
+    if (roleEl) roleEl.textContent = window.rolesDisplay(user);
     if (avatarEl && !avatarEl.querySelector('img')) {
       if (user.foto || user.avatar) {
         avatarEl.innerHTML = `<img src="${user.foto || user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar" />`;

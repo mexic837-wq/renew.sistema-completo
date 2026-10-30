@@ -10,9 +10,9 @@ export function renderMisRecibos() {
   const screen  = document.getElementById('screen-mis-recibos');
   if (!screen) return;
 
-  const userRole  = (user?.rol || '').toLowerCase();
-  const isAdmin   = ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(userRole);
-  const isTecnico = /t[eé]cn[io]co/i.test(user?.rol || '');
+  const userRole  = window.getUserRoles(user).join(' ');
+  const isAdmin   = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'desenvolvedor'].includes(r));
+  const isTecnico = /t[eé]cn[io]co/i.test(userRole);
 
   // Admins see ALL; Manager de Venta: los suyos + los de su equipo; others see only their own
   const isSup = !isAdmin && window.isSupervisorUser(user);
