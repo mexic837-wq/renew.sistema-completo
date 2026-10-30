@@ -409,7 +409,7 @@ async function handleTecnico(proy) {
     `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:`, '',
     `👤 ${cli}`, `📞 ${ficha.telefono || '—'}`, `📍 ${ficha.direccion || '—'}`, `📅 ${cuando}`,
     `💧 ${equipos || 'Equipos según la Orden de Trabajo'}`, `🧑‍💼 Representante: ${nombreUser}`, '',
-    'Cuando termines la instalación escríbeme aquí con:', CERT_PREGUNTAS,
+    'El día de la instalación te lo recuerdo, y al terminar te voy a pedir:', CERT_PREGUNTAS,
   ].join('\n'));
 
   // Avanzar a Certificado de Instalación si la fase quedó completa (sin repetirle el mensaje al técnico)
@@ -589,9 +589,12 @@ async function procesarFirma(evf) {
 
 // ---------- Saludo: responde con TODO lo que la persona tiene pendiente ----------
 async function handleSaludo() {
-  const items = await pendientesDe(user, ctx);
-  if (!items.length) { await say(`Hola ${nombreUser} 👋. No tienes nada pendiente conmigo por ahora. ¡Buen trabajo! 💪`); return 'saludo_sin_pendientes'; }
-  await say(`Hola ${nombreUser} 👋. Tienes *${items.length}* pendiente${items.length === 1 ? '' : 's'} que necesito para avanzar:\n\n${listaCorta(items.map((x) => x.line), 25)}\n\nPásamelos por aquí (escribe el nombre del cliente en cada mensaje) y yo sigo con el resto.`);
+  const todos = await pendientesDe(user, ctx);
+  const items = todos.filter((x) => !x.line.startsWith('📅')); // lo que debe hacer ahora
+  const proximas = todos.filter((x) => x.line.startsWith('📅')); // instalaciones que aún no llegan
+  const prox = proximas.length ? `\n\n*Próximas instalaciones:*\n${listaCorta(proximas.map((x) => x.line), 10)}` : '';
+  if (!items.length) { await say(`Hola ${nombreUser} 👋. No tienes nada pendiente conmigo por ahora. ¡Buen trabajo! 💪${prox}`); return proximas.length ? 'saludo_proximas' : 'saludo_sin_pendientes'; }
+  await say(`Hola ${nombreUser} 👋. Tienes *${items.length}* pendiente${items.length === 1 ? '' : 's'} que necesito para avanzar:\n\n${listaCorta(items.map((x) => x.line), 25)}${prox}\n\nPásamelos por aquí (escribe el nombre del cliente en cada mensaje) y yo sigo con el resto.`);
   return 'saludo_pendientes';
 }
 

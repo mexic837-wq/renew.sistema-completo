@@ -23,3 +23,5 @@ Formato: `[AAAA-MM-DD HH:mm] Observación / regla aprendida`
 
 - [2026-10-29 15:40] REGLA (usuario): el agente debe insistir como un coordinador de RR.HH. hasta obtener los datos: saludo = lista de pendientes; recordatorios cada 4 h en horario laboral; escala al Manager de Venta al 3er aviso y a Admin/CEO al 6º.
 - [2026-10-29 15:40] REGLA (usuario): el crédito aprobado pasa el proyecto directo a Orden de Trabajo (no se queda en Aprobación aunque falte la aplicación cargada).
+
+- [2026-10-29 20:05] REGLA (usuario): el día de la instalación el agente le recuerda la cita al técnico y, después de la hora programada, le pregunta si ya terminó y le pide los datos de la confirmación. No se persigue al técnico antes de la instalación.

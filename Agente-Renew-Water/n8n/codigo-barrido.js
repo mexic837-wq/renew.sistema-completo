@@ -34,17 +34,34 @@ const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,respo
   .filter((p) => sigueAbierto(p, ctx));
 if (ps.length) {
   await nombresClientes(ctx, ps.map((p) => p.cliente_id));
+  await cargarInstalaciones(ctx, ps);
   const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(ps.map((p) => p.id))}`);
   for (const p of ps) {
     const linea = lineaPendiente(p, ctx, resp);
     if (linea) encargadosAutorizados(ctx.F[p.fase_id], p, ctx).forEach((u) => add(u, `proy:${p.id}:${p.fase_id}`, linea));
   }
 }
+// Día de la instalación: recordatorio al técnico (una vez, antes de la hora)
+const deHoy = ps.filter((p) => p.fase_id === FASE_CERT && p.tecnico_id && momentoInstalacion(ctx.INST[p.id]) === 'hoy_antes' && !reciente(`hoy|${p.id}`, DIA));
+const avisosHoy = [];
+if (deHoy.length) {
+  const dirs = Object.fromEntries((await sel('clientes_maestro', `select=id,direccion&id=${inList(deHoy.map((p) => p.cliente_id))}`)).map((c) => [c.id, c.direccion]));
+  const porTec = {};
+  deHoy.forEach((p) => { const t = ctx.users.find((u) => String(u.id) === String(p.tecnico_id) && !u.is_suspended); if (t) (porTec[t.id] = porTec[t.id] || { t, items: [] }).items.push(p); });
+  for (const { t, items } of Object.values(porTec)) {
+    const lineas = items.map((p) => `📅 ${ctx.INST[p.id].hora || 'hoy'} · *${ctx.N[p.cliente_id] || 'Cliente'}*${dirs[p.cliente_id] ? '\n   📍 ' + dirs[p.cliente_id] : ''}`);
+    const text = `${horaFL < 12 ? 'Buenos días' : 'Buenas tardes'} ${t.nombre.trim()} ${horaFL < 12 ? '☀️' : '🌤️'}, hoy tienes ${items.length === 1 ? 'esta instalación' : 'estas instalaciones'} de Renew Water:\n\n${lineas.join('\n')}\n\nCuando termines, escríbeme *terminé* con el nombre del cliente y te pido los datos para la confirmación.`;
+    const enviado = SEND && (await sendSafe(norm(t.telefono), text));
+    if (enviado) items.forEach((p) => (sd.reg[`hoy|${p.id}`] = new Date().toISOString()));
+    avisosHoy.push({ json: { para: t.nombre.trim(), recordatorio: 'dia_de_instalacion', enviado, simulacion: !SEND, mensaje: text } });
+  }
+}
+
 // Lo que ya se resolvió deja de contar
 Object.keys(sd.cnt).forEach((k) => { if (!vivos.has(k)) { delete sd.cnt[k]; delete sd.reg[k]; } });
 
 // 2) Recordatorio a cada persona, cada vez más firme
-const out = [];
+const out = [...avisosHoy];
 const escalarMgr = {}, escalarAdm = {}; // destinatario -> líneas
 for (const { u, items } of Object.values(porUsuario)) {
   const veces = Math.max(...items.map((x) => sd.cnt[x.k] || 0));

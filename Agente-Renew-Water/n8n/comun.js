@@ -611,7 +611,7 @@ async function consultar(user, text, ctx, from) {
 // No suelta a nadie hasta tener los datos: recuerda, vuelve a recordar y escala al manager.
 // ============================================================================
 // Qué le falta a un proyecto en su fase actual (null = nada que pedir)
-function lineaPendiente(p, ctx, resp) {
+function lineaPendiente(p, ctx, resp, opts = {}) {
   const fase = ctx.F[p.fase_id];
   if (!fase) return null;
   const cli = ctx.N[p.cliente_id] || p.cliente_id;
@@ -625,6 +625,13 @@ function lineaPendiente(p, ctx, resp) {
   }
   if (p.fase_id === FASE_TEC && !p.tecnico_id) return `🛠 *${cli}*: falta asignar el técnico. Respóndeme con el número del técnico y la fecha y hora de instalación.`;
   if (p.fase_id === FASE_CERT && sd.cert[p.id] && sd.cert[p.id]._firmaUrl) return `✍️ *${cli}*: la Confirmación de Instalación espera la firma del cliente.`;
+  if (p.fase_id === FASE_CERT && p.tecnico_id) {
+    const inst = ctx.INST && ctx.INST[p.id];
+    const mo = momentoInstalacion(inst);
+    const cuando = inst && inst.fecha ? `${fechaLarga(inst.fecha)}${inst.hora ? ' a las ' + inst.hora : ''}` : '';
+    if (mo === 'antes' || mo === 'hoy_antes' || mo === 'en_curso') return opts.informar ? `📅 *${cli}*: instalación ${mo === 'en_curso' ? 'en curso' : 'programada para el ' + cuando}. Al terminar, escríbeme y te pido los datos.` : null;
+    return `🛠 *${cli}*: ¿ya terminaste la instalación${cuando ? ' del ' + cuando : ''}? Pásame los equipos con su número de serie, costos adicionales (o "sin costos"), la sede de donde retiraste el material y qué usaste.`;
+  }
   const pend = camposFase(p.fase_id, ctx.campos).filter((c) => faltaValor(resp.find((x) => x.proyecto_id === p.id && x.campo_id === c.id)));
   return pend.length ? `📎 *${cli}* (${fase.nombre}): ${pend.map((c) => preguntaCampo(c, ctx)).join('; ')}` : null;
 }
@@ -639,8 +646,9 @@ async function pendientesDe(user, ctx) {
   await nombresClientes(ctx, ps.map((p) => p.cliente_id));
   const mios = ps.filter((p) => encargadosAutorizados(ctx.F[p.fase_id], p, ctx).some((u) => u.id === user.id));
   if (mios.length) {
+    await cargarInstalaciones(ctx, mios);
     const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(mios.map((p) => p.id))}`);
-    mios.forEach((p) => { const l = lineaPendiente(p, ctx, resp); if (l) out.push({ key: `proy:${p.id}:${p.fase_id}`, line: l }); });
+    mios.forEach((p) => { const l = lineaPendiente(p, ctx, resp, { informar: true }); if (l) out.push({ key: `proy:${p.id}:${p.fase_id}`, line: l }); });
   }
   return out;
 }
@@ -664,4 +672,36 @@ async function subirAOT(proy, quien) {
     ultima_actividad: 'Pasó a Orden de Trabajo',
   });
   proy.fase_id = FASE_OT;
+}
+
+// ---------- Instalaciones programadas (todo en hora de Florida) ----------
+function ahoraFlorida() {
+  const pt = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+    .formatToParts(new Date()).map((x) => [x.type, x.value]));
+  return { fecha: `${pt.year}-${pt.month}-${pt.day}`, min: (Number(pt.hour) % 24) * 60 + Number(pt.minute) };
+}
+// "4:00 PM", "4pm", "10:30 am", "16:00" → minutos desde medianoche (sin am/pm, 1 a 6 se asume de la tarde)
+function minutosDeHora(h) {
+  const m = String(h || '').match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i);
+  if (!m) return 9 * 60;
+  let hh = Number(m[1]);
+  if (m[3]) { hh = hh % 12; if (/p/i.test(m[3])) hh += 12; } else if (hh >= 1 && hh <= 6) hh += 12;
+  return Math.min(hh, 23) * 60 + Number(m[2] || 0);
+}
+// 'sin_fecha' | 'antes' (otro día) | 'hoy_antes' | 'en_curso' (hasta 2 h después de la hora) | 'despues'
+function momentoInstalacion(inst) {
+  if (!inst || !inst.fecha) return 'sin_fecha';
+  const a = ahoraFlorida(), ini = minutosDeHora(inst.hora);
+  if (a.fecha < inst.fecha) return 'antes';
+  if (a.fecha > inst.fecha) return 'despues';
+  if (a.min < ini) return 'hoy_antes';
+  return a.min < ini + 120 ? 'en_curso' : 'despues';
+}
+// Fecha y hora de instalación de los proyectos en Certificado de Instalación (de la actividad INSTALACION_PROGRAMADA)
+async function cargarInstalaciones(ctx, ps) {
+  ctx.INST = ctx.INST || {};
+  const ids = ps.filter((p) => p.fase_id === FASE_CERT && !(p.id in ctx.INST)).map((p) => p.id);
+  if (!ids.length) return;
+  const rows = await sel('proyectos_dinamicos', `select=id,actividad&id=${inList(ids)}`);
+  rows.forEach((r) => { const ev = [...(r.actividad || [])].reverse().find((x) => x.tipo === 'INSTALACION_PROGRAMADA'); ctx.INST[r.id] = ev ? { fecha: ev.fecha, hora: ev.hora } : null; });
 }
