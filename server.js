@@ -46,6 +46,22 @@ app.use(cors());
 app.use(express.json({ limit: '500mb' })); 
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
+// La carpeta del proyecto se sirve completa, así que se bloquea todo lo que no es de la web:
+// código del servidor, scripts sueltos con claves, SQL, configuración y documentos internos.
+const RUTAS_PRIVADAS = [
+    /^\/[^/]+\.(js|mjs|cjs|json|sql|sh|ps1|py|yml|yaml|md|txt|diff|patch|xlsx|csv|env)$/i, // archivos sueltos en la raíz
+    /^\/(scratch|scripts|Agente-Renew-Water|node_modules|reportes|uploads_tmp)(\/|$)/i,
+    /^\/(CONTRATO-RENEW-WATER|FORMULARIO-RENEW-WATER-main)\/(server\.js|api\/|package|\.env|vercel\.json|README)/i,
+    /\/\./, // archivos ocultos (.env, .git, …)
+];
+const RUTAS_PUBLICAS_RAIZ = new Set(['/manifest.json']);
+app.use((req, res, next) => {
+    let ruta = req.path;
+    try { ruta = decodeURIComponent(ruta); } catch (e) { return res.status(400).end(); }
+    if (!RUTAS_PUBLICAS_RAIZ.has(ruta) && RUTAS_PRIVADAS.some(r => r.test(ruta))) return res.status(404).send('Not found');
+    next();
+});
+
 // Serve static files — JS and HTML always get no-cache so browsers pick up updates immediately
 app.use(express.static(path.join(__dirname), {
     setHeaders: (res, filePath) => {
