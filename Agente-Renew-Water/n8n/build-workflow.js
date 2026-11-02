@@ -11,7 +11,7 @@ const wf = {
         SUPABASE_SERVICE_ROLE_KEY: 'PEGA_AQUI',
         EVOLUTION_API_URL: 'https://evolutionapi.renewgroup.site',
         EVOLUTION_API_KEY: 'PEGA_AQUI',
-        EVOLUTION_INSTANCE: 'RenewGroup',
+        EVOLUTION_INSTANCE: 'RenewIA',
         OPENROUTER_API_KEY: 'PEGA_AQUI',
         OPENROUTER_MODEL: 'anthropic/claude-haiku-5.5',
         WEBHOOK_TOKEN: 'PEGA_AQUI',

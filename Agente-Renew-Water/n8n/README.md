@@ -26,7 +26,7 @@ La URL de producción debe quedar `https://n8n.renewgroup.site/webhook/agente-re
 
 ## 3. Registrar el webhook en Evolution
 ```
-POST https://evolutionapi.renewgroup.site/webhook/set/RenewGroup
+POST https://evolutionapi.renewgroup.site/webhook/set/RenewIA
 apikey: <EVOLUTION_API_KEY>
 {"webhook":{"enabled":true,"url":"https://n8n.renewgroup.site/webhook/agente-renew-sistema",
  "headers":{"x-agente-token":"<WEBHOOK_TOKEN>"},"events":["MESSAGES_UPSERT"],"webhookBase64":true}}

@@ -3049,7 +3049,7 @@ const CC_ESTADOS_ACTIVOS = ['pendiente', 'confirmacion_pendiente', 'en_espera'];
 // Requiere en el .env del servidor: EVOLUTION_API_KEY (la misma del nodo Config de n8n).
 // Opcionales: EVOLUTION_API_URL, EVOLUTION_INSTANCE.
 const EVO_URL = process.env.EVOLUTION_API_URL || 'https://evolutionapi.renewgroup.site';
-const EVO_INST = process.env.EVOLUTION_INSTANCE || 'RenewGroup';
+const EVO_INST = process.env.EVOLUTION_INSTANCE || 'RenewIA'; // la instancia del agente de IA (la misma del nodo Config de n8n)
 
 async function evo(ruta, body) {
     if (!process.env.EVOLUTION_API_KEY) throw new Error('Falta EVOLUTION_API_KEY en el .env del servidor');

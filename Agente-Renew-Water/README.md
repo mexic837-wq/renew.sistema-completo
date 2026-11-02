@@ -16,7 +16,7 @@ Pon un proxy (Caddy/Nginx) con HTTPS hacia el puerto 3100.
 
 ## Configurar Evolution
 ```
-POST {EVOLUTION_API_URL}/webhook/set/RenewGroup   (header apikey)
+POST {EVOLUTION_API_URL}/webhook/set/RenewIA   (header apikey)
 {"webhook":{"enabled":true,"url":"https://TU_DOMINIO/webhook?token=WEBHOOK_TOKEN","events":["MESSAGES_UPSERT"]}}
 ```
 
