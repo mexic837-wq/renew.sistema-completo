@@ -91,6 +91,7 @@ window.clientBelongsTo = function(c, ids, projects = []) {
 };
 export function logout() {
   localStorage.removeItem('rs_user');
+  localStorage.removeItem('rs_token');
   if (window.appNavigate) window.appNavigate('login');
   else window.location.hash = '#login';
   import('./components/toast.js').then(m => m.showToast('Sesión cerrada correctamente.', 'info'));
@@ -1915,22 +1916,28 @@ export async function deleteAdminWorker(ids) {
 // ─── AUTHENTICATION ─────────────────────────────────────────
 export const MOCK_USERS = [];
 
+// La contraseña se revisa en el servidor; aquí solo se guarda el pase de sesión que devuelve
 export async function loginUser(email, password) {
-  // Always fetch fresh data from server to pick up admin changes (e.g., updated 'unidades')
+  let res;
   try {
-    const res = await fetch(`${API_BASE}/db`);
-    if (res.ok) cachedDB = await res.json();
-  } catch(e) { /* use cached if offline */ }
-  
-  const db = getDB();
-  const dynamicUsers = db && db.Usuarios ? db.Usuarios : [];
-  // dynamicUsers LAST so they override MOCK_USERS (ensures saved 'unidades' permissions take effect)
-  const allUsers = [...MOCK_USERS, ...dynamicUsers];
-  const uniqueUsers = Array.from(new Map(allUsers.map(u => [u.email, u])).values());
-  const u = uniqueUsers.find(user => user.email === email && (user.password === password || user.pass === password));
-  if (!u) throw new Error('Credenciales inválidas');
-  if (u.is_suspended) throw new Error('Tu cuenta ha sido inhabilitada temporalmente. Por favor, contacta a administración.');
-  return u;
+    res = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (e) {
+    throw new Error('Sin conexión con el servidor. Revisa tu internet.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Credenciales inválidas');
+  localStorage.setItem('rs_token', data.token);
+  return data.user;
+}
+
+// Cabecera con el pase de sesión, para las rutas protegidas del servidor
+export function authHeaders(extra = {}) {
+  const token = localStorage.getItem('rs_token');
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
 }
 
 // ─── MOBILE SALES APP API ───────────────────────────────────

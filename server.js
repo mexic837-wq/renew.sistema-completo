@@ -73,6 +73,109 @@ app.use(express.static(path.join(__dirname), {
     }
 }));
 
+// ── SESIÓN: login en el servidor con pase firmado (JWT) ──────────────────────
+// La contraseña se revisa aquí y nunca sale hacia el navegador. El pase se guarda en
+// localStorage ('rs_token') y las rutas protegidas lo piden en "Authorization: Bearer …".
+// Secreto: AUTH_SECRET del .env o, si no existe, uno aleatorio guardado en .auth-secret (fuera de git).
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const AUTH_SECRET = (() => {
+    if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+    const archivo = path.join(__dirname, '.auth-secret');
+    try { return fs.readFileSync(archivo, 'utf8').trim(); } catch (e) { /* se crea abajo */ }
+    const nuevo = crypto.randomBytes(48).toString('hex');
+    fs.writeFileSync(archivo, nuevo, { mode: 0o600 });
+    return nuevo;
+})();
+const SESION_DURACION = '30d';
+const ROLES_ADMIN = /\b(admin|administrador|ceo)\b/;
+
+const rolesTexto = (u) => (Array.isArray(u?.rol) ? u.rol.join(' ') : String(u?.rol || '')).toLowerCase();
+
+// Usuario sin contraseña, con las URLs de archivos corregidas (igual que en /api/db)
+function usuarioPublico(u) {
+    const { password, pass, ...resto } = u || {};
+    return {
+        ...resto,
+        foto:         fixUrl(u.foto),
+        w9_url:       fixUrl(u.w9_url || u.w9Url),
+        carnet_url:   fixUrl(u.carnet_url || u.carnetUrl),
+        contrato_url: fixUrl(u.contrato_url || u.contratoUrl),
+    };
+}
+
+// Al guardar usuarios el navegador ya no conoce las contraseñas: si un registro llega sin
+// contraseña se conserva la que ya está en la base (si no, el guardado la borraría).
+async function conservarPasswords(registros) {
+    const sinPassword = registros.filter(u => u.id && !u.password).map(u => u.id);
+    if (!sinPassword.length) return registros;
+    const { data, error } = await supabase.from('usuarios').select('id, password').in('id', sinPassword);
+    if (error) throw new Error('No se pudieron conservar las contraseñas: ' + error.message);
+    const actuales = new Map((data || []).map(u => [String(u.id), u.password]));
+    return registros.map(u => (u.password ? u : { ...u, password: actuales.get(String(u.id)) ?? null }));
+}
+
+// Freno contra adivinar contraseñas: 10 intentos fallidos por IP+correo cada 15 minutos
+const intentosLogin = new Map();
+const LOGIN_MAX_FALLOS = 10;
+const LOGIN_VENTANA_MS = 15 * 60 * 1000;
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const email = String(req.body?.email || '').trim();
+        const password = String(req.body?.password || '');
+        if (!email || !password) return res.status(400).json({ error: 'Escribe tu correo y contraseña' });
+
+        const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+        const clave = `${ip}|${email.toLowerCase()}`;
+        const ahora = Date.now();
+        const reg = intentosLogin.get(clave);
+        if (reg && ahora - reg.desde < LOGIN_VENTANA_MS && reg.fallos >= LOGIN_MAX_FALLOS) {
+            return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos e inténtalo de nuevo.' });
+        }
+
+        const { data: candidatos, error } = await supabase.from('usuarios').select('*').ilike('email', email);
+        if (error) throw error;
+        const u = (candidatos || []).find(x => String(x.email || '').toLowerCase() === email.toLowerCase() && (x.password === password || x.pass === password));
+        if (!u) {
+            const r = reg && ahora - reg.desde < LOGIN_VENTANA_MS ? reg : { desde: ahora, fallos: 0 };
+            r.fallos += 1;
+            intentosLogin.set(clave, r);
+            return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+        intentosLogin.delete(clave);
+        if (u.is_suspended) return res.status(403).json({ error: 'Tu cuenta ha sido inhabilitada temporalmente. Por favor, contacta a administración.' });
+
+        const token = jwt.sign({ sub: String(u.id) }, AUTH_SECRET, { expiresIn: SESION_DURACION });
+        res.json({ user: usuarioPublico(u), token });
+    } catch (e) {
+        console.error('[API/LOGIN] error:', e.message);
+        res.status(500).json({ error: 'No se pudo iniciar sesión. Intenta de nuevo.' });
+    }
+});
+
+// Middleware: exige un pase válido y un usuario activo. Con soloAdmin, además Admin/CEO.
+// El pase se lee de "Authorization: Bearer" o de ?t= (para <img>/<audio>, que no mandan cabeceras).
+function requiereSesion({ soloAdmin = false } = {}) {
+    return async (req, res, next) => {
+        try {
+            const cab = req.headers.authorization || '';
+            const token = cab.startsWith('Bearer ') ? cab.slice(7) : String(req.query.t || '');
+            if (!token) return res.status(401).json({ error: 'Inicia sesión de nuevo' });
+            let datos;
+            try { datos = jwt.verify(token, AUTH_SECRET); } catch (e) { return res.status(401).json({ error: 'Tu sesión expiró. Inicia sesión de nuevo.' }); }
+            const { data: u } = await supabase.from('usuarios').select('id, nombre, apellido, rol, is_suspended').eq('id', datos.sub).maybeSingle();
+            if (!u || u.is_suspended) return res.status(401).json({ error: 'Tu cuenta no está activa' });
+            if (soloAdmin && !ROLES_ADMIN.test(rolesTexto(u))) return res.status(403).json({ error: 'Solo Admin o CEO' });
+            req.usuario = u;
+            next();
+        } catch (e) {
+            console.error('[SESION] error:', e.message);
+            res.status(500).json({ error: 'Error verificando la sesión' });
+        }
+    };
+}
+
 // Servir archivos subidos localmente (fotos de clientes, anuncios, etc.)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     maxAge: '30d' // uploads are content-addressed, safe to cache
@@ -201,13 +304,7 @@ app.get('/api/db', async (req, res) => {
             }),
             Proyectos_Dinamicos:     results[4].data || [],
             Respuestas_Dinamicas:    results[5].data || [],
-            Usuarios:                (results[6].data || []).map(u => ({
-                    ...u,
-                    foto:       fixUrl(u.foto),
-                    w9_url:     fixUrl(u.w9_url || u.w9Url),
-                    carnet_url: fixUrl(u.carnet_url || u.carnetUrl),
-                    contrato_url: fixUrl(u.contrato_url || u.contratoUrl)
-            })),
+            Usuarios:                (results[6].data || []).map(usuarioPublico),
             academiaContent:         (results[7].data || []).map(item => ({
                 id:             item.id,
                 titulo:         item.titulo         || null,
@@ -871,7 +968,7 @@ app.post('/api/db', async (req, res) => {
                 return mapped;
             });
             syncTasks.push(
-                supabase.from('usuarios').upsert(usrs, { onConflict: 'id' }).then(({ error }) => {
+                conservarPasswords(usrs).then(conPassword => supabase.from('usuarios').upsert(conPassword, { onConflict: 'id' })).then(({ error }) => {
                     if (error) {
                         console.error('[DIAGNOSTIC SUPABASE] Error guardando usuarios:', error);
                         throw error;
@@ -1292,6 +1389,7 @@ app.post('/api/upsert', async (req, res) => {
                 ver_catalogo:               !!u.ver_catalogo,
                 ver_partners:               !!u.ver_partners
             }));
+            sanitizedRecords = await conservarPasswords(sanitizedRecords);
         } else if (table === 'calendario_eventos') {
             sanitizedRecords = records.map(ev => ({
                 ...ev,
@@ -2978,7 +3076,7 @@ async function directorioTelefonos() {
 }
 
 // GET: lista de conversaciones del número del agente, agrupadas por contacto
-app.get('/api/agente-chats', async (req, res) => {
+app.get('/api/agente-chats', requiereSesion({ soloAdmin: true }), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
         const [chats, dir] = await Promise.all([evo('/chat/findChats'), directorioTelefonos()]);
@@ -3020,7 +3118,7 @@ app.get('/api/agente-chats', async (req, res) => {
 });
 
 // GET: mensajes de un contacto (?jids=a,b&page=1). Une los jids @lid y @s.whatsapp.net del mismo número.
-app.get('/api/agente-chats/mensajes', async (req, res) => {
+app.get('/api/agente-chats/mensajes', requiereSesion({ soloAdmin: true }), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
         const jids = String(req.query.jids || '').split(',').filter(j => /@(s\.whatsapp\.net|lid|g\.us)$/.test(j)).slice(0, 4);
@@ -3058,20 +3156,16 @@ const ENVIO_PAUSA_MISMO_CHAT_MS = 3000;    // entre dos mensajes al mismo contac
 const enviosRecientes = [];
 const ultimoEnvioPorChat = new Map();
 
-// POST: enviar un mensaje de texto desde el panel ({ jid, texto, usuario_id }). Solo Admin/CEO.
-app.post('/api/agente-chats/enviar', async (req, res) => {
+// POST: enviar un mensaje de texto desde el panel ({ jid, texto }). Solo Admin/CEO (según el pase de sesión).
+app.post('/api/agente-chats/enviar', requiereSesion({ soloAdmin: true }), async (req, res) => {
     try {
-        const { jid, usuario_id } = req.body || {};
+        const { jid } = req.body || {};
         const texto = String(req.body?.texto || '').trim();
         if (!/@(s\.whatsapp\.net|lid|g\.us)$/.test(String(jid || ''))) return res.status(400).json({ error: 'Conversación inválida' });
         if (!texto) return res.status(400).json({ error: 'Mensaje vacío' });
         if (texto.length > 4000) return res.status(400).json({ error: 'Mensaje demasiado largo' });
 
-        const { data: usr } = await supabase.from('usuarios').select('id, nombre, apellido, rol, is_suspended').eq('id', usuario_id).maybeSingle();
-        const roles = (Array.isArray(usr?.rol) ? usr.rol.join(' ') : String(usr?.rol || '')).toLowerCase();
-        if (!usr || usr.is_suspended || !/\b(admin|administrador|ceo)\b/.test(roles)) {
-            return res.status(403).json({ error: 'Solo Admin o CEO pueden enviar mensajes' });
-        }
+        const usr = req.usuario;
 
         const ahora = Date.now();
         while (enviosRecientes.length && ahora - enviosRecientes[0] > ENVIO_VENTANA_MS) enviosRecientes.shift();
@@ -3101,7 +3195,7 @@ app.post('/api/agente-chats/enviar', async (req, res) => {
 });
 
 // GET: imagen/documento de un mensaje (se descarga de Evolution bajo demanda)
-app.get('/api/agente-chats/media/:id', async (req, res) => {
+app.get('/api/agente-chats/media/:id', requiereSesion({ soloAdmin: true }), async (req, res) => {
     try {
         const r = await evo('/chat/getBase64FromMediaMessage', { message: { key: { id: req.params.id } } });
         if (!r?.base64) return res.status(404).send('Sin archivo');

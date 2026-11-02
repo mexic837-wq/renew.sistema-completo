@@ -4,7 +4,20 @@
    (número de Evolution API). Solo lectura.
    ============================================================ */
 
+import { authHeaders } from '../api.js';
+
 const REFRESCO_MS = 15000;
+
+// <img>/<audio> no mandan cabeceras, así que el pase de sesión va en la URL
+const urlArchivo = (id) => `/api/agente-chats/media/${encodeURIComponent(id)}?t=${encodeURIComponent(localStorage.getItem('rs_token') || '')}`;
+
+// Lee la respuesta; si la sesión no es válida lo dice claro (las sesiones viejas no tienen pase)
+async function leer(r) {
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401) throw new Error('Tu sesión expiró. Cierra sesión y vuelve a entrar.');
+    if (!r.ok) throw new Error(data.error || 'Error');
+    return data;
+}
 
 const estado = {
     chats: [],
@@ -111,13 +124,13 @@ function burbuja(m) {
         ? `<i class="fa-solid ${m.estado === 'enviado' ? 'fa-check' : 'fa-check-double'} text-[10px] ${m.estado === 'leido' ? 'text-sky-500' : 'text-gray-400'}"></i>` : '';
     let contenido = '';
     if (m.tipo === 'imageMessage' || m.tipo === 'stickerMessage') {
-        contenido = `<img src="/api/agente-chats/media/${encodeURIComponent(m.id)}" loading="lazy" class="rounded-lg max-w-[240px] max-h-[320px] object-cover cursor-pointer mb-1 bg-black/5"
+        contenido = `<img src="${urlArchivo(m.id)}" loading="lazy" class="rounded-lg max-w-[240px] max-h-[320px] object-cover cursor-pointer mb-1 bg-black/5"
                        onclick="window.open(this.src,'_blank')" onerror="this.outerHTML='<span class=&quot;text-xs text-gray-400&quot;>📷 Foto no disponible</span>'">`;
     } else if (m.archivo) {
-        contenido = `<a href="/api/agente-chats/media/${encodeURIComponent(m.id)}" target="_blank" class="flex items-center gap-2 p-2 mb-1 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10">
+        contenido = `<a href="${urlArchivo(m.id)}" target="_blank" class="flex items-center gap-2 p-2 mb-1 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10">
                         <i class="fa-solid fa-file-pdf text-red-500 text-lg"></i><span class="text-xs font-semibold truncate max-w-[200px]">${esc(m.archivo)}</span></a>`;
     } else if (m.tipo === 'audioMessage') {
-        contenido = `<audio controls preload="none" src="/api/agente-chats/media/${encodeURIComponent(m.id)}" class="max-w-[240px] mb-1"></audio>`;
+        contenido = `<audio controls preload="none" src="${urlArchivo(m.id)}" class="max-w-[240px] mb-1"></audio>`;
     } else if (!m.texto) {
         contenido = `<span class="text-xs italic text-gray-400">Mensaje no compatible (${esc(m.tipo || 'desconocido')})</span>`;
     }
@@ -157,10 +170,8 @@ function pintarMensajes(mantenerScroll) {
 }
 
 async function traerMensajes(chat, pagina) {
-    const r = await fetch(`/api/agente-chats/mensajes?jids=${encodeURIComponent(chat.jids.join(','))}&page=${pagina}`);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Error');
-    return data;
+    const r = await fetch(`/api/agente-chats/mensajes?jids=${encodeURIComponent(chat.jids.join(','))}&page=${pagina}`, { headers: authHeaders() });
+    return leer(r);
 }
 
 async function abrirChat(clave) {
@@ -224,8 +235,6 @@ async function enviarMensaje() {
     const boton = document.getElementById('ca-enviar');
     const texto = caja.value.trim();
     if (!chat || !texto || boton.disabled) return;
-    let usuario = {};
-    try { usuario = JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch (e) { /* sesión ilegible */ }
     // Se prefiere el jid con número real; si WhatsApp solo dio el @lid, se usa ese
     const jid = chat.jids.find(j => j.endsWith('@s.whatsapp.net')) || chat.jids[0];
     // Escribir primero a quien nunca nos ha escrito es lo que más reportes (y baneos) genera
@@ -240,11 +249,10 @@ async function enviarMensaje() {
     try {
         const r = await fetch('/api/agente-chats/enviar', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jid, texto, usuario_id: usuario.id }),
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ jid, texto }),
         });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || 'No se pudo enviar');
+        const data = await leer(r);
         caja.value = '';
         caja.style.height = '';
         const m = data.mensaje || { id: 'local-' + Date.now(), fromMe: true, ts: Math.floor(Date.now() / 1000), tipo: 'conversation', texto, estado: 'enviado', origen: 'web' };
@@ -264,9 +272,7 @@ async function enviarMensaje() {
 }
 
 async function cargarChats() {
-    const r = await fetch('/api/agente-chats');
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Error');
+    const data = await leer(await fetch('/api/agente-chats', { headers: authHeaders() }));
     estado.chats = data.chats || [];
     const cuenta = (t) => estado.chats.filter(c => c.tipo === t).length;
     document.querySelectorAll('.ca-filtro').forEach(b => {
@@ -363,7 +369,7 @@ export async function renderChatsAgente() {
         await cargarChats();
         pintarLista();
     } catch (e) {
-        document.getElementById('ca-lista').innerHTML = `<div class="p-6 text-center text-xs text-red-400">No se pudo conectar con WhatsApp: ${esc(e.message)}</div>`;
+        document.getElementById('ca-lista').innerHTML = `<div class="p-6 text-center text-xs text-red-400">No se pudieron cargar los chats: ${esc(e.message)}</div>`;
     }
     estado.timer = setInterval(refrescar, REFRESCO_MS);
 }

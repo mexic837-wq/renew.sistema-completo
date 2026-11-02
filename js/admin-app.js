@@ -1498,7 +1498,9 @@ function bindGlobalEvents() {
             UI.inpUsrTel.value = usr.telefono || '';
         }
         UI.inpUsrDob.value = usr.dob || '';
-        UI.inpUsrPass.value = usr.password || usr.pass || 'renew123';
+        // La contraseña ya no llega al navegador: vacío = no cambiarla
+        UI.inpUsrPass.value = '';
+        UI.inpUsrPass.placeholder = 'Dejar vacío para no cambiarla';
         
         // Re-init date pickers to apply flatpickr to modal fields
         if(window.initDatePickers) window.initDatePickers();
@@ -1694,6 +1696,7 @@ function bindGlobalEvents() {
     if (btn) {
       btn.addEventListener('click', () => {
         localStorage.removeItem('rs_user');
+        localStorage.removeItem('rs_token');
         localStorage.removeItem('active_unit');
         window.location.href = 'index.html';
       });
@@ -7900,7 +7903,8 @@ async function toggleDetailEditMode(id) {
             const rsv = usr.rango_solar || 'no_aplica';
             document.getElementById('det-edit-rank-solar').value = rsv;
         }
-        if (document.getElementById('det-edit-pass')) document.getElementById('det-edit-pass').value = usr.password || usr.pass || 'renew123';
+        const detPass = document.getElementById('det-edit-pass');
+        if (detPass) { detPass.value = ''; detPass.placeholder = 'Dejar vacío para no cambiarla'; }
         
         // Populate new fields
         if (document.getElementById('det-edit-direccion')) document.getElementById('det-edit-direccion').value = usr.direccion || '';
@@ -8141,7 +8145,7 @@ async function toggleDetailEditMode(id) {
             const ver_catalogo = document.getElementById('det-edit-ver-catalogo') ? document.getElementById('det-edit-ver-catalogo').checked : !!usr.ver_catalogo;
             const ver_partners = document.getElementById('det-edit-ver-partners') ? document.getElementById('det-edit-ver-partners').checked : !!usr.ver_partners;
             const sede = document.getElementById('det-edit-sede')?.value || (usr.sede || 'orlando');
-            const password = passEl ? passEl.value.trim() : (usr.password || usr.pass || 'renew123');
+            const password = passEl ? passEl.value.trim() : ''; // vacío = el servidor conserva la actual
             const dob = dobEl ? dobEl.value : (usr.dob || '');
 
             const tel_emergencia = document.getElementById('det-edit-tel-emergencia')?.value.trim() || '';
@@ -11606,7 +11610,7 @@ Te damos la bienvenida al equipo Renew. A continuación, te compartimos tus cred
 
 🔗 Enlace de acceso: ${mainLink}
 ✉️  Usuario: ${user.email}
-🔑 Contraseña: ${user.password || user.pass || 'renew123'}
+🔑 Contraseña: ${user.password || user.pass || 'la que te asignó el administrador'}
 
 Si tienes alguna duda, no dudes en contactar al administrador.
 ¡Éxitos!`;
