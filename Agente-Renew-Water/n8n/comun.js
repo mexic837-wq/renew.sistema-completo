@@ -22,12 +22,27 @@ const sel = (table, q) => http({ method: 'GET', url: `${SB}/rest/v1/${table}?${q
 const patch = (table, filter, body) => http({ method: 'PATCH', url: `${SB}/rest/v1/${table}?${filter}`, headers: { ...SBH, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body, json: true });
 const insert = (table, body) => http({ method: 'POST', url: `${SB}/rest/v1/${table}`, headers: { ...SBH, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body, json: true });
 const inList = (ids) => `in.(${[...new Set(ids)].join(',')})`;
-const sendText = (number, text) => http({ method: 'POST', url: `${EVO}/message/sendText/${INST}`, headers: { ...EVH, 'Content-Type': 'application/json' }, body: { number, text }, json: true });
+// Pausas desde el panel (tabla agente_pausas): con esos números el agente no habla, una persona los atiende.
+// Se leen una vez por ejecución; si la tabla no existe todavía, no hay pausas.
+let _pausas = null;
+const numerosPausados = async () => {
+  if (_pausas) return _pausas;
+  try {
+    const rows = await sel('agente_pausas', `select=telefono&or=(hasta.is.null,hasta.gt.${new Date().toISOString()})`);
+    _pausas = new Set(rows.map((r) => digits(r.telefono).slice(-10)));
+  } catch (e) { console.log('agente_pausas no disponible', e.message); _pausas = new Set(); }
+  return _pausas;
+};
+const estaPausado = async (number) => (await numerosPausados()).has(digits(number).slice(-10));
+const sendText = async (number, text) => {
+  if (await estaPausado(number)) { console.log('agente en pausa con', number, '- no se envía'); return { pausado: true }; }
+  return http({ method: 'POST', url: `${EVO}/message/sendText/${INST}`, headers: { ...EVH, 'Content-Type': 'application/json' }, body: { number, text }, json: true });
+};
 // Modo prueba: con SOLO_CLIENTE (nombre o id) el agente solo trabaja con ese cliente y no toca a nadie más
 const SOLO = sinAcentos(E.SOLO_CLIENTE || '');
 const esDePrueba = (c) => !SOLO || (!!c && (String(c.id) === String(E.SOLO_CLIENTE).trim() || sinAcentos(c.nombre).includes(SOLO)));
 const proyDePrueba = (p, ctx) => !SOLO || esDePrueba({ id: p.cliente_id, nombre: ctx.N[p.cliente_id] || (ctx.CL && ctx.CL[p.cliente_id] || {}).nombre });
-const sendSafe = async (number, text) => { try { await sendText(number, text); return true; } catch (e) { console.log('sendText falló', e.message); return false; } };
+const sendSafe = async (number, text) => { try { const r = await sendText(number, text); return !(r && r.pausado); } catch (e) { console.log('sendText falló', e.message); return false; } };
 
 async function llm(system, user) {
   const r = await http({

@@ -3120,11 +3120,23 @@ async function directorioTelefonos() {
     return dir;
 }
 
+// Pausas vigentes del agente (tabla agente_pausas, ver supabase_agente_pausas.sql).
+// Devuelve null si la tabla todavía no existe, para que el panel avise en vez de fallar.
+async function pausasVigentes() {
+    const { data, error } = await supabase.from('agente_pausas').select('telefono, hasta, nombre')
+        .or(`hasta.is.null,hasta.gt.${new Date().toISOString()}`);
+    if (error) { console.warn('[AGENTE-PAUSAS] no disponible:', error.message); return null; }
+    return new Map((data || []).map(p => [p.telefono, p]));
+}
+
+// Mensajes que no cuentan como "le escribieron y nadie contestó"
+const TIPOS_SIN_RESPUESTA = ['reactionMessage', 'protocolMessage', 'stickerMessage'];
+
 // GET: lista de conversaciones del número del agente, agrupadas por contacto
 app.get('/api/agente-chats', requiereSesion({ soloAdmin: true }), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-        const [chats, dir] = await Promise.all([evo('/chat/findChats'), directorioTelefonos()]);
+        const [chats, dir, pausas] = await Promise.all([evo('/chat/findChats'), directorioTelefonos(), pausasVigentes()]);
         const porContacto = {};
         (Array.isArray(chats) ? chats : []).forEach(c => {
             const jid = c.remoteJid || '';
@@ -3153,9 +3165,11 @@ app.get('/api/agente-chats', requiereSesion({ soloAdmin: true }), async (req, re
                 tipo: c.esGrupo ? 'grupo' : info?.tipo || 'desconocido',
                 detalle: info?.detalle || null,
                 refId: info?.id || null,
+                pendiente: !c.esGrupo && !!c.ultimo && !c.ultimo.fromMe && !TIPOS_SIN_RESPUESTA.includes(c.ultimo.tipo),
+                pausa: (c.telefono && pausas?.get(ultimos10(c.telefono))) || null,
             };
         }).sort((a, b) => (b.ultimo?.ts || 0) - (a.ultimo?.ts || 0));
-        res.json({ chats: lista });
+        res.json({ chats: lista, pausasDisponibles: pausas !== null });
     } catch (e) {
         console.error('[API/AGENTE-CHATS] error:', e.message);
         res.status(500).json({ error: e.message });
@@ -3235,6 +3249,44 @@ app.post('/api/agente-chats/enviar', requiereSesion({ soloAdmin: true }), async 
         res.json({ ok: true, mensaje: r?.key ? normalizarMensaje({ ...r, MessageUpdate: [] }) : null });
     } catch (e) {
         console.error('[API/AGENTE-CHATS/ENVIAR] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// POST: pausar al agente con un contacto ({ telefono, horas }). horas vacío = hasta reanudar.
+app.post('/api/agente-chats/pausa', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    try {
+        const tel = ultimos10(req.body?.telefono);
+        if (tel.length !== 10) return res.status(400).json({ error: 'Este contacto no tiene un número que el agente atienda' });
+        const horas = Number(req.body?.horas) || 0;
+        const hasta = horas > 0 ? new Date(Date.now() + Math.min(horas, 24 * 30) * 3600e3).toISOString() : null;
+        const nombre = `${req.usuario.nombre || ''} ${req.usuario.apellido || ''}`.trim();
+        const { error } = await supabase.from('agente_pausas').upsert({ telefono: tel, hasta, pausado_por: String(req.usuario.id), nombre, creado: new Date().toISOString() }, { onConflict: 'telefono' });
+        if (error) {
+            // El error de "tabla inexistente" a veces llega sin mensaje: se confirma leyendo la tabla
+            const faltaTabla = (await pausasVigentes()) === null;
+            throw new Error(faltaTabla ? 'Falta crear la tabla de pausas: ejecuta supabase_agente_pausas.sql en Supabase' : (error.message || error.code || 'No se pudo guardar la pausa'));
+        }
+        await supabase.from('agente_auditoria').insert({ telefono: tel, usuario_id: String(req.usuario.id), nivel: 'admin', accion: 'agente_pausado_panel', permitido: true, detalle: `${nombre}: ${hasta ? 'hasta ' + hasta : 'sin límite'}` });
+        res.json({ ok: true, pausa: { telefono: tel, hasta, nombre } });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/PAUSA] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// DELETE: reanudar al agente con un contacto (?telefono=)
+app.delete('/api/agente-chats/pausa', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    try {
+        const tel = ultimos10(req.query.telefono);
+        if (tel.length !== 10) return res.status(400).json({ error: 'Número inválido' });
+        const { error } = await supabase.from('agente_pausas').delete().eq('telefono', tel);
+        if (error) throw error;
+        const nombre = `${req.usuario.nombre || ''} ${req.usuario.apellido || ''}`.trim();
+        await supabase.from('agente_auditoria').insert({ telefono: tel, usuario_id: String(req.usuario.id), nivel: 'admin', accion: 'agente_reanudado_panel', permitido: true, detalle: nombre });
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/PAUSA] error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });

@@ -53,6 +53,12 @@ Al terminar la prueba, deja `SOLO_CLIENTE` vacío y `BARRIDO_SIEMPRE` en `false`
    (opcional `AGENTE_WEBHOOK_URL`, por defecto `https://n8n.renewgroup.site/webhook/agente-renew-sistema`). Luego `deploy.sh`.
 3. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
 
+## 6. Pausar al agente desde el panel (una sola vez)
+1. Ejecuta `supabase_agente_pausas.sql` (raíz del repo) en el SQL Editor de Supabase.
+2. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
+
+En **Chats Agente IA** (panel admin), el botón *Pausar agente* deja a una persona atendiendo ese contacto (2 h, 24 h o hasta reanudar): el agente no le contesta, no le manda recordatorios del barrido y no escala sus pendientes. Si la tabla no existe, el agente sigue funcionando como siempre (sin pausas).
+
 ## Flujo Renew Water (por WhatsApp)
 1. **Crédito:** "¿fue aceptada?" → crea el proyecto (*En Proceso*) y lo pasa a Orden de Trabajo.
 2. **Orden de Trabajo:** "¿la genero?" → toma del sistema nombre, teléfono, email, dirección, ciudad, estado, zip y foto del ID; **solo pide lo que falta**; resumen → *SI* → borrador + enlace de firma al **cliente y al vendedor** (`/firmar.html`).

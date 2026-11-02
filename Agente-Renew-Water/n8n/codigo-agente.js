@@ -13,6 +13,7 @@ const jid = m.key.remoteJid || '';
 if (!jid.endsWith('@s.whatsapp.net')) return [{ json: { ignorado: 'grupo o formato no soportado' } }];
 if (sd.seen.includes(m.key.id)) return [{ json: { ignorado: 'duplicado' } }];
 const from = digits(jid);
+if (await estaPausado(from)) { sd.seen.push(m.key.id); if (sd.seen.length > 500) sd.seen = sd.seen.slice(-250); return [{ json: { ignorado: 'agente en pausa con este contacto (lo atiende una persona)' } }]; }
 const msg = m.message || {};
 const mediaNode = msg.imageMessage || msg.documentMessage || msg.documentWithCaptionMessage?.message?.documentMessage;
 const text0 = (msg.conversation || msg.extendedTextMessage?.text || '').trim();

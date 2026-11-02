@@ -65,6 +65,7 @@ Object.keys(sd.cnt).forEach((k) => { if (!vivos.has(k)) { delete sd.cnt[k]; dele
 const out = [...avisosHoy];
 const escalarMgr = {}, escalarAdm = {}; // destinatario -> líneas
 for (const { u, items } of Object.values(porUsuario)) {
+  if (await estaPausado(norm(u.telefono))) { out.push({ json: { para: u.nombre.trim(), pausado: true, enviado: false } }); continue; } // lo atiende una persona: ni recordar ni escalar
   const veces = Math.max(...items.map((x) => sd.cnt[x.k] || 0));
   const text = `${encabezadoRecordatorio(u.nombre.trim(), veces)}\n\n${listaCorta(items.map((x) => x.line))}\n\n${veces >= 2 ? 'Si ya lo hiciste en la app, avísame por aquí para actualizarlo. ' : ''}Respóndeme por aquí con texto o fotos (escribe el nombre del cliente en cada mensaje).`;
   let enviado = false;
