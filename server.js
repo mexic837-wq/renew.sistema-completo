@@ -3102,11 +3102,16 @@ function normalizarMensaje(m) {
 
 // Etiqueta (nombre, rol) de un teléfono según usuarios y clientes del sistema
 async function directorioTelefonos() {
-    const [{ data: usuarios }, { data: clientes }] = await Promise.all([
+    const [{ data: usuarios }, { data: clientes }, { data: leads }] = await Promise.all([
         supabase.from('usuarios').select('id, nombre, apellido, telefono, rol'),
         supabase.from('clientes_maestro').select('id, nombre, telefono, macro_estado'),
+        supabase.from('call_center_prospectos').select('id, nombre, telefono, estado, operador_nombre').in('estado', CC_ESTADOS_ACTIVOS),
     ]);
     const dir = {};
+    (leads || []).forEach(l => {
+        const k = ultimos10(l.telefono);
+        if (k.length === 10) dir[k] = { tipo: 'lead', id: l.id, nombre: l.nombre, detalle: `Lead · ${l.operador_nombre ? 'con ' + l.operador_nombre : 'sin operador'}` };
+    });
     (clientes || []).forEach(c => {
         const k = ultimos10(c.telefono);
         if (k.length === 10) dir[k] = { tipo: 'cliente', id: c.id, nombre: c.nombre, detalle: c.macro_estado || 'Cliente' };
@@ -3129,6 +3134,19 @@ async function pausasVigentes() {
     return new Map((data || []).map(p => [p.telefono, p]));
 }
 
+// Asignación, etiquetas y archivo de cada conversación (tabla agente_conversaciones) y cuántas notas tiene.
+// Devuelve mapas vacíos si las tablas todavía no existen.
+async function datosConversaciones() {
+    const [{ data: convs, error: e1 }, { data: notas }] = await Promise.all([
+        supabase.from('agente_conversaciones').select('clave, asignado_id, asignado_nombre, etiquetas, archivado_en'),
+        supabase.from('agente_notas').select('clave'),
+    ]);
+    if (e1) return { convs: new Map(), notas: new Map(), disponible: false };
+    const cuentaNotas = new Map();
+    (notas || []).forEach(n => cuentaNotas.set(n.clave, (cuentaNotas.get(n.clave) || 0) + 1));
+    return { convs: new Map((convs || []).map(c => [c.clave, c])), notas: cuentaNotas, disponible: true };
+}
+
 // Mensajes que no cuentan como "le escribieron y nadie contestó"
 const TIPOS_SIN_RESPUESTA = ['reactionMessage', 'protocolMessage', 'stickerMessage'];
 
@@ -3140,7 +3158,7 @@ const invalidarListaChats = () => { listaCache = null; };
 
 async function listaChats() {
     if (listaCache && Date.now() - listaCache.t < LISTA_CACHE_MS) return listaCache.datos;
-    const [chats, dir, pausas] = await Promise.all([evo('/chat/findChats'), directorioTelefonos(), pausasVigentes()]);
+    const [chats, dir, pausas, panel] = await Promise.all([evo('/chat/findChats'), directorioTelefonos(), pausasVigentes(), datosConversaciones()]);
     const porContacto = {};
     (Array.isArray(chats) ? chats : []).forEach(c => {
         const jid = c.remoteJid || '';
@@ -3163,17 +3181,24 @@ async function listaChats() {
     });
     const lista = Object.values(porContacto).map(c => {
         const info = c.telefono ? dir[ultimos10(c.telefono)] : null;
+        const meta = panel.convs.get(c.clave) || {};
+        // Archivada hasta que llegue un mensaje posterior al momento de archivar
+        const archivada = !!meta.archivado_en && (!c.ultimo || c.ultimo.ts * 1000 <= Date.parse(meta.archivado_en));
         return {
             ...c,
             nombre: info?.nombre || c.nombreWa || (c.telefono ? `+${c.telefono}` : c.esGrupo ? 'Grupo' : 'Contacto sin número'),
             tipo: c.esGrupo ? 'grupo' : info?.tipo || 'desconocido',
             detalle: info?.detalle || null,
             refId: info?.id || null,
-            pendiente: !c.esGrupo && !!c.ultimo && !c.ultimo.fromMe && !TIPOS_SIN_RESPUESTA.includes(c.ultimo.tipo),
+            pendiente: !archivada && !c.esGrupo && !!c.ultimo && !c.ultimo.fromMe && !TIPOS_SIN_RESPUESTA.includes(c.ultimo.tipo),
+            archivada,
+            asignado: meta.asignado_id ? { id: meta.asignado_id, nombre: meta.asignado_nombre } : null,
+            etiquetas: meta.etiquetas || [],
+            notas: panel.notas.get(c.clave) || 0,
             pausa: (c.telefono && pausas?.get(ultimos10(c.telefono))) || null,
         };
     }).sort((a, b) => (b.ultimo?.ts || 0) - (a.ultimo?.ts || 0));
-    const datos = { chats: lista, pausasDisponibles: pausas !== null };
+    const datos = { chats: lista, pausasDisponibles: pausas !== null, gestionDisponible: panel.disponible };
     listaCache = { t: Date.now(), datos };
     return datos;
 }
@@ -3357,6 +3382,122 @@ app.delete('/api/agente-chats/respuestas/:id', requiereSesion({ soloAdmin: true 
     const { error } = await supabase.from('agente_respuestas_rapidas').delete().eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message || 'No se pudo borrar' });
     res.json({ ok: true });
+});
+
+// Clave de conversación válida: número en dígitos o jid de WhatsApp
+const claveValida = (c) => /^\d{7,16}$/.test(String(c || '')) || jidValido(c);
+const nombreDe = (u) => `${u?.nombre || ''} ${u?.apellido || ''}`.trim();
+const FALTAN_TABLAS = 'Falta crear las tablas del chat: ejecuta supabase_chats_agente.sql en Supabase';
+
+// PATCH: asignar, etiquetar o archivar una conversación ({ clave, asignado_id?, etiquetas?, archivar? })
+app.patch('/api/agente-chats/conversacion', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    try {
+        const { clave } = req.body || {};
+        if (!claveValida(clave)) return res.status(400).json({ error: 'Conversación inválida' });
+        const cambios = { clave, actualizado: new Date().toISOString(), actualizado_por: String(req.usuario.id) };
+        if ('asignado_id' in req.body) {
+            if (req.body.asignado_id) {
+                const { data: u } = await supabase.from('usuarios').select('id, nombre, apellido, is_suspended').eq('id', req.body.asignado_id).maybeSingle();
+                if (!u || u.is_suspended) return res.status(400).json({ error: 'Ese usuario no existe o está suspendido' });
+                cambios.asignado_id = String(u.id);
+                cambios.asignado_nombre = nombreDe(u);
+            } else {
+                cambios.asignado_id = null;
+                cambios.asignado_nombre = null;
+            }
+        }
+        if (Array.isArray(req.body.etiquetas)) {
+            cambios.etiquetas = [...new Set(req.body.etiquetas.map(e => String(e).trim().slice(0, 30)).filter(Boolean))].slice(0, 10);
+        }
+        if ('archivar' in req.body) cambios.archivado_en = req.body.archivar ? new Date().toISOString() : null;
+
+        const { data, error } = await supabase.from('agente_conversaciones').upsert(cambios, { onConflict: 'clave' })
+            .select('clave, asignado_id, asignado_nombre, etiquetas, archivado_en').single();
+        if (error) throw new Error((await datosConversaciones()).disponible ? (error.message || 'No se pudo guardar') : FALTAN_TABLAS);
+        if ('asignado_id' in req.body) {
+            await supabase.from('agente_auditoria').insert({ telefono: clave, usuario_id: String(req.usuario.id), nivel: 'admin', accion: 'chat_asignado_panel', permitido: true, detalle: `${nombreDe(req.usuario)} → ${cambios.asignado_nombre || 'sin asignar'}` });
+        }
+        invalidarListaChats();
+        res.json({ ok: true, conversacion: data });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/CONVERSACION] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Notas internas de una conversación
+app.get('/api/agente-chats/notas', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const clave = String(req.query.clave || '');
+    if (!claveValida(clave)) return res.status(400).json({ error: 'Conversación inválida' });
+    const { data, error } = await supabase.from('agente_notas').select('id, texto, nombre, usuario_id, creado').eq('clave', clave).order('creado', { ascending: false });
+    if (error) return res.status(500).json({ error: FALTAN_TABLAS });
+    res.json({ notas: data || [] });
+});
+
+app.post('/api/agente-chats/notas', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const clave = String(req.body?.clave || '');
+    const texto = String(req.body?.texto || '').trim().slice(0, 2000);
+    if (!claveValida(clave)) return res.status(400).json({ error: 'Conversación inválida' });
+    if (!texto) return res.status(400).json({ error: 'La nota está vacía' });
+    const { data, error } = await supabase.from('agente_notas')
+        .insert({ clave, texto, usuario_id: String(req.usuario.id), nombre: nombreDe(req.usuario) })
+        .select('id, texto, nombre, usuario_id, creado').single();
+    if (error) return res.status(500).json({ error: FALTAN_TABLAS });
+    invalidarListaChats();
+    res.json({ nota: data });
+});
+
+app.delete('/api/agente-chats/notas/:id', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const { error } = await supabase.from('agente_notas').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message || 'No se pudo borrar' });
+    invalidarListaChats();
+    res.json({ ok: true });
+});
+
+// POST: crear un lead en el Call Center a partir de un número que escribió y no está en el sistema
+// ({ telefono, nombre, nota }). Si ya hay un lead activo con ese número, solo le agrega la nota.
+app.post('/api/agente-chats/crear-lead', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    try {
+        const telefono = soloDigitos(req.body?.telefono);
+        const tel10 = telefono.slice(-10);
+        const nombre = String(req.body?.nombre || '').trim().slice(0, 120) || 'Prospecto WhatsApp';
+        const nota = String(req.body?.nota || '').trim().slice(0, 1000);
+        if (tel10.length !== 10) return res.status(400).json({ error: 'Este contacto no tiene un número válido' });
+
+        const ahora = new Date();
+        const notaLead = `💬 Lead de WhatsApp (escribió al número del agente)\n` +
+            `• Registrado desde Chats Agente IA por ${nombreDe(req.usuario)}\n` +
+            `• Fecha: ${ahora.toLocaleString('es-ES', { timeZone: 'America/New_York' })}` +
+            (nota ? `\n• Nota: ${nota}` : '');
+        const ORIGEN_WHATSAPP = 'WhatsApp - Chats Agente IA';
+
+        const { data: activos, error: actErr } = await supabase.from('call_center_prospectos').select('id, telefono, notas_pre').in('estado', CC_ESTADOS_ACTIVOS);
+        if (actErr) throw actErr;
+        const existente = (activos || []).find(l => soloDigitos(l.telefono).slice(-10) === tel10);
+        let leadId;
+        if (existente) {
+            leadId = existente.id;
+            const previas = (existente.notas_pre || '').trim();
+            const { error } = await supabase.from('call_center_prospectos').update({ notas_pre: previas ? `${previas}\n\n---\n${notaLead}` : notaLead }).eq('id', leadId);
+            if (error) throw error;
+        } else {
+            leadId = `lead_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            const { error } = await supabase.from('call_center_prospectos').insert([{
+                id: leadId, nombre, telefono: '+' + telefono, pipeline: 'Renew Water',
+                fuente: 'whatsapp', origen: ORIGEN_WHATSAPP, estado: 'pendiente', prioridad: 1,
+                intentos_reasignacion: 0, operador_id: null, operador_nombre: null,
+                fecha_creacion: ahora.toISOString(), fecha_asignacion: null, fecha_expiracion: null,
+                notas_pre: notaLead,
+            }]);
+            if (error) throw error;
+        }
+        await supabase.from('agente_auditoria').insert({ telefono: tel10, usuario_id: String(req.usuario.id), nivel: 'admin', accion: 'lead_creado_panel', permitido: true, detalle: `${nombreDe(req.usuario)}: ${leadId} (${nombre})` });
+        invalidarListaChats();
+        res.json({ ok: true, lead_id: leadId, existia: !!existente });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/CREAR-LEAD] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // POST: pausar al agente con un contacto ({ telefono, horas }). horas vacío = hasta reanudar.

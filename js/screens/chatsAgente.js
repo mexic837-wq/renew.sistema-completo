@@ -3,7 +3,8 @@
    Bandeja tipo WhatsApp con las conversaciones del agente de IA
    (número de Evolution API): leer, responder (texto, fotos, PDF y
    respuestas rápidas), ver pendientes, pausar al agente por contacto,
-   consultar la ficha del cliente y recibir avisos de mensajes nuevos.
+   consultar la ficha del cliente, recibir avisos de mensajes nuevos y
+   organizar la bandeja (asignar, etiquetar, notas internas, archivar).
    ============================================================ */
 
 import { authHeaders } from '../api.js';
@@ -81,7 +82,17 @@ const TIPOS = {
     cliente: { label: 'Cliente', clase: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
     desconocido: { label: 'Desconocido', clase: 'bg-gray-500/10 text-gray-500 border-gray-500/20' },
     grupo: { label: 'Grupo', clase: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
+    lead: { label: 'Lead', clase: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
 };
+
+// Etiquetas sugeridas (se puede escribir cualquiera)
+const ETIQUETAS_SUGERIDAS = ['Interesado', 'Pidió precio', 'Agendar visita', 'Seguimiento', 'Urgente', 'No interesado'];
+const COLORES_ETIQUETA = ['bg-sky-500/15 text-sky-600 dark:text-sky-300', 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300', 'bg-violet-500/15 text-violet-600 dark:text-violet-300', 'bg-rose-500/15 text-rose-600 dark:text-rose-300', 'bg-amber-500/15 text-amber-700 dark:text-amber-300', 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'];
+// Cada etiqueta siempre con el mismo color
+const colorEtiqueta = (t) => COLORES_ETIQUETA[[...t].reduce((a, ch) => a + ch.charCodeAt(0), 0) % COLORES_ETIQUETA.length];
+const chipEtiqueta = (t, quitar) => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${colorEtiqueta(t)}">${esc(t)}${quitar ? `<button type="button" class="ca-quitar-etiqueta opacity-60 hover:opacity-100" data-etiqueta="${esc(t)}">×</button>` : ''}</span>`;
+
+const usuarioActualId = () => { try { return String(JSON.parse(localStorage.getItem('rs_user') || '{}').id || ''); } catch (e) { return ''; } };
 
 function avatar(chat, tam = 'w-11 h-11') {
     const iniciales = (chat.nombre || '?').replace(/[^\p{L}\s]/gu, '').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '#';
@@ -103,7 +114,12 @@ function vistaPrevia(m) {
 function chatsFiltrados() {
     const q = estado.busqueda.trim().toLowerCase();
     return estado.chats.filter(c => {
-        if (estado.filtro === 'pendientes' ? !c.pendiente : estado.filtro !== 'todos' && c.tipo !== estado.filtro) return false;
+        if (estado.filtro === 'archivados') { if (!c.archivada) return false; }
+        else if (c.archivada) return false;
+        else if (estado.filtro === 'pendientes') { if (!c.pendiente) return false; }
+        else if (estado.filtro === 'mios') { if (c.asignado?.id !== usuarioActualId()) return false; }
+        else if (estado.filtro !== 'todos' && c.tipo !== estado.filtro) return false;
+        if (q && (c.etiquetas || []).some(e => e.toLowerCase().includes(q))) return true;
         if (!q) return true;
         return (c.nombre || '').toLowerCase().includes(q) || (c.telefono || '').includes(q.replace(/\D/g, '') || '¬') || (c.ultimo?.texto || '').toLowerCase().includes(q);
     });
@@ -129,6 +145,11 @@ function pintarLista() {
                     <span class="text-xs truncate ${c.pendiente ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400'}">${c.pendiente ? '<span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1.5 align-middle"></span>' : ''}${vistaPrevia(c.ultimo)}</span>
                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded border flex-shrink-0 ${(TIPOS[c.tipo] || TIPOS.desconocido).clase}">${(TIPOS[c.tipo] || TIPOS.desconocido).label}</span>
                 </div>
+                ${(c.etiquetas || []).length || c.asignado || c.notas ? `<div class="flex items-center gap-1 mt-1 flex-wrap">
+                    ${(c.etiquetas || []).slice(0, 3).map(t => chipEtiqueta(t)).join('')}
+                    ${c.notas ? `<span class="text-[10px] text-gray-400" title="Notas internas"><i class="fa-regular fa-note-sticky"></i> ${c.notas}</span>` : ''}
+                    ${c.asignado ? `<span class="ml-auto text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[45%]" title="Asignado a ${esc(c.asignado.nombre)}"><i class="fa-solid fa-user-check text-tealAccent"></i> ${esc(c.asignado.nombre.split(' ')[0])}</span>` : ''}
+                </div>` : ''}
             </div>
         </button>`).join('');
     cont.querySelectorAll('.ca-chat').forEach(b => b.addEventListener('click', () => abrirChat(b.dataset.clave)));
@@ -217,8 +238,10 @@ async function abrirChat(clave, soloCabecera = false) {
         ${chat.telefono && chat.tipo !== 'grupo' ? `<button id="ca-btn-pausa" title="${chat.pausa ? 'Reanudar al agente' : 'Pausar al agente con este contacto'}"
             class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${chat.pausa ? 'bg-amber-500 text-black border-amber-500' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500 hover:text-amber-500'}">
             <i class="fa-solid ${chat.pausa ? 'fa-play' : 'fa-pause'}"></i><span class="hidden lg:inline">${chat.pausa ? 'Reanudar agente' : 'Pausar agente'}</span></button>` : ''}
+        <button id="ca-btn-archivar" title="${chat.archivada ? 'Sacar del archivo' : 'Archivar (vuelve si escribe de nuevo)'}" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 ${chat.archivada ? 'text-amber-500' : 'text-gray-500 hover:text-tealAccent'}"><i class="fa-solid ${chat.archivada ? 'fa-box-open' : 'fa-box-archive'}"></i></button>
         <button id="ca-btn-ficha" title="Ficha" class="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors ${estado.fichaAbierta ? 'bg-tealAccent text-black border-tealAccent' : 'border-gray-200 dark:border-white/10 text-gray-500 hover:text-tealAccent'}"><i class="fa-solid fa-id-card"></i></button>`;
     document.getElementById('ca-btn-pausa')?.addEventListener('click', () => alternarPausa(chat));
+    document.getElementById('ca-btn-archivar')?.addEventListener('click', () => archivar(chat));
     document.getElementById('ca-btn-ficha')?.addEventListener('click', () => { estado.fichaAbierta = !estado.fichaAbierta; abrirChat(clave, true); });
     pintarAvisoPausa(chat);
     pintarFicha(chat);
@@ -314,6 +337,155 @@ function tarjetaProyecto(db, p, mostrarCliente) {
     </button>`;
 }
 
+// ── Gestión de la conversación: asignar, etiquetas, notas, archivar ──────────
+async function guardarConversacion(chat, cambios) {
+    const data = await leer(await fetch('/api/agente-chats/conversacion', {
+        method: 'PATCH', headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ clave: chat.clave, ...cambios }),
+    }));
+    const c = data.conversacion || {};
+    const datos = { asignado: c.asignado_id ? { id: c.asignado_id, nombre: c.asignado_nombre } : null, etiquetas: c.etiquetas || [] };
+    if ('archivar' in cambios) { datos.archivada = !!cambios.archivar; if (datos.archivada) datos.pendiente = false; }
+    // El refresco periódico reemplaza los objetos de la lista: se actualiza también la copia vigente
+    const vigente = estado.chats.find(x => x.clave === chat.clave);
+    Object.assign(chat, datos);
+    if (vigente && vigente !== chat) Object.assign(vigente, datos);
+    return chat;
+}
+
+const avisoError = (e) => (window.Swal ? window.Swal.fire({ icon: 'error', title: 'No se pudo', text: e.message }) : alert(e.message));
+
+async function archivar(chat) {
+    try {
+        await guardarConversacion(chat, { archivar: !chat.archivada });
+        pintarLista();
+        abrirChat(chat.clave, true);
+    } catch (e) { avisoError(e); }
+}
+
+function htmlGestion(chat, db) {
+    const usuarios = (db.Usuarios || []).filter(u => !u.is_suspended)
+        .map(u => ({ id: String(u.id), nombre: `${u.nombre || ''} ${u.apellido || ''}`.trim() }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const disponibles = ETIQUETAS_SUGERIDAS.filter(t => !(chat.etiquetas || []).includes(t));
+    return `
+        <div class="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 space-y-4">
+            <div>
+                <div class="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">Asignado a</div>
+                <select id="ca-asignar" class="w-full text-xs rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white px-3 py-2">
+                    <option value="">Sin asignar</option>
+                    ${usuarios.map(u => `<option value="${esc(u.id)}" ${chat.asignado?.id === u.id ? 'selected' : ''}>${esc(u.nombre)}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <div class="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">Etiquetas</div>
+                <div class="flex flex-wrap gap-1 mb-2">${(chat.etiquetas || []).map(t => chipEtiqueta(t, true)).join('') || '<span class="text-[11px] text-gray-400">Sin etiquetas</span>'}</div>
+                <div class="flex flex-wrap gap-1">
+                    ${disponibles.map(t => `<button type="button" class="ca-sugerida text-[10px] px-1.5 py-0.5 rounded-md border border-dashed border-gray-300 dark:border-white/15 text-gray-500 hover:text-tealAccent hover:border-tealAccent" data-etiqueta="${esc(t)}">+ ${esc(t)}</button>`).join('')}
+                    <button type="button" id="ca-etiqueta-otra" class="text-[10px] px-1.5 py-0.5 rounded-md border border-dashed border-gray-300 dark:border-white/15 text-gray-500 hover:text-tealAccent hover:border-tealAccent">+ Otra…</button>
+                </div>
+            </div>
+            <div>
+                <div class="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">Notas internas <span class="normal-case font-semibold">(el contacto no las ve)</span></div>
+                <textarea id="ca-nota-texto" rows="2" maxlength="2000" placeholder="Escribe una nota para el equipo" class="w-full text-xs rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white px-3 py-2 resize-none"></textarea>
+                <button type="button" id="ca-nota-guardar" class="mt-1.5 w-full py-1.5 rounded-xl bg-gray-900 dark:bg-white/10 text-white text-[11px] font-bold hover:bg-tealAccent hover:text-black">Agregar nota</button>
+                <div id="ca-notas" class="mt-3 space-y-2"><div class="text-[11px] text-gray-400">Cargando notas…</div></div>
+            </div>
+        </div>`;
+}
+
+async function cargarNotas(chat) {
+    const cont = document.getElementById('ca-notas');
+    if (!cont) return;
+    try {
+        const { notas } = await leer(await fetch(`/api/agente-chats/notas?clave=${encodeURIComponent(chat.clave)}`, { headers: authHeaders() }));
+        if (estado.activo !== chat.clave) return;
+        chat.notas = notas.length;
+        cont.innerHTML = notas.map(n => `
+            <div class="group p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
+                <div class="text-[11px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">${esc(n.texto)}</div>
+                <div class="flex items-center justify-between mt-1 text-[10px] text-gray-400">
+                    <span>${esc(n.nombre || '')} · ${new Date(n.creado).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <button type="button" class="ca-borrar-nota opacity-0 group-hover:opacity-100 hover:text-red-500" data-id="${n.id}" title="Borrar nota"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>`).join('') || '<div class="text-[11px] text-gray-400">Sin notas todavía.</div>';
+        cont.querySelectorAll('.ca-borrar-nota').forEach(b => b.addEventListener('click', async () => {
+            if (!confirm('¿Borrar esta nota?')) return;
+            try {
+                await leer(await fetch(`/api/agente-chats/notas/${encodeURIComponent(b.dataset.id)}`, { method: 'DELETE', headers: authHeaders() }));
+                cargarNotas(chat);
+                pintarLista();
+            } catch (e) { avisoError(e); }
+        }));
+    } catch (e) {
+        cont.innerHTML = `<div class="text-[11px] text-red-400">${esc(e.message)}</div>`;
+    }
+}
+
+function activarGestion(chat, panel) {
+    const repintar = () => { pintarLista(); pintarFicha(chat); };
+    panel.querySelector('#ca-asignar')?.addEventListener('change', async (e) => {
+        try { await guardarConversacion(chat, { asignado_id: e.target.value || null }); repintar(); }
+        catch (err) { avisoError(err); e.target.value = chat.asignado?.id || ''; }
+    });
+    const ponerEtiquetas = async (lista) => {
+        try { await guardarConversacion(chat, { etiquetas: lista }); repintar(); } catch (err) { avisoError(err); }
+    };
+    panel.querySelectorAll('.ca-sugerida').forEach(b => b.addEventListener('click', () => ponerEtiquetas([...(chat.etiquetas || []), b.dataset.etiqueta])));
+    panel.querySelectorAll('.ca-quitar-etiqueta').forEach(b => b.addEventListener('click', () => ponerEtiquetas((chat.etiquetas || []).filter(t => t !== b.dataset.etiqueta))));
+    panel.querySelector('#ca-etiqueta-otra')?.addEventListener('click', () => {
+        const t = (prompt('Nombre de la etiqueta') || '').trim();
+        if (t) ponerEtiquetas([...(chat.etiquetas || []), t.slice(0, 30)]);
+    });
+    panel.querySelector('#ca-nota-guardar')?.addEventListener('click', async () => {
+        const caja = panel.querySelector('#ca-nota-texto');
+        const texto = caja.value.trim();
+        if (!texto) return;
+        try {
+            await leer(await fetch('/api/agente-chats/notas', {
+                method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ clave: chat.clave, texto }),
+            }));
+            caja.value = '';
+            await cargarNotas(chat);
+            pintarLista();
+        } catch (e) { avisoError(e); }
+    });
+    if (panel.querySelector('#ca-notas')) cargarNotas(chat);
+}
+
+async function crearLead(chat) {
+    let nombre = chat.nombreWa || '';
+    let nota = '';
+    if (window.Swal) {
+        const r = await window.Swal.fire({
+            title: 'Crear lead en Call Center',
+            html: `<input id="ca-lead-nombre" class="swal2-input" placeholder="Nombre del prospecto" value="${esc(nombre)}" maxlength="120">
+                   <textarea id="ca-lead-nota" class="swal2-textarea" placeholder="Nota para el operador (opcional)" maxlength="1000"></textarea>`,
+            showCancelButton: true, confirmButtonText: 'Crear lead', cancelButtonText: 'Cancelar',
+            preConfirm: () => ({ n: document.getElementById('ca-lead-nombre').value.trim(), x: document.getElementById('ca-lead-nota').value.trim() }),
+        });
+        if (!r.isConfirmed) return;
+        ({ n: nombre, x: nota } = r.value);
+    } else {
+        nombre = prompt('Nombre del prospecto', nombre);
+        if (nombre === null) return;
+    }
+    try {
+        const data = await leer(await fetch('/api/agente-chats/crear-lead', {
+            method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ telefono: chat.telefono, nombre, nota }),
+        }));
+        const datos = { tipo: 'lead', nombre: nombre || chat.nombre, detalle: 'Lead · sin operador' };
+        Object.assign(chat, datos);
+        const vigente = estado.chats.find(x => x.clave === chat.clave);
+        if (vigente) Object.assign(vigente, datos);
+        pintarLista();
+        abrirChat(chat.clave, true);
+        if (window.Swal) window.Swal.fire({ icon: 'success', title: data.existia ? 'Ya era lead' : 'Lead creado', text: data.existia ? 'Ya tenía un lead activo; se le agregó la nota.' : 'Quedó en los leads del Call Center para que lo califiquen.', timer: 2500, showConfirmButton: false });
+    } catch (e) { avisoError(e); }
+}
+
 function pintarFicha(chat) {
     const panel = document.getElementById('ca-ficha');
     if (!panel) return;
@@ -350,11 +522,18 @@ function pintarFicha(chat) {
             <div class="text-[10px] font-black uppercase tracking-wider text-gray-400 mt-5 mb-2">Proyectos en sus manos (${activos.length})</div>
             <div class="space-y-2">${activos.slice(0, 15).map(p => tarjetaProyecto(db, p, true)).join('') || '<div class="text-[11px] text-gray-400">No tiene proyectos activos.</div>'}</div>
             ${activos.length > 15 ? `<div class="text-[11px] text-gray-400 mt-2">y ${activos.length - 15} más…</div>` : ''}`;
+    } else if (chat.tipo === 'lead') {
+        html = `<div class="text-sm font-black text-gray-900 dark:text-white">${esc(chat.nombre)}</div>
+            <div class="text-[11px] mt-1"><span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 font-bold">${esc(chat.detalle || 'Lead')}</span></div>
+            <p class="text-[11px] text-gray-400 mt-2">Está en los leads del Call Center.</p>`;
     } else {
         html = `<div class="text-sm font-black text-gray-900 dark:text-white">${esc(chat.nombre)}</div>
-            <p class="text-[11px] text-gray-400 mt-2">${chat.tipo === 'grupo' ? 'Grupo de WhatsApp.' : 'Este número no está registrado en el sistema como cliente ni como parte del equipo.'}</p>`;
+            <p class="text-[11px] text-gray-400 mt-2">${chat.tipo === 'grupo' ? 'Grupo de WhatsApp.' : 'Este número no está registrado en el sistema como cliente, lead ni parte del equipo.'}</p>
+            ${chat.tipo !== 'grupo' && chat.telefono ? '<button id="ca-crear-lead" class="w-full mt-3 py-2 rounded-xl bg-amber-500 text-black text-[11px] font-black uppercase tracking-wider"><i class="fa-solid fa-user-plus mr-1"></i>Crear lead en Call Center</button>' : ''}`;
     }
-    panel.querySelector('.ca-ficha-cuerpo').innerHTML = html;
+    panel.querySelector('.ca-ficha-cuerpo').innerHTML = html + (chat.tipo === 'grupo' ? '' : htmlGestion(chat, db));
+    panel.querySelector('#ca-crear-lead')?.addEventListener('click', () => crearLead(chat));
+    activarGestion(chat, panel);
     panel.querySelector('#ca-ver-cliente')?.addEventListener('click', () => window.showClientDetail?.(chat.refId));
     panel.querySelectorAll('.ca-proy').forEach(b => b.addEventListener('click', () => window.openKanbanDrawer?.(b.dataset.proy)));
 }
@@ -639,9 +818,11 @@ function botonActivarAvisos() {
 async function cargarChats() {
     const data = await leer(await fetch('/api/agente-chats', { headers: authHeaders() }));
     estado.chats = data.chats || [];
-    const cuenta = (t) => estado.chats.filter(c => c.tipo === t).length;
+    const activos = estado.chats.filter(c => !c.archivada);
+    const cuenta = (t) => activos.filter(c => c.tipo === t).length;
+    const extra = { todos: activos.length, pendientes: activos.filter(c => c.pendiente).length, mios: activos.filter(c => c.asignado?.id === usuarioActualId()).length, archivados: estado.chats.length - activos.length };
     document.querySelectorAll('.ca-filtro').forEach(b => {
-        const n = b.dataset.f === 'todos' ? estado.chats.length : b.dataset.f === 'pendientes' ? estado.chats.filter(c => c.pendiente).length : cuenta(b.dataset.f);
+        const n = b.dataset.f in extra ? extra[b.dataset.f] : cuenta(b.dataset.f);
         b.querySelector('.ca-n').textContent = n;
     });
     actualizarContadorMenu(estado.chats.filter(c => c.pendiente).length);
@@ -674,7 +855,7 @@ export async function renderChatsAgente() {
     estado.activo = null;
     if (estado.timer) clearInterval(estado.timer);
 
-    const filtros = [['todos', 'Todos'], ['pendientes', 'Sin responder'], ['equipo', 'Equipo'], ['cliente', 'Clientes'], ['desconocido', 'Otros']];
+    const filtros = [['todos', 'Todos'], ['pendientes', 'Sin responder'], ['mios', 'Míos'], ['equipo', 'Equipo'], ['cliente', 'Clientes'], ['lead', 'Leads'], ['desconocido', 'Otros'], ['archivados', 'Archivados']];
     canvas.innerHTML = `
         <div class="animate-fadeIn flex h-[calc(100vh-190px)] min-h-[480px] rounded-3xl overflow-hidden border border-gray-100 dark:border-white/5 bg-white dark:bg-darkCard shadow-sm">
             <!-- Lista de conversaciones -->

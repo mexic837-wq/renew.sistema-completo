@@ -54,7 +54,7 @@ Al terminar la prueba, deja `SOLO_CLIENTE` vacío y `BARRIDO_SIEMPRE` en `false`
 3. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
 
 ## 6. Chats Agente IA: pausas, respuestas rápidas y autores (una sola vez)
-1. Ejecuta `supabase_chats_agente.sql` (raíz del repo) en el SQL Editor de Supabase. Crea `agente_pausas`, `agente_respuestas_rapidas` (con 4 respuestas de ejemplo) y `agente_mensajes_panel`.
+1. Ejecuta `supabase_chats_agente.sql` (raíz del repo) en el SQL Editor de Supabase. Crea `agente_pausas`, `agente_respuestas_rapidas` (con 4 respuestas de ejemplo), `agente_mensajes_panel`, `agente_conversaciones` (asignado, etiquetas, archivo) y `agente_notas` (notas internas).
 2. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
 
 En **Chats Agente IA** (panel admin), el botón *Pausar agente* deja a una persona atendiendo ese contacto (2 h, 24 h o hasta reanudar): el agente no le contesta, no le manda recordatorios del barrido y no escala sus pendientes. Si la tabla no existe, el agente sigue funcionando como siempre (sin pausas).

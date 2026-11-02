@@ -43,3 +43,28 @@ create table if not exists public.agente_mensajes_panel (
 );
 create index if not exists agente_mensajes_panel_tel_idx on public.agente_mensajes_panel (telefono);
 alter table public.agente_mensajes_panel enable row level security;
+
+-- 4) Datos de cada conversación en el panel: a quién está asignada, etiquetas y archivo.
+-- clave = número completo (solo dígitos) o el jid de WhatsApp si no hay número.
+create table if not exists public.agente_conversaciones (
+  clave            text primary key,
+  asignado_id      text,
+  asignado_nombre  text,
+  etiquetas        text[] not null default '{}',
+  archivado_en     timestamptz,         -- si llega un mensaje nuevo después, vuelve a la bandeja
+  actualizado      timestamptz not null default now(),
+  actualizado_por  text
+);
+alter table public.agente_conversaciones enable row level security;
+
+-- 5) Notas internas por conversación (el contacto nunca las ve).
+create table if not exists public.agente_notas (
+  id          bigserial primary key,
+  clave       text not null,
+  texto       text not null,
+  usuario_id  text,
+  nombre      text,
+  creado      timestamptz not null default now()
+);
+create index if not exists agente_notas_clave_idx on public.agente_notas (clave, creado desc);
+alter table public.agente_notas enable row level security;
