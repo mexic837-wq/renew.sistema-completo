@@ -156,16 +156,18 @@ app.post('/api/login', async (req, res) => {
 
 // Middleware: exige un pase válido y un usuario activo. Con soloAdmin, además Admin/CEO.
 // El pase se lee de "Authorization: Bearer" o de ?t= (para <img>/<audio>, que no mandan cabeceras).
+// Las respuestas 401 llevan "x-sesion: invalida" para que js/auth-fetch.js cierre la sesión y mande al login.
 function requiereSesion({ soloAdmin = false } = {}) {
     return async (req, res, next) => {
+        const rechazar = (msg) => res.status(401).set('x-sesion', 'invalida').json({ error: msg });
         try {
             const cab = req.headers.authorization || '';
             const token = cab.startsWith('Bearer ') ? cab.slice(7) : String(req.query.t || '');
-            if (!token) return res.status(401).json({ error: 'Inicia sesión de nuevo' });
+            if (!token) return rechazar('Inicia sesión de nuevo');
             let datos;
-            try { datos = jwt.verify(token, AUTH_SECRET); } catch (e) { return res.status(401).json({ error: 'Tu sesión expiró. Inicia sesión de nuevo.' }); }
+            try { datos = jwt.verify(token, AUTH_SECRET); } catch (e) { return rechazar('Tu sesión expiró. Inicia sesión de nuevo.'); }
             const { data: u } = await supabase.from('usuarios').select('id, nombre, apellido, rol, is_suspended').eq('id', datos.sub).maybeSingle();
-            if (!u || u.is_suspended) return res.status(401).json({ error: 'Tu cuenta no está activa' });
+            if (!u || u.is_suspended) return rechazar('Tu cuenta no está activa');
             if (soloAdmin && !ROLES_ADMIN.test(rolesTexto(u))) return res.status(403).json({ error: 'Solo Admin o CEO' });
             req.usuario = u;
             next();
@@ -174,6 +176,48 @@ function requiereSesion({ soloAdmin = false } = {}) {
             res.status(500).json({ error: 'Error verificando la sesión' });
         }
     };
+}
+
+const esAdmin = (u) => ROLES_ADMIN.test(rolesTexto(u));
+
+// Reglas al guardar usuarios desde una sesión que no es Admin/CEO:
+// - Nadie se cambia (ni le cambia a otro) el rol, la suspensión o los permisos.
+// - Su propio perfil sí lo puede editar, incluida su contraseña.
+// - De otros usuarios solo puede cambiar el rango (lo hace el ascenso automático al avanzar un proyecto).
+// - No puede crear usuarios con rol Admin/CEO.
+const CAMPOS_PROTEGIDOS = ['rol', 'is_suspended', 'unidades', 'equipo_ids', 'pipeline_ids', 'estatus_rrhh', 'ver_catalogo', 'ver_partners'];
+async function limitarCambiosUsuarios(registros, sesion) {
+    if (esAdmin(sesion)) return registros;
+    const ids = registros.map(u => u.id).filter(Boolean);
+    const { data, error } = await supabase.from('usuarios').select('*').in('id', ids.length ? ids : ['__ninguno__']);
+    if (error) throw new Error('No se pudieron validar los usuarios: ' + error.message);
+    const actuales = new Map((data || []).map(u => [String(u.id), u]));
+    const permitidos = [];
+    for (const u of registros) {
+        const actual = actuales.get(String(u.id));
+        if (!actual) {
+            if (ROLES_ADMIN.test(rolesTexto(u))) { console.warn(`[SEGURIDAD] ${sesion.id} intentó crear un usuario Admin/CEO`); continue; }
+            permitidos.push(u);
+            continue;
+        }
+        const resultado = {};
+        for (const k of Object.keys(u)) resultado[k] = k in actual ? actual[k] : u[k];
+        if (String(u.id) === String(sesion.id)) {
+            for (const k of Object.keys(u)) if (!CAMPOS_PROTEGIDOS.includes(k)) resultado[k] = u[k];
+        } else if ('rango' in u) {
+            resultado.rango = u.rango;
+        }
+        permitidos.push(resultado);
+    }
+    return permitidos;
+}
+
+// Tablas que la app nunca toca directamente, y borrado de usuarios solo para Admin/CEO
+const TABLAS_SOLO_SERVIDOR = ['agente_auditoria', 'solicitudes_firma'];
+function tablaProhibida(table, sesion) {
+    if (TABLAS_SOLO_SERVIDOR.includes(table)) return 'Esta tabla no se puede modificar desde la app';
+    if (table === 'usuarios' && !esAdmin(sesion)) return 'Solo Admin o CEO pueden borrar usuarios';
+    return null;
 }
 
 // Servir archivos subidos localmente (fotos de clientes, anuncios, etc.)
@@ -873,7 +917,7 @@ app.post('/api/generate-receipt-pdf', async (req, res) => {
 
 // POST: Sincronización masiva (Upsert) a Supabase
 // ── GOOGLE CALENDAR SYNC (SERVICE ACCOUNT) ──
-app.post('/api/calendar/sync', async (req, res) => {
+app.post('/api/calendar/sync', requiereSesion(), async (req, res) => {
     try {
         const { eventData, calendarId } = req.body;
         const KEY_PATH = path.join(__dirname, 'credenciales-calendario.json');
@@ -904,7 +948,7 @@ app.post('/api/calendar/sync', async (req, res) => {
 });
 
 // POST: Sincronización manual de la Lista de Precios desde Google Sheets
-app.post('/api/sync-google-sheets', async (req, res) => {
+app.post('/api/sync-google-sheets', requiereSesion(), async (req, res) => {
     try {
         console.log('[API/SYNC] Petición manual de sincronización recibida.');
         const result = await syncPreciosFromSheets(supabase);
@@ -919,7 +963,7 @@ app.post('/api/sync-google-sheets', async (req, res) => {
     }
 });
 
-app.post('/api/db', async (req, res) => {
+app.post('/api/db', requiereSesion(), async (req, res) => {
     try {
         const db = req.body;
         console.log('[SUPABASE] Syncing local changes to cloud...');
@@ -968,7 +1012,7 @@ app.post('/api/db', async (req, res) => {
                 return mapped;
             });
             syncTasks.push(
-                conservarPasswords(usrs).then(conPassword => supabase.from('usuarios').upsert(conPassword, { onConflict: 'id' })).then(({ error }) => {
+                limitarCambiosUsuarios(usrs, req.usuario).then(conservarPasswords).then(conPassword => supabase.from('usuarios').upsert(conPassword, { onConflict: 'id' })).then(({ error }) => {
                     if (error) {
                         console.error('[DIAGNOSTIC SUPABASE] Error guardando usuarios:', error);
                         throw error;
@@ -1317,12 +1361,13 @@ app.post('/api/db', async (req, res) => {
 
 // ── FAST GRANULAR UPSERT API ──
 // Recibe { table: 'nombre_tabla', records: [ { id: '...', ... } ] }
-app.post('/api/upsert', async (req, res) => {
+app.post('/api/upsert', requiereSesion(), async (req, res) => {
     try {
         const { table, records } = req.body;
         if (!table || !records || !Array.isArray(records)) {
             return res.status(400).json({ error: 'Formato incorrecto. Se requiere "table" y un array "records".' });
         }
+        if (TABLAS_SOLO_SERVIDOR.includes(table)) return res.status(403).json({ error: 'Esta tabla no se puede modificar desde la app' });
         
         console.log(`[SUPABASE GRANULAR] Upserting ${records.length} records into ${table}...`);
         
@@ -1389,7 +1434,7 @@ app.post('/api/upsert', async (req, res) => {
                 ver_catalogo:               !!u.ver_catalogo,
                 ver_partners:               !!u.ver_partners
             }));
-            sanitizedRecords = await conservarPasswords(sanitizedRecords);
+            sanitizedRecords = await conservarPasswords(await limitarCambiosUsuarios(sanitizedRecords, req.usuario));
         } else if (table === 'calendario_eventos') {
             sanitizedRecords = records.map(ev => ({
                 ...ev,
@@ -3270,7 +3315,7 @@ app.get('/api/zadarma/debug', (req, res) => {
 // POST: Ingresar nuevos prospectos (scraper n8n / manual / referidos / cualquier fuente)
 // Body: { nombre, telefono, direccion, email?, pipeline?, fuente? }
 //  OR batch: { leads: [ { ... } ] }
-app.post('/api/cc-prospectos', async (req, res) => {
+app.post('/api/cc-prospectos', requiereSesion(), async (req, res) => {
     try {
         // 1. Normalizar entrada (lead único o batch)
         let leadsIn = [];
@@ -3365,7 +3410,7 @@ app.post('/api/cc-prospectos', async (req, res) => {
 
 // PATCH: Agente responde (acepta o rechaza) un prospecto asignado
 // Body: { accion: 'aceptar' | 'rechazar', ...otros_campos }
-app.patch('/api/cc-prospectos/:id', async (req, res) => {
+app.patch('/api/cc-prospectos/:id', requiereSesion(), async (req, res) => {
     try {
         const { id } = req.params;
         const { accion, ...extraFields } = req.body;
@@ -3406,12 +3451,12 @@ app.patch('/api/cc-prospectos/:id', async (req, res) => {
 });
 
 // POST: Procesar cola — ya no existe cola por agente; se mantiene por compatibilidad (n8n / admin)
-app.post('/api/cc-prospectos/procesar-cola', (req, res) => {
+app.post('/api/cc-prospectos/procesar-cola', requiereSesion(), (req, res) => {
     res.json({ success: true, procesados: 0, en_cola: 0, mensaje: 'Lista compartida: no hay cola por agente' });
 });
 
 // DELETE: Eliminar un prospecto de la tabla
-app.delete('/api/cc-prospectos/:id', async (req, res) => {
+app.delete('/api/cc-prospectos/:id', requiereSesion(), async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase.from('call_center_prospectos').delete().eq('id', id);
@@ -3425,10 +3470,12 @@ app.delete('/api/cc-prospectos/:id', async (req, res) => {
 
 // DELETE: Eliminar un registro específico
 
-app.post('/api/delete', async (req, res) => {
+app.post('/api/delete', requiereSesion(), async (req, res) => {
     try {
         const { table, id, column } = req.body;
         if (!table || !id) return res.status(400).json({ error: 'Faltan parámetros' });
+        const prohibido = tablaProhibida(table, req.usuario);
+        if (prohibido) return res.status(403).json({ error: prohibido });
 
         const col = column || 'id';
         console.log(`[SUPABASE] Intentando borrar de ${table} donde ${col} = ${id}`);
@@ -3451,12 +3498,14 @@ app.post('/api/delete', async (req, res) => {
     }
 });
 
-app.post('/api/delete-bulk', async (req, res) => {
+app.post('/api/delete-bulk', requiereSesion(), async (req, res) => {
     try {
         const { table, ids, column } = req.body;
         if (!table || !ids || !Array.isArray(ids)) {
             return res.status(400).json({ error: 'Faltan parámetros o ids no es un array' });
         }
+        const prohibido = tablaProhibida(table, req.usuario);
+        if (prohibido) return res.status(403).json({ error: prohibido });
 
         const col = column || 'id';
         console.log(`[SUPABASE] Bulk delete en ${table} donde ${col} IN (${ids.join(', ')})`);
@@ -3558,7 +3607,7 @@ async function initStorage() {
 }
 initStorage();
 
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', requiereSesion(), upload.single('file'), async (req, res) => {
     try {
         console.log('[API-UPLOAD] Request received');
         if (!req.file) {
@@ -3585,7 +3634,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
 // /api/upload-academia – acepta los campos 'video' y/o 'miniatura'
 // También acepta 'file' genérico para compatibilidad con llamadas antiguas
-app.post('/api/upload-academia', upload.fields([
+app.post('/api/upload-academia', requiereSesion(), upload.fields([
     { name: 'video',     maxCount: 1 },
     { name: 'miniatura', maxCount: 1 },
     { name: 'file',      maxCount: 1 }
@@ -3611,7 +3660,7 @@ app.post('/api/upload-academia', upload.fields([
 });
 
 // New endpoint for Signed Upload URLs (Bypasses 413 Request Entity Too Large)
-app.post('/api/get-upload-url', async (req, res) => {
+app.post('/api/get-upload-url', requiereSesion(), async (req, res) => {
     try {
         const { fileName, folder } = req.body;
         if (!fileName || !folder) throw new Error('Nombre de archivo y carpeta requeridos');
@@ -3640,7 +3689,7 @@ app.post('/api/get-upload-url', async (req, res) => {
 });
 
 // Chunked Upload Endpoints (using binary body to bypass multipart limits)
-app.post('/api/upload-chunk', express.raw({ type: 'application/octet-stream', limit: '10mb' }), async (req, res) => {
+app.post('/api/upload-chunk', requiereSesion(), express.raw({ type: 'application/octet-stream', limit: '10mb' }), async (req, res) => {
     try {
         const { uploadId, chunkIndex } = req.query;
         if (!uploadId || !req.body) throw new Error('Faltan datos de fragmento');
@@ -3658,7 +3707,7 @@ app.post('/api/upload-chunk', express.raw({ type: 'application/octet-stream', li
     }
 });
 
-app.post('/api/complete-upload', async (req, res) => {
+app.post('/api/complete-upload', requiereSesion(), async (req, res) => {
     try {
         const { uploadId, fileName, folder, totalChunks, contentType } = req.body;
         if (!uploadId || !fileName || !folder || !totalChunks) {
@@ -3798,7 +3847,7 @@ function generateZadarmaSignature(method, params) {
     return { queryString, signature };
 }
 
-app.post('/api/zadarma/call', async (req, res) => {
+app.post('/api/zadarma/call', requiereSesion(), async (req, res) => {
     try {
         let { from, to } = req.body;
         if (!from || !to) return res.status(400).json({ error: 'Faltan parámetros (from, to)' });
