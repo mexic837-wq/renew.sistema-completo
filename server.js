@@ -3120,7 +3120,7 @@ async function directorioTelefonos() {
     return dir;
 }
 
-// Pausas vigentes del agente (tabla agente_pausas, ver supabase_agente_pausas.sql).
+// Pausas vigentes del agente (tabla agente_pausas, ver supabase_chats_agente.sql).
 // Devuelve null si la tabla todavía no existe, para que el panel avise en vez de fallar.
 async function pausasVigentes() {
     const { data, error } = await supabase.from('agente_pausas').select('telefono, hasta, nombre')
@@ -3132,46 +3132,75 @@ async function pausasVigentes() {
 // Mensajes que no cuentan como "le escribieron y nadie contestó"
 const TIPOS_SIN_RESPUESTA = ['reactionMessage', 'protocolMessage', 'stickerMessage'];
 
-// GET: lista de conversaciones del número del agente, agrupadas por contacto
+// Lista de conversaciones del número del agente, agrupadas por contacto.
+// Se guarda 10 s en memoria: la pantalla y los avisos de todos los admins la piden seguido.
+const LISTA_CACHE_MS = 10000;
+let listaCache = null; // { t, datos }
+const invalidarListaChats = () => { listaCache = null; };
+
+async function listaChats() {
+    if (listaCache && Date.now() - listaCache.t < LISTA_CACHE_MS) return listaCache.datos;
+    const [chats, dir, pausas] = await Promise.all([evo('/chat/findChats'), directorioTelefonos(), pausasVigentes()]);
+    const porContacto = {};
+    (Array.isArray(chats) ? chats : []).forEach(c => {
+        const jid = c.remoteJid || '';
+        if (!jid || jid === 'status@broadcast') return;
+        const esGrupo = jid.endsWith('@g.us');
+        // Teléfono real: del jid clásico, o del remoteJidAlt cuando WhatsApp usa @lid
+        const alt = c.lastMessage?.key?.remoteJidAlt || '';
+        const tel = esGrupo ? '' : jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : alt.endsWith('@s.whatsapp.net') ? alt.split('@')[0] : '';
+        const clave = tel || jid;
+        const ultimo = c.lastMessage ? normalizarMensaje(c.lastMessage) : null;
+        const actual = porContacto[clave] || { clave, jids: [], telefono: tel, esGrupo, nombreWa: null, foto: null, ultimo: null };
+        if (!actual.jids.includes(jid)) actual.jids.push(jid);
+        if (alt && !actual.jids.includes(alt)) actual.jids.push(alt);
+        // pushName de un mensaje propio es el nombre de la cuenta de Renew, no el del contacto
+        const pushContacto = c.lastMessage && !c.lastMessage.key?.fromMe ? c.lastMessage.pushName : null;
+        actual.nombreWa = actual.nombreWa || c.pushName || pushContacto || null;
+        actual.foto = actual.foto || c.profilePicUrl || null;
+        if (ultimo && (!actual.ultimo || ultimo.ts > actual.ultimo.ts)) actual.ultimo = ultimo;
+        porContacto[clave] = actual;
+    });
+    const lista = Object.values(porContacto).map(c => {
+        const info = c.telefono ? dir[ultimos10(c.telefono)] : null;
+        return {
+            ...c,
+            nombre: info?.nombre || c.nombreWa || (c.telefono ? `+${c.telefono}` : c.esGrupo ? 'Grupo' : 'Contacto sin número'),
+            tipo: c.esGrupo ? 'grupo' : info?.tipo || 'desconocido',
+            detalle: info?.detalle || null,
+            refId: info?.id || null,
+            pendiente: !c.esGrupo && !!c.ultimo && !c.ultimo.fromMe && !TIPOS_SIN_RESPUESTA.includes(c.ultimo.tipo),
+            pausa: (c.telefono && pausas?.get(ultimos10(c.telefono))) || null,
+        };
+    }).sort((a, b) => (b.ultimo?.ts || 0) - (a.ultimo?.ts || 0));
+    const datos = { chats: lista, pausasDisponibles: pausas !== null };
+    listaCache = { t: Date.now(), datos };
+    return datos;
+}
+
 app.get('/api/agente-chats', requiereSesion({ soloAdmin: true }), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-        const [chats, dir, pausas] = await Promise.all([evo('/chat/findChats'), directorioTelefonos(), pausasVigentes()]);
-        const porContacto = {};
-        (Array.isArray(chats) ? chats : []).forEach(c => {
-            const jid = c.remoteJid || '';
-            if (!jid || jid === 'status@broadcast') return;
-            const esGrupo = jid.endsWith('@g.us');
-            // Teléfono real: del jid clásico, o del remoteJidAlt cuando WhatsApp usa @lid
-            const alt = c.lastMessage?.key?.remoteJidAlt || '';
-            const tel = esGrupo ? '' : jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : alt.endsWith('@s.whatsapp.net') ? alt.split('@')[0] : '';
-            const clave = tel || jid;
-            const ultimo = c.lastMessage ? normalizarMensaje(c.lastMessage) : null;
-            const actual = porContacto[clave] || { clave, jids: [], telefono: tel, esGrupo, nombreWa: null, foto: null, ultimo: null };
-            if (!actual.jids.includes(jid)) actual.jids.push(jid);
-            if (alt && !actual.jids.includes(alt)) actual.jids.push(alt);
-            // pushName de un mensaje propio es el nombre de la cuenta de Renew, no el del contacto
-            const pushContacto = c.lastMessage && !c.lastMessage.key?.fromMe ? c.lastMessage.pushName : null;
-            actual.nombreWa = actual.nombreWa || c.pushName || pushContacto || null;
-            actual.foto = actual.foto || c.profilePicUrl || null;
-            if (ultimo && (!actual.ultimo || ultimo.ts > actual.ultimo.ts)) actual.ultimo = ultimo;
-            porContacto[clave] = actual;
-        });
-        const lista = Object.values(porContacto).map(c => {
-            const info = c.telefono ? dir[ultimos10(c.telefono)] : null;
-            return {
-                ...c,
-                nombre: info?.nombre || c.nombreWa || (c.telefono ? `+${c.telefono}` : c.esGrupo ? 'Grupo' : 'Contacto sin número'),
-                tipo: c.esGrupo ? 'grupo' : info?.tipo || 'desconocido',
-                detalle: info?.detalle || null,
-                refId: info?.id || null,
-                pendiente: !c.esGrupo && !!c.ultimo && !c.ultimo.fromMe && !TIPOS_SIN_RESPUESTA.includes(c.ultimo.tipo),
-                pausa: (c.telefono && pausas?.get(ultimos10(c.telefono))) || null,
-            };
-        }).sort((a, b) => (b.ultimo?.ts || 0) - (a.ultimo?.ts || 0));
-        res.json({ chats: lista, pausasDisponibles: pausas !== null });
+        res.json(await listaChats());
     } catch (e) {
         console.error('[API/AGENTE-CHATS] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET: resumen liviano para el contador del menú y las notificaciones
+app.get('/api/agente-chats/resumen', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+        const { chats } = await listaChats();
+        const pendientes = chats.filter(c => c.pendiente);
+        res.json({
+            pendientes: pendientes.length,
+            // Últimos mensajes entrantes, para avisar de los nuevos
+            recientes: pendientes.slice(0, 10).map(c => ({ clave: c.clave, nombre: c.nombre, tipo: c.tipo, ts: c.ultimo.ts, texto: (c.ultimo.texto || c.ultimo.archivo || '').slice(0, 120) })),
+        });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/RESUMEN] error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
@@ -3201,6 +3230,13 @@ app.get('/api/agente-chats/mensajes', requiereSesion({ soloAdmin: true }), async
             });
         });
         mensajes.sort((a, b) => a.ts - b.ts);
+        // Quién del equipo envió a mano cada mensaje desde el panel (si la tabla existe)
+        const propios = mensajes.filter(m => m.fromMe).map(m => m.id);
+        if (propios.length) {
+            const { data: autores } = await supabase.from('agente_mensajes_panel').select('mensaje_id, nombre').in('mensaje_id', propios);
+            const porId = new Map((autores || []).map(a => [a.mensaje_id, a.nombre]));
+            mensajes.forEach(m => { if (porId.has(m.id)) m.enviadoPor = porId.get(m.id); });
+        }
         res.json({ mensajes, hayMas });
     } catch (e) {
         console.error('[API/AGENTE-CHATS/MENSAJES] error:', e.message);
@@ -3215,42 +3251,112 @@ const ENVIO_PAUSA_MISMO_CHAT_MS = 3000;    // entre dos mensajes al mismo contac
 const enviosRecientes = [];
 const ultimoEnvioPorChat = new Map();
 
+// Devuelve el motivo para no enviar ahora, o null y registra el envío
+function frenoEnvio(jid) {
+    const ahora = Date.now();
+    while (enviosRecientes.length && ahora - enviosRecientes[0] > ENVIO_VENTANA_MS) enviosRecientes.shift();
+    if (enviosRecientes.length >= ENVIO_MAX_POR_VENTANA) return 'Has enviado muchos mensajes seguidos. Espera unos minutos para cuidar el número de un bloqueo de WhatsApp.';
+    if (ahora - (ultimoEnvioPorChat.get(jid) || 0) < ENVIO_PAUSA_MISMO_CHAT_MS) return 'Espera unos segundos antes de mandar otro mensaje a este contacto.';
+    enviosRecientes.push(ahora);
+    ultimoEnvioPorChat.set(jid, ahora);
+    return null;
+}
+
+// Para números normales Evolution espera solo los dígitos; @lid y grupos van con el jid completo
+const numeroEvolution = (jid) => (jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid);
+const jidValido = (jid) => /@(s\.whatsapp\.net|lid|g\.us)$/.test(String(jid || ''));
+
+// Deja constancia de un envío manual: autor del mensaje (para la conversación) y auditoría
+async function registrarEnvioPanel(r, number, usr, detalle) {
+    const nombre = `${usr.nombre || ''} ${usr.apellido || ''}`.trim();
+    if (r?.key?.id) {
+        const { error } = await supabase.from('agente_mensajes_panel').insert({ mensaje_id: r.key.id, telefono: ultimos10(number) || number, usuario_id: String(usr.id), nombre });
+        if (error) console.warn('[AGENTE-CHATS] no se guardó el autor:', error.message || error.code);
+    }
+    await supabase.from('agente_auditoria').insert({
+        telefono: number, usuario_id: String(usr.id), nivel: 'admin', accion: 'mensaje_manual_panel', permitido: true,
+        detalle: `${nombre}: ${detalle}`.slice(0, 300),
+    });
+    invalidarListaChats();
+    return nombre;
+}
+
 // POST: enviar un mensaje de texto desde el panel ({ jid, texto }). Solo Admin/CEO (según el pase de sesión).
 app.post('/api/agente-chats/enviar', requiereSesion({ soloAdmin: true }), async (req, res) => {
     try {
         const { jid } = req.body || {};
         const texto = String(req.body?.texto || '').trim();
-        if (!/@(s\.whatsapp\.net|lid|g\.us)$/.test(String(jid || ''))) return res.status(400).json({ error: 'Conversación inválida' });
+        if (!jidValido(jid)) return res.status(400).json({ error: 'Conversación inválida' });
         if (!texto) return res.status(400).json({ error: 'Mensaje vacío' });
         if (texto.length > 4000) return res.status(400).json({ error: 'Mensaje demasiado largo' });
 
-        const usr = req.usuario;
+        const freno = frenoEnvio(jid);
+        if (freno) return res.status(429).json({ error: freno });
 
-        const ahora = Date.now();
-        while (enviosRecientes.length && ahora - enviosRecientes[0] > ENVIO_VENTANA_MS) enviosRecientes.shift();
-        if (enviosRecientes.length >= ENVIO_MAX_POR_VENTANA) {
-            return res.status(429).json({ error: 'Has enviado muchos mensajes seguidos. Espera unos minutos para cuidar el número de un bloqueo de WhatsApp.' });
-        }
-        if (ahora - (ultimoEnvioPorChat.get(jid) || 0) < ENVIO_PAUSA_MISMO_CHAT_MS) {
-            return res.status(429).json({ error: 'Espera unos segundos antes de mandar otro mensaje a este contacto.' });
-        }
-        enviosRecientes.push(ahora);
-        ultimoEnvioPorChat.set(jid, ahora);
-
-        // Para números normales Evolution espera solo los dígitos; @lid y grupos van con el jid completo.
-        // delay: WhatsApp muestra "escribiendo…" antes del mensaje, como lo haría una persona.
-        const number = jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid;
+        // delay: WhatsApp muestra "escribiendo…" antes del mensaje, como lo haría una persona
+        const number = numeroEvolution(jid);
         const r = await evo('/message/sendText', { number, text: texto, delay: Math.min(1000 + texto.length * 20, 4000) });
-
-        await supabase.from('agente_auditoria').insert({
-            telefono: number, usuario_id: String(usr.id), nivel: 'admin', accion: 'mensaje_manual_panel', permitido: true,
-            detalle: `${`${usr.nombre || ''} ${usr.apellido || ''}`.trim()}: ${texto}`.slice(0, 300),
-        });
-        res.json({ ok: true, mensaje: r?.key ? normalizarMensaje({ ...r, MessageUpdate: [] }) : null });
+        const enviadoPor = await registrarEnvioPanel(r, number, req.usuario, texto);
+        res.json({ ok: true, mensaje: r?.key ? { ...normalizarMensaje({ ...r, MessageUpdate: [] }), enviadoPor } : null });
     } catch (e) {
         console.error('[API/AGENTE-CHATS/ENVIAR] error:', e.message);
         res.status(500).json({ error: e.message });
     }
+});
+
+// POST: enviar una foto o un PDF ({ jid, base64, mimetype, nombre, caption }). Máximo 10 MB.
+const ARCHIVO_MAX_BYTES = 10 * 1024 * 1024;
+const MIME_PERMITIDOS = { 'image/jpeg': 'image', 'image/png': 'image', 'image/webp': 'image', 'application/pdf': 'document' };
+app.post('/api/agente-chats/enviar-archivo', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    try {
+        const { jid, mimetype } = req.body || {};
+        const base64 = String(req.body?.base64 || '').replace(/^data:[^;]+;base64,/, '');
+        const caption = String(req.body?.caption || '').trim().slice(0, 1000);
+        const nombreArchivo = String(req.body?.nombre || 'archivo').replace(/[\\/:*?"<>|]/g, '_').slice(0, 120);
+        if (!jidValido(jid)) return res.status(400).json({ error: 'Conversación inválida' });
+        const mediatype = MIME_PERMITIDOS[mimetype];
+        if (!mediatype) return res.status(400).json({ error: 'Solo se pueden enviar fotos (JPG, PNG, WEBP) o PDF' });
+        if (!base64 || Math.floor(base64.length * 3 / 4) > ARCHIVO_MAX_BYTES) return res.status(400).json({ error: 'El archivo está vacío o pasa de 10 MB' });
+
+        const freno = frenoEnvio(jid);
+        if (freno) return res.status(429).json({ error: freno });
+
+        const number = numeroEvolution(jid);
+        const r = await evo('/message/sendMedia', { number, mediatype, mimetype, media: base64, fileName: nombreArchivo, caption, delay: 1500 });
+        const enviadoPor = await registrarEnvioPanel(r, number, req.usuario, `[${mediatype === 'image' ? 'foto' : 'PDF'} ${nombreArchivo}] ${caption}`);
+        const mensaje = r?.key ? {
+            ...normalizarMensaje({ ...r, MessageUpdate: [] }),
+            tipo: mediatype === 'image' ? 'imageMessage' : 'documentMessage',
+            archivo: mediatype === 'document' ? nombreArchivo : null,
+            texto: caption, enviadoPor,
+        } : null;
+        res.json({ ok: true, mensaje });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/ENVIAR-ARCHIVO] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Respuestas rápidas (tabla agente_respuestas_rapidas, ver supabase_chats_agente.sql)
+app.get('/api/agente-chats/respuestas', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const { data, error } = await supabase.from('agente_respuestas_rapidas').select('id, titulo, texto').order('titulo');
+    if (error) return res.status(500).json({ error: 'Falta crear las tablas del chat: ejecuta supabase_chats_agente.sql en Supabase' });
+    res.json({ respuestas: data || [] });
+});
+
+app.post('/api/agente-chats/respuestas', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const titulo = String(req.body?.titulo || '').trim().slice(0, 60);
+    const texto = String(req.body?.texto || '').trim().slice(0, 2000);
+    if (!titulo || !texto) return res.status(400).json({ error: 'Escribe un título y el texto' });
+    const { data, error } = await supabase.from('agente_respuestas_rapidas').insert({ titulo, texto, creado_por: String(req.usuario.id) }).select('id, titulo, texto').single();
+    if (error) return res.status(500).json({ error: error.message || 'No se pudo guardar' });
+    res.json({ respuesta: data });
+});
+
+app.delete('/api/agente-chats/respuestas/:id', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const { error } = await supabase.from('agente_respuestas_rapidas').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message || 'No se pudo borrar' });
+    res.json({ ok: true });
 });
 
 // POST: pausar al agente con un contacto ({ telefono, horas }). horas vacío = hasta reanudar.
@@ -3265,9 +3371,10 @@ app.post('/api/agente-chats/pausa', requiereSesion({ soloAdmin: true }), async (
         if (error) {
             // El error de "tabla inexistente" a veces llega sin mensaje: se confirma leyendo la tabla
             const faltaTabla = (await pausasVigentes()) === null;
-            throw new Error(faltaTabla ? 'Falta crear la tabla de pausas: ejecuta supabase_agente_pausas.sql en Supabase' : (error.message || error.code || 'No se pudo guardar la pausa'));
+            throw new Error(faltaTabla ? 'Falta crear la tabla de pausas: ejecuta supabase_chats_agente.sql en Supabase' : (error.message || error.code || 'No se pudo guardar la pausa'));
         }
         await supabase.from('agente_auditoria').insert({ telefono: tel, usuario_id: String(req.usuario.id), nivel: 'admin', accion: 'agente_pausado_panel', permitido: true, detalle: `${nombre}: ${hasta ? 'hasta ' + hasta : 'sin límite'}` });
+        invalidarListaChats();
         res.json({ ok: true, pausa: { telefono: tel, hasta, nombre } });
     } catch (e) {
         console.error('[API/AGENTE-CHATS/PAUSA] error:', e.message);
@@ -3284,6 +3391,7 @@ app.delete('/api/agente-chats/pausa', requiereSesion({ soloAdmin: true }), async
         if (error) throw error;
         const nombre = `${req.usuario.nombre || ''} ${req.usuario.apellido || ''}`.trim();
         await supabase.from('agente_auditoria').insert({ telefono: tel, usuario_id: String(req.usuario.id), nivel: 'admin', accion: 'agente_reanudado_panel', permitido: true, detalle: nombre });
+        invalidarListaChats();
         res.json({ ok: true });
     } catch (e) {
         console.error('[API/AGENTE-CHATS/PAUSA] error:', e.message);

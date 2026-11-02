@@ -1,8 +1,9 @@
 /* ============================================================
    RENEW OS – screens/chatsAgente.js
    Bandeja tipo WhatsApp con las conversaciones del agente de IA
-   (número de Evolution API): leer, responder, ver pendientes, pausar
-   al agente por contacto y consultar la ficha del cliente.
+   (número de Evolution API): leer, responder (texto, fotos, PDF y
+   respuestas rápidas), ver pendientes, pausar al agente por contacto,
+   consultar la ficha del cliente y recibir avisos de mensajes nuevos.
    ============================================================ */
 
 import { authHeaders } from '../api.js';
@@ -30,6 +31,8 @@ const estado = {
     hayMas: false,
     timer: null,
     fichaAbierta: false,
+    respuestas: null,  // respuestas rápidas (se cargan al usarlas por primera vez)
+    abrirAlCargar: null, // clave del chat a abrir al entrar desde una notificación
 };
 
 // Tiempo transcurrido corto: "5 min", "3 h", "2 d"
@@ -147,9 +150,12 @@ function burbuja(m) {
         contenido = `<span class="text-xs italic text-gray-400">Mensaje no compatible (${esc(m.tipo || 'desconocido')})</span>`;
     }
     const texto = m.texto && !(m.archivo && m.texto === m.archivo) ? `<div class="text-[13px] leading-snug break-words">${formatoWa(m.texto)}</div>` : '';
-    // El agente envía por la API (origen "web"); lo escrito a mano desde el teléfono llega como android/ios/desktop
-    const manual = m.fromMe && ['android', 'ios', 'desktop'].includes(m.origen)
-        ? `<span class="mr-auto italic"><i class="fa-solid fa-${m.origen === 'desktop' ? 'desktop' : 'mobile-screen'} mr-0.5"></i>persona</span>` : '';
+    // Quién envió: alguien del equipo desde el panel (con nombre), una persona desde el teléfono,
+    // o el agente (la API sale como "web", igual que WhatsApp Web)
+    let manual = '';
+    if (m.fromMe && m.enviadoPor) manual = `<span class="mr-auto italic font-semibold"><i class="fa-solid fa-user mr-0.5"></i>${esc(m.enviadoPor)}</span>`;
+    else if (m.fromMe && ['android', 'ios', 'desktop'].includes(m.origen)) manual = `<span class="mr-auto italic"><i class="fa-solid fa-${m.origen === 'desktop' ? 'desktop' : 'mobile-screen'} mr-0.5"></i>persona</span>`;
+    else if (m.fromMe && m.origen === 'web') manual = `<span class="mr-auto italic" title="Enviado por el agente (o desde WhatsApp Web)"><i class="fa-solid fa-robot mr-0.5"></i>agente</span>`;
     return `
         <div class="flex ${m.fromMe ? 'justify-end' : 'justify-start'} px-3 sm:px-8">
             <div class="max-w-[85%] sm:max-w-[65%] px-3 py-1.5 rounded-xl shadow-sm ${m.fromMe ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-gray-100 rounded-tr-none' : 'bg-white dark:bg-[#202c33] text-gray-900 dark:text-gray-100 rounded-tl-none'}">
@@ -409,6 +415,227 @@ async function enviarMensaje() {
     }
 }
 
+// ── Adjuntar foto o PDF ─────────────────────────────────────
+const TIPOS_ARCHIVO = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const leerComoBase64 = (archivo) => new Promise((ok, mal) => {
+    const lector = new FileReader();
+    lector.onload = () => ok(String(lector.result));
+    lector.onerror = () => mal(new Error('No se pudo leer el archivo'));
+    lector.readAsDataURL(archivo);
+});
+
+async function enviarArchivo(archivo) {
+    const chat = estado.chats.find(c => c.clave === estado.activo);
+    if (!chat || !archivo) return;
+    const avisar = (t) => (window.Swal ? window.Swal.fire({ icon: 'error', title: 'No se envió', text: t }) : alert(t));
+    if (!TIPOS_ARCHIVO.includes(archivo.type)) return avisar('Solo se pueden enviar fotos (JPG, PNG, WEBP) o PDF.');
+    if (archivo.size > 10 * 1024 * 1024) return avisar('El archivo pasa de 10 MB.');
+    const dataUrl = await leerComoBase64(archivo);
+    const esFoto = archivo.type.startsWith('image/');
+    let caption = '';
+    if (window.Swal) {
+        const r = await window.Swal.fire({
+            title: esFoto ? 'Enviar foto' : 'Enviar PDF',
+            html: esFoto ? `<img src="${dataUrl}" style="max-height:260px;margin:0 auto;border-radius:12px">` : `<div style="font-size:13px"><i class="fa-solid fa-file-pdf" style="color:#ef4444"></i> ${esc(archivo.name)}</div>`,
+            input: 'text', inputPlaceholder: 'Mensaje (opcional)',
+            showCancelButton: true, confirmButtonText: 'Enviar', cancelButtonText: 'Cancelar',
+        });
+        if (!r.isConfirmed) return;
+        caption = r.value || '';
+    } else if (!confirm(`¿Enviar ${archivo.name}?`)) return;
+
+    const jid = chat.jids.find(j => j.endsWith('@s.whatsapp.net')) || chat.jids[0];
+    const boton = document.getElementById('ca-adjuntar');
+    boton.disabled = true;
+    boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    try {
+        const data = await leer(await fetch('/api/agente-chats/enviar-archivo', {
+            method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ jid, base64: dataUrl, mimetype: archivo.type, nombre: archivo.name, caption }),
+        }));
+        if (data.mensaje && estado.activo === chat.clave) {
+            estado.mensajes.push(data.mensaje);
+            pintarMensajes();
+        }
+        if (data.mensaje) chat.ultimo = data.mensaje;
+        chat.pendiente = false;
+        pintarLista();
+    } catch (e) {
+        avisar(e.message);
+    } finally {
+        boton.disabled = false;
+        boton.innerHTML = '<i class="fa-solid fa-paperclip"></i>';
+    }
+}
+
+// ── Respuestas rápidas ──────────────────────────────────────
+// {nombre} se cambia por el primer nombre del contacto (si se conoce)
+function primerNombre(chat) {
+    const n = chat.tipo === 'desconocido' ? (chat.nombreWa || '') : (chat.nombre || '');
+    return /^\+?\d/.test(n) ? '' : n.trim().split(/\s+/)[0] || '';
+}
+
+// Sin nombre conocido se quita {nombre}: "Hola {nombre}, …" → "Hola, …" y "{nombre}, ¿me…" → "¿me…"
+const rellenarNombre = (texto, nombre) => (nombre
+    ? texto.replace(/\{nombre\}/g, nombre)
+    : texto.replace(/^\s*\{nombre\}\s*,?\s*/, '').replace(/\s*\{nombre\}/g, '').trim());
+
+async function cargarRespuestas() {
+    if (estado.respuestas) return estado.respuestas;
+    const data = await leer(await fetch('/api/agente-chats/respuestas', { headers: authHeaders() }));
+    estado.respuestas = data.respuestas || [];
+    return estado.respuestas;
+}
+
+async function pintarRespuestas(filtro = '') {
+    const caja = document.getElementById('ca-respuestas');
+    if (!caja) return;
+    caja.classList.remove('hidden');
+    caja.innerHTML = '<div class="p-3 text-[11px] text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Cargando…</div>';
+    let lista;
+    try { lista = await cargarRespuestas(); } catch (e) {
+        caja.innerHTML = `<div class="p-3 text-[11px] text-red-400">${esc(e.message)}</div>`;
+        return;
+    }
+    const q = filtro.toLowerCase();
+    const visibles = lista.filter(r => !q || r.titulo.toLowerCase().includes(q) || r.texto.toLowerCase().includes(q));
+    caja.innerHTML = `
+        <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">Respuestas rápidas</span>
+            <button type="button" id="ca-resp-nueva" class="text-[11px] font-bold text-tealAccent hover:underline"><i class="fa-solid fa-plus mr-1"></i>Nueva</button>
+        </div>
+        <div class="max-h-60 overflow-y-auto">
+            ${visibles.map(r => `
+                <div class="group flex items-start gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer ca-resp" data-id="${r.id}">
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold text-gray-900 dark:text-white">${esc(r.titulo)}</div>
+                        <div class="text-[11px] text-gray-500 truncate">${esc(r.texto)}</div>
+                    </div>
+                    <button type="button" class="ca-resp-borrar opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-xs" title="Borrar" data-id="${r.id}"><i class="fa-solid fa-trash"></i></button>
+                </div>`).join('') || '<div class="p-3 text-[11px] text-gray-400">No hay respuestas que coincidan.</div>'}
+        </div>`;
+    caja.querySelectorAll('.ca-resp').forEach(el => el.addEventListener('click', (e) => {
+        if (e.target.closest('.ca-resp-borrar')) return;
+        const r = lista.find(x => String(x.id) === el.dataset.id);
+        const chat = estado.chats.find(c => c.clave === estado.activo);
+        const texto = document.getElementById('ca-texto');
+        const nombre = chat ? primerNombre(chat) : '';
+        texto.value = rellenarNombre(r.texto, nombre);
+        texto.dispatchEvent(new Event('input'));
+        cerrarRespuestas();
+        texto.focus();
+    }));
+    caja.querySelectorAll('.ca-resp-borrar').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('¿Borrar esta respuesta rápida para todo el equipo?')) return;
+        try {
+            await leer(await fetch(`/api/agente-chats/respuestas/${encodeURIComponent(b.dataset.id)}`, { method: 'DELETE', headers: authHeaders() }));
+            estado.respuestas = estado.respuestas.filter(x => String(x.id) !== b.dataset.id);
+            pintarRespuestas(filtro);
+        } catch (e) { alert(e.message); }
+    }));
+    caja.querySelector('#ca-resp-nueva').addEventListener('click', nuevaRespuesta);
+}
+
+function cerrarRespuestas() {
+    document.getElementById('ca-respuestas')?.classList.add('hidden');
+}
+
+async function nuevaRespuesta() {
+    let titulo, texto;
+    if (window.Swal) {
+        const r = await window.Swal.fire({
+            title: 'Nueva respuesta rápida',
+            html: `<input id="ca-nr-titulo" class="swal2-input" placeholder="Título (ej. Pedir dirección)" maxlength="60">
+                   <textarea id="ca-nr-texto" class="swal2-textarea" placeholder="Texto. Usa {nombre} para el nombre del contacto" maxlength="2000"></textarea>`,
+            showCancelButton: true, confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const t = document.getElementById('ca-nr-titulo').value.trim();
+                const x = document.getElementById('ca-nr-texto').value.trim();
+                if (!t || !x) { window.Swal.showValidationMessage('Escribe el título y el texto'); return false; }
+                return { t, x };
+            },
+        });
+        if (!r.isConfirmed) return;
+        ({ t: titulo, x: texto } = r.value);
+    } else {
+        titulo = prompt('Título de la respuesta rápida');
+        texto = titulo && prompt('Texto (usa {nombre} para el nombre del contacto)');
+        if (!titulo || !texto) return;
+    }
+    try {
+        const data = await leer(await fetch('/api/agente-chats/respuestas', {
+            method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ titulo, texto }),
+        }));
+        estado.respuestas = [...(estado.respuestas || []), data.respuesta].sort((a, b) => a.titulo.localeCompare(b.titulo));
+        pintarRespuestas();
+    } catch (e) { alert(e.message); }
+}
+
+// ── Avisos: contador en el menú y notificaciones del navegador ──────────
+const AVISOS_MS = 60000;
+const CLAVE_ULTIMO_AVISO = 'ca_ultimo_aviso';
+let avisosIniciados = false;
+
+function actualizarContadorMenu(n) {
+    const enlace = document.querySelector('#admin-nav a[data-view="chats-agente"]');
+    if (!enlace) return;
+    let badge = enlace.querySelector('.ca-badge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'ca-badge ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center';
+        enlace.appendChild(badge);
+    }
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.style.display = n > 0 ? '' : 'none';
+    badge.title = `${n} conversaciones sin responder`;
+}
+
+function irAlChat(clave) {
+    window.focus();
+    estado.abrirAlCargar = clave;
+    const enlace = document.querySelector('#admin-nav a[data-view="chats-agente"]');
+    if (document.getElementById('ca-lista')) abrirChat(clave);
+    else enlace?.click();
+}
+
+async function revisarAvisos() {
+    try {
+        const r = await fetch('/api/agente-chats/resumen', { headers: authHeaders() });
+        if (!r.ok) return;
+        const { pendientes, recientes } = await r.json();
+        actualizarContadorMenu(pendientes);
+        let ultimo = 0;
+        try { ultimo = Number(localStorage.getItem(CLAVE_ULTIMO_AVISO)) || 0; } catch (e) { /* sin almacenamiento */ }
+        const nuevos = (recientes || []).filter(x => x.ts > ultimo);
+        const maxTs = Math.max(ultimo, ...(recientes || []).map(x => x.ts));
+        try { localStorage.setItem(CLAVE_ULTIMO_AVISO, String(maxTs)); } catch (e) { /* sin almacenamiento */ }
+        // La primera vez solo se toma como referencia, para no avisar de mensajes viejos
+        if (!ultimo || !nuevos.length || !('Notification' in window) || Notification.permission !== 'granted') return;
+        nuevos.slice(0, 3).forEach(x => {
+            const n = new Notification(`WhatsApp: ${x.nombre}`, { body: x.texto || 'Nuevo mensaje', tag: 'ca-' + x.clave, icon: '/assets/images/favicon_pc.png' });
+            n.onclick = () => { irAlChat(x.clave); n.close(); };
+        });
+    } catch (e) { console.warn('[ChatsAgente] avisos:', e.message); }
+}
+
+// Se llama al cargar el panel admin; solo corre para Admin/CEO (las rutas son solo para ellos)
+export function iniciarAvisosChats() {
+    if (avisosIniciados) return;
+    let usuario = {};
+    try { usuario = JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch (e) { /* sesión ilegible */ }
+    const roles = (typeof window.getUserRoles === 'function' ? window.getUserRoles(usuario) : [usuario.rol]).join(' ').toLowerCase();
+    if (!/\b(admin|administrador|ceo)\b/.test(roles)) return;
+    avisosIniciados = true;
+    revisarAvisos();
+    setInterval(revisarAvisos, AVISOS_MS);
+}
+
+function botonActivarAvisos() {
+    if (!('Notification' in window) || Notification.permission !== 'default') return '';
+    return `<button id="ca-activar-avisos" class="w-full text-[11px] font-bold py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"><i class="fa-solid fa-bell mr-1"></i>Activar avisos de mensajes nuevos</button>`;
+}
+
 async function cargarChats() {
     const data = await leer(await fetch('/api/agente-chats', { headers: authHeaders() }));
     estado.chats = data.chats || [];
@@ -417,6 +644,7 @@ async function cargarChats() {
         const n = b.dataset.f === 'todos' ? estado.chats.length : b.dataset.f === 'pendientes' ? estado.chats.filter(c => c.pendiente).length : cuenta(b.dataset.f);
         b.querySelector('.ca-n').textContent = n;
     });
+    actualizarContadorMenu(estado.chats.filter(c => c.pendiente).length);
 }
 
 // Refresco periódico: actualiza la lista y trae lo nuevo del chat abierto
@@ -460,6 +688,7 @@ export async function renderChatsAgente() {
                         ${filtros.map(([f, l]) => `<button data-f="${f}" class="ca-filtro whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${f === estado.filtro ? 'bg-tealAccent text-black' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-tealAccent'}">${l} <span class="ca-n opacity-70">…</span></button>`).join('')}
                     </div>
                 </div>
+                ${botonActivarAvisos() ? `<div class="px-3 pt-2">${botonActivarAvisos()}</div>` : ''}
                 <div id="ca-lista" class="flex-1 overflow-y-auto">
                     <div class="p-8 text-center text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Cargando conversaciones…</div>
                 </div>
@@ -487,7 +716,11 @@ export async function renderChatsAgente() {
                     <div class="ca-ficha-cuerpo p-4"></div>
                 </aside>
                 </div>
-                <form id="ca-form" class="hidden items-end gap-2 px-3 py-2 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#202c33]">
+                <form id="ca-form" class="hidden relative items-end gap-2 px-3 py-2 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#202c33]">
+                    <div id="ca-respuestas" class="hidden absolute bottom-full left-3 right-3 mb-2 rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#233138] shadow-2xl overflow-hidden z-20"></div>
+                    <input id="ca-archivo" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hidden">
+                    <button id="ca-adjuntar" type="button" title="Enviar foto o PDF" class="w-10 h-10 flex-shrink-0 rounded-full text-gray-500 hover:text-tealAccent hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center disabled:opacity-40"><i class="fa-solid fa-paperclip"></i></button>
+                    <button id="ca-btn-respuestas" type="button" title="Respuestas rápidas (o escribe / al inicio)" class="w-10 h-10 flex-shrink-0 rounded-full text-gray-500 hover:text-amber-500 hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center"><i class="fa-solid fa-bolt"></i></button>
                     <textarea id="ca-texto" rows="1" maxlength="4000" placeholder="Escribe un mensaje"
                         class="flex-1 resize-none max-h-32 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#2a3942] border-none outline-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400"></textarea>
                     <button id="ca-enviar" type="submit" title="Enviar"
@@ -504,7 +737,25 @@ export async function renderChatsAgente() {
     document.getElementById('ca-form').addEventListener('submit', (e) => { e.preventDefault(); enviarMensaje(); });
     // Enter envía, Shift+Enter hace salto de línea; la caja crece con el texto
     caja.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); } });
-    caja.addEventListener('input', () => { caja.style.height = 'auto'; caja.style.height = Math.min(caja.scrollHeight, 128) + 'px'; });
+    caja.addEventListener('input', () => {
+        caja.style.height = 'auto'; caja.style.height = Math.min(caja.scrollHeight, 128) + 'px';
+        // "/" al inicio abre las respuestas rápidas filtradas por lo que se escribe después
+        if (caja.value.startsWith('/')) pintarRespuestas(caja.value.slice(1));
+        else cerrarRespuestas();
+    });
+    caja.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarRespuestas(); });
+    document.getElementById('ca-btn-respuestas').addEventListener('click', () => {
+        const panel = document.getElementById('ca-respuestas');
+        if (panel.classList.contains('hidden')) pintarRespuestas(); else cerrarRespuestas();
+    });
+    const inputArchivo = document.getElementById('ca-archivo');
+    document.getElementById('ca-adjuntar').addEventListener('click', () => inputArchivo.click());
+    inputArchivo.addEventListener('change', () => { const a = inputArchivo.files[0]; inputArchivo.value = ''; enviarArchivo(a); });
+    document.getElementById('ca-activar-avisos')?.addEventListener('click', async (e) => {
+        const permiso = await Notification.requestPermission();
+        e.target.closest('div')?.remove();
+        if (permiso === 'granted') new Notification('Avisos activados', { body: 'Te avisaremos cuando alguien escriba al WhatsApp del agente.' });
+    });
     document.querySelectorAll('.ca-filtro').forEach(b => b.addEventListener('click', () => {
         estado.filtro = b.dataset.f;
         document.querySelectorAll('.ca-filtro').forEach(x => {
@@ -518,6 +769,7 @@ export async function renderChatsAgente() {
     try {
         await cargarChats();
         pintarLista();
+        if (estado.abrirAlCargar) { abrirChat(estado.abrirAlCargar); estado.abrirAlCargar = null; }
     } catch (e) {
         document.getElementById('ca-lista').innerHTML = `<div class="p-6 text-center text-xs text-red-400">No se pudieron cargar los chats: ${esc(e.message)}</div>`;
     }

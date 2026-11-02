@@ -18,7 +18,7 @@ import { t, getLang, setLang } from './i18n.js';
 import { renderRendimientoGlobal } from './screens/rendimiento-global.js?v=5';
 import { renderHRHub } from './screens/hrhub.js';
 import { renderCallCenterAdmin } from './screens/callCenterAdmin.js';
-import { renderChatsAgente } from './screens/chatsAgente.js';
+import { renderChatsAgente, iniciarAvisosChats } from './screens/chatsAgente.js';
 import { openChat } from './components/internal-chat.js';
 import { initAdminBell, updateAdminBellBadge } from './components/admin-notif-bell.js';
 
@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Init admin notification bell
     initAdminBell();
     setInterval(updateAdminBellBadge, 60000); // Refresh badge every 60s
+
+    // Contador y avisos de WhatsApp sin responder (solo Admin/CEO)
+    iniciarAvisosChats();
 });
 
 async function updateAdminBadges() {

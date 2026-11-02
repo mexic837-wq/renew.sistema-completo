@@ -53,8 +53,8 @@ Al terminar la prueba, deja `SOLO_CLIENTE` vacío y `BARRIDO_SIEMPRE` en `false`
    (opcional `AGENTE_WEBHOOK_URL`, por defecto `https://n8n.renewgroup.site/webhook/agente-renew-sistema`). Luego `deploy.sh`.
 3. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
 
-## 6. Pausar al agente desde el panel (una sola vez)
-1. Ejecuta `supabase_agente_pausas.sql` (raíz del repo) en el SQL Editor de Supabase.
+## 6. Chats Agente IA: pausas, respuestas rápidas y autores (una sola vez)
+1. Ejecuta `supabase_chats_agente.sql` (raíz del repo) en el SQL Editor de Supabase. Crea `agente_pausas`, `agente_respuestas_rapidas` (con 4 respuestas de ejemplo) y `agente_mensajes_panel`.
 2. Reimporta `workflow.json` en n8n y vuelve a pegar las claves del nodo **Config**.
 
 En **Chats Agente IA** (panel admin), el botón *Pausar agente* deja a una persona atendiendo ese contacto (2 h, 24 h o hasta reanudar): el agente no le contesta, no le manda recordatorios del barrido y no escala sus pendientes. Si la tabla no existe, el agente sigue funcionando como siempre (sin pausas).
