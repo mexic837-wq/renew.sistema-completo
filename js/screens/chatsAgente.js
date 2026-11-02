@@ -186,9 +186,12 @@ async function abrirChat(clave) {
     document.getElementById('ca-volver')?.addEventListener('click', () => {
         estado.activo = null;
         panel?.classList.add('hidden'); panel?.classList.remove('flex');
+        form?.classList.add('hidden'); form?.classList.remove('flex');
         document.getElementById('ca-panel-lista')?.classList.remove('hidden');
         pintarLista();
     });
+    const form = document.getElementById('ca-form');
+    form?.classList.remove('hidden'); form?.classList.add('flex');
     const cont = document.getElementById('ca-mensajes');
     cont.innerHTML = `<div class="h-full flex items-center justify-center text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Cargando mensajes…</div>`;
     try {
@@ -213,6 +216,43 @@ async function cargarAnteriores() {
         estado.hayMas = data.hayMas;
         pintarMensajes('arriba');
     } catch (e) { console.error('[ChatsAgente] cargar anteriores:', e); }
+}
+
+async function enviarMensaje() {
+    const chat = estado.chats.find(c => c.clave === estado.activo);
+    const caja = document.getElementById('ca-texto');
+    const boton = document.getElementById('ca-enviar');
+    const texto = caja.value.trim();
+    if (!chat || !texto || boton.disabled) return;
+    let usuario = {};
+    try { usuario = JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch (e) { /* sesión ilegible */ }
+    // Se prefiere el jid con número real; si WhatsApp solo dio el @lid, se usa ese
+    const jid = chat.jids.find(j => j.endsWith('@s.whatsapp.net')) || chat.jids[0];
+    boton.disabled = true;
+    try {
+        const r = await fetch('/api/agente-chats/enviar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jid, texto, usuario_id: usuario.id }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'No se pudo enviar');
+        caja.value = '';
+        caja.style.height = '';
+        const m = data.mensaje || { id: 'local-' + Date.now(), fromMe: true, ts: Math.floor(Date.now() / 1000), tipo: 'conversation', texto, estado: 'enviado', origen: 'web' };
+        if (estado.activo === chat.clave && !estado.mensajes.some(x => x.id === m.id)) {
+            estado.mensajes.push(m);
+            pintarMensajes();
+        }
+        chat.ultimo = m;
+        pintarLista();
+    } catch (e) {
+        if (window.Swal) window.Swal.fire({ icon: 'error', title: 'No se envió', text: e.message });
+        else alert('No se envió: ' + e.message);
+    } finally {
+        boton.disabled = false;
+        caja.focus();
+    }
 }
 
 async function cargarChats() {
@@ -284,13 +324,23 @@ export async function renderChatsAgente() {
                         <p class="text-xs max-w-sm">Aquí ves lo que se escribe y recibe por el WhatsApp del agente. Las burbujas verdes salen del número de Renew; las marcadas "persona" se escribieron a mano desde el teléfono.</p>
                     </div>
                 </div>
-                <div class="px-4 py-2 text-[11px] text-center text-gray-400 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#202c33]">
-                    <i class="fa-solid fa-eye mr-1"></i> Solo lectura · se actualiza cada 15 segundos
-                </div>
+                <form id="ca-form" class="hidden items-end gap-2 px-3 py-2 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#202c33]">
+                    <textarea id="ca-texto" rows="1" maxlength="4000" placeholder="Escribe un mensaje"
+                        class="flex-1 resize-none max-h-32 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#2a3942] border-none outline-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400"></textarea>
+                    <button id="ca-enviar" type="submit" title="Enviar"
+                        class="w-10 h-10 flex-shrink-0 rounded-full bg-tealAccent text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-40">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </form>
             </div>
         </div>`;
 
     document.getElementById('ca-buscar').addEventListener('input', (e) => { estado.busqueda = e.target.value; pintarLista(); });
+    const caja = document.getElementById('ca-texto');
+    document.getElementById('ca-form').addEventListener('submit', (e) => { e.preventDefault(); enviarMensaje(); });
+    // Enter envía, Shift+Enter hace salto de línea; la caja crece con el texto
+    caja.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); } });
+    caja.addEventListener('input', () => { caja.style.height = 'auto'; caja.style.height = Math.min(caja.scrollHeight, 128) + 'px'; });
     document.querySelectorAll('.ca-filtro').forEach(b => b.addEventListener('click', () => {
         estado.filtro = b.dataset.f;
         document.querySelectorAll('.ca-filtro').forEach(x => {

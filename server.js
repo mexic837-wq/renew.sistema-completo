@@ -3035,6 +3035,36 @@ app.get('/api/agente-chats/mensajes', async (req, res) => {
     }
 });
 
+// POST: enviar un mensaje de texto desde el panel ({ jid, texto, usuario_id }). Solo Admin/CEO.
+app.post('/api/agente-chats/enviar', async (req, res) => {
+    try {
+        const { jid, usuario_id } = req.body || {};
+        const texto = String(req.body?.texto || '').trim();
+        if (!/@(s\.whatsapp\.net|lid|g\.us)$/.test(String(jid || ''))) return res.status(400).json({ error: 'Conversación inválida' });
+        if (!texto) return res.status(400).json({ error: 'Mensaje vacío' });
+        if (texto.length > 4000) return res.status(400).json({ error: 'Mensaje demasiado largo' });
+
+        const { data: usr } = await supabase.from('usuarios').select('id, nombre, apellido, rol, is_suspended').eq('id', usuario_id).maybeSingle();
+        const roles = (Array.isArray(usr?.rol) ? usr.rol.join(' ') : String(usr?.rol || '')).toLowerCase();
+        if (!usr || usr.is_suspended || !/\b(admin|administrador|ceo)\b/.test(roles)) {
+            return res.status(403).json({ error: 'Solo Admin o CEO pueden enviar mensajes' });
+        }
+
+        // Para números normales Evolution espera solo los dígitos; @lid y grupos van con el jid completo
+        const number = jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid;
+        const r = await evo('/message/sendText', { number, text: texto });
+
+        await supabase.from('agente_auditoria').insert({
+            telefono: number, usuario_id: String(usr.id), nivel: 'admin', accion: 'mensaje_manual_panel', permitido: true,
+            detalle: `${`${usr.nombre || ''} ${usr.apellido || ''}`.trim()}: ${texto}`.slice(0, 300),
+        });
+        res.json({ ok: true, mensaje: r?.key ? normalizarMensaje({ ...r, MessageUpdate: [] }) : null });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/ENVIAR] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // GET: imagen/documento de un mensaje (se descarga de Evolution bajo demanda)
 app.get('/api/agente-chats/media/:id', async (req, res) => {
     try {
