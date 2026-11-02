@@ -228,6 +228,14 @@ async function enviarMensaje() {
     try { usuario = JSON.parse(localStorage.getItem('rs_user') || '{}'); } catch (e) { /* sesión ilegible */ }
     // Se prefiere el jid con número real; si WhatsApp solo dio el @lid, se usa ese
     const jid = chat.jids.find(j => j.endsWith('@s.whatsapp.net')) || chat.jids[0];
+    // Escribir primero a quien nunca nos ha escrito es lo que más reportes (y baneos) genera
+    if (!estado.hayMas && !estado.mensajes.some(m => !m.fromMe)) {
+        const aviso = 'Esta persona nunca le ha escrito a este número. Si no espera tu mensaje y lo reporta como spam, WhatsApp puede bloquear el número. ¿Enviar de todas formas?';
+        const ok = window.Swal
+            ? (await window.Swal.fire({ icon: 'warning', title: 'Primer contacto', text: aviso, showCancelButton: true, confirmButtonText: 'Enviar', cancelButtonText: 'Cancelar' })).isConfirmed
+            : confirm(aviso);
+        if (!ok) return;
+    }
     boton.disabled = true;
     try {
         const r = await fetch('/api/agente-chats/enviar', {

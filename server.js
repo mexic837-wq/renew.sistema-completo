@@ -3035,6 +3035,13 @@ app.get('/api/agente-chats/mensajes', async (req, res) => {
     }
 });
 
+// Freno anti-baneo para envíos manuales: WhatsApp castiga ráfagas y mensajes en cadena.
+const ENVIO_MAX_POR_VENTANA = 20;          // mensajes manuales en total…
+const ENVIO_VENTANA_MS = 10 * 60 * 1000;   // …cada 10 minutos
+const ENVIO_PAUSA_MISMO_CHAT_MS = 3000;    // entre dos mensajes al mismo contacto
+const enviosRecientes = [];
+const ultimoEnvioPorChat = new Map();
+
 // POST: enviar un mensaje de texto desde el panel ({ jid, texto, usuario_id }). Solo Admin/CEO.
 app.post('/api/agente-chats/enviar', async (req, res) => {
     try {
@@ -3050,9 +3057,21 @@ app.post('/api/agente-chats/enviar', async (req, res) => {
             return res.status(403).json({ error: 'Solo Admin o CEO pueden enviar mensajes' });
         }
 
-        // Para números normales Evolution espera solo los dígitos; @lid y grupos van con el jid completo
+        const ahora = Date.now();
+        while (enviosRecientes.length && ahora - enviosRecientes[0] > ENVIO_VENTANA_MS) enviosRecientes.shift();
+        if (enviosRecientes.length >= ENVIO_MAX_POR_VENTANA) {
+            return res.status(429).json({ error: 'Has enviado muchos mensajes seguidos. Espera unos minutos para cuidar el número de un bloqueo de WhatsApp.' });
+        }
+        if (ahora - (ultimoEnvioPorChat.get(jid) || 0) < ENVIO_PAUSA_MISMO_CHAT_MS) {
+            return res.status(429).json({ error: 'Espera unos segundos antes de mandar otro mensaje a este contacto.' });
+        }
+        enviosRecientes.push(ahora);
+        ultimoEnvioPorChat.set(jid, ahora);
+
+        // Para números normales Evolution espera solo los dígitos; @lid y grupos van con el jid completo.
+        // delay: WhatsApp muestra "escribiendo…" antes del mensaje, como lo haría una persona.
         const number = jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid;
-        const r = await evo('/message/sendText', { number, text: texto });
+        const r = await evo('/message/sendText', { number, text: texto, delay: Math.min(1000 + texto.length * 20, 4000) });
 
         await supabase.from('agente_auditoria').insert({
             telefono: number, usuario_id: String(usr.id), nivel: 'admin', accion: 'mensaje_manual_panel', permitido: true,
