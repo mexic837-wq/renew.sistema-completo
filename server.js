@@ -3047,13 +3047,21 @@ const CC_ESTADOS_ACTIVOS = ['pendiente', 'confirmacion_pendiente', 'en_espera'];
 
 // ── CHATS DEL AGENTE (WhatsApp vía Evolution API, solo lectura) ──────────────
 // Requiere en el .env del servidor: EVOLUTION_API_KEY (la misma del nodo Config de n8n).
-// Opcionales: EVOLUTION_API_URL, EVOLUTION_INSTANCE.
+// Opcionales: EVOLUTION_API_URL, EVOLUTION_INSTANCE (la del agente) y EVOLUTION_INSTANCIAS
+// (los números que se pueden ver en el panel, separados por coma; el del agente va incluido).
 const EVO_URL = process.env.EVOLUTION_API_URL || 'https://evolutionapi.renewgroup.site';
 const EVO_INST = process.env.EVOLUTION_INSTANCE || 'RenewIA'; // la instancia del agente de IA (la misma del nodo Config de n8n)
+const EVO_INSTANCIAS = [...new Set([EVO_INST, ...String(process.env.EVOLUTION_INSTANCIAS || 'RenewGroup').split(',').map(x => x.trim()).filter(Boolean)])];
 
-async function evo(ruta, body) {
+// La instancia pedida por el panel, solo si está permitida; si no, la del agente
+const instanciaDe = (req) => {
+    const pedida = String(req.query?.instancia || req.body?.instancia || '');
+    return EVO_INSTANCIAS.includes(pedida) ? pedida : EVO_INST;
+};
+
+async function evo(ruta, body, instancia = EVO_INST) {
     if (!process.env.EVOLUTION_API_KEY) throw new Error('Falta EVOLUTION_API_KEY en el .env del servidor');
-    const r = await fetch(`${EVO_URL}${ruta}/${EVO_INST}`, {
+    const r = await fetch(`${EVO_URL}${ruta}/${encodeURIComponent(instancia)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY },
         body: JSON.stringify(body || {}),
@@ -3153,12 +3161,15 @@ const TIPOS_SIN_RESPUESTA = ['reactionMessage', 'protocolMessage', 'stickerMessa
 // Lista de conversaciones del número del agente, agrupadas por contacto.
 // Se guarda 10 s en memoria: la pantalla y los avisos de todos los admins la piden seguido.
 const LISTA_CACHE_MS = 10000;
-let listaCache = null; // { t, datos }
-const invalidarListaChats = () => { listaCache = null; };
+const listaCache = new Map(); // instancia -> { t, datos }
+const invalidarListaChats = () => listaCache.clear();
 
-async function listaChats() {
-    if (listaCache && Date.now() - listaCache.t < LISTA_CACHE_MS) return listaCache.datos;
-    const [chats, dir, pausas, panel] = await Promise.all([evo('/chat/findChats'), directorioTelefonos(), pausasVigentes(), datosConversaciones()]);
+async function listaChats(instancia = EVO_INST) {
+    const guardada = listaCache.get(instancia);
+    if (guardada && Date.now() - guardada.t < LISTA_CACHE_MS) return guardada.datos;
+    // Las pausas son del agente: en otro número no aplican
+    const esAgente = instancia === EVO_INST;
+    const [chats, dir, pausas, panel] = await Promise.all([evo('/chat/findChats', {}, instancia), directorioTelefonos(), esAgente ? pausasVigentes() : null, datosConversaciones()]);
     const porContacto = {};
     (Array.isArray(chats) ? chats : []).forEach(c => {
         const jid = c.remoteJid || '';
@@ -3198,15 +3209,39 @@ async function listaChats() {
             pausa: (c.telefono && pausas?.get(ultimos10(c.telefono))) || null,
         };
     }).sort((a, b) => (b.ultimo?.ts || 0) - (a.ultimo?.ts || 0));
-    const datos = { chats: lista, pausasDisponibles: pausas !== null, gestionDisponible: panel.disponible };
-    listaCache = { t: Date.now(), datos };
+    const datos = { chats: lista, instancia, esAgente, pausasDisponibles: esAgente && pausas !== null, gestionDisponible: panel.disponible };
+    listaCache.set(instancia, { t: Date.now(), datos });
     return datos;
 }
+
+// GET: números (instancias) que se pueden ver, con su estado y cuántos chats esperan respuesta
+let instanciasCache = null; // { t, datos }
+app.get('/api/agente-chats/instancias', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+        if (!instanciasCache || Date.now() - instanciasCache.t > 60000) {
+            const r = await fetch(`${EVO_URL}/instance/fetchInstances`, { headers: { apikey: process.env.EVOLUTION_API_KEY || '' } });
+            const todas = r.ok ? await r.json() : [];
+            instanciasCache = { t: Date.now(), datos: Array.isArray(todas) ? todas : [] };
+        }
+        const instancias = await Promise.all(EVO_INSTANCIAS.map(async (id) => {
+            const info = instanciasCache.datos.find(i => i.name === id) || {};
+            const conectada = info.connectionStatus === 'open';
+            let pendientes = null;
+            if (conectada) { try { pendientes = (await listaChats(id)).chats.filter(c => c.pendiente).length; } catch (e) { /* se muestra sin contador */ } }
+            return { id, nombre: info.profileName || id, numero: (info.ownerJid || '').split('@')[0] || null, conectada, esAgente: id === EVO_INST, pendientes };
+        }));
+        res.json({ instancias });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/INSTANCIAS] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
 
 app.get('/api/agente-chats', requiereSesion({ soloAdmin: true }), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-        res.json(await listaChats());
+        res.json(await listaChats(instanciaDe(req)));
     } catch (e) {
         console.error('[API/AGENTE-CHATS] error:', e.message);
         res.status(500).json({ error: e.message });
@@ -3217,12 +3252,14 @@ app.get('/api/agente-chats', requiereSesion({ soloAdmin: true }), async (req, re
 app.get('/api/agente-chats/resumen', requiereSesion({ soloAdmin: true }), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-        const { chats } = await listaChats();
-        const pendientes = chats.filter(c => c.pendiente);
+        // Todos los números juntos; si uno falla (desconectado), se cuentan los demás
+        const listas = await Promise.all(EVO_INSTANCIAS.map(id => listaChats(id).then(d => ({ id, chats: d.chats })).catch(() => ({ id, chats: [] }))));
+        const pendientes = listas.flatMap(l => l.chats.filter(c => c.pendiente).map(c => ({ ...c, instancia: l.id })))
+            .sort((a, b) => b.ultimo.ts - a.ultimo.ts);
         res.json({
             pendientes: pendientes.length,
             // Últimos mensajes entrantes, para avisar de los nuevos
-            recientes: pendientes.slice(0, 10).map(c => ({ clave: c.clave, nombre: c.nombre, tipo: c.tipo, ts: c.ultimo.ts, texto: (c.ultimo.texto || c.ultimo.archivo || '').slice(0, 120) })),
+            recientes: pendientes.slice(0, 10).map(c => ({ clave: c.clave, instancia: c.instancia, nombre: c.nombre, tipo: c.tipo, ts: c.ultimo.ts, texto: (c.ultimo.texto || c.ultimo.archivo || '').slice(0, 120) })),
         });
     } catch (e) {
         console.error('[API/AGENTE-CHATS/RESUMEN] error:', e.message);
@@ -3239,7 +3276,7 @@ app.get('/api/agente-chats/mensajes', requiereSesion({ soloAdmin: true }), async
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const POR_PAGINA = 100;
         const resultados = await Promise.all(jids.map(remoteJid =>
-            evo('/chat/findMessages', { where: { key: { remoteJid } }, page, offset: POR_PAGINA })
+            evo('/chat/findMessages', { where: { key: { remoteJid } }, page, offset: POR_PAGINA }, instanciaDe(req))
         ));
         const vistos = new Set();
         const mensajes = [];
@@ -3320,7 +3357,7 @@ app.post('/api/agente-chats/enviar', requiereSesion({ soloAdmin: true }), async 
 
         // delay: WhatsApp muestra "escribiendo…" antes del mensaje, como lo haría una persona
         const number = numeroEvolution(jid);
-        const r = await evo('/message/sendText', { number, text: texto, delay: Math.min(1000 + texto.length * 20, 4000) });
+        const r = await evo('/message/sendText', { number, text: texto, delay: Math.min(1000 + texto.length * 20, 4000) }, instanciaDe(req));
         const enviadoPor = await registrarEnvioPanel(r, number, req.usuario, texto);
         res.json({ ok: true, mensaje: r?.key ? { ...normalizarMensaje({ ...r, MessageUpdate: [] }), enviadoPor } : null });
     } catch (e) {
@@ -3347,7 +3384,7 @@ app.post('/api/agente-chats/enviar-archivo', requiereSesion({ soloAdmin: true })
         if (freno) return res.status(429).json({ error: freno });
 
         const number = numeroEvolution(jid);
-        const r = await evo('/message/sendMedia', { number, mediatype, mimetype, media: base64, fileName: nombreArchivo, caption, delay: 1500 });
+        const r = await evo('/message/sendMedia', { number, mediatype, mimetype, media: base64, fileName: nombreArchivo, caption, delay: 1500 }, instanciaDe(req));
         const enviadoPor = await registrarEnvioPanel(r, number, req.usuario, `[${mediatype === 'image' ? 'foto' : 'PDF'} ${nombreArchivo}] ${caption}`);
         const mensaje = r?.key ? {
             ...normalizarMensaje({ ...r, MessageUpdate: [] }),
@@ -3543,7 +3580,7 @@ app.delete('/api/agente-chats/pausa', requiereSesion({ soloAdmin: true }), async
 // GET: imagen/documento de un mensaje (se descarga de Evolution bajo demanda)
 app.get('/api/agente-chats/media/:id', requiereSesion({ soloAdmin: true }), async (req, res) => {
     try {
-        const r = await evo('/chat/getBase64FromMediaMessage', { message: { key: { id: req.params.id } } });
+        const r = await evo('/chat/getBase64FromMediaMessage', { message: { key: { id: req.params.id } } }, instanciaDe(req));
         if (!r?.base64) return res.status(404).send('Sin archivo');
         res.setHeader('Content-Type', r.mimetype || 'application/octet-stream');
         res.setHeader('Cache-Control', 'private, max-age=86400');

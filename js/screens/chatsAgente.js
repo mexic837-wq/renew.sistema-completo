@@ -12,7 +12,12 @@ import { authHeaders } from '../api.js';
 const REFRESCO_MS = 15000;
 
 // <img>/<audio> no mandan cabeceras, así que el pase de sesión va en la URL
-const urlArchivo = (id) => `/api/agente-chats/media/${encodeURIComponent(id)}?t=${encodeURIComponent(localStorage.getItem('rs_token') || '')}`;
+const urlArchivo = (id) => `/api/agente-chats/media/${encodeURIComponent(id)}?instancia=${encodeURIComponent(estado.instancia || '')}&t=${encodeURIComponent(localStorage.getItem('rs_token') || '')}`;
+
+// Número de WhatsApp (instancia de Evolution) que se está viendo; se recuerda entre visitas
+const CLAVE_INSTANCIA = 'ca_instancia';
+const leerInstanciaGuardada = () => { try { return localStorage.getItem(CLAVE_INSTANCIA) || ''; } catch (e) { return ''; } };
+const qsInstancia = () => `instancia=${encodeURIComponent(estado.instancia || '')}`;
 
 // Lee la respuesta; si la sesión no es válida lo dice claro (las sesiones viejas no tienen pase)
 async function leer(r) {
@@ -34,6 +39,9 @@ const estado = {
     fichaAbierta: false,
     respuestas: null,  // respuestas rápidas (se cargan al usarlas por primera vez)
     abrirAlCargar: null, // clave del chat a abrir al entrar desde una notificación
+    instancia: leerInstanciaGuardada(), // vacío = la del agente (la decide el servidor)
+    esAgente: true,      // si el número que se ve es el del agente (solo ahí aplica la pausa)
+    instancias: [],
 };
 
 // Tiempo transcurrido corto: "5 min", "3 h", "2 d"
@@ -209,7 +217,7 @@ function pintarMensajes(mantenerScroll) {
 }
 
 async function traerMensajes(chat, pagina) {
-    const r = await fetch(`/api/agente-chats/mensajes?jids=${encodeURIComponent(chat.jids.join(','))}&page=${pagina}`, { headers: authHeaders() });
+    const r = await fetch(`/api/agente-chats/mensajes?jids=${encodeURIComponent(chat.jids.join(','))}&page=${pagina}&${qsInstancia()}`, { headers: authHeaders() });
     return leer(r);
 }
 
@@ -232,10 +240,10 @@ async function abrirChat(clave, soloCabecera = false) {
         ${avatar(chat, 'w-10 h-10')}
         <div class="min-w-0 flex-1">
             <div class="font-bold text-sm text-gray-900 dark:text-white truncate">${esc(chat.nombre)}</div>
-            <div class="text-[11px] text-gray-500 truncate">${chat.telefono ? '+' + esc(chat.telefono) : 'Número oculto por WhatsApp'}${chat.detalle ? ' · ' + esc(chat.detalle) : ''}${chat.nombreWa && chat.nombreWa !== chat.nombre ? ' · WhatsApp: ' + esc(chat.nombreWa) : ''}</div>
+            <div class="text-[11px] text-gray-500 truncate">${chat.telefono ? '+' + esc(chat.telefono) : chat.tipo === 'grupo' ? 'Grupo de WhatsApp' : 'Número oculto por WhatsApp'}${chat.detalle ? ' · ' + esc(chat.detalle) : ''}${chat.nombreWa && chat.nombreWa !== chat.nombre ? ' · WhatsApp: ' + esc(chat.nombreWa) : ''}</div>
         </div>
         <span class="hidden sm:inline text-[9px] font-black uppercase px-2 py-1 rounded border ${tipo.clase}">${tipo.label}</span>
-        ${chat.telefono && chat.tipo !== 'grupo' ? `<button id="ca-btn-pausa" title="${chat.pausa ? 'Reanudar al agente' : 'Pausar al agente con este contacto'}"
+        ${estado.esAgente && chat.telefono && chat.tipo !== 'grupo' ? `<button id="ca-btn-pausa" title="${chat.pausa ? 'Reanudar al agente' : 'Pausar al agente con este contacto'}"
             class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${chat.pausa ? 'bg-amber-500 text-black border-amber-500' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500 hover:text-amber-500'}">
             <i class="fa-solid ${chat.pausa ? 'fa-play' : 'fa-pause'}"></i><span class="hidden lg:inline">${chat.pausa ? 'Reanudar agente' : 'Pausar agente'}</span></button>` : ''}
         <button id="ca-btn-archivar" title="${chat.archivada ? 'Sacar del archivo' : 'Archivar (vuelve si escribe de nuevo)'}" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 ${chat.archivada ? 'text-amber-500' : 'text-gray-500 hover:text-tealAccent'}"><i class="fa-solid ${chat.archivada ? 'fa-box-open' : 'fa-box-archive'}"></i></button>
@@ -572,7 +580,7 @@ async function enviarMensaje() {
         const r = await fetch('/api/agente-chats/enviar', {
             method: 'POST',
             headers: authHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ jid, texto }),
+            body: JSON.stringify({ jid, texto, instancia: estado.instancia }),
         });
         const data = await leer(r);
         caja.value = '';
@@ -630,7 +638,7 @@ async function enviarArchivo(archivo) {
     try {
         const data = await leer(await fetch('/api/agente-chats/enviar-archivo', {
             method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ jid, base64: dataUrl, mimetype: archivo.type, nombre: archivo.name, caption }),
+            body: JSON.stringify({ jid, base64: dataUrl, mimetype: archivo.type, nombre: archivo.name, caption, instancia: estado.instancia }),
         }));
         if (data.mensaje && estado.activo === chat.clave) {
             estado.mensajes.push(data.mensaje);
@@ -770,12 +778,76 @@ function actualizarContadorMenu(n) {
     badge.title = `${n} conversaciones sin responder`;
 }
 
-function irAlChat(clave) {
+function irAlChat(clave, instancia) {
     window.focus();
     estado.abrirAlCargar = clave;
     const enlace = document.querySelector('#admin-nav a[data-view="chats-agente"]');
-    if (document.getElementById('ca-lista')) abrirChat(clave);
-    else enlace?.click();
+    const otroNumero = instancia && instancia !== estado.instancia;
+    if (otroNumero) guardarInstancia(instancia);
+    if (!document.getElementById('ca-lista')) enlace?.click();
+    else if (otroNumero) cambiarInstancia(instancia);
+    else abrirChat(clave);
+}
+
+function guardarInstancia(id) {
+    estado.instancia = id;
+    try { localStorage.setItem(CLAVE_INSTANCIA, id); } catch (e) { /* sin almacenamiento */ }
+}
+
+// ── Selector de número ────────────────────────────────────────
+function pintarInstancias() {
+    const cont = document.getElementById('ca-instancias');
+    if (!cont) return;
+    if (estado.instancias.length < 2) { cont.classList.add('hidden'); return; }
+    cont.classList.remove('hidden');
+    cont.innerHTML = estado.instancias.map(i => {
+        const activa = i.id === estado.instancia;
+        const numero = i.numero ? '+' + i.numero : '';
+        return `<button data-instancia="${esc(i.id)}" ${i.conectada ? '' : 'disabled'} title="${esc(numero)}${i.conectada ? '' : ' · desconectado'}"
+            class="ca-instancia flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-left transition-colors
+                   ${activa ? 'border-tealAccent bg-tealAccent/10' : 'border-gray-200 dark:border-white/10 hover:border-tealAccent/50'} ${i.conectada ? '' : 'opacity-50 cursor-not-allowed'}">
+            <i class="fa-brands fa-whatsapp ${i.conectada ? 'text-green-500' : 'text-gray-400'}"></i>
+            <span class="min-w-0 flex-1">
+                <span class="block text-[11px] font-black truncate ${activa ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}">${esc(i.nombre)}${i.esAgente ? ' <span class="text-[9px] font-bold text-tealAccent">· agente</span>' : ''}</span>
+                <span class="block text-[10px] text-gray-400 truncate">${i.conectada ? esc(numero) : 'Desconectado'}</span>
+            </span>
+            ${i.pendientes ? `<span class="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">${i.pendientes > 99 ? '99+' : i.pendientes}</span>` : ''}
+        </button>`;
+    }).join('');
+    cont.querySelectorAll('.ca-instancia').forEach(b => b.addEventListener('click', () => {
+        if (b.dataset.instancia !== estado.instancia) cambiarInstancia(b.dataset.instancia);
+    }));
+}
+
+async function cargarInstancias() {
+    try {
+        const { instancias } = await leer(await fetch('/api/agente-chats/instancias', { headers: authHeaders() }));
+        estado.instancias = instancias || [];
+        // Si el número guardado ya no está, se vuelve al del agente
+        if (!estado.instancias.some(i => i.id === estado.instancia)) guardarInstancia((estado.instancias.find(i => i.esAgente) || estado.instancias[0] || {}).id || '');
+        pintarInstancias();
+    } catch (e) { console.warn('[ChatsAgente] instancias:', e.message); }
+}
+
+async function cambiarInstancia(id) {
+    guardarInstancia(id);
+    estado.activo = null;
+    estado.mensajes = [];
+    pintarInstancias();
+    const lista = document.getElementById('ca-lista');
+    if (lista) lista.innerHTML = '<div class="p-8 text-center text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Cargando conversaciones…</div>';
+    document.getElementById('ca-cabecera').innerHTML = '<span class="text-xs text-gray-400">Selecciona una conversación</span>';
+    document.getElementById('ca-mensajes').innerHTML = '';
+    document.getElementById('ca-form')?.classList.add('hidden');
+    document.getElementById('ca-aviso-pausa')?.classList.add('hidden');
+    document.getElementById('ca-ficha')?.classList.add('hidden');
+    try {
+        await cargarChats();
+        pintarLista();
+        if (estado.abrirAlCargar) { abrirChat(estado.abrirAlCargar); estado.abrirAlCargar = null; }
+    } catch (e) {
+        if (lista) lista.innerHTML = `<div class="p-6 text-center text-xs text-red-400">No se pudieron cargar los chats: ${esc(e.message)}</div>`;
+    }
 }
 
 async function revisarAvisos() {
@@ -793,7 +865,7 @@ async function revisarAvisos() {
         if (!ultimo || !nuevos.length || !('Notification' in window) || Notification.permission !== 'granted') return;
         nuevos.slice(0, 3).forEach(x => {
             const n = new Notification(`WhatsApp: ${x.nombre}`, { body: x.texto || 'Nuevo mensaje', tag: 'ca-' + x.clave, icon: '/assets/images/favicon_pc.png' });
-            n.onclick = () => { irAlChat(x.clave); n.close(); };
+            n.onclick = () => { irAlChat(x.clave, x.instancia); n.close(); };
         });
     } catch (e) { console.warn('[ChatsAgente] avisos:', e.message); }
 }
@@ -816,8 +888,13 @@ function botonActivarAvisos() {
 }
 
 async function cargarChats() {
-    const data = await leer(await fetch('/api/agente-chats', { headers: authHeaders() }));
+    const data = await leer(await fetch(`/api/agente-chats?${qsInstancia()}`, { headers: authHeaders() }));
     estado.chats = data.chats || [];
+    estado.esAgente = data.esAgente !== false;
+    if (data.instancia && !estado.instancia) guardarInstancia(data.instancia);
+    // Contador del selector al día con la lista que se está viendo
+    const actual = estado.instancias.find(i => i.id === data.instancia);
+    if (actual) { actual.pendientes = estado.chats.filter(c => c.pendiente).length; pintarInstancias(); }
     const activos = estado.chats.filter(c => !c.archivada);
     const cuenta = (t) => activos.filter(c => c.tipo === t).length;
     const extra = { todos: activos.length, pendientes: activos.filter(c => c.pendiente).length, mios: activos.filter(c => c.asignado?.id === usuarioActualId()).length, archivados: estado.chats.length - activos.length };
@@ -825,7 +902,8 @@ async function cargarChats() {
         const n = b.dataset.f in extra ? extra[b.dataset.f] : cuenta(b.dataset.f);
         b.querySelector('.ca-n').textContent = n;
     });
-    actualizarContadorMenu(estado.chats.filter(c => c.pendiente).length);
+    // El menú suma todos los números (si aún no se conocen, cuenta solo el que se ve)
+    actualizarContadorMenu(estado.instancias.length ? estado.instancias.reduce((t, i) => t + (i.pendientes || 0), 0) : estado.chats.filter(c => c.pendiente).length);
 }
 
 // Refresco periódico: actualiza la lista y trae lo nuevo del chat abierto
@@ -833,6 +911,7 @@ async function refrescar() {
     if (!document.getElementById('ca-lista')) { clearInterval(estado.timer); estado.timer = null; return; }
     if (document.hidden) return;
     try {
+        cargarInstancias(); // contadores de los otros números (en paralelo)
         await cargarChats();
         pintarLista();
         const chat = estado.chats.find(c => c.clave === estado.activo);
@@ -861,6 +940,7 @@ export async function renderChatsAgente() {
             <!-- Lista de conversaciones -->
             <div id="ca-panel-lista" class="flex flex-col w-full md:w-[360px] md:flex-shrink-0 border-r border-gray-100 dark:border-white/5">
                 <div class="p-3 space-y-2 border-b border-gray-100 dark:border-white/5">
+                    <div id="ca-instancias" class="hidden flex gap-1.5"></div>
                     <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5">
                         <i class="fa-solid fa-magnifying-glass text-xs text-gray-400"></i>
                         <input id="ca-buscar" type="text" placeholder="Buscar nombre, número o mensaje" class="bg-transparent border-none outline-none focus:ring-0 text-sm w-full p-0 text-gray-900 dark:text-white placeholder-gray-400">
@@ -948,6 +1028,7 @@ export async function renderChatsAgente() {
     }));
 
     try {
+        await cargarInstancias();
         await cargarChats();
         pintarLista();
         if (estado.abrirAlCargar) { abrirChat(estado.abrirAlCargar); estado.abrirAlCargar = null; }
