@@ -2886,6 +2886,169 @@ const CC_ESTADOS_ACTIVOS = ['pendiente', 'confirmacion_pendiente', 'en_espera'];
     }
 })();
 
+// ── CHATS DEL AGENTE (WhatsApp vía Evolution API, solo lectura) ──────────────
+// Requiere en el .env del servidor: EVOLUTION_API_KEY (la misma del nodo Config de n8n).
+// Opcionales: EVOLUTION_API_URL, EVOLUTION_INSTANCE.
+const EVO_URL = process.env.EVOLUTION_API_URL || 'https://evolutionapi.renewgroup.site';
+const EVO_INST = process.env.EVOLUTION_INSTANCE || 'RenewGroup';
+
+async function evo(ruta, body) {
+    if (!process.env.EVOLUTION_API_KEY) throw new Error('Falta EVOLUTION_API_KEY en el .env del servidor');
+    const r = await fetch(`${EVO_URL}${ruta}/${EVO_INST}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY },
+        body: JSON.stringify(body || {}),
+    });
+    if (!r.ok) throw new Error(`Evolution ${ruta} respondió ${r.status}`);
+    return r.json();
+}
+
+const soloDigitos = (t) => String(t || '').replace(/\D/g, '');
+const ultimos10 = (t) => soloDigitos(t).slice(-10);
+
+// Texto legible de un mensaje de WhatsApp (para la lista y las burbujas)
+function textoMensaje(m) {
+    const msg = (m && m.message) || {};
+    if (msg.conversation) return msg.conversation;
+    if (msg.extendedTextMessage) return msg.extendedTextMessage.text || '';
+    if (msg.imageMessage) return msg.imageMessage.caption || '';
+    if (msg.videoMessage) return msg.videoMessage.caption || '';
+    if (msg.documentMessage) return msg.documentMessage.caption || '';
+    if (msg.documentWithCaptionMessage) return msg.documentWithCaptionMessage.message?.documentMessage?.caption || '';
+    if (msg.reactionMessage) return msg.reactionMessage.text || '';
+    if (msg.interactiveMessage) return msg.interactiveMessage.body?.text || '';
+    if (msg.buttonsResponseMessage) return msg.buttonsResponseMessage.selectedDisplayText || '';
+    if (msg.listResponseMessage) return msg.listResponseMessage.title || '';
+    return '';
+}
+
+function normalizarMensaje(m) {
+    const msg = m.message || {};
+    const doc = msg.documentMessage || msg.documentWithCaptionMessage?.message?.documentMessage;
+    const updates = m.MessageUpdate || [];
+    const estados = updates.map(u => u.status);
+    const estado = estados.includes('READ') || estados.includes('PLAYED') ? 'leido'
+        : estados.includes('DELIVERY_ACK') ? 'entregado' : 'enviado';
+    return {
+        id: m.key?.id,
+        fromMe: !!m.key?.fromMe,
+        ts: Number(m.messageTimestamp) || 0,
+        tipo: m.messageType,
+        texto: textoMensaje(m),
+        archivo: doc ? (doc.fileName || doc.title || 'Documento') : null,
+        estado,
+        origen: m.source || null,
+    };
+}
+
+// Etiqueta (nombre, rol) de un teléfono según usuarios y clientes del sistema
+async function directorioTelefonos() {
+    const [{ data: usuarios }, { data: clientes }] = await Promise.all([
+        supabase.from('usuarios').select('id, nombre, apellido, telefono, rol'),
+        supabase.from('clientes_maestro').select('id, nombre, telefono, macro_estado'),
+    ]);
+    const dir = {};
+    (clientes || []).forEach(c => {
+        const k = ultimos10(c.telefono);
+        if (k.length === 10) dir[k] = { tipo: 'cliente', id: c.id, nombre: c.nombre, detalle: c.macro_estado || 'Cliente' };
+    });
+    // Los usuarios ganan sobre clientes si comparten número
+    (usuarios || []).forEach(u => {
+        const k = ultimos10(u.telefono);
+        const rol = Array.isArray(u.rol) ? u.rol.join(', ') : String(u.rol || '').replace(/[\[\]"]/g, '').replace(/,/g, ', ');
+        if (k.length === 10) dir[k] = { tipo: 'equipo', id: u.id, nombre: `${u.nombre || ''} ${u.apellido || ''}`.trim(), detalle: rol || 'Equipo' };
+    });
+    return dir;
+}
+
+// GET: lista de conversaciones del número del agente, agrupadas por contacto
+app.get('/api/agente-chats', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+        const [chats, dir] = await Promise.all([evo('/chat/findChats'), directorioTelefonos()]);
+        const porContacto = {};
+        (Array.isArray(chats) ? chats : []).forEach(c => {
+            const jid = c.remoteJid || '';
+            if (!jid || jid === 'status@broadcast') return;
+            const esGrupo = jid.endsWith('@g.us');
+            // Teléfono real: del jid clásico, o del remoteJidAlt cuando WhatsApp usa @lid
+            const alt = c.lastMessage?.key?.remoteJidAlt || '';
+            const tel = esGrupo ? '' : jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : alt.endsWith('@s.whatsapp.net') ? alt.split('@')[0] : '';
+            const clave = tel || jid;
+            const ultimo = c.lastMessage ? normalizarMensaje(c.lastMessage) : null;
+            const actual = porContacto[clave] || { clave, jids: [], telefono: tel, esGrupo, nombreWa: null, foto: null, ultimo: null };
+            if (!actual.jids.includes(jid)) actual.jids.push(jid);
+            if (alt && !actual.jids.includes(alt)) actual.jids.push(alt);
+            // pushName de un mensaje propio es el nombre de la cuenta de Renew, no el del contacto
+            const pushContacto = c.lastMessage && !c.lastMessage.key?.fromMe ? c.lastMessage.pushName : null;
+            actual.nombreWa = actual.nombreWa || c.pushName || pushContacto || null;
+            actual.foto = actual.foto || c.profilePicUrl || null;
+            if (ultimo && (!actual.ultimo || ultimo.ts > actual.ultimo.ts)) actual.ultimo = ultimo;
+            porContacto[clave] = actual;
+        });
+        const lista = Object.values(porContacto).map(c => {
+            const info = c.telefono ? dir[ultimos10(c.telefono)] : null;
+            return {
+                ...c,
+                nombre: info?.nombre || c.nombreWa || (c.telefono ? `+${c.telefono}` : c.esGrupo ? 'Grupo' : 'Contacto sin número'),
+                tipo: c.esGrupo ? 'grupo' : info?.tipo || 'desconocido',
+                detalle: info?.detalle || null,
+                refId: info?.id || null,
+            };
+        }).sort((a, b) => (b.ultimo?.ts || 0) - (a.ultimo?.ts || 0));
+        res.json({ chats: lista });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET: mensajes de un contacto (?jids=a,b&page=1). Une los jids @lid y @s.whatsapp.net del mismo número.
+app.get('/api/agente-chats/mensajes', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+        const jids = String(req.query.jids || '').split(',').filter(j => /@(s\.whatsapp\.net|lid|g\.us)$/.test(j)).slice(0, 4);
+        if (!jids.length) return res.status(400).json({ error: 'Falta jids' });
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const POR_PAGINA = 100;
+        const resultados = await Promise.all(jids.map(remoteJid =>
+            evo('/chat/findMessages', { where: { key: { remoteJid } }, page, offset: POR_PAGINA })
+        ));
+        const vistos = new Set();
+        const mensajes = [];
+        let hayMas = false;
+        resultados.forEach(r => {
+            const m = r?.messages || {};
+            if ((m.pages || 0) > page) hayMas = true;
+            (m.records || (Array.isArray(r) ? r : [])).forEach(x => {
+                if (!x.key?.id || vistos.has(x.key.id)) return;
+                if (['protocolMessage', 'reactionMessage', 'senderKeyDistributionMessage'].includes(x.messageType)) return;
+                vistos.add(x.key.id);
+                mensajes.push(normalizarMensaje(x));
+            });
+        });
+        mensajes.sort((a, b) => a.ts - b.ts);
+        res.json({ mensajes, hayMas });
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/MENSAJES] error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// GET: imagen/documento de un mensaje (se descarga de Evolution bajo demanda)
+app.get('/api/agente-chats/media/:id', async (req, res) => {
+    try {
+        const r = await evo('/chat/getBase64FromMediaMessage', { message: { key: { id: req.params.id } } });
+        if (!r?.base64) return res.status(404).send('Sin archivo');
+        res.setHeader('Content-Type', r.mimetype || 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=86400');
+        res.send(Buffer.from(r.base64, 'base64'));
+    } catch (e) {
+        console.error('[API/AGENTE-CHATS/MEDIA] error:', e.message);
+        res.status(500).send('No se pudo obtener el archivo');
+    }
+});
+
 // GET: Usuarios (para asignaciones manuales en Call Center)
 app.get('/api/usuarios', async (req, res) => {
     try {

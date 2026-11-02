@@ -18,6 +18,7 @@ import { t, getLang, setLang } from './i18n.js';
 import { renderRendimientoGlobal } from './screens/rendimiento-global.js?v=5';
 import { renderHRHub } from './screens/hrhub.js';
 import { renderCallCenterAdmin } from './screens/callCenterAdmin.js';
+import { renderChatsAgente } from './screens/chatsAgente.js';
 import { openChat } from './components/internal-chat.js';
 import { initAdminBell, updateAdminBellBadge } from './components/admin-notif-bell.js';
 
@@ -821,7 +822,7 @@ const updateAdminNavLabels = () => {
     */
 
     if (!['admin', 'administrador', 'ceo'].includes(rol)) {
-        document.querySelectorAll('#admin-nav a[data-view="callcenter"], #admin-nav a[data-view="call_center"], #admin-nav a[data-view="call-center"]').forEach(el => {
+        document.querySelectorAll('#admin-nav a[data-view="callcenter"], #admin-nav a[data-view="call_center"], #admin-nav a[data-view="call-center"], #admin-nav a[data-view="chats-agente"]').forEach(el => {
             el.style.display = 'none';
         });
     }
@@ -3187,6 +3188,7 @@ window.renderView = async function renderView() {
       'crm_maestro': 'Comercial',
       'kanban': 'Comercial',
       'call-center': 'Comercial',
+      'chats-agente': 'Comercial',
       'hrhub': 'Operaciones',
       'proveedores': 'Operaciones',
       'inventario': 'Operaciones',
@@ -4438,6 +4440,12 @@ window.renderView = async function renderView() {
             </table>
         </div>
     `;
+  }
+  else if (state.activeView === 'chats-agente') {
+      UI.viewTitle.textContent = "Chats del Agente IA";
+      UI.viewDesc.textContent = "Conversaciones de WhatsApp del agente Renew (Evolution API).";
+      setGlobalButton(false);
+      renderChatsAgente();
   }
   else if (state.activeView === 'call-center') {
       UI.viewTitle.textContent = "Call Center";
