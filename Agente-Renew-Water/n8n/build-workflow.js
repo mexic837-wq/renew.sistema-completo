@@ -25,14 +25,14 @@ const wf = {
       id: 'a1000000-0000-4000-8000-000000000005', name: 'Config', type: 'n8n-nodes-base.set', typeVersion: 3.4, position: [150, 150] },
     { parameters: { mode: 'runOnceForAllItems', language: 'javaScript', jsCode: code('comun.js') + '\n' + code('codigo-agente.js') },
       id: 'a1000000-0000-4000-8000-000000000002', name: 'Agente (WhatsApp)', type: 'n8n-nodes-base.code', typeVersion: 2, position: [450, 0] },
-    { parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 2 }] } },
-      id: 'a1000000-0000-4000-8000-000000000003', name: 'Cada 2 horas', type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1.2, position: [0, 300] },
+    { parameters: { rule: { interval: [{ field: 'minutes', minutesInterval: 30 }] } },
+      id: 'a1000000-0000-4000-8000-000000000003', name: 'Cada 30 minutos', type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1.2, position: [0, 300] },
     { parameters: { mode: 'runOnceForAllItems', language: 'javaScript', jsCode: code('comun.js') + '\n' + code('codigo-barrido.js') },
       id: 'a1000000-0000-4000-8000-000000000004', name: 'Barrido (perseguir encargados)', type: 'n8n-nodes-base.code', typeVersion: 2, position: [450, 300] },
   ],
   connections: {
     'Webhook Evolution': { main: [[{ node: 'Config', type: 'main', index: 0 }]] },
-    'Cada 2 horas': { main: [[{ node: 'Config', type: 'main', index: 0 }]] },
+    'Cada 30 minutos': { main: [[{ node: 'Config', type: 'main', index: 0 }]] },
     'Config': { main: [[{ node: 'Agente (WhatsApp)', type: 'main', index: 0 }, { node: 'Barrido (perseguir encargados)', type: 'main', index: 0 }]] },
     // Cada Code ignora el flujo que no le toca (return [])
   },

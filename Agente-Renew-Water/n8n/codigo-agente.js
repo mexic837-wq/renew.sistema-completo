@@ -394,22 +394,29 @@ async function handleTecnico(proy) {
     return 'tec_faltan';
   }
 
-  // Con equipo y técnico: se le avisa al técnico enseguida (la fecha llega después)
+  // El día y el rango de horario salen de la Orden de Trabajo firmada; la hora exacta la da el técnico
+  if (!st.fecha) {
+    const inst = ((await datosOTFirmada(proy.id)) || {}).instalacion || {};
+    const [mo, da, y] = String(inst.fechaEstimada || '').split('/');
+    const iso = y && mo && da ? `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}` : null;
+    if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) && iso >= hoy) { st.fecha = iso; st.rango = inst.horario || null; }
+  }
+
+  // Con equipo y técnico: se le avisa al técnico enseguida (si aún falta el día)
   const ficha = await fichaCliente(proy.cliente_id);
   let avisoAhora = false;
-  if (st.avisado !== tec.id && (!st.fecha || !st.hora)) {
+  if (st.avisado !== tec.id && !st.fecha) {
     const ok = await sendSafe(norm(tec.telefono), [
       `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:`, '',
       `👤 ${cli}`, `📞 ${ficha.telefono || '—'}`, `📍 ${ficha.direccion || '—'}`,
       `💧 ${textoEquipos(st.equipos)}`, `🧑‍💼 Representante: ${nombreUser}`, '',
-      'En cuanto el representante me confirme el día y la hora, te los paso.',
+      'En cuanto el representante me confirme el día, te lo paso.',
     ].join('\n'));
     if (ok) { st.avisado = tec.id; avisoAhora = true; }
   }
-  if (!st.fecha || !st.hora) {
+  if (!st.fecha) {
     const aviso = avisoAhora ? `📲 Ya le envié notificación a *${tec.nombre.trim()}*.` : (st.avisado ? '' : `⚠️ No pude escribirle a *${tec.nombre.trim()}* (revisa su teléfono en el sistema).`);
-    const pide = !st.fecha && !st.hora ? 'el *día* y la *hora*' : (!st.fecha ? 'el *día*' : 'la *hora*');
-    await say(`${aviso ? aviso + ' ' : ''}Por favor indícame ${pide} de la instalación de *${cli}*.${st.fecha ? `\n📅 Día: *${fechaBonita(st.fecha)}*.` : ''}`);
+    await say(`${aviso ? aviso + ' ' : ''}La Orden de Trabajo no tiene fecha de instalación: por favor indícame el *día* de la instalación de *${cli}* (la hora exacta se la pido al técnico).`);
     return 'tec_falta_fecha';
   }
 
@@ -418,20 +425,23 @@ async function handleTecnico(proy) {
   proy.tecnico_id = tec.id;
   await guardarRespuesta(proy.id, cTec.id, tec.id);
   if (cFecha) await guardarRespuesta(proy.id, cFecha.id, st.fecha);
-  const cuando = `${fechaBonita(st.fecha)} a las ${st.hora}`;
+  const rango = st.rango ? ` en el horario *${st.rango}*` : '';
+  const cuando = st.hora ? `${fechaBonita(st.fecha)} a las ${st.hora}` : `${fechaBonita(st.fecha)}${st.rango ? ' (' + st.rango + ')' : ''}`;
   const [p0] = await sel('proyectos_dinamicos', `select=actividad&id=eq.${proy.id}`);
   await patch('proyectos_dinamicos', `id=eq.${proy.id}`, {
-    actividad: [...((p0 && p0.actividad) || []), { tipo: 'INSTALACION_PROGRAMADA', label: `Instalación programada: ${cuando} con ${tec.nombre.trim()}`, fecha: st.fecha, hora: st.hora, tecnico_id: tec.id, equipos: st.equipos, timestamp: new Date().toISOString(), responsable_id: user.id }],
-    ultima_actividad: `Instalación programada ${st.fecha} ${st.hora}`,
+    actividad: [...((p0 && p0.actividad) || []), { tipo: 'INSTALACION_PROGRAMADA', label: `Instalación programada: ${cuando} con ${tec.nombre.trim()}`, fecha: st.fecha, hora: st.hora || null, rango: st.rango || null, tecnico_id: tec.id, equipos: st.equipos, timestamp: new Date().toISOString(), responsable_id: user.id }],
+    ultima_actividad: `Instalación programada ${st.fecha} ${st.hora || st.rango || ''}`.trim(),
   });
 
-  // Fecha confirmada al técnico (y lo que le pediré al terminar)
-  const okTec = await sendSafe(norm(tec.telefono), [
-    st.avisado === tec.id ? `📅 ${tec.nombre.trim()}, la instalación de *${cli}* quedó para el *${cuando}*.` : `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:\n\n👤 ${cli}\n📞 ${ficha.telefono || '—'}\n📅 ${cuando}`,
-    `📍 ${ficha.direccion || '—'}`, `💧 ${textoEquipos(st.equipos)}`, `🧑‍💼 Representante: ${nombreUser}`, '',
-    'El día de la instalación te lo recuerdo, y al terminar te voy a pedir:', CERT_PREGUNTAS,
-  ].join('\n'));
-  let out = `✅ Instalación de *${cli}* programada para el *${cuando}* con *${tec.nombre.trim()}*.` + (okTec ? '\n📲 Ya le confirmé el día y la hora al técnico.' : '\n⚠️ No pude escribirle al técnico (revisa su teléfono en el sistema).');
+  // Al técnico: el rango que marcó la orden y la pregunta por la hora exacta
+  const intro = st.avisado === tec.id ? `📅 ${tec.nombre.trim()}, la instalación de *${cli}*` : `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:\n\n👤 ${cli}\n📞 ${ficha.telefono || '—'}\n📍 ${ficha.direccion || '—'}\n💧 ${textoEquipos(st.equipos)}\n🧑‍💼 Representante: ${nombreUser}\n\n📅 La instalación`;
+  const okTec = await sendSafe(norm(tec.telefono), st.hora
+    ? `${intro} quedó para el *${cuando}*.\n\nA esa hora te mando el *Certificado de Instalación* para que lo completes de una vez.`
+    : `${intro} quedó para el *${fechaBonita(st.fecha)}*${st.rango ? `; según la Orden de Trabajo se marcó el rango de horario *${st.rango}*` : ''}.\n\n⏰ ¿A qué *hora exacta* vas a llegar? Respóndeme por aquí (ej. "10:30am").\n\nA esa hora te mando el *Certificado de Instalación* para que lo completes de una vez.`);
+  if (!st.hora && okTec) sd.horaPend[tec.id] = [...(sd.horaPend[tec.id] || []).filter((x) => x.proyId !== proy.id), { proyId: proy.id, cli, rango: st.rango || null, vendId: user.id }];
+  let out = st.hora
+    ? `✅ Instalación de *${cli}* programada para el *${cuando}* con *${tec.nombre.trim()}*.` + (okTec ? '\n📲 Ya le confirmé el día y la hora al técnico.' : '\n⚠️ No pude escribirle al técnico (revisa su teléfono en el sistema).')
+    : `✅ Instalación de *${cli}* para el *${fechaBonita(st.fecha)}*${rango} con *${tec.nombre.trim()}*.` + (okTec ? `\n📲 Ya le envié notificación a *${tec.nombre.trim()}* y le pregunté la hora exacta; te aviso cuando me la confirme.` : '\n⚠️ No pude escribirle al técnico (revisa su teléfono en el sistema).');
 
   // Sistema de pozo: antes de avanzar, la Plantilla de Pozo
   if (st.equipos.pozo) {
@@ -441,6 +451,34 @@ async function handleTecnico(proy) {
   }
   await say(await cerrarTecnico(proy, st, cli, tec, out));
   return 'instalacion_programada';
+}
+
+// El técnico responde la hora exacta a la que llega (dentro del rango de la Orden de Trabajo)
+async function handleHoraTecnico() {
+  const pend = sd.horaPend[user.id] || [];
+  if (!pend.length || !/\d/.test(text)) return null;
+  const n = sinAcentos(text);
+  const x = pend.find((p) => sinAcentos(p.cli).length >= 3 && n.includes(sinAcentos(p.cli))) || pend[0];
+  const r = await llm('Un técnico dice por WhatsApp a qué hora exacta llega a una instalación. Responde SOLO JSON: {"hora": string|null} con la hora como "10:30 AM". Si el mensaje no dice una hora, null. NUNCA inventes.', `Mensaje:\n${text}`);
+  if (!r.hora) return null;
+  const hora = String(r.hora).slice(0, 20);
+
+  const [p0] = await sel('proyectos_dinamicos', `select=actividad,responsable_id&id=eq.${x.proyId}`);
+  const act = [...((p0 && p0.actividad) || [])];
+  const i = act.map((a) => a.tipo).lastIndexOf('INSTALACION_PROGRAMADA');
+  if (i < 0) { sd.horaPend[user.id] = pend.filter((p) => p !== x); return null; }
+  act[i] = { ...act[i], hora, label: `Instalación programada: ${fechaBonita(act[i].fecha)} a las ${hora} con ${nombreUser}` };
+  await patch('proyectos_dinamicos', `id=eq.${x.proyId}`, { actividad: act, ultima_actividad: `Instalación programada ${act[i].fecha} ${hora}` });
+  sd.horaPend[user.id] = pend.filter((p) => p !== x);
+  if (!sd.horaPend[user.id].length) delete sd.horaPend[user.id];
+
+  const ini = minutosDeHora(x.rango), fin = x.rango ? minutosDeHora(String(x.rango).split('-')[1]) : null, m = minutosDeHora(hora);
+  const fuera = x.rango && (m < ini || (fin !== null && m > fin)) ? `\n⚠️ Ojo: queda fuera del rango de la Orden de Trabajo (${x.rango}).` : '';
+  const cuando = `${fechaBonita(act[i].fecha)} a las ${hora}`;
+  await say(`✅ Anotado: llegas a la instalación de *${x.cli}* el *${cuando}*.${fuera}\n\nA esa hora te mando el *Certificado de Instalación* para que lo completes de una vez.`);
+  const vend = ctx.users.find((u) => u.id === (x.vendId || (p0 && p0.responsable_id)));
+  if (vend && vend.id !== user.id) await sendSafe(norm(vend.telefono), `⏰ *${nombreUser}* confirmó la hora exacta de la instalación de *${x.cli}*: *${cuando}*.${fuera}`);
+  return 'tec_hora_exacta';
 }
 
 const equiposEstructuradosOT = (ot) => {
@@ -716,7 +754,8 @@ try {
   if (mediaNode) accion = await handleMedia();
   else {
     const esperaSi = esSi(text) && [...Object.values(sd.drafts), ...Object.values(sd.cert)].some((x) => x && x._owner === user.id && (x._confirmando || x._preguntaGenerar));
-    if (!esperaSi && RE_SALUDO.test(text) && text.length <= 40) accion = await handleSaludo();
+    if (!esperaSi && sd.horaPend[user.id]) accion = await handleHoraTecnico();
+    if (!accion && !esperaSi && RE_SALUDO.test(text) && text.length <= 40) accion = await handleSaludo();
     if (!accion && !esperaSi) accion = await consultar(user, text, ctx, from);
     const conBorrador = [...Object.values(sd.drafts), ...Object.values(sd.cert)].some((x) => x && x._owner === user.id);
     if (!accion && !esperaSi && !conBorrador && esPregunta(text)) accion = await handleDuda();

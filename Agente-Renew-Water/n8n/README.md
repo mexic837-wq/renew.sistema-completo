@@ -41,7 +41,7 @@ apikey: <EVOLUTION_API_KEY>
 En el nodo **Config**:
 - `SOLO_CLIENTE` = nombre completo (o id) del cliente de prueba, p. ej. `Miguel prueba agenteia`. El agente solo pregunta, responde y avanza ese cliente; los demás clientes y encargados no reciben nada.
 - `BARRIDO_SIEMPRE` = `true` para que el primer mensaje salga aunque sea fuera de 8:00-20:00 (Florida).
-- Para que escriba primero sin esperar las 2 h: abre el workflow y ejecuta el nodo **Cada 2 horas** (Execute step / Execute workflow).
+- Para que escriba primero sin esperar las 2 h: abre el workflow y ejecuta el nodo **Cada 30 minutos** (Execute step / Execute workflow).
 Al terminar la prueba, deja `SOLO_CLIENTE` vacío y `BARRIDO_SIEMPRE` en `false`.
 
 ## 5. Firma virtual del cliente (una sola vez)
@@ -63,7 +63,7 @@ En **Chats Agente IA** (panel admin), el botón *Pausar agente* deja a una perso
 1. **Crédito:** "¿fue aceptada?" → crea el proyecto (*En Proceso*) y lo pasa a Orden de Trabajo.
 2. **Orden de Trabajo:** "¿la genero?" → toma del sistema nombre, teléfono, email, dirección, ciudad, estado, zip y foto del ID; **solo pide lo que falta**; resumen → *SI* → borrador + enlace de firma al **cliente y al vendedor** (`/firmar.html`).
 3. **Cliente firma** → el sistema genera la orden oficial, la guarda y la manda al grupo de aplicaciones; el agente avanza a Asignación de Técnicos.
-4. **Técnico:** "acabo de avanzar tu aplicación aprobada… indícame qué *equipo* vas a utilizar y quién va a ser tu *técnico instalador*" → al tener los dos le avisa al técnico ("ya le envié notificación a …") y pide el **día y la hora** → guarda técnico y fecha y se los confirma al técnico. Si el equipo es **sistema de pozo**, pide la **Plantilla de Pozo** (tanques, medidas, material, TDS, dureza, PH, hierro, color, olor, sulfuro, tanil, nota), genera el PDF y lo guarda en el cliente → avanza a Certificado de Instalación.
+4. **Técnico:** "acabo de avanzar tu aplicación aprobada… indícame qué *equipo* vas a utilizar y quién va a ser tu *técnico instalador*" → toma el **día y el rango de horario de la Orden de Trabajo** (9-2 / 2-6; si la orden no tiene fecha, le pide el día al vendedor) → guarda técnico y fecha, le escribe al técnico con el rango marcado y le pregunta la **hora exacta** → el técnico responde y se le avisa al vendedor. Si el equipo es **sistema de pozo**, pide la **Plantilla de Pozo** (tanques, medidas, material, TDS, dureza, PH, hierro, color, olor, sulfuro, tanil, nota), genera el PDF y lo guarda en el cliente → avanza a Certificado de Instalación.
 5. **Al terminar la instalación** (técnico o vendedor): equipos instalados (ya vienen de lo que dijo el vendedor; **sin número de serie**) y costos → resumen → *SI* → manda la **Confirmación de Instalación** a firmar y avisa a técnico y vendedor. **El inventario no se le pregunta al vendedor:** el agente le escribe a los responsables de inventario (`INVENTARIO_NOMBRES` del nodo Config, por defecto Libni Paolini y Franyeli Paolini) para que registren el material retirado.
 6. **Cliente firma** → el PDF queda como certificado, el cliente pasa a *Cliente*, **la venta cuenta** y el agente sigue con el resto del pipeline (Llamada, Contrato, Financiera, Fotos, Comisión).
 
@@ -74,7 +74,8 @@ La Orden de Trabajo sigue el PDF oficial (`orden_trabajo_oficial.pdf` → `molde
 
 ## Insistencia (como un coordinador de RR.HH.)
 - **Saludo:** si alguien escribe *hola*, el agente le responde con TODO lo que tiene pendiente.
-- **Barrido:** corre cada 2 h, pero solo escribe de 8:00 a 20:00 (hora de Florida) y como mucho cada 4 h por pendiente. El tono sube con cada aviso (1º amable → 3º "ya es el tercer aviso" → 4º+ "necesito que me lo pases hoy").
+- **A la hora exacta de la instalación** le manda al técnico el **Certificado de Instalación** (equipos ya cargados + costos) para que lo complete de una vez; si no dio hora exacta, se usa el inicio del rango.
+- **Barrido:** corre cada 30 min, pero solo escribe de 8:00 a 20:00 (hora de Florida) y como mucho cada 4 h por pendiente. El tono sube con cada aviso (1º amable → 3º "ya es el tercer aviso" → 4º+ "necesito que me lo pases hoy").
 - **Escalamiento:** desde el 3er aviso sin respuesta se le avisa a su **Manager de Venta** (1 vez al día); desde el 6º, a **Admin/CEO** con un resumen (1 vez al día).
 - **Día de la instalación:** por la mañana le recuerda al técnico su cita (hora, cliente y dirección). Antes de esa fecha no lo persigue. Unas **2 horas después de la hora programada** le pregunta *"¿ya terminaste la instalación?"* y le pide equipos instalados y costos; si no responde, sigue insistiendo y escala como cualquier pendiente.
 - Cuando el dato llega, el contador de ese pendiente se borra solo.

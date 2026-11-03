@@ -10,6 +10,7 @@ const GATES = { campo_12_iq3s: 'si', campo_campo_241_8jov: 'si', campo_16_zhmp: 
 const sd = $getWorkflowStaticData('global');
 sd.seen = sd.seen || []; sd.drafts = sd.drafts || {}; sd.reg = sd.reg || {}; sd.active = sd.active || {}; sd.pendingText = sd.pendingText || {};
 sd.inst = sd.inst || {}; sd.cert = sd.cert || {}; // borradores de instalación (E3) y confirmación (E4)
+sd.horaPend = sd.horaPend || {}; // técnico -> instalaciones a las que les falta la hora exacta
 
 const http = async (o) => {
   try { return await this.helpers.httpRequest(o); }
@@ -739,5 +740,5 @@ async function cargarInstalaciones(ctx, ps) {
   const ids = ps.filter((p) => p.fase_id === FASE_CERT && !(p.id in ctx.INST)).map((p) => p.id);
   if (!ids.length) return;
   const rows = await sel('proyectos_dinamicos', `select=id,actividad&id=${inList(ids)}`);
-  rows.forEach((r) => { const ev = [...(r.actividad || [])].reverse().find((x) => x.tipo === 'INSTALACION_PROGRAMADA'); ctx.INST[r.id] = ev ? { fecha: ev.fecha, hora: ev.hora, equipos: ev.equipos || null } : null; });
+  rows.forEach((r) => { const ev = [...(r.actividad || [])].reverse().find((x) => x.tipo === 'INSTALACION_PROGRAMADA'); ctx.INST[r.id] = ev ? { fecha: ev.fecha, hora: ev.hora || ev.rango || null, horaExacta: !!ev.hora, equipos: ev.equipos || null } : null; /* sin hora exacta se usa el inicio del rango */ });
 }

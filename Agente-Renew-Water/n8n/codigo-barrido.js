@@ -1,5 +1,5 @@
 // ===== Nodo "Barrido" (n8n Code) — insiste a cada encargado hasta tener los datos =====
-// Corre cada 2 h, pero solo escribe en horario laboral (8:00 a 20:00, hora de Florida)
+// Corre cada 30 min (para mandar el certificado a la hora exacta), pero solo escribe en horario laboral (8:00 a 20:00, hora de Florida)
 // y como mucho una vez cada 4 h por pendiente.
 // Escalamiento: desde el 3er aviso sin respuesta se le avisa a su Manager de Venta (1 vez al día);
 // desde el 6º, a Admin/CEO con un resumen (1 vez al día).
@@ -51,10 +51,37 @@ if (deHoy.length) {
   deHoy.forEach((p) => { const t = ctx.users.find((u) => String(u.id) === String(p.tecnico_id) && !u.is_suspended); if (t) (porTec[t.id] = porTec[t.id] || { t, items: [] }).items.push(p); });
   for (const { t, items } of Object.values(porTec)) {
     const lineas = items.map((p) => `📅 ${ctx.INST[p.id].hora || 'hoy'} · *${ctx.N[p.cliente_id] || 'Cliente'}*${dirs[p.cliente_id] ? '\n   📍 ' + dirs[p.cliente_id] : ''}`);
-    const text = `${horaFL < 12 ? 'Buenos días' : 'Buenas tardes'} ${t.nombre.trim()} ${horaFL < 12 ? '☀️' : '🌤️'}, hoy tienes ${items.length === 1 ? 'esta instalación' : 'estas instalaciones'} de Renew Water:\n\n${lineas.join('\n')}\n\nCuando termines, escríbeme *terminé* con el nombre del cliente y te pido los datos para la confirmación.`;
+    const text = `${horaFL < 12 ? 'Buenos días' : 'Buenas tardes'} ${t.nombre.trim()} ${horaFL < 12 ? '☀️' : '🌤️'}, hoy tienes ${items.length === 1 ? 'esta instalación' : 'estas instalaciones'} de Renew Water:\n\n${lineas.join('\n')}\n\nA la hora de cada instalación te mando el *Certificado de Instalación* para que lo completes de una vez.`;
     const enviado = SEND && (await sendSafe(norm(t.telefono), text));
     if (enviado) items.forEach((p) => (sd.reg[`hoy|${p.id}`] = new Date().toISOString()));
     avisosHoy.push({ json: { para: t.nombre.trim(), recordatorio: 'dia_de_instalacion', enviado, simulacion: !SEND, mensaje: text } });
+  }
+}
+
+// A la hora de la instalación: el Certificado de Instalación al técnico para que lo complete de una vez
+const aLaHora = ps.filter((p) => p.fase_id === FASE_CERT && p.tecnico_id && momentoInstalacion(ctx.INST[p.id]) === 'en_curso'
+  && !sd.reg[`cert_hora|${p.id}`] && !(sd.cert[p.id] && sd.cert[p.id]._firmaUrl));
+if (aLaHora.length) {
+  const dirs = Object.fromEntries((await sel('clientes_maestro', `select=id,direccion&id=${inList(aLaHora.map((p) => p.cliente_id))}`)).map((c) => [c.id, c.direccion]));
+  for (const p of aLaHora) {
+    const t = ctx.users.find((u) => String(u.id) === String(p.tecnico_id) && !u.is_suspended);
+    if (!t) continue;
+    const cli = ctx.N[p.cliente_id] || 'Cliente';
+    const prog = ctx.INST[p.id].equipos || {};
+    const eqs = [prog.casa && 'Sistema para toda la casa', prog.osmosis && 'Ósmosis inversa', prog.pozo && 'Sistema de pozo'].filter(Boolean).join(', ');
+    const text = [`📋 ${t.nombre.trim()}, ya es la hora de la instalación de *${cli}*${dirs[p.cliente_id] ? `\n📍 ${dirs[p.cliente_id]}` : ''}`, '',
+      'Aquí tienes el *Certificado de Instalación* para que lo completes de una vez:', '',
+      eqs ? `💧 *Equipos* (según el representante): ${eqs}. Si cambió algo, corrígeme.` : '💧 ¿Qué *equipos* instalaste? (sistema para toda la casa / ósmosis inversa / pozo)',
+      '💵 ¿Hubo *costos adicionales*? (instalación, millas, trabajo extra, otro). Si no hubo, escribe "sin costos".', '',
+      'Con eso armo el documento y se lo mando al cliente para que lo firme.'].join('\n');
+    const enviado = SEND && (await sendSafe(norm(t.telefono), text));
+    if (enviado) {
+      sd.reg[`cert_hora|${p.id}`] = new Date().toISOString();
+      // Borrador listo con los equipos: su respuesta va directo a este cliente
+      if (!sd.cert[p.id]) sd.cert[p.id] = { equipos: Object.fromEntries(['casa', 'osmosis', 'pozo'].filter((k) => prog[k]).map((k) => [k, true])), costos: {}, _owner: t.id };
+      sd.active[t.id] = p.id;
+    }
+    avisosHoy.push({ json: { para: t.nombre.trim(), recordatorio: 'certificado_a_la_hora', enviado, simulacion: !SEND, mensaje: text } });
   }
 }
 
