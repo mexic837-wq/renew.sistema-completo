@@ -19,6 +19,7 @@ const wf = {
         BARRIDO_SEND: 'true',
         BARRIDO_SIEMPRE: 'false', // 'true' = escribe también fuera de 8:00-20:00 (para pruebas)
         SOLO_CLIENTE: '', // modo prueba: nombre o id del único cliente con el que trabaja (vacío = todos)
+        INVENTARIO_NOMBRES: 'Libni Paolini,Franyeli Paolini', // quienes registran el material del inventario (nombre y apellido)
       }).map(([name, value], i) => ({ id: `c0000000-0000-4000-8000-0000000000${String(i).padStart(2, '0')}`, name, value, type: 'string' })) },
       includeOtherFields: true, options: {} },
       id: 'a1000000-0000-4000-8000-000000000005', name: 'Config', type: 'n8n-nodes-base.set', typeVersion: 3.4, position: [150, 150] },

@@ -352,10 +352,6 @@ async function datosOTFirmada(proyId) {
     return (s && s.datos) || null;
   } catch (e) { return null; }
 }
-const equiposDeOT = (ot) => {
-  const e = (ot && ot.equipos) || {};
-  return [e.suavizadorCasa && 'Suavizador', (e.osmosisReversa || e.osmosisReverso) && 'Ósmosis inversa', e.aguaAlcalina && 'Agua alcalina', e.aguaPozo && 'Pozo', e.otro_texto].filter(Boolean).join(', ');
-};
 
 async function handleTecnico(proy) {
   const cli = ctx.N[proy.cliente_id] || proy.cliente_id;
@@ -368,27 +364,53 @@ async function handleTecnico(proy) {
   st._owner = user.id;
   if (proy.tecnico_id && !st.tecnicoId) st.tecnicoId = proy.tecnico_id;
 
+  // Ya programada y es de pozo: solo falta la Plantilla de Pozo
+  if (st.programada) return handlePozo(proy, st, cli);
+
   const hoy = new Date().toISOString().slice(0, 10);
   const soloNumero = text.trim().match(/^#?\s*(\d{1,2})\s*$/);
   const ext = soloNumero ? { numero: Number(soloNumero[1]) } : await llm(
-    `Un vendedor asigna por WhatsApp el técnico de una instalación de agua. Responde SOLO JSON: {"numero": number|null, "tecnico_id": string|null, "fecha": "YYYY-MM-DD"|null, "hora": string|null}. "numero" = número de la lista si responde con un número. "tecnico_id" = id de la lista si nombra al técnico. Fecha en YYYY-MM-DD (hoy es ${hoy}; si no dice el año, la próxima fecha futura). Hora como "10:00 AM". null si no se menciona. NUNCA inventes.`,
+    `Un vendedor le dice por WhatsApp al asistente qué equipo va a instalar, quién es su técnico instalador y el día y la hora de la instalación. Responde SOLO JSON con UNICAMENTE lo que se mencione: {"casa": bool, "osmosis": bool, "pozo": bool, "alcalina": bool, "otro": string, "mismos_orden": bool, "numero": number|null, "tecnico_id": string|null, "fecha": "YYYY-MM-DD"|null, "hora": string|null}. "casa" = sistema para toda la casa / suavizador. "osmosis" = ósmosis inversa / cocina. "pozo" = sistema de pozo. "mismos_orden" = true si dice que son los equipos de la orden de trabajo. "numero" = número de la lista si responde con un número de técnico. "tecnico_id" = id de la lista si nombra al técnico. Fecha en YYYY-MM-DD (hoy es ${hoy}; si no dice el año, la próxima fecha futura). Hora como "10:00 AM". NUNCA inventes.`,
     `Técnicos:\n${ctx.tecnicos.map((t, i) => `${i + 1}. ${t.id} = ${t.nombre} ${t.apellido || ''}`).join('\n')}\n\nMensaje:\n${text}`);
 
   let t = null;
   if (ext.numero && ctx.tecnicos[ext.numero - 1]) t = ctx.tecnicos[ext.numero - 1];
   else if (ext.tecnico_id) t = ctx.tecnicos.find((x) => x.id === ext.tecnico_id);
-  if (t) st.tecnicoId = t.id;
+  if (t && t.id !== st.tecnicoId) { st.tecnicoId = t.id; st.avisado = null; }
+  const eq = ext.mismos_orden ? equiposEstructuradosOT(await datosOTFirmada(proy.id)) : {};
+  ['casa', 'osmosis', 'pozo', 'alcalina'].forEach((k) => { if (ext[k] === true) eq[k] = true; });
+  if (ext.otro) eq.otro = String(ext.otro).slice(0, 80);
+  if (Object.keys(eq).length) st.equipos = { ...(st.equipos || {}), ...eq };
   if (ext.fecha && /^\d{4}-\d{2}-\d{2}$/.test(ext.fecha)) st.fecha = ext.fecha;
   if (ext.hora) st.hora = String(ext.hora).slice(0, 20);
 
   const tec = ctx.users.find((u) => u.id === st.tecnicoId);
-  const falta = [];
-  if (!tec) falta.push(`el *número* del técnico:\n${listaTecnicos(ctx)}`);
-  if (!st.fecha) falta.push('la *fecha* de instalación');
-  if (!st.hora) falta.push('la *hora* de instalación');
-  if (falta.length) {
-    await say(`${tec ? `👍 Técnico: *${tec.nombre.trim()}*.` : ''}${st.fecha ? ` Fecha: *${fechaBonita(st.fecha)}*.` : ''}\nPara programar la instalación de *${cli}* me falta ${falta.join(', ')}.`.trim());
+  if (!st.equipos || !tec) {
+    const falta = [];
+    if (!st.equipos) falta.push('qué *equipo* vas a utilizar (sistema para toda la casa / ósmosis inversa / pozo)');
+    if (!tec) falta.push(`quién va a ser tu *técnico instalador* (respóndeme con el número):\n\n${listaTecnicos(ctx)}`);
+    const tengo = [st.equipos && `💧 Equipo: *${textoEquipos(st.equipos)}*.`, tec && `🛠 Técnico: *${tec.nombre.trim()}*.`].filter(Boolean).join('\n');
+    await say(`${tengo ? tengo + '\n\n' : ''}Por favor indícame ${falta.join(' y dime ')}`);
     return 'tec_faltan';
+  }
+
+  // Con equipo y técnico: se le avisa al técnico enseguida (la fecha llega después)
+  const ficha = await fichaCliente(proy.cliente_id);
+  let avisoAhora = false;
+  if (st.avisado !== tec.id && (!st.fecha || !st.hora)) {
+    const ok = await sendSafe(norm(tec.telefono), [
+      `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:`, '',
+      `👤 ${cli}`, `📞 ${ficha.telefono || '—'}`, `📍 ${ficha.direccion || '—'}`,
+      `💧 ${textoEquipos(st.equipos)}`, `🧑‍💼 Representante: ${nombreUser}`, '',
+      'En cuanto el representante me confirme el día y la hora, te los paso.',
+    ].join('\n'));
+    if (ok) { st.avisado = tec.id; avisoAhora = true; }
+  }
+  if (!st.fecha || !st.hora) {
+    const aviso = avisoAhora ? `📲 Ya le envié notificación a *${tec.nombre.trim()}*.` : (st.avisado ? '' : `⚠️ No pude escribirle a *${tec.nombre.trim()}* (revisa su teléfono en el sistema).`);
+    const pide = !st.fecha && !st.hora ? 'el *día* y la *hora*' : (!st.fecha ? 'el *día*' : 'la *hora*');
+    await say(`${aviso ? aviso + ' ' : ''}Por favor indícame ${pide} de la instalación de *${cli}*.${st.fecha ? `\n📅 Día: *${fechaBonita(st.fecha)}*.` : ''}`);
+    return 'tec_falta_fecha';
   }
 
   // Guardar en el proyecto (los mismos campos que llena la app)
@@ -399,58 +421,99 @@ async function handleTecnico(proy) {
   const cuando = `${fechaBonita(st.fecha)} a las ${st.hora}`;
   const [p0] = await sel('proyectos_dinamicos', `select=actividad&id=eq.${proy.id}`);
   await patch('proyectos_dinamicos', `id=eq.${proy.id}`, {
-    actividad: [...((p0 && p0.actividad) || []), { tipo: 'INSTALACION_PROGRAMADA', label: `Instalación programada: ${cuando} con ${tec.nombre.trim()}`, fecha: st.fecha, hora: st.hora, tecnico_id: tec.id, timestamp: new Date().toISOString(), responsable_id: user.id }],
+    actividad: [...((p0 && p0.actividad) || []), { tipo: 'INSTALACION_PROGRAMADA', label: `Instalación programada: ${cuando} con ${tec.nombre.trim()}`, fecha: st.fecha, hora: st.hora, tecnico_id: tec.id, equipos: st.equipos, timestamp: new Date().toISOString(), responsable_id: user.id }],
     ultima_actividad: `Instalación programada ${st.fecha} ${st.hora}`,
   });
 
-  // Aviso al técnico con todo lo que necesita (y lo que le pediré al terminar)
-  const ficha = await fichaCliente(proy.cliente_id);
-  const equipos = equiposDeOT(await datosOTFirmada(proy.id));
+  // Fecha confirmada al técnico (y lo que le pediré al terminar)
   const okTec = await sendSafe(norm(tec.telefono), [
-    `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:`, '',
-    `👤 ${cli}`, `📞 ${ficha.telefono || '—'}`, `📍 ${ficha.direccion || '—'}`, `📅 ${cuando}`,
-    `💧 ${equipos || 'Equipos según la Orden de Trabajo'}`, `🧑‍💼 Representante: ${nombreUser}`, '',
+    st.avisado === tec.id ? `📅 ${tec.nombre.trim()}, la instalación de *${cli}* quedó para el *${cuando}*.` : `Hola ${tec.nombre.trim()} 👋, te asignaron una instalación de *Renew Water*:\n\n👤 ${cli}\n📞 ${ficha.telefono || '—'}\n📅 ${cuando}`,
+    `📍 ${ficha.direccion || '—'}`, `💧 ${textoEquipos(st.equipos)}`, `🧑‍💼 Representante: ${nombreUser}`, '',
     'El día de la instalación te lo recuerdo, y al terminar te voy a pedir:', CERT_PREGUNTAS,
   ].join('\n'));
+  let out = `✅ Instalación de *${cli}* programada para el *${cuando}* con *${tec.nombre.trim()}*.` + (okTec ? '\n📲 Ya le confirmé el día y la hora al técnico.' : '\n⚠️ No pude escribirle al técnico (revisa su teléfono en el sistema).');
 
-  // Avanzar a Certificado de Instalación si la fase quedó completa (sin repetirle el mensaje al técnico)
-  const resp = await sel('respuestas_dinamicas', `select=campo_id,valor&proyecto_id=eq.${proy.id}`);
-  const pend = cs.filter((c) => faltaValor(resp.find((r) => r.campo_id === c.id)));
-  let out = `✅ Instalación de *${cli}* programada para el *${cuando}* con *${tec.nombre.trim()}*.` + (okTec ? '\n📲 Ya le escribí al técnico con los datos.' : '\n⚠️ No pude escribirle al técnico (revisa su teléfono en el sistema).');
-  if (pend.length) out += `\n\nPara cerrar esta fase aún me falta:\n${pend.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`;
-  else if (AUTO_ADVANCE) { const sig = await avanzar(proy, ctx, user.id, [user.id, tec.id]); if (sig) out += `\n\n🚀 Avancé a *${cli}* a *${sig.nombre}*. Cuando el técnico termine, le pido los equipos, el inventario usado y armo la confirmación para que firme el cliente.`; }
-  delete sd.inst[proy.id];
-  await say(out);
+  // Sistema de pozo: antes de avanzar, la Plantilla de Pozo
+  if (st.equipos.pozo) {
+    st.programada = true; st.pozo = {};
+    await say(`${out}\n\n${POZO_PREGUNTAS}`);
+    return 'tec_falta_pozo';
+  }
+  await say(await cerrarTecnico(proy, st, cli, tec, out));
   return 'instalacion_programada';
 }
 
-// ---------- Confirmación de Instalación + inventario (Estación 4) ----------
-const CERT_EQUIPOS = [['casa', 'water_treatment', 'serial_water', 'Sistema para toda la casa'], ['osmosis', 'reverse_osmosis', 'serial_ro', 'Ósmosis inversa'], ['pozo', 'well_water', 'serial_well', 'Sistema de pozo']];
+const equiposEstructuradosOT = (ot) => {
+  const e = (ot && ot.equipos) || {};
+  const r = { casa: !!e.suavizadorCasa, osmosis: !!(e.osmosisReversa || e.osmosisReverso), pozo: !!e.aguaPozo, alcalina: !!e.aguaAlcalina, otro: e.otro_texto || '' };
+  return Object.fromEntries(Object.entries(r).filter(([, v]) => v));
+};
+const textoEquipos = (e) => [e.casa && 'Sistema para toda la casa', e.osmosis && 'Ósmosis inversa', e.pozo && 'Sistema de pozo', e.alcalina && 'Agua alcalina', e.otro].filter(Boolean).join(', ') || '—';
+
+// Avanza a Certificado de Instalación si la fase quedó completa (sin repetirle el mensaje al técnico)
+async function cerrarTecnico(proy, st, cli, tec, out) {
+  const cs = camposFase(FASE_TEC, ctx.campos);
+  const resp = await sel('respuestas_dinamicas', `select=campo_id,valor&proyecto_id=eq.${proy.id}`);
+  const pend = cs.filter((c) => faltaValor(resp.find((r) => r.campo_id === c.id)));
+  if (pend.length) out += `\n\nPara cerrar esta fase aún me falta:\n${pend.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`;
+  else if (AUTO_ADVANCE) { const sig = await avanzar(proy, ctx, user.id, [user.id, tec.id]); if (sig) out += `\n\n🚀 Avancé a *${cli}* a *${sig.nombre}*. Cuando el técnico termine, le pido los equipos y los costos y armo la confirmación para que firme el cliente.`; }
+  delete sd.inst[proy.id];
+  return out;
+}
+
+// Plantilla de Pozo: se pide por WhatsApp y se genera el mismo PDF que la pantalla Especificaciones de Pozo
+async function handlePozo(proy, st, cli) {
+  const ext = await llm(
+    `Un vendedor pasa por WhatsApp las especificaciones del pozo de un cliente. Responde SOLO JSON con UNICAMENTE lo que se mencione, como texto: {${POZO_CAMPOS.map(([k]) => `"${k}": string`).join(', ')}}. Si dice que un dato no lo tiene, pon "N/A". NUNCA inventes.`,
+    `Mensaje:\n${text}`);
+  let nuevos = 0;
+  for (const [k] of POZO_CAMPOS) if (ext[k] !== undefined && ext[k] !== null && String(ext[k]).trim()) { st.pozo[k] = String(ext[k]).trim().slice(0, 200); nuevos++; }
+  if (!nuevos) { await say(`Para la instalación de *${cli}* me falta la Plantilla de Pozo.\n\n${POZO_PREGUNTAS}`); return 'pozo_faltan'; }
+
+  const ficha = await fichaCliente(proy.cliente_id);
+  const datos = { nombre: ficha.nombre || cli, ...Object.fromEntries(POZO_CAMPOS.map(([k]) => [k, st.pozo[k] || ''])), clienteId: proy.cliente_id, proyectoId: proy.id };
+  const r = await http({ method: 'POST', url: `${APP_URL}/api/generar-plantilla-pozo`, headers: { 'Content-Type': 'application/json' }, body: { datos }, json: true, timeout: 120000 });
+  if (!r || !r.url) throw new Error('El sistema no devolvió la Plantilla de Pozo');
+  const [p0] = await sel('proyectos_dinamicos', `select=actividad&id=eq.${proy.id}`);
+  await patch('proyectos_dinamicos', `id=eq.${proy.id}`, {
+    actividad: [...((p0 && p0.actividad) || []), { tipo: 'FORMULARIO_COMPLETADO', campo: 'Plantilla de Pozo', label: 'Plantilla de Pozo (Agente WhatsApp)', archivo: r.url, timestamp: new Date().toISOString(), responsable_id: user.id }],
+    ultima_actividad: 'Plantilla de Pozo recibida por WhatsApp',
+  });
+  const tec = ctx.users.find((u) => u.id === st.tecnicoId) || user;
+  await say(await cerrarTecnico(proy, st, cli, tec, `💧 Guardé la *Plantilla de Pozo* de *${cli}*.\n📄 ${r.url}`));
+  return 'pozo_guardado';
+}
+
+// ---------- Confirmación de Instalación (Estación 4) ----------
+// Sin números de serie. El inventario no se le pregunta al vendedor ni al técnico: lo registran los responsables de inventario.
+const CERT_EQUIPOS = [['casa', 'water_treatment', 'Sistema para toda la casa'], ['osmosis', 'reverse_osmosis', 'Ósmosis inversa'], ['pozo', 'well_water', 'Sistema de pozo']];
 const numC = (v) => { const n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; };
 
 function faltantesCert(st) {
   const f = [];
-  if (!CERT_EQUIPOS.some(([k]) => st.equipos[k])) f.push('💧 los *equipos instalados* (toda la casa / ósmosis / pozo) con su número de serie');
-  CERT_EQUIPOS.forEach(([k, , , nom]) => { if (st.equipos[k] && !st.equipos['serial_' + k]) f.push(`🔢 el *número de serie* de ${nom}`); });
-  if (!st.sinMateriales && !st.sede) f.push(`📦 la *sede* de donde retiraste el material (${Object.values(SEDES_INV).join(' / ')})`);
-  if (!st.sinMateriales && st.sede && !(st.materiales || []).length) f.push('📦 *qué material usaste* y cuántas unidades (o "ninguno")');
+  if (!CERT_EQUIPOS.some(([k]) => st.equipos[k])) f.push('💧 los *equipos instalados* (toda la casa / ósmosis / pozo)');
+  if (!st.costosDichos) f.push('💵 los *costos adicionales* (instalación, millas, trabajo extra, otro) o "sin costos"');
   return f;
 }
 
 function resumenCert(st, cli) {
-  const eq = CERT_EQUIPOS.filter(([k]) => st.equipos[k]).map(([k, , , nom]) => `${nom} (serie ${st.equipos['serial_' + k]})`).join(', ');
+  const eq = CERT_EQUIPOS.filter(([k]) => st.equipos[k]).map(([, , nom]) => nom).join(', ');
   const c = st.costos || {};
   const total = numC(c.instalacion) + numC(c.millas) + numC(c.extra) + numC(c.otro);
-  const mat = st.sinMateriales ? 'No se usó material del inventario' : `De *${SEDES_INV[st.sede] || st.sede}*: ${st.materiales.map((m) => `${m.cantidad} × ${m.nombre}`).join(', ')}`;
   return [`📋 *Confirmación de Instalación de ${cli}*`, '', `💧 ${eq}`,
-    `💵 ${total ? `Costos adicionales: $${total.toFixed(2)}` : 'Sin costos adicionales'}`, `📦 ${mat}`,
-    st.noEncontrados && st.noEncontrados.length ? `⚠️ No encontré en el inventario: ${st.noEncontrados.join(', ')} (no se descuenta)` : '', '',
-    'Responde *SI* para descontar el inventario y enviarle el documento al cliente para que lo firme, o dime qué corregir.'].filter((x) => x !== '').join('\n');
+    `💵 ${total ? `Costos adicionales: $${total.toFixed(2)}` : 'Sin costos adicionales'}`, '',
+    'Responde *SI* para enviarle el documento al cliente para que lo firme, o dime qué corregir.'].join('\n');
 }
 
 async function handleCert(proy) {
   const cli = ctx.N[proy.cliente_id] || proy.cliente_id;
-  const st = (sd.cert[proy.id] = sd.cert[proy.id] || { equipos: {}, costos: {}, materiales: [] });
+  if (!sd.cert[proy.id]) {
+    // Los equipos que el vendedor dijo al programar la instalación
+    await cargarInstalaciones(ctx, [proy]);
+    const prog = (ctx.INST[proy.id] && ctx.INST[proy.id].equipos) || {};
+    sd.cert[proy.id] = { equipos: Object.fromEntries(CERT_EQUIPOS.filter(([k]) => prog[k]).map(([k]) => [k, true])), costos: {} };
+  }
+  const st = sd.cert[proy.id];
   st._owner = user.id;
 
   if (st._firmaUrl && /reenv|enlace|link/i.test(text)) {
@@ -462,52 +525,37 @@ async function handleCert(proy) {
   if (st._confirmando && esSi(text) && !faltantesCert(st).length) return confirmarCert(proy, st, cli);
 
   const ext = await llm(
-    'Un técnico o vendedor reporta por WhatsApp una instalación de agua terminada. Responde SOLO JSON con UNICAMENTE lo que se mencione: {"casa": bool, "serial_casa": string, "osmosis": bool, "serial_osmosis": string, "pozo": bool, "serial_pozo": string, "costo_instalacion": number, "costo_millas": number, "costo_extra": number, "costo_otro": number, "sin_costos": bool, "sede": string, "materiales_texto": string, "sin_materiales": bool}. "casa" = sistema de tratamiento/suavizador para toda la casa. "sede" = una de las claves: ' + Object.keys(SEDES_INV).join(', ') + '. "materiales_texto" = el texto literal de lo que dice que usó del inventario, con cantidades. "sin_materiales" = true si dice que no usó nada del inventario. NUNCA inventes.',
+    'Un técnico o vendedor reporta por WhatsApp una instalación de agua terminada. Responde SOLO JSON con UNICAMENTE lo que se mencione: {"casa": bool, "osmosis": bool, "pozo": bool, "costo_instalacion": number, "costo_millas": number, "costo_extra": number, "costo_otro": number, "sin_costos": bool}. "casa" = sistema de tratamiento/suavizador para toda la casa. "sin_costos" = true si dice que no hubo costos adicionales. NUNCA inventes.',
     `Mensaje:\n${text}`);
-  for (const [k] of CERT_EQUIPOS) {
-    if (ext[k] === true) st.equipos[k] = true;
-    if (ext['serial_' + k]) { st.equipos[k] = true; st.equipos['serial_' + k] = String(ext['serial_' + k]).slice(0, 40); }
-  }
-  if (ext.sin_costos) st.costos = {};
-  ['instalacion', 'millas', 'extra', 'otro'].forEach((k) => { if (ext['costo_' + k] !== undefined && ext['costo_' + k] !== null) st.costos[k] = numC(ext['costo_' + k]); });
-  if (ext.sede && SEDES_INV[ext.sede]) { if (st.sede !== ext.sede) st.materiales = []; st.sede = ext.sede; }
-  if (ext.sin_materiales) { st.sinMateriales = true; st.materiales = []; }
-  if (ext.materiales_texto) { st.sinMateriales = false; st._materialesTexto = ext.materiales_texto; }
-
-  // Cruzar lo que dijo contra el inventario Water de esa sede
-  if (st.sede && st._materialesTexto) {
-    const inv = await inventarioWater(st.sede);
-    if (!inv.length) {
-      await say(`No encontré inventario de Water en *${SEDES_INV[st.sede]}*. ¿De qué otra sede lo retiraste?`);
-      st.sede = null; return 'cert_sede_sin_inventario';
-    }
-    const m = await llm(
-      'Relacionas lo que un técnico dice que usó con los artículos del inventario. Responde SOLO JSON: {"items":[{"id": string, "cantidad": number}], "no_encontrados":[string]}. Usa SOLO ids de la lista. Si no dice cantidad, usa 1. NUNCA inventes artículos.',
-      `Inventario (${SEDES_INV[st.sede]}):\n${inv.map((i) => `${i.id} | ${i.nombre_item} | ${i.ecosistema || ''} | stock ${i.stock_actual}`).join('\n')}\n\nLo que usó:\n${st._materialesTexto}`);
-    st.materiales = (m.items || []).map((x) => { const it = inv.find((i) => i.id === x.id); return it && { id: it.id, nombre: it.nombre_item, cantidad: Math.max(1, Math.round(numC(x.cantidad) || 1)), stock: Number(it.stock_actual) || 0 }; }).filter(Boolean);
-    st.noEncontrados = (m.no_encontrados || []).slice(0, 5);
-    delete st._materialesTexto;
-  }
+  for (const [k] of CERT_EQUIPOS) if (ext[k] === true) st.equipos[k] = true;
+  if (ext.sin_costos) { st.costos = {}; st.costosDichos = true; }
+  ['instalacion', 'millas', 'extra', 'otro'].forEach((k) => { if (ext['costo_' + k] !== undefined && ext['costo_' + k] !== null) { st.costos[k] = numC(ext['costo_' + k]); st.costosDichos = true; } });
 
   st._confirmando = false;
   const falt = faltantesCert(st);
-  if (falt.length) { await say(`Gracias ${nombreUser}. Para la Confirmación de Instalación de *${cli}* me falta:\n\n${falt.join('\n')}`); return 'cert_faltan'; }
+  if (falt.length) {
+    const tengo = CERT_EQUIPOS.filter(([k]) => st.equipos[k]).map(([, , nom]) => nom).join(', ');
+    await say(`Gracias ${nombreUser}.${tengo ? ` Equipos: *${tengo}*.` : ''} Para la Confirmación de Instalación de *${cli}* me falta:\n\n${falt.join('\n')}`);
+    return 'cert_faltan';
+  }
   st._confirmando = true;
   await say(resumenCert(st, cli));
   return 'cert_confirmacion';
 }
 
 async function confirmarCert(proy, st, cli) {
-  await say(`⏳ Descontando inventario y preparando la confirmación de *${cli}*...`);
+  await say(`⏳ Preparando la confirmación de *${cli}*...`);
   const tec = ctx.users.find((u) => u.id === proy.tecnico_id) || user;
   const vend = ctx.users.find((u) => u.id === proy.responsable_id);
 
-  // 1) Inventario
-  let invTxt = '📦 No se descontó inventario.';
-  if (!st.sinMateriales && st.materiales.length) {
-    const hechos = await descontarInventario(st.materiales.map((m) => ({ id: m.id, cantidad: m.cantidad })), proy, cli, tec, st.sede);
-    invTxt = `📦 Descontado del inventario de *${SEDES_INV[st.sede]}*:\n` + hechos.map((h) => `• ${h.cantidad} × ${h.nombre} (quedan ${h.despues})${h.sinStock ? ' ⚠️ el stock no alcanzaba' : ''}`).join('\n');
+  // 1) Inventario: se les avisa a los responsables para que registren el material retirado
+  const equiposTxt = CERT_EQUIPOS.filter(([k]) => st.equipos[k]).map(([, , nom]) => nom).join(', ');
+  const avisados = [];
+  for (const u of responsablesInventario(ctx).filter((x, i, a) => a.findIndex((y) => norm(y.telefono) === norm(x.telefono)) === i)) {
+    const ok = await sendSafe(norm(u.telefono), `📦 Hola ${u.nombre.trim()} 👋, se terminó la instalación de *${cli}*.\n\n🛠 Técnico: ${tec.nombre.trim()}\n🧑‍💼 Representante: ${vend ? vend.nombre.trim() : '—'}\n💧 Equipos: ${equiposTxt}\n\nPor favor registra en el *inventario* el material que se retiró para esta instalación (sede y cantidades).`);
+    if (ok) avisados.push(u.nombre.trim());
   }
+  const invTxt = avisados.length ? `📦 Le avisé a *${avisados.join(' y ')}* para que registren el material del inventario.` : `📦 El material del inventario lo coordinas con ${nombresInventario(ctx)}.`;
 
   // 2) Documento para firmar (todo lo que ya está en el sistema)
   const ficha = await fichaCliente(proy.cliente_id);
@@ -522,9 +570,9 @@ async function confirmarCert(proy, st, cli) {
     ciudad: ficha.ciudad || '', estado: ficha.estado || '', zip: ficha.zipCode || '',
     fecha_instalacion: fInst && !faltaValor({ valor: fInst }) ? fechaUS(fInst) : hoyUS(),
     instalador: `${tec.nombre} ${tec.apellido || ''}`.trim(), representante_ventas: vend ? `${vend.nombre} ${vend.apellido || ''}`.trim() : '',
-    water_treatment: !!st.equipos.casa, serial_water: st.equipos.serial_casa || '',
-    reverse_osmosis: !!st.equipos.osmosis, serial_ro: st.equipos.serial_osmosis || '',
-    well_water: !!st.equipos.pozo, serial_well: st.equipos.serial_pozo || '',
+    water_treatment: !!st.equipos.casa, serial_water: '',
+    reverse_osmosis: !!st.equipos.osmosis, serial_ro: '',
+    well_water: !!st.equipos.pozo, serial_well: '',
     costo_instalacion: c.instalacion ? numC(c.instalacion).toFixed(2) : '', costo_millas: c.millas ? numC(c.millas).toFixed(2) : '',
     costo_extra: c.extra ? numC(c.extra).toFixed(2) : '', costo_otro: c.otro ? numC(c.otro).toFixed(2) : '', costo_total: total ? total.toFixed(2) : '',
   };

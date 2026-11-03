@@ -136,17 +136,27 @@ function preguntaCampo(c, ctx) {
   return c.etiqueta;
 }
 
-const TEC_PREGUNTA = (ctx) => `¿Ya tienes el técnico asignado? Respóndeme con el *número* del técnico y la *fecha y hora* de instalación (ej. "2, 15 de noviembre 10am"):
+const TEC_PREGUNTA = (ctx) => `Por favor indícame qué *equipo* vas a utilizar (sistema para toda la casa / ósmosis inversa / pozo) y dime quién va a ser tu *técnico instalador* (respóndeme con el número):
 
 ${listaTecnicos(ctx)}`;
 const CERT_PREGUNTAS = [
   'Para la *Confirmación de Instalación* necesito:',
-  '💧 *Equipos instalados* y su número de serie: sistema para toda la casa / ósmosis inversa / pozo.',
+  '💧 *Equipos instalados*: sistema para toda la casa / ósmosis inversa / pozo.',
   '💵 *Costos adicionales* si hubo (instalación, millas, trabajo extra, otro). Si no hubo, escribe "sin costos".',
-  '📦 *Inventario:* ¿de qué *sede* retiraste el material y qué usaste (con cantidades)?',
   '',
   'Con eso armo el documento y se lo mando al cliente para que lo firme.',
 ].join('\n');
+
+// Datos de la Plantilla de Pozo (los mismos campos de la pantalla Especificaciones de Pozo)
+const POZO_CAMPOS = [['tanques', 'Tanques'], ['medidas', 'Medidas (ej. 10x54)'], ['material', 'Material'], ['tds', 'TDS'], ['dureza', 'Dureza'], ['ph', 'PH'], ['hierro', 'Hierro'], ['color', 'Color'], ['olor', 'Olor'], ['sulfuro', 'Sulfuro'], ['tanil', 'Tanil'], ['nota', 'Nota']];
+const POZO_PREGUNTAS = `Como es *sistema de pozo*, por favor llena esto:\n${POZO_CAMPOS.map(([, l]) => '• ' + l).join('\n')}\n\nSi algún dato no lo tienes, escribe "no".`;
+
+// Quienes llevan el inventario: el vendedor no lo reporta, lo coordina con ellos
+const INVENTARIO_NOMBRES = String(E.INVENTARIO_NOMBRES || 'Libni Paolini,Franyeli Paolini').split(',').map(sinAcentos).filter(Boolean);
+const responsablesInventario = (ctx) => INVENTARIO_NOMBRES
+  .map((n) => ctx.users.find((u) => !u.is_suspended && sinAcentos(`${u.nombre} ${u.apellido || ''}`).replace(/\s+/g, ' ') === n))
+  .filter(Boolean);
+const nombresInventario = (ctx) => responsablesInventario(ctx).map((u) => u.nombre.trim()).join(' o ') || 'administración';
 
 function cuerpoFase(faseId, ctx) {
   if (faseId === FASE_OT) return '¿Quieres que genere la *Orden de Trabajo*? Responde *SI* y te pido solo los datos que no estén en el sistema.';
@@ -166,7 +176,9 @@ async function notificarFase(proy, faseId, ctx, excluirUserId) {
   const incluyeActual = encs.some((u) => excl.includes(u.id));
   const otros = encs.filter((u) => !excl.includes(u.id));
   for (const u of otros) {
-    await sendSafe(norm(u.telefono), `Hola ${u.nombre.trim()} 👋, acabo de avanzar a *${cli}* a la fase *${fase.nombre}*.\n\nPor favor pásame estos datos cuando los tengas para proseguir:\n${cuerpo}\n\nQuedo pendiente por aquí para registrarlo y seguir avanzando.`);
+    await sendSafe(norm(u.telefono), faseId === FASE_TEC
+      ? `Hola ${u.nombre.trim()} 👋, acabo de avanzar tu aplicación aprobada de *${cli}* a *${fase.nombre}*.\n\n${cuerpo}`
+      : `Hola ${u.nombre.trim()} 👋, acabo de avanzar a *${cli}* a la fase *${fase.nombre}*.\n\nPor favor pásame estos datos cuando los tengas para proseguir:\n${cuerpo}\n\nQuedo pendiente por aquí para registrarlo y seguir avanzando.`);
   }
   return { notificados: otros.map((u) => u.nombre.trim()), incluyeActual, cuerpo };
 }
@@ -642,14 +654,19 @@ function lineaPendiente(p, ctx, resp, opts = {}) {
       ? `✍️ *${cli}*: la Orden de Trabajo espera la firma del cliente. Llámalo para que firme (o escríbeme *reenviar enlace ${cli}*).`
       : `📋 *${cli}*: falta la Orden de Trabajo. Escríbeme *orden ${cli}* y te pido solo lo que falte.`;
   }
-  if (p.fase_id === FASE_TEC && !p.tecnico_id) return `🛠 *${cli}*: falta asignar el técnico. Respóndeme con el número del técnico y la fecha y hora de instalación.`;
+  if (p.fase_id === FASE_TEC) {
+    const st = sd.inst[p.id] || {};
+    if (st.programada && st.equipos && st.equipos.pozo) return `💧 *${cli}*: falta la Plantilla de Pozo (tanques, medidas, material, TDS, dureza, PH, hierro…).`;
+    if (!p.tecnico_id && st.tecnicoId && st.equipos) return `📅 *${cli}*: indícame el día y la hora de la instalación.`;
+    if (!p.tecnico_id) return `🛠 *${cli}*: indícame qué equipo vas a utilizar y quién va a ser tu técnico instalador.`;
+  }
   if (p.fase_id === FASE_CERT && sd.cert[p.id] && sd.cert[p.id]._firmaUrl) return `✍️ *${cli}*: la Confirmación de Instalación espera la firma del cliente.`;
   if (p.fase_id === FASE_CERT && p.tecnico_id) {
     const inst = ctx.INST && ctx.INST[p.id];
     const mo = momentoInstalacion(inst);
     const cuando = inst && inst.fecha ? `${fechaLarga(inst.fecha)}${inst.hora ? ' a las ' + inst.hora : ''}` : '';
     if (mo === 'antes' || mo === 'hoy_antes' || mo === 'en_curso') return opts.informar ? `📅 *${cli}*: instalación ${mo === 'en_curso' ? 'en curso' : 'programada para el ' + cuando}. Al terminar, escríbeme y te pido los datos.` : null;
-    return `🛠 *${cli}*: ¿ya terminaste la instalación${cuando ? ' del ' + cuando : ''}? Pásame los equipos con su número de serie, costos adicionales (o "sin costos"), la sede de donde retiraste el material y qué usaste.`;
+    return `🛠 *${cli}*: ¿ya terminaste la instalación${cuando ? ' del ' + cuando : ''}? Pásame los equipos instalados y los costos adicionales (o "sin costos").`;
   }
   const pend = camposFase(p.fase_id, ctx.campos).filter((c) => faltaValor(resp.find((x) => x.proyecto_id === p.id && x.campo_id === c.id)));
   return pend.length ? `📎 *${cli}* (${fase.nombre}): ${pend.map((c) => preguntaCampo(c, ctx)).join('; ')}` : null;
@@ -722,5 +739,5 @@ async function cargarInstalaciones(ctx, ps) {
   const ids = ps.filter((p) => p.fase_id === FASE_CERT && !(p.id in ctx.INST)).map((p) => p.id);
   if (!ids.length) return;
   const rows = await sel('proyectos_dinamicos', `select=id,actividad&id=${inList(ids)}`);
-  rows.forEach((r) => { const ev = [...(r.actividad || [])].reverse().find((x) => x.tipo === 'INSTALACION_PROGRAMADA'); ctx.INST[r.id] = ev ? { fecha: ev.fecha, hora: ev.hora } : null; });
+  rows.forEach((r) => { const ev = [...(r.actividad || [])].reverse().find((x) => x.tipo === 'INSTALACION_PROGRAMADA'); ctx.INST[r.id] = ev ? { fecha: ev.fecha, hora: ev.hora, equipos: ev.equipos || null } : null; });
 }
