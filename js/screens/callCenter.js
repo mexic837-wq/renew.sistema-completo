@@ -132,7 +132,7 @@ export async function renderCallCenter() {
   if (!screen) return;
 
   // Reset state
-  _ccState = { fase: 1, prospectos: [], activeId: null };
+  _ccState = { fase: 1, prospectos: [], activeId: null, busqueda: _ccState.busqueda || '' };
 
   // Loading skeleton
   screen.innerHTML = buildLoadingSkeleton();
@@ -156,14 +156,8 @@ function renderFase1(screen, user) {
 
   const fecha  = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
   const total  = pendientes.length;
-
-  const cards = pendientes.length > 0
-    ? pendientes.map((p, i) => buildFase1Card(p, i, puedeBorrarLeads(user))).join('')
-    : `<div style="grid-column:1/-1;text-align:center;padding:60px 24px;opacity:0.5;">
-        <div style="font-size:3rem;margin-bottom:12px;"><i class="fa-solid fa-envelope-open"></i></div>
-        <p style="font-size:14px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.1em;">Sin prospectos pendientes</p>
-        <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">Los leads del scraper aparecerán aquí automáticamente</p>
-      </div>`;
+  // Si el buscador tenía el foco, se recupera después de redibujar (refresco automático)
+  const buscadorActivo = document.activeElement && document.activeElement.id === 'cc-buscar';
 
   screen.innerHTML = `
     <div style="background:var(--bg);min-height:100vh;padding-bottom:100px;">
@@ -186,14 +180,25 @@ function renderFase1(screen, user) {
         </div>
 
         <p style="font-size:10px;color:var(--text-secondary);margin:8px 0 0;text-transform:capitalize;">${fecha} · Hola, ${user.nombre} <i class="fa-solid fa-handshake"></i></p>
+
+        <!-- BUSCADOR -->
+        <div style="position:relative;margin-top:12px;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text-secondary);pointer-events:none;"></i>
+          <input id="cc-buscar" type="search" autocomplete="off" placeholder="Buscar lead por nombre..." value="${escHtml(_ccState.busqueda)}"
+            style="width:100%;box-sizing:border-box;padding:11px 14px 11px 38px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;outline:none;"
+            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
       </div>
 
       <!-- CARDS -->
-      <div id="cc-phase1-list" class="cc-grid">
-        ${cards}
-      </div>
+      <div id="cc-phase1-list" class="cc-grid"></div>
     </div>
   `;
+
+  pintarListaFase1(user);
+  const buscador = document.getElementById('cc-buscar');
+  buscador.addEventListener('input', () => { _ccState.busqueda = buscador.value; pintarListaFase1(user); });
+  if (buscadorActivo) { buscador.focus(); buscador.setSelectionRange(buscador.value.length, buscador.value.length); }
 
   // EVENTS
   screen.onclick = (e) => handleFase1Click(screen, user, e);
@@ -226,6 +231,30 @@ function renderFase1(screen, user) {
       }
     }
   }, 15000);
+}
+
+// Tarjetas de la Fase 1 filtradas por el buscador (nombre del lead, sin importar acentos ni mayúsculas)
+const sinAcentosCC = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+function pintarListaFase1(user) {
+  const lista = document.getElementById('cc-phase1-list');
+  if (!lista) return;
+  const q = sinAcentosCC(_ccState.busqueda);
+  const pendientes = _ccState.prospectos;
+  const visibles = pendientes.map((p, i) => ({ p, i })).filter(({ p }) => !q || sinAcentosCC(p.nombre).includes(q));
+  if (visibles.length) {
+    lista.innerHTML = visibles.map(({ p, i }) => buildFase1Card(p, i, puedeBorrarLeads(user))).join('');
+  } else if (q) {
+    lista.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 24px;opacity:0.6;">
+        <div style="font-size:2.4rem;margin-bottom:12px;"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <p style="font-size:14px;font-weight:700;color:var(--text-secondary);">No hay leads con "${escHtml(_ccState.busqueda)}"</p>
+      </div>`;
+  } else {
+    lista.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 24px;opacity:0.5;">
+        <div style="font-size:3rem;margin-bottom:12px;"><i class="fa-solid fa-envelope-open"></i></div>
+        <p style="font-size:14px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.1em;">Sin prospectos pendientes</p>
+        <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">Los leads del scraper aparecerán aquí automáticamente</p>
+      </div>`;
+  }
 }
 
 const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
