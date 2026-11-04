@@ -26,7 +26,7 @@ export async function renderListaPrecios() {
   
   const rankInfo = computeUserRank(user.id, activeUnit, db);
   
-  if (!isAdmin && rankInfo && rankInfo.isNoAplica) {
+  if (!isAdmin && (!window.puedeVerListaPrecios(user) || (rankInfo && rankInfo.isNoAplica))) {
     screen.innerHTML = `
       <div class="dash-header" style="padding-bottom:12px;">
         <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">
@@ -41,7 +41,7 @@ export async function renderListaPrecios() {
       <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
         <i class="fas fa-lock" style="font-size: 3.5rem; opacity: 0.2; margin-bottom: 16px;"></i>
         <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Acceso Restringido</p>
-        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">No tienes una lista de precios asignada en este momento. Por favor, contacta a administración si crees que esto es un error.</p>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">${window.puedeVerListaPrecios(user) ? 'Aún no tienes un rango asignado para ver tus precios.' : 'No tienes acceso a la lista de precios en este momento.'} Por favor, contacta a administración si crees que esto es un error.</p>
       </div>
     `;
     setTimeout(() => {

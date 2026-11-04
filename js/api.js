@@ -59,6 +59,28 @@ window.getUserRoles = function(user) {
   }
   return [...new Set(rawRoles.filter(Boolean).map(r => r.toLowerCase().trim()))];
 };
+// ── Accesos manuales (casillas del usuario en Renew OS) ──
+// Catálogo y Partners: solo con su casilla (Admin/CEO siempre).
+// Lista de Precios: con su casilla; mientras no exista la columna ver_lista_precios, sigue la regla anterior (tener rango).
+const ROLES_ACCESO_TOTAL = ['admin', 'administrador', 'administrator', 'ceo', 'desarrollador', 'desenvolvedor'];
+const marcado = (v) => v === true || v === 'true';
+window.esAccesoTotal = function(user) {
+  return window.getUserRoles(user).some(r => ROLES_ACCESO_TOTAL.includes(r));
+};
+window.puedeVerCatalogo = function(user) {
+  return !!user && (window.esAccesoTotal(user) || marcado(user.ver_catalogo));
+};
+window.puedeVerPartners = function(user) {
+  return !!user && (window.esAccesoTotal(user) || marcado(user.ver_partners) || !!(user.permisos && user.permisos.app_partners));
+};
+window.puedeVerListaPrecios = function(user) {
+  if (!user) return false;
+  if (user.permisos && 'app_precios' in user.permisos) return !!user.permisos.app_precios;
+  if (window.esAccesoTotal(user)) return true;
+  if ('ver_lista_precios' in user) return marcado(user.ver_lista_precios);
+  return !!user.rango && user.rango !== 'no_aplica';
+};
+
 // ── Call Center ──
 // Tiene el rol Call Center (aunque tenga otros): ve todos los clientes, como Admin/CEO, para auditar y llamar prospectos.
 window.isCallCenterUser = function(user) {
@@ -1872,6 +1894,8 @@ export async function saveAdminWorker(worker) {
     zadarma_sip_id:             src.zadarma_sip_id             || null,
     ver_catalogo:               !!src.ver_catalogo,
     ver_partners:               !!src.ver_partners,
+    // Solo si la columna ya existe en la BD (supabase_ver_lista_precios.sql)
+    ...('ver_lista_precios' in src ? { ver_lista_precios: !!src.ver_lista_precios } : {}),
   };
 
   await saveGranular('usuarios', [sanitized]);

@@ -185,7 +185,7 @@ const esAdmin = (u) => ROLES_ADMIN.test(rolesTexto(u));
 // - Su propio perfil sí lo puede editar, incluida su contraseña.
 // - De otros usuarios solo puede cambiar el rango (lo hace el ascenso automático al avanzar un proyecto).
 // - No puede crear usuarios con rol Admin/CEO.
-const CAMPOS_PROTEGIDOS = ['rol', 'is_suspended', 'unidades', 'equipo_ids', 'pipeline_ids', 'estatus_rrhh', 'ver_catalogo', 'ver_partners'];
+const CAMPOS_PROTEGIDOS = ['rol', 'is_suspended', 'unidades', 'equipo_ids', 'pipeline_ids', 'estatus_rrhh', 'ver_catalogo', 'ver_partners', 'ver_lista_precios'];
 async function limitarCambiosUsuarios(registros, sesion) {
     if (esAdmin(sesion)) return registros;
     const ids = registros.map(u => u.id).filter(Boolean);
@@ -1006,7 +1006,9 @@ app.post('/api/db', requiereSesion(), async (req, res) => {
                     banco_cuenta:   u.banco_cuenta   || null,
                     banco_ruta:     u.banco_ruta     || null,
                     zadarma_sip_id: u.zadarma_sip_id || null,
-                    ver_catalogo:   !!u.ver_catalogo
+                    ver_catalogo:   !!u.ver_catalogo,
+                    ver_partners:   !!u.ver_partners,
+                    ...('ver_lista_precios' in u ? { ver_lista_precios: !!u.ver_lista_precios } : {})
                 };
                 if (mapped.id === 'u1') console.log('[DEBUG-U1] Mapped Carlos:', JSON.stringify(mapped));
                 return mapped;
@@ -1432,7 +1434,8 @@ app.post('/api/upsert', requiereSesion(), async (req, res) => {
                 banco_ruta:                 u.banco_ruta                 || null,
                 zadarma_sip_id:             u.zadarma_sip_id             || null,
                 ver_catalogo:               !!u.ver_catalogo,
-                ver_partners:               !!u.ver_partners
+                ver_partners:               !!u.ver_partners,
+                ...('ver_lista_precios' in u ? { ver_lista_precios: !!u.ver_lista_precios } : {})
             }));
             sanitizedRecords = await conservarPasswords(await limitarCambiosUsuarios(sanitizedRecords, req.usuario));
         } else if (table === 'calendario_eventos') {

@@ -1697,7 +1697,7 @@
                 <div id="container-usr-rank" class="hidden">
                     <label class="aqua-label">Rango (Water)</label>
                     <select id="inp-usr-rank" class="w-full bg-bgLight dark:bg-bgDark transition-colors duration-300 border border-gray-300 dark:border-gray-600 rounded p-3 text-gray-800 dark:text-white focus:border-tealAccent focus:outline-none">
-                        <option value="no_aplica">No Aplica</option>
+                        <option value="no_aplica" disabled hidden>Sin rango</option>
                         <option value="oficina">Oficina</option>
                         <option value="novato">Novato</option>
                         <option value="iniciante">Iniciante</option>
@@ -2057,7 +2057,7 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Rango (Water)</label><select id="det-edit-rank" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white outline-none"><option value="no_aplica">No Aplica</option><option value="oficina">Oficina</option><option value="novato">Novato</option><option value="iniciante">Iniciante</option><option value="junior">Junior</option><option value="vendedor">Vendedor</option><option value="analista">Analista</option><option value="dealer">Dealer</option></select></div>
+                            <div id="det-edit-rank-container"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Rango (Water)</label><select id="det-edit-rank" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white outline-none"><option value="no_aplica" disabled hidden>Sin rango</option><option value="oficina">Oficina</option><option value="novato">Novato</option><option value="iniciante">Iniciante</option><option value="junior">Junior</option><option value="vendedor">Vendedor</option><option value="analista">Analista</option><option value="dealer">Dealer</option></select></div>
                             <div id="det-edit-rank-solar-container" class="hidden"><label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Rango (Solar)</label><select id="det-edit-rank-solar" class="w-full bg-white dark:bg-[#0c1322] border border-gray-200/80 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white outline-none"><option value="no_aplica">No Aplica</option><option value="novato">NOVATO 2.50</option><option value="iniciante">INICIANTE 2.45</option><option value="junior">JUNIOR 2.40</option><option value="vendedor">VENDEDOR 2.30</option><option value="asesor">ASESOR 2.20</option></select></div>
                         </div>
 
@@ -2069,6 +2069,11 @@
                         <div class="mb-4 bg-white/70 dark:bg-white/[0.02] border border-gray-200/70 dark:border-white/5 rounded-xl p-3.5">
                             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="det-edit-ver-partners" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300 dark:border-white/20"><span class="text-xs font-semibold text-gray-800 dark:text-gray-200">Permitir Ver Partners (Manual)</span></label>
                             <p class="text-[10px] text-gray-400 mt-1 ml-6">Otorga acceso manual a la pantalla de Partners en Renew OS.</p>
+                        </div>
+
+                        <div class="mb-4 bg-white/70 dark:bg-white/[0.02] border border-gray-200/70 dark:border-white/5 rounded-xl p-3.5">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="det-edit-ver-lista-precios" class="form-checkbox h-4 w-4 text-tealAccent rounded border-gray-300 dark:border-white/20"><span class="text-xs font-semibold text-gray-800 dark:text-gray-200">Permitir Ver Lista de Precios (Manual)</span></label>
+                            <p id="det-edit-ver-lista-precios-nota" class="text-[10px] text-gray-400 mt-1 ml-6">Otorga acceso manual a la Lista de Precios en Renew OS (los precios salen según su rango).</p>
                         </div>
                         
                         <div id="det-edit-equipo-container" class="hidden mb-4 p-4 rounded-xl border border-tealAccent/20 bg-tealAccent/5">
@@ -3314,7 +3319,7 @@
     </div>
 
     <!-- Module script -->
-    <script type="module" src="./js/admin-app.js?v=34"></script>
+    <script type="module" src="./js/admin-app.js?v=35"></script>
 
     <!-- Zadarma WebRTC -->
     <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"></script>

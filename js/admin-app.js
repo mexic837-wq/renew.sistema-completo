@@ -7830,6 +7830,15 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-dept')) document.getElementById('det-edit-dept').value = usr.department || '';
         if (document.getElementById('det-edit-ver-catalogo')) document.getElementById('det-edit-ver-catalogo').checked = !!usr.ver_catalogo;
         if (document.getElementById('det-edit-ver-partners')) document.getElementById('det-edit-ver-partners').checked = !!usr.ver_partners;
+        const chkLista = document.getElementById('det-edit-ver-lista-precios');
+        if (chkLista) {
+            // Hasta correr supabase_ver_lista_precios.sql no existe la columna: la casilla se ve pero no se puede usar
+            const hayColumna = 'ver_lista_precios' in usr;
+            chkLista.checked = hayColumna ? !!usr.ver_lista_precios : (!!usr.rango && usr.rango !== 'no_aplica');
+            chkLista.disabled = !hayColumna;
+            const nota = document.getElementById('det-edit-ver-lista-precios-nota');
+            if (nota) nota.textContent = hayColumna ? 'Otorga acceso manual a la Lista de Precios en Renew OS (los precios salen según su rango).' : 'Falta ejecutar supabase_ver_lista_precios.sql en Supabase para activar esta casilla.';
+        }
         
         const sipIdEl = document.getElementById('det-edit-sip-id');
         if (sipIdEl) sipIdEl.value = usr.zadarma_sip_id || '';
@@ -8147,6 +8156,8 @@ async function toggleDetailEditMode(id) {
             const department = deptEl ? deptEl.value.trim() : (usr.department || '');
             const ver_catalogo = document.getElementById('det-edit-ver-catalogo') ? document.getElementById('det-edit-ver-catalogo').checked : !!usr.ver_catalogo;
             const ver_partners = document.getElementById('det-edit-ver-partners') ? document.getElementById('det-edit-ver-partners').checked : !!usr.ver_partners;
+            const chkListaPrecios = document.getElementById('det-edit-ver-lista-precios');
+            const extraLista = ('ver_lista_precios' in usr) ? { ver_lista_precios: chkListaPrecios ? chkListaPrecios.checked : !!usr.ver_lista_precios } : {};
             const sede = document.getElementById('det-edit-sede')?.value || (usr.sede || 'orlando');
             const password = passEl ? passEl.value.trim() : ''; // vacío = el servidor conserva la actual
             const dob = dobEl ? dobEl.value : (usr.dob || '');
@@ -8199,6 +8210,7 @@ async function toggleDetailEditMode(id) {
                     nombre, apellido, email, telefono, rol, rango, rango_solar, department, password, initials, dob, sede,
                     ver_catalogo,
                 ver_partners,
+                    ...extraLista,
                     rol: Array.from(document.getElementById('det-edit-rol')?.querySelectorAll('input:checked') || []).map(o => o.value),
                     unidades: checkedPips,
                     equipo_ids, pipeline_ids,

@@ -25,9 +25,9 @@ export async function renderCatalogo() {
   const isAdmin = window.getUserRoles(user).some(r => ['admin','administrador','ceo','desarrollador'].includes(r)); 
   const isVentas = window.getUserRoles(user).some(r => ['vendedor','representante de ventas','asesor','analista','manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r)); 
   
-  if (!isAdmin && !isVentas && user.ver_catalogo !== true && user.ver_catalogo !== 'true') {
+  if (!isAdmin && (!isVentas || !window.puedeVerCatalogo(user))) {
     const rankInfo = computeUserRank(user.id, activeUnit, db);
-    if (rankInfo && rankInfo.isNoAplica) {
+    if (!window.puedeVerCatalogo(user)) {
       screen.innerHTML = `
         <div class="dash-header" style="padding-bottom:12px;">
           <div class="dash-header-top" style="display:flex; align-items:center; justify-content:center; position:relative; min-height:60px;">

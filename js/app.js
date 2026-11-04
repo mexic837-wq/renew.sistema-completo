@@ -532,14 +532,12 @@ export function navigate(screen, param = null) {
     return;
   }
 
-  if (screen === 'partners' && user) {
-    const isAdmin = window.getUserRoles(user).some(r => ['admin', 'administrador', 'administrator', 'ceo', 'desenvolvedor', 'manager', 'project manager', 'manager de ventas'].includes(r));
-    const hasPerm = user.permisos && user.permisos.app_partners;
-    if (!isAdmin && !window.getUserRoles(user).some(r => r.includes('representante') || r.includes('vendedor') || r.includes('supervisor') || r.includes('supervisión')) && !hasPerm) {
-      import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
-      navigate('dashboard');
-      return;
-    }
+  // Catálogo, Partners y Lista de Precios: solo con su casilla en Renew OS (Admin/CEO siempre)
+  const puedeEntrar = { partners: window.puedeVerPartners, catalogo: window.puedeVerCatalogo, 'lista-precios': window.puedeVerListaPrecios }[screen];
+  if (puedeEntrar && user && !puedeEntrar(user)) {
+    import('./components/toast.js').then(m => m.showToast('Acceso denegado', 'error'));
+    navigate('dashboard');
+    return;
   }
 
   _rememberDetailOrigin(screen);
