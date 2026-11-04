@@ -1733,6 +1733,45 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
     }
 });
 
+// ── EXTRAS DE INSTALACION WATER PDF ENDPOINT ──
+// Millas, trabajo extra, días y monto y total. El PDF se guarda en el cliente (la pantalla lo liga a la fase).
+app.post('/api/generar-extras-instalacion', requiereSesion(), async (req, res) => {
+    try {
+        const d = req.body.datos || req.body;
+        const moldePath = path.join(__dirname, 'extras_instalacion_molde.pdf');
+        if (!fs.existsSync(moldePath)) {
+            return res.status(404).json({ error: 'No se encontró el PDF molde de Extras de Instalación' });
+        }
+
+        const pdfBytes = await generarPDF(moldePath, d);
+        const fileName = `extras_instalacion/extras_instalacion_${Date.now()}.pdf`;
+        const { error: uploadError } = await supabase.storage
+            .from('archivos_renew')
+            .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
+        if (uploadError) throw new Error('No se pudo guardar el PDF: ' + uploadError.message);
+        const { data: { publicUrl: finalUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
+
+        let targetClienteId = d.clienteId || null;
+        if (!targetClienteId && d.proyectoId) {
+            const { data: proy } = await supabase.from('proyectos_dinamicos')
+                .select('cliente_id').eq('id', d.proyectoId).single();
+            if (proy?.cliente_id) targetClienteId = proy.cliente_id;
+        }
+        if (targetClienteId) {
+            const { data: cli } = await supabase.from('clientes_maestro')
+                .select('adjuntos_oficina').eq('id', targetClienteId).single();
+            const adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
+            adj.extras_instalacion_url = finalUrl;
+            await supabase.from('clientes_maestro').update({ adjuntos_oficina: adj }).eq('id', targetClienteId);
+        }
+
+        res.json({ success: true, url: finalUrl, pdfBase64: Buffer.from(pdfBytes).toString('base64') });
+    } catch (err) {
+        console.error('[/api/generar-extras-instalacion] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── FIRMA VIRTUAL DEL CLIENTE (enlace único por WhatsApp) ──
 // El agente Renew Water crea una solicitud con los datos de la plantilla y un borrador en PDF.
 // El cliente abre /firmar.html?t=TOKEN, revisa el borrador y firma; aquí se genera el PDF oficial

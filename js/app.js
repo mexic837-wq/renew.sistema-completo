@@ -41,9 +41,10 @@ import { renderPartners } from './screens/partners.js';
 import { renderMisRecibos } from './screens/recibos.js?v=3';
 import { renderListaPrecios } from './screens/listadeprecios.js';
 import { renderCatalogo } from './screens/catalogo.js';
-import { renderPlantillas }  from './screens/plantillas.js';
+import { renderPlantillas }  from './screens/plantillas.js?v=2';
 import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion.js?v=3';
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
+import { renderExtrasInstalacion } from './screens/extrasInstalacion.js?v=1';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
 import { _renderToolsForPipeline } from './screens/dashboard.js?v=14';
 import { t, getLang } from './i18n.js';
@@ -483,7 +484,7 @@ window.verificarAnunciosNuevos = async function() {
 setInterval(window.verificarAnunciosNuevos, 30000);
 
 // ── Router ──────────────────────────────────────────────────
-const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'plantilla-pozo', 'mis-adelantos'];
+const SCREENS = ['login', 'hub', 'dashboard', 'new-client', 'detail', 'academy', 'menu', 'inventory-tech', 'clients', 'call-center', 'credit-app', 'work-order', 'contract-app', 'mi-calendario', 'mi-mapa', 'mi-equipo', 'partners', 'mis-recibos', 'lista-precios', 'catalogo', 'notificaciones', 'plantillas', 'confirmacion-instalacion', 'plantilla-pozo', 'extras-instalacion', 'mis-adelantos'];
 
 // Recuerda de qué pantalla (y en qué posición) se abrió el detalle de un proyecto,
 // para que la flecha de volver regrese ahí en vez de a Inicio
@@ -596,6 +597,7 @@ export function navigate(screen, param = null) {
     case 'plantillas':  renderPlantillas();          break;
     case 'confirmacion-instalacion': renderConfirmacionInstalacion(param); break;
     case 'plantilla-pozo': renderPlantillaPozo(param); break;
+    case 'extras-instalacion': renderExtrasInstalacion(param); break;
     case 'mis-adelantos': renderMisAdelantos(); break;
     case 'credit-app':
       setTimeout(() => _sizeIframeScreen('credit-app', 'iframe-credit-app'), 50);
@@ -737,7 +739,7 @@ export function updateNavHighlight(activeScreen) {
     // Sub-pantallas resaltan su sección padre en el menú
     const NAV_PARENT = {
       'credit-app': 'plantillas', 'work-order': 'plantillas', 'contract-app': 'plantillas',
-      'plantilla-pozo': 'plantillas', 'confirmacion-instalacion': 'plantillas',
+      'plantilla-pozo': 'plantillas', 'confirmacion-instalacion': 'plantillas', 'extras-instalacion': 'plantillas',
       'detail': 'clients', 'new-client': 'clients'
     };
     const screenMatch = !!sc && (sc === activeScreen || sc === NAV_PARENT[activeScreen]);

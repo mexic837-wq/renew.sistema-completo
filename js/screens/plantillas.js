@@ -211,6 +211,17 @@ export function renderPlantillas() {
             iconColor: '#0ea5e9',
             cat:    'water',
             navigate: 'plantilla-pozo'
+        },
+        {
+            id:     'extras-instalacion',
+            title:  'Extras de Instalación',
+            sub:    'Renew Water',
+            desc:   'Millas, trabajo extra, días y monto y total de los extras de una instalación.',
+            icon:   '<i class="fa-solid fa-sack-dollar"></i>',
+            iconBg: 'rgba(245,158,11,.12)',
+            iconColor: '#f59e0b',
+            cat:    'water',
+            navigate: 'extras-instalacion'
         }
     ];
 

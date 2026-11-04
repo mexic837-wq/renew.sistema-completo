@@ -279,10 +279,12 @@ async function handleCampos(proy) {
     if (c.tipo === 'Fecha' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) continue;
     await guardarRespuesta(proy.id, c.id, v);
     guardados.push(c.etiqueta);
+    if (c.id === CAMPO_EXTRAS_HUBO && sinAcentos(v) === 'si') guardados.extras = true;
   }
   if (!guardados.length) { await say(`No logré identificar datos para *${cli}* (${fase.nombre}) en tu mensaje. Para avanzar necesito:\n${pedibles.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}\n\nEscríbeme *hola* para ver todo lo que tienes pendiente.`); return 'no_entendido'; }
   const res = await revisarFase(proy, ctx, user.id);
   let out = `✅ Guardé ${guardados.join(', ')} de *${cli}*.`;
+  if (guardados.extras) out += `\n💵 Llena la plantilla *Extras de Instalación* en la app (Plantillas → Extras de Instalación) con las millas, el trabajo extra, los días y el monto y el total.`;
   if (res.estado === 'faltan') out += `\n\nAún me falta que me pases estos datos para poder avanzar de fase:\n${res.pend.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`;
   else if (res.estado === 'bloqueada') out += `\nQueda en *${fase.nombre}* porque "${res.campo.etiqueta}" no es afirmativo. Avísame apenas cambie para proseguir.`;
   else if (res.estado === 'avanzo') out += textoAvance(res.sig, cli);

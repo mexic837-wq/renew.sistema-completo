@@ -6,6 +6,7 @@ const EVO = E.EVOLUTION_API_URL, INST = E.EVOLUTION_INSTANCE, EVH = { apikey: E.
 const APP_URL = E.APP_URL || 'https://renewgroup.site';
 const AUTO_ADVANCE = E.AUTO_ADVANCE === 'true';
 const FASE_1 = 'fase_33_z8j9', FASE_OT = 'fase_35_nol4', CAMPO_OT = 'campo_19_0fpc';
+const CAMPO_EXTRAS_HUBO = 'campo_extras_hubo'; // fase "Extras de Instalación": ¿Hubo extras? (Si / No)
 const GATES = { campo_12_iq3s: 'si', campo_campo_241_8jov: 'si', campo_16_zhmp: 'si' }; // desplegables que deben ser "Si" para avanzar
 const sd = $getWorkflowStaticData('global');
 sd.seen = sd.seen || []; sd.drafts = sd.drafts || {}; sd.reg = sd.reg || {}; sd.active = sd.active || {}; sd.pendingText = sd.pendingText || {};
@@ -74,11 +75,12 @@ const opcionesDe = (c) => limpiaOpc(c.opciones).split(',').map((x) => x.trim()).
 const ESPECIALES = ['Aplicación de Crédito', 'Orden de Trabajo'];
 const faltaValor = (r) => !r || !r.valor || ['EMPTY', ''].includes(String(r.valor).trim());
 
-// Campos "reales" de una fase: sin especiales, sin Test, sin duplicados por etiqueta. Estación 1 y 2 tienen su propio flujo.
+// Campos "reales" de una fase: sin especiales, sin Test, sin opcionales, sin duplicados por etiqueta. Estación 1 y 2 tienen su propio flujo.
+const esOpcional = (c) => /"es_opcional"\s*:\s*true/.test(String(c.opciones || ''));
 function camposFase(faseId, campos) {
   if (faseId === FASE_1 || faseId === FASE_OT) return [];
   const vistos = new Set();
-  return campos.filter((c) => c.fase_id === faseId && !ESPECIALES.includes(c.tipo) && !/test_probe/.test(c.id) && !vistos.has(c.etiqueta) && vistos.add(c.etiqueta));
+  return campos.filter((c) => c.fase_id === faseId && !ESPECIALES.includes(c.tipo) && !esOpcional(c) && !/test_probe/.test(c.id) && !vistos.has(c.etiqueta) && vistos.add(c.etiqueta));
 }
 
 // La MISMA persona que la app muestra en "En manos de" para las fases por rol
