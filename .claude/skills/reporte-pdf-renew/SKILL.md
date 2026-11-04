@@ -1,45 +1,45 @@
 ---
 name: reporte-pdf-renew
-description: Genera un PDF de reporte con la marca Renew (logo y paleta de colores de la empresa) que resume las implementaciones, cambios, y correcciones hechos en el sistema Renew. Úsala siempre que el usuario pida un reporte, informe, resumen, bitácora, "changelog" o PDF de lo que se hizo, cambió o implementó en el sistema (de hoy, de la semana, de un periodo, de una sesión o de un módulo como Leads, Plantillas o Call Center), aunque no diga la palabra "PDF" o "skill".
+description: Genera el PDF del REPORTE DIARIO DE AVANCES con la marca Renew (logo y colores de la empresa), en el formato oficial que exige la plataforma: fecha, nombre, tareas completadas, en progreso / pendientes y bloqueos. Úsala siempre que el usuario pida un reporte, informe, resumen, bitácora, "changelog" o PDF de lo que se hizo, cambió o implementó en el sistema (de hoy, de la semana, de una sesión o de un módulo como Leads, Plantillas o Call Center), aunque no diga la palabra "PDF" o "skill".
 ---
 
-# Reporte PDF de cambios del sistema Renew
+# Reporte diario de avances (PDF Renew)
 
-Convierte el trabajo hecho en el sistema (commits, funciones nuevas, correcciones) en un PDF presentable con el logo y los colores de Renew. El lector es el dueño del negocio, no un programador: habla de **qué cambió para el usuario y por qué importa**, no de cómo está escrito el código.
+Convierte el trabajo hecho (commits, funciones nuevas, correcciones) en el **Reporte Diario de Avances** con el logo y los colores de Renew. Este es el formato que piden en la plataforma, así que **no cambies los títulos ni el orden de las secciones**:
 
-Responde al usuario en español, breve y claro.
+```
+📋 REPORTE DIARIO DE AVANCES
+📅 Fecha: [Día de la semana, DD/MM/YYYY]
+👤 Nombre: [Nombre]
+
+✅ 1. Tareas completadas hoy:
+🔄 2. En progreso / Pendientes:
+⚠️ 3. Bloqueos o impedimentos:
+```
+
+El lector es el dueño del negocio, no un programador: habla de **qué cambió para el usuario**, no de cómo está escrito el código. Responde al usuario en español, breve y claro.
 
 ## Flujo
 
-1. **Define el periodo.** Si el usuario no lo dice, usa lo de la conversación actual o pregunta una sola vez ("¿de qué fecha a qué fecha?"). Sin periodo claro, usa los últimos 7 días.
-2. **Reúne los cambios.** En la carpeta del proyecto:
+1. **Define el día.** Por defecto es hoy. Si el usuario pide otra fecha o un periodo, úsalo en `fecha` (p. ej. "Lunes, 03/11/2026" o "Del 03/11/2026 al 04/11/2026").
+2. **Define el nombre.** Si no lo dice, pregúntalo una sola vez. El administrador del sistema es "Miguel Durantt Paolini".
+3. **Reúne lo hecho.** En la carpeta del proyecto:
    ```bash
-   git log --since="2026-10-24" --until="2026-10-27" --pretty=format:"%h|%ad|%s" --date=short
-   git show --stat <hash>     # solo si el título del commit no basta para entenderlo
+   git log --since="2026-11-04" --pretty=format:"%h|%ad|%s" --date=short
+   git show --stat <hash>     # solo si el título del commit no basta
    ```
-   Combina eso con lo que ya sabes de la conversación. Los commits son la fuente de verdad de lo que **sí está en `main`**: reporta solo eso, no lo que apenas se habló.
-3. **Agrupa por módulo, no por commit.** Varios commits del mismo tema son un solo cambio para el lector. Módulos típicos: Leads / Call Center, Clientes, Plantillas, Menú y navegación, Webhooks e integraciones (n8n, Zadarma), Seguridad, Infraestructura.
-4. **Redacta cada cambio** con un `tipo`, un `titulo` corto (verbo + resultado, p. ej. "Los leads ahora son una lista compartida") y un `detalle` de 1–3 frases en lenguaje llano: qué veía antes el usuario, qué ve ahora. Pon el hash en `commit`; `archivos` solo si aporta (máximo 3).
-5. **Escribe el JSON** y genera el PDF (ver abajo).
-6. **Entrega:** dile al usuario la ruta del PDF y en 2–3 líneas qué contiene. No hagas commit del PDF salvo que lo pida.
-
-## Tipos de cambio
-
-| tipo | Cuándo | Color |
-|---|---|---|
-| `nuevo` | Función o pantalla que antes no existía | verde turquesa |
-| `mejora` | Algo que ya existía y ahora funciona o se ve mejor | azul |
-| `correccion` | Un error que se arregló | ámbar |
-| `seguridad` | Riesgos encontrados o cerrados | rojo |
-
-El reporte **no incluye secciones de "Pendientes" ni "Notas"**: el usuario no las quiere en el PDF. Si hay pendientes (p. ej. correr `deploy.sh`), díselos en tu respuesta en el chat, no en el documento.
+   Combínalo con lo que ya sabes de la conversación. Los commits son la fuente de verdad de lo que **sí está en `main`**: en "completadas" va solo eso.
+4. **Redacta los puntos**, uno por línea, empezando con un verbo en pasado ("Agregué…", "Corregí…", "Quité…"). Tras el título puedes añadir un detalle breve o el impacto: *"Desplegado en producción sin incidencias"*. Agrupa varios commits del mismo tema en un solo punto.
+5. **En progreso / Pendientes:** lo que quedó a medias (con % de avance si se sabe: "70%") y lo programado para mañana. Aquí sí van pasos que dependen del usuario, como reimportar el workflow en n8n o correr `deploy.sh`.
+6. **Bloqueos:** dependencias, accesos o dudas que frenen el trabajo. Si no hay, deja `bloqueos` vacío y el PDF dirá "Ninguno".
+7. **Genera el PDF** (ver abajo) y entrega la ruta al usuario con 2–3 líneas de lo que contiene. No hagas commit del PDF salvo que lo pida.
 
 ## Generar el PDF
 
 Guarda el JSON en una carpeta temporal (no en el repo) y ejecuta el script. El PDF queda en `reportes/` dentro del proyecto:
 
 ```bash
-python .claude/skills/reporte-pdf-renew/scripts/generar_reporte.py <datos.json> reportes/reporte-cambios-AAAA-MM-DD.pdf
+python .claude/skills/reporte-pdf-renew/scripts/generar_reporte.py <datos.json> reportes/reporte-diario-AAAA-MM-DD.pdf
 ```
 
 El script imprime el PDF con Chrome o Edge en modo headless, así que no necesita instalar nada. Si no encuentra navegador, define la variable `CHROME_PATH`.
@@ -48,33 +48,24 @@ El script imprime el PDF con Chrome o Edge en modo headless, así que no necesit
 
 ```json
 {
-  "titulo": "Reporte de cambios del sistema",
-  "subtitulo": "24 al 26 de octubre de 2026",
-  "periodo": "24 – 26 oct 2026",
-  "preparado_para": "Miguel",
-  "resumen": "Dos o tres frases con lo más importante del periodo.",
-  "secciones": [
-    {
-      "nombre": "Leads (Call Center)",
-      "items": [
-        {
-          "tipo": "nuevo",
-          "titulo": "Los leads ahora son una lista compartida",
-          "detalle": "Antes cada agente recibía leads asignados y desaparecían. Ahora todos ven la misma lista completa y un lead solo sale al convertirse o rechazarse.",
-          "commit": "e059bb8",
-          "archivos": ["js/screens/callCenter.js", "server.js"]
-        }
-      ]
-    }
+  "fecha": "Miércoles, 04/11/2026",
+  "nombre": "Miguel Durantt Paolini",
+  "completadas": [
+    "Quité el número de serie y los costos adicionales de la Confirmación de Instalación (PDF, plantilla y agente)",
+    "El agente ahora pide la hora exacta al técnico y le manda el certificado a esa hora"
   ],
+  "en_progreso": [
+    "Reimportar workflow.json en n8n y volver a pegar las claves (pendiente del usuario)"
+  ],
+  "bloqueos": []
 }
 ```
 
-Solo `secciones` es obligatorio. El título por defecto es "Reporte de cambios del sistema" y el subtítulo toma el mes actual.
+Todos los campos son opcionales salvo que haya al menos un elemento en `completadas` o `en_progreso`. Si `fecha` falta, se usa hoy. Las viñetas (`*`, `-`) escritas a mano se limpian solas.
 
 ## Marca (ya incluida en el script)
 
-La paleta sale del propio sistema (`css/styles.css`) y del portal de formularios, para que el reporte se vea como el resto de Renew:
+La paleta sale del propio sistema (`css/styles.css`) y del portal de formularios:
 
 | Uso | Color |
 |---|---|
@@ -85,8 +76,8 @@ La paleta sale del propio sistema (`css/styles.css`) y del portal de formularios
 | Texto / fondo oscuro | `#0b1120` |
 | Fondos y bordes suaves | `#f8fafc`, `#e2e8f0` |
 
-El logo está en `assets/logo-renew.png` (copia de `assets/images/renew copia logo.png` del proyecto). Si la marca cambia, reemplaza ese archivo y los colores al inicio de `scripts/generar_reporte.py`; no hace falta tocar nada más.
+El logo está en `assets/logo-renew.png`. Si la marca cambia, reemplaza ese archivo y los colores al inicio de `scripts/generar_reporte.py`.
 
 ## Antes de entregar
 
-Abre el PDF o revisa que el archivo exista y pese más de unos KB. Comprueba que no haya secciones vacías, que los hashes existan (`git cat-file -t <hash>`) y que el resumen no prometa nada que no esté en `main`.
+Comprueba que el PDF exista y pese más de unos KB, que los hashes mencionados existan (`git cat-file -t <hash>`) y que "completadas" no prometa nada que no esté en `main`.
