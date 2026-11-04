@@ -59,6 +59,16 @@ window.getUserRoles = function(user) {
   }
   return [...new Set(rawRoles.filter(Boolean).map(r => r.toLowerCase().trim()))];
 };
+// ── Call Center ──
+// Tiene el rol Call Center (aunque tenga otros): ve todos los clientes, como Admin/CEO, para auditar y llamar prospectos.
+window.isCallCenterUser = function(user) {
+  return window.getUserRoles(user).some(r => r.includes('call'));
+};
+// SOLO Call Center: si además tiene otro rol (p. ej. Representante de Ventas), conserva todo lo de ese rol.
+window.isSoloCallCenter = function(user) {
+  const roles = window.getUserRoles(user);
+  return roles.length > 0 && roles.every(r => r.includes('call'));
+};
 // ── Manager de Venta (antes "Supervisor"): su equipo son los usuarios de equipo_ids ──
 const SUPERVISOR_ROLES = ['supervisor', 'supervisión', 'supervision', 'manager de venta'];
 window.SUPERVISOR_LABEL = 'Manager de Venta';

@@ -648,7 +648,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (canWater || isTecnico || allRoles.includes('manager'))) ? {
-        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (allRoles.some(r => r.includes('call')) ? 'Mis Llamadas' : 'Mis Clientes')), tag: 'Renew Water',
+        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (window.isCallCenterUser(user) ? 'Clientes' : 'Mis Clientes')), tag: 'Renew Water',
         gradient: 'linear-gradient(90deg,#22c55e,#16a34a)',
         iconBg: 'rgba(34,197,94,0.12)', iconColor: '#22c55e',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -699,7 +699,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : (true || userRole === 'manager')) ? {
-        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes')), tag: 'Renew Solar',
+        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (window.isCallCenterUser(user) ? 'Clientes' : 'Mis Clientes')), tag: 'Renew Solar',
         gradient: 'linear-gradient(90deg,#f4c430,#f59e0b)',
         iconBg: 'rgba(244,196,48,0.12)', iconColor: '#f4c430',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -736,7 +736,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
         action: () => window.appNavigate('call-center'), delay: '0s', screen: 'call-center'
       } : null,
       ((user.permisos && 'app_clientes' in user.permisos) ? user.permisos.app_clientes : true) ? {
-        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (userRole.includes('call') ? 'Mis Llamadas' : 'Mis Clientes')), tag: 'Renew Home',
+        name: (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (window.isCallCenterUser(user) ? 'Clientes' : 'Mis Clientes')), tag: 'Renew Home',
         gradient: 'linear-gradient(90deg,#a3d96b,#84cc16)',
         iconBg: 'rgba(163,217,107,0.12)', iconColor: '#a3d96b',
         icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
@@ -799,7 +799,7 @@ export function _renderToolsForPipeline(user, activeUnit) {
     'Inventario Real':       'var(--bg-tool-inventario)',
     'Mis Clientes':          'var(--bg-tool-clientes)',
       'Clientes / Citas':      'var(--bg-tool-clientes)',
-    'Mis Llamadas':          'var(--bg-tool-clientes)',
+    'Clientes':              'var(--bg-tool-clientes)',
     'Gestión de Leads (Fase 1)': 'var(--bg-tool-callcenter)',
     'Mi Mapa':               'var(--bg-tool-mapa)',
     'Calendario':         'var(--bg-tool-calendario)',
@@ -1187,7 +1187,7 @@ async function initRendimientoChart(user) {
 
   // —— Rank Banner in Rendimiento tab ———————————————————————————————
   const rankBannerRend = document.getElementById('rank-banner-rendimiento');
-  const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
+  const isCallCenter = user && window.isSoloCallCenter(user);
   if (rankBannerRend) {
     if (isStrictTecnico || isCallCenter) {
       rankBannerRend.style.display = 'none';
@@ -1627,7 +1627,7 @@ async function initLeaderboardChart(user) {
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
   const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'asesor', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
   const isStrictTecnico = isTecnico && window.getUserRoles(user).every(r => /t[eéÉ]cn[io]co/i.test(r));
-  const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
+  const isCallCenter = user && window.isSoloCallCenter(user);
 
   // ── Month Filter State ──────────────────────────────────────────
   const now = new Date();
@@ -2252,7 +2252,7 @@ window.addEventListener('themechange', () => {
     if (window.rendimientoChartInstance) {
       window.rendimientoChartInstance.destroy();
     }
-    const isCC = user && window.getUserRoles(user).some(r => r.includes('call'));
+    const isCC = user && window.isSoloCallCenter(user);
     if (isCC) initCCRendimientoChart(user);
     else initRendimientoChart(user);
   }

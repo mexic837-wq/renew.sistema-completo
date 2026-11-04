@@ -255,12 +255,9 @@ export async function renderClients() {
 
     // ── Wire up tab switching ─────────────────────────────────
     const tabCerrados = document.querySelector('[data-clients-tab="cerrados"]');
-    const isCallCenterTabs = window.getUserRoles(user).some(r => r.includes('call'));
-    if (tabCerrados) tabCerrados.style.display = (isTecnico || isCallCenterTabs) ? 'none' : '';
-    if ((isTecnico || isCallCenterTabs) && currentClientsTab === 'cerrados') currentClientsTab = 'clientes';
+    if (tabCerrados) tabCerrados.style.display = isTecnico ? 'none' : '';
+    if (isTecnico && currentClientsTab === 'cerrados') currentClientsTab = 'clientes';
     document.querySelectorAll('[data-clients-tab]').forEach(btn => {
-      const isCallCenter = window.getUserRoles(user).some(r => r.includes('call'));
-
       // Update tab labels
       if (isTecnico) {
         const tabKey = btn.dataset.clientsTab;
@@ -268,12 +265,6 @@ export async function renderClients() {
           btn.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>Vista Kanban';
           btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
         } else btn.textContent = tabKey === 'prospectos' ? t('clients_tab_prospects_tech') : t('clients_tab_clients_tech');
-      } else if (isCallCenter) {
-        const tabKey = btn.dataset.clientsTab;
-        if (tabKey === 'kanban') {
-          btn.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>Vista Kanban';
-          btn.style.cssText += ';display:inline-flex;align-items:center;justify-content:center;gap:5px;';
-        } else btn.textContent = tabKey === 'prospectos' ? 'Leads Pendientes' : 'Mis Llamadas';
       } else {
         const tabKey = btn.dataset.clientsTab;
         if (tabKey === 'kanban') {
@@ -393,8 +384,9 @@ async function _renderList(user, container) {
   const userRole = window.getUserRoles(user).join(' ').toLowerCase();
   const userRolNorm = userRole;
 
-  const isHighRole = window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(r));
-  const isCallCenterRole = window.getUserRoles(user).some(r => r.includes('call'));
+  // Call Center ve todos los clientes, como Admin/CEO (auditorías y llamadas a prospectos)
+  const isCallCenterRole = window.isCallCenterUser(user);
+  const isHighRole = isCallCenterRole || window.getUserRoles(user).some(r => ['admin', 'administrador', 'ceo', 'manager', 'partner'].includes(r));
   const isTecnico = esTecnicoPuro(user);
   const isSupervisorRole = window.isSupervisorUser(user);
   const supTeamIds = isSupervisorRole ? window.getTeamIds(user) : [];
@@ -415,19 +407,7 @@ async function _renderList(user, container) {
 
   const misClientes = (todosClientes || []).filter(c => {
     const clientProjects = projectsByClient.get(c.id) || [];
-    // ── CALL CENTER: only show clients whose active project phase belongs to CC ──
-    if (isCallCenterRole) {
-      // Find any project for this client that is currently in a CC-assigned phase
-      return clientProjects.some(p => {
-        const fase = allFases.find(f => f.id === p.fase_id);
-        if (!fase) return false;
-        const rolFase = (fase.rol_encargado || '').toLowerCase();
-        // Check if the phase is assigned to call center
-        return rolFase.includes('call');
-      });
-    }
-
-    // Ownership check for non-CC, non-admin users
+    // Ownership check for non-admin users
     if (!isHighRole) {
       // For technicians, show if they are assigned regardless of the current phase
       const isTecnicoOfProject = clientProjects.some(p => String(p.tecnico_id) === String(user.id));
@@ -523,8 +503,6 @@ async function _renderList(user, container) {
         });
         if (hasOpenProject || clientProjects.length === 0) countProspectos++;
         if (hasClosedProject) countClientes++;
-      } else if (isCallCenterRole) {
-        countProspectos++;
       } else {
         const isProspectoMacro = c.macro_estado === 'Prospectos' || c.macro_estado === 'Prospecto' || c.estado === 'Lead';
         if (isProspectoMacro) countProspectos++;
@@ -545,12 +523,10 @@ async function _renderList(user, container) {
   
   if (btnPros) {
       if (isTecnico) btnPros.innerHTML = (t('clients_tab_prospects_tech') || 'Nuevas Citas') + ` <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
-      else if (isCallCenterRole) btnPros.innerHTML = `Leads Pendientes <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
       else btnPros.innerHTML = `Prospectos <span style="font-size:0.8em;opacity:0.8">(${countProspectos})</span>`;
   }
   if (btnCli) {
       if (isTecnico) btnCli.innerHTML = (t('clients_tab_clients_tech') || 'Citas Cerradas') + ` <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
-      else if (isCallCenterRole) btnCli.innerHTML = `Mis Llamadas <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
       else btnCli.innerHTML = `Clientes en Proceso <span style="font-size:0.8em;opacity:0.8">(${countClientes})</span>`;
   }
   const btnCer = document.querySelector('[data-clients-tab="cerrados"]');
@@ -580,13 +556,6 @@ async function _renderList(user, container) {
       
       if (currentClientsTab === 'prospectos') return hasOpenProject || clientProjects.length === 0;
       return hasClosedProject;
-    });
-    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  } else if (isCallCenterRole) {
-    filtered = baseClientes.filter(c => {
-        if (currentClientsTab === 'declinados') return c.macro_estado === 'Declinado';
-        if (currentClientsTab !== 'kanban' && c.macro_estado === 'Declinado') return false;
-        return true;
     });
     filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   } else {
@@ -649,7 +618,7 @@ async function _renderList(user, container) {
       });
     }
 
-    if (proysToRender.length === 0 || (currentClientsTab === 'prospectos' && !isTecnico && !isCallCenterRole)) {
+    if (proysToRender.length === 0 || (currentClientsTab === 'prospectos' && !isTecnico)) {
       proysToRender = [null];
     }
     return proysToRender.map(proy => {
@@ -840,7 +809,7 @@ async function _renderList(user, container) {
                       (client.responsable_id || '').split(',').map(x=>x.trim()).includes(String(user.id)) ||
                       (client.vendedor_asignado_id || '').split(',').map(x=>x.trim()).includes(String(user.id));
       
-      if (isCallCenterRole || (isSupervisor && !isOwner)) {
+      if (((isCallCenterRole || isSupervisor) && !isOwner) || window.isSoloCallCenter(user)) {
         _showCallCenterLeadModal(client, allProys, db);
         return;
       }

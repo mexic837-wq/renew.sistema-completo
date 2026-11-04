@@ -2235,8 +2235,7 @@ body.is-callcenter .nav-item-plus {
   display: none !important;
 }
 
-body.is-tecnico .clients-tabs-fix,
-body.is-callcenter .clients-tabs-fix {
+body.is-tecnico .clients-tabs-fix {
   display: none !important;
 }
 

@@ -25,14 +25,14 @@ export { getCurrentUser, logout }; // Re-export for compatibility
 
 import { renderLogin }    from './screens/login.js';
 import { renderHub }       from './screens/hub.js';
-import { renderDashboard } from './screens/dashboard.js?v=14';
+import { renderDashboard } from './screens/dashboard.js?v=15';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js?v=2';
 import { renderAcademy }    from './screens/academy.js';
 import { renderMenu }       from './screens/menu.js?v=4';
 import { renderInventoryTech } from './screens/inventory.js';
-import { renderClients } from './screens/clients.js?v=14';
+import { renderClients } from './screens/clients.js?v=15';
 import { renderCallCenter } from './screens/callCenter.js';
 import { renderMiCalendario } from './screens/calendar.js?v=7';
 import { renderMiMapa } from './screens/mapa.js?v=2';
@@ -46,7 +46,7 @@ import { renderConfirmacionInstalacion } from './screens/confirmacionInstalacion
 import { renderPlantillaPozo } from './screens/plantillaPozo.js';
 import { renderExtrasInstalacion } from './screens/extrasInstalacion.js?v=1';
 import { renderMisAdelantos } from './screens/adelantos.js'; // RRHH Adelantos
-import { _renderToolsForPipeline } from './screens/dashboard.js?v=14';
+import { _renderToolsForPipeline } from './screens/dashboard.js?v=15';
 import { t, getLang } from './i18n.js';
 import { openChat } from './components/internal-chat.js';
 
@@ -526,7 +526,7 @@ export function navigate(screen, param = null) {
   }
 
   // RBAC Guard
-  if (screen === 'new-client' && user && window.getUserRoles(user).some(r => r.includes('call'))) {
+  if (screen === 'new-client' && user && window.isSoloCallCenter(user)) {
     import('./components/toast.js').then(m => m.showToast('Acceso denegado: Rol Call Center', 'error'));
     navigate('call-center');
     return;
@@ -686,7 +686,8 @@ export function updateNavHighlight(activeScreen) {
   if (!bNav) return;
   
   const user = getCurrentUser();
-  const isCallCenter = user && window.getUserRoles(user).some(r => r.includes('call'));
+  // Solo Call Center (sin otro rol): no crea clientes. Con otro rol, conserva todo lo de ese rol.
+  const isCallCenter = user && window.isSoloCallCenter(user);
   const isTecnico = user && window.getUserRoles(user).some(r => /t[eéÉ]cn[io]co/i.test(r));
   const isVendedor = user && window.getUserRoles(user).some(r => ['vendedor', 'representante de ventas', 'manager de ventas', 'supervisor', 'supervisión', 'project manager'].includes(r));
   const isStrictTecnico = isTecnico && window.getUserRoles(user).every(r => /t[eéÉ]cn[io]co/i.test(r));
@@ -708,7 +709,7 @@ export function updateNavHighlight(activeScreen) {
   // Update nav labels with current language
   const navLabels = {
     'dashboard':    t('nav_home'),
-    'clients':      (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : (isCallCenter ? 'Mis Llamadas' : t('nav_clients'))),
+    'clients':      (isVendedor && isTecnico) ? 'Clientes / Citas' : (isStrictTecnico ? t('nav_clients_tech') : t('nav_clients')),
     'academy':      t('nav_academy'),
     'mi-equipo':    t('nav_team'),
     'menu':         t('nav_menu'),
@@ -797,7 +798,7 @@ function handleHashChange() {
     }
 
     // RBAC Guard
-    if (screen === 'new-client' && user && window.getUserRoles(user).some(r => r === 'call center' || r === 'call_center')) {
+    if (screen === 'new-client' && user && window.isSoloCallCenter(user)) {
       navigate('dashboard');
       return;
     }
