@@ -143,7 +143,6 @@ ${listaTecnicos(ctx)}`;
 const CERT_PREGUNTAS = [
   'Para la *Confirmación de Instalación* necesito:',
   '💧 *Equipos instalados*: sistema para toda la casa / ósmosis inversa / pozo.',
-  '💵 *Costos adicionales* si hubo (instalación, millas, trabajo extra, otro). Si no hubo, escribe "sin costos".',
   '',
   'Con eso armo el documento y se lo mando al cliente para que lo firme.',
 ].join('\n');
@@ -667,7 +666,7 @@ function lineaPendiente(p, ctx, resp, opts = {}) {
     const mo = momentoInstalacion(inst);
     const cuando = inst && inst.fecha ? `${fechaLarga(inst.fecha)}${inst.hora ? ' a las ' + inst.hora : ''}` : '';
     if (mo === 'antes' || mo === 'hoy_antes' || mo === 'en_curso') return opts.informar ? `📅 *${cli}*: instalación ${mo === 'en_curso' ? 'en curso' : 'programada para el ' + cuando}. Al terminar, escríbeme y te pido los datos.` : null;
-    return `🛠 *${cli}*: ¿ya terminaste la instalación${cuando ? ' del ' + cuando : ''}? Pásame los equipos instalados y los costos adicionales (o "sin costos").`;
+    return `🛠 *${cli}*: ¿ya terminaste la instalación${cuando ? ' del ' + cuando : ''}? Confírmame los equipos instalados y se la mando al cliente para que firme.`;
   }
   const pend = camposFase(p.fase_id, ctx.campos).filter((c) => faltaValor(resp.find((x) => x.proyecto_id === p.id && x.campo_id === c.id)));
   return pend.length ? `📎 *${cli}* (${fase.nombre}): ${pend.map((c) => preguntaCampo(c, ctx)).join('; ')}` : null;

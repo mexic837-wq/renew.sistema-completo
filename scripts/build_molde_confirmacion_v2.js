@@ -1,7 +1,8 @@
 // Genera confirmacion_instalacion_water_molde_v2.pdf a partir del molde actual:
 //  · Observaciones: las 3 preguntas se unen en una sola confirmación con Yes/No + iniciales
-//  · Equipos instalados: solo tratamiento para toda la casa, ósmosis inversa y pozo (con # de serie)
-// El resto del PDF (encabezado, logo, colores, costos y firma) no se toca.
+//  · Equipos instalados: solo tratamiento para toda la casa, ósmosis inversa y pozo (sin # de serie)
+//  · Sin la columna de costos adicionales
+// El resto del PDF (encabezado, logo, colores y firma) no se toca.
 // Uso: node scripts/build_molde_confirmacion_v2.js
 const fs = require('fs');
 const path = require('path');
@@ -19,6 +20,7 @@ const OLD_FIELDS = [
   'chk_agua_municipal', 'chk_ice_maker', 'chk_water_treatment', 'hk_reverse_osmosis', 'chk_well_water',
   'chk_ultraviolet', 'chk_big_blue', 'chk_spin_down', 'chk_other_equip',
   'serial_water', 'serial_ro', 'serial_well', 'other_equip_text',
+  'costo_instalacion', 'costo_millas', 'costo_extra', 'costo_otro', 'costo_total',
 ];
 
 (async () => {
@@ -57,7 +59,7 @@ const OLD_FIELDS = [
 
   // ── Borrar zonas a rediseñar (fondo blanco del original) ──
   page.drawRectangle({ x: 6, y: 241, width: 600, height: 131, color: rgb(1, 1, 1) });   // 3 preguntas
-  page.drawRectangle({ x: 28, y: 125, width: 372, height: 117, color: rgb(1, 1, 1) });   // lista de equipos
+  page.drawRectangle({ x: 28, y: 125, width: 572, height: 117, color: rgb(1, 1, 1) });   // lista de equipos y columna de costos
 
   // ── OBSERVACIONES: una sola confirmación ──
   const cx = 306;
@@ -86,23 +88,20 @@ const OLD_FIELDS = [
 
   // ── EQUIPOS INSTALADOS ──
   const equipos = [
-    ['chk_water_treatment', 'serial_water', 'WHOLE HOUSE WATER TREATMENT SYSTEM', 'Sistema de tratamiento de agua para toda la casa'],
-    ['chk_reverse_osmosis', 'serial_ro', 'REVERSE OSMOSIS SYSTEM', 'Sistema de ósmosis inversa'],
-    ['chk_well_water', 'serial_well', 'WELL WATER SYSTEM', 'Sistema de agua de pozo'],
+    ['chk_water_treatment', 'WHOLE HOUSE WATER TREATMENT SYSTEM', 'Sistema de tratamiento de agua para toda la casa'],
+    ['chk_reverse_osmosis', 'REVERSE OSMOSIS SYSTEM', 'Sistema de ósmosis inversa'],
+    ['chk_well_water', 'WELL WATER SYSTEM', 'Sistema de agua de pozo'],
   ];
-  // Mismo tamaño para las 3 etiquetas, sin invadir la columna de costos (x ≈ 400)
+  // Mismo tamaño para las 3 etiquetas, a lo ancho de la hoja (ya no hay columna de costos)
   const GAP = 5;
-  let size = 9.5;
-  while (equipos.some(([, , en, es]) => width(en + ' /', bold, size) + GAP + width(es, regular, size) > 335)) size -= 0.25;
-  equipos.forEach(([chk, serial, en, es], i) => {
-    const y = 224 - i * 36;
+  let size = 11;
+  while (equipos.some(([, en, es]) => width(en + ' /', bold, size) + GAP + width(es, regular, size) > 520)) size -= 0.25;
+  equipos.forEach(([chk, en, es], i) => {
+    const y = 214 - i * 32;
     box(39, y);
     field(chk, 39, y, 10, 10, 9, true);
     const w = text(en + ' /', 56, y + 1.5, { font: bold, size });
     text(es, 56 + w + GAP, y + 1.5, { size });
-    text('Serial #:', 56, y - 14, { size: 9.5 });
-    line(90, 230, y - 15.5);
-    field(serial, 92, y - 15, 136, 11, 9);
   });
 
   fs.writeFileSync(OUT, await doc.save());

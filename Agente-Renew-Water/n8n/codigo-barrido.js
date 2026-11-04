@@ -71,14 +71,13 @@ if (aLaHora.length) {
     const eqs = [prog.casa && 'Sistema para toda la casa', prog.osmosis && 'Ósmosis inversa', prog.pozo && 'Sistema de pozo'].filter(Boolean).join(', ');
     const text = [`📋 ${t.nombre.trim()}, ya es la hora de la instalación de *${cli}*${dirs[p.cliente_id] ? `\n📍 ${dirs[p.cliente_id]}` : ''}`, '',
       'Aquí tienes el *Certificado de Instalación* para que lo completes de una vez:', '',
-      eqs ? `💧 *Equipos* (según el representante): ${eqs}. Si cambió algo, corrígeme.` : '💧 ¿Qué *equipos* instalaste? (sistema para toda la casa / ósmosis inversa / pozo)',
-      '💵 ¿Hubo *costos adicionales*? (instalación, millas, trabajo extra, otro). Si no hubo, escribe "sin costos".', '',
-      'Con eso armo el documento y se lo mando al cliente para que lo firme.'].join('\n');
+      eqs ? `💧 *Equipos instalados* (según el representante): ${eqs}.` : '💧 ¿Qué *equipos* instalaste? (sistema para toda la casa / ósmosis inversa / pozo)', '',
+      eqs ? 'Cuando termines, responde *SI* y se lo mando al cliente para que lo firme. Si cambió algún equipo, dímelo.' : 'Con eso armo el documento y se lo mando al cliente para que lo firme.'].join('\n');
     const enviado = SEND && (await sendSafe(norm(t.telefono), text));
     if (enviado) {
       sd.reg[`cert_hora|${p.id}`] = new Date().toISOString();
       // Borrador listo con los equipos: su respuesta va directo a este cliente
-      if (!sd.cert[p.id]) sd.cert[p.id] = { equipos: Object.fromEntries(['casa', 'osmosis', 'pozo'].filter((k) => prog[k]).map((k) => [k, true])), costos: {}, _owner: t.id };
+      if (!sd.cert[p.id]) sd.cert[p.id] = { equipos: Object.fromEntries(['casa', 'osmosis', 'pozo'].filter((k) => prog[k]).map((k) => [k, true])), _owner: t.id, _confirmando: !!eqs };
       sd.active[t.id] = p.id;
     }
     avisosHoy.push({ json: { para: t.nombre.trim(), recordatorio: 'certificado_a_la_hora', enviado, simulacion: !SEND, mensaje: text } });

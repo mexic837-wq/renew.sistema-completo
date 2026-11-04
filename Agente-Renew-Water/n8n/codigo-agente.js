@@ -494,7 +494,7 @@ async function cerrarTecnico(proy, st, cli, tec, out) {
   const resp = await sel('respuestas_dinamicas', `select=campo_id,valor&proyecto_id=eq.${proy.id}`);
   const pend = cs.filter((c) => faltaValor(resp.find((r) => r.campo_id === c.id)));
   if (pend.length) out += `\n\nPara cerrar esta fase aún me falta:\n${pend.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`;
-  else if (AUTO_ADVANCE) { const sig = await avanzar(proy, ctx, user.id, [user.id, tec.id]); if (sig) out += `\n\n🚀 Avancé a *${cli}* a *${sig.nombre}*. Cuando el técnico termine, le pido los equipos y los costos y armo la confirmación para que firme el cliente.`; }
+  else if (AUTO_ADVANCE) { const sig = await avanzar(proy, ctx, user.id, [user.id, tec.id]); if (sig) out += `\n\n🚀 Avancé a *${cli}* a *${sig.nombre}*. A la hora de la instalación le mando al técnico la confirmación con los equipos para que la complete y firme el cliente.`; }
   delete sd.inst[proy.id];
   return out;
 }
@@ -523,23 +523,18 @@ async function handlePozo(proy, st, cli) {
 }
 
 // ---------- Confirmación de Instalación (Estación 4) ----------
-// Sin números de serie. El inventario no se le pregunta al vendedor ni al técnico: lo registran los responsables de inventario.
+// Solo los equipos instalados: sin números de serie ni costos adicionales.
+// El inventario no se le pregunta al vendedor ni al técnico: lo registran los responsables de inventario.
 const CERT_EQUIPOS = [['casa', 'water_treatment', 'Sistema para toda la casa'], ['osmosis', 'reverse_osmosis', 'Ósmosis inversa'], ['pozo', 'well_water', 'Sistema de pozo']];
-const numC = (v) => { const n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; };
-
 function faltantesCert(st) {
   const f = [];
   if (!CERT_EQUIPOS.some(([k]) => st.equipos[k])) f.push('💧 los *equipos instalados* (toda la casa / ósmosis / pozo)');
-  if (!st.costosDichos) f.push('💵 los *costos adicionales* (instalación, millas, trabajo extra, otro) o "sin costos"');
   return f;
 }
 
 function resumenCert(st, cli) {
   const eq = CERT_EQUIPOS.filter(([k]) => st.equipos[k]).map(([, , nom]) => nom).join(', ');
-  const c = st.costos || {};
-  const total = numC(c.instalacion) + numC(c.millas) + numC(c.extra) + numC(c.otro);
-  return [`📋 *Confirmación de Instalación de ${cli}*`, '', `💧 ${eq}`,
-    `💵 ${total ? `Costos adicionales: $${total.toFixed(2)}` : 'Sin costos adicionales'}`, '',
+  return [`📋 *Confirmación de Instalación de ${cli}*`, '', `💧 Equipos instalados: ${eq}`, '',
     'Responde *SI* para enviarle el documento al cliente para que lo firme, o dime qué corregir.'].join('\n');
 }
 
@@ -549,7 +544,7 @@ async function handleCert(proy) {
     // Los equipos que el vendedor dijo al programar la instalación
     await cargarInstalaciones(ctx, [proy]);
     const prog = (ctx.INST[proy.id] && ctx.INST[proy.id].equipos) || {};
-    sd.cert[proy.id] = { equipos: Object.fromEntries(CERT_EQUIPOS.filter(([k]) => prog[k]).map(([k]) => [k, true])), costos: {} };
+    sd.cert[proy.id] = { equipos: Object.fromEntries(CERT_EQUIPOS.filter(([k]) => prog[k]).map(([k]) => [k, true])) };
   }
   const st = sd.cert[proy.id];
   st._owner = user.id;
@@ -563,11 +558,9 @@ async function handleCert(proy) {
   if (st._confirmando && esSi(text) && !faltantesCert(st).length) return confirmarCert(proy, st, cli);
 
   const ext = await llm(
-    'Un técnico o vendedor reporta por WhatsApp una instalación de agua terminada. Responde SOLO JSON con UNICAMENTE lo que se mencione: {"casa": bool, "osmosis": bool, "pozo": bool, "costo_instalacion": number, "costo_millas": number, "costo_extra": number, "costo_otro": number, "sin_costos": bool}. "casa" = sistema de tratamiento/suavizador para toda la casa. "sin_costos" = true si dice que no hubo costos adicionales. NUNCA inventes.',
+    'Un técnico o vendedor reporta por WhatsApp una instalación de agua terminada. Responde SOLO JSON con UNICAMENTE lo que se mencione: {"casa": bool, "osmosis": bool, "pozo": bool}. true si dice que lo instaló, false si dice que ese NO se instaló. "casa" = sistema de tratamiento/suavizador para toda la casa. NUNCA inventes.',
     `Mensaje:\n${text}`);
-  for (const [k] of CERT_EQUIPOS) if (ext[k] === true) st.equipos[k] = true;
-  if (ext.sin_costos) { st.costos = {}; st.costosDichos = true; }
-  ['instalacion', 'millas', 'extra', 'otro'].forEach((k) => { if (ext['costo_' + k] !== undefined && ext['costo_' + k] !== null) { st.costos[k] = numC(ext['costo_' + k]); st.costosDichos = true; } });
+  for (const [k] of CERT_EQUIPOS) { if (ext[k] === true) st.equipos[k] = true; if (ext[k] === false) delete st.equipos[k]; }
 
   st._confirmando = false;
   const falt = faltantesCert(st);
@@ -600,19 +593,13 @@ async function confirmarCert(proy, st, cli) {
   const resp = await sel('respuestas_dinamicas', `select=campo_id,valor&proyecto_id=eq.${proy.id}`);
   const cFecha = camposFase(FASE_TEC, ctx.campos).find((c) => c.tipo === 'Fecha');
   const fInst = cFecha && (resp.find((r) => r.campo_id === cFecha.id) || {}).valor;
-  const c = st.costos || {};
-  const total = numC(c.instalacion) + numC(c.millas) + numC(c.extra) + numC(c.otro);
   const datos = {
     proyectoId: proy.id, clienteId: proy.cliente_id, fecha: hoyUS(), fecha_firma: hoyUS(),
     comprador: ficha.nombre || cli, telefono: ficha.telefono || '', email: ficha.email || '', direccion: ficha.direccion || '',
     ciudad: ficha.ciudad || '', estado: ficha.estado || '', zip: ficha.zipCode || '',
     fecha_instalacion: fInst && !faltaValor({ valor: fInst }) ? fechaUS(fInst) : hoyUS(),
     instalador: `${tec.nombre} ${tec.apellido || ''}`.trim(), representante_ventas: vend ? `${vend.nombre} ${vend.apellido || ''}`.trim() : '',
-    water_treatment: !!st.equipos.casa, serial_water: '',
-    reverse_osmosis: !!st.equipos.osmosis, serial_ro: '',
-    well_water: !!st.equipos.pozo, serial_well: '',
-    costo_instalacion: c.instalacion ? numC(c.instalacion).toFixed(2) : '', costo_millas: c.millas ? numC(c.millas).toFixed(2) : '',
-    costo_extra: c.extra ? numC(c.extra).toFixed(2) : '', costo_otro: c.otro ? numC(c.otro).toFixed(2) : '', costo_total: total ? total.toFixed(2) : '',
+    water_treatment: !!st.equipos.casa, reverse_osmosis: !!st.equipos.osmosis, well_water: !!st.equipos.pozo,
   };
   const f = await crearFirma('confirmacion_instalacion', proy, ficha.nombre || cli, datos, user.id);
   st._firmaUrl = f.url; st._confirmando = false;

@@ -33,7 +33,6 @@ export function renderConfirmacionInstalacion() {
     .ci-checkbox { width:22px;height:22px;border:2px solid var(--border);border-radius:6px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.2s;font-size:.85rem; }
     .ci-checkbox.checked { background:#0ea5e9;border-color:#0ea5e9;color:#fff; }
     .ci-check-label { flex:1;font-size:.85rem;font-weight:600;color:var(--text-primary); }
-    .ci-serial { width:130px;flex-shrink:0; }
     .sig-wrapper { border:2px dashed var(--border);border-radius:16px;overflow:hidden;position:relative;background:#fff; }
     .sig-canvas { display:block;width:100%;height:140px;touch-action:none; }
     .sig-clear { position:absolute;top:8px;right:10px;background:rgba(239,68,68,.1);border:none;color:#ef4444;font-size:.7rem;font-weight:800;padding:4px 10px;border-radius:6px;cursor:pointer; }
@@ -190,7 +189,7 @@ export function renderConfirmacionInstalacion() {
         <div class="ci-section-icon" style="background:rgba(14,165,233,.1);">💧</div>
         <div>
           <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Equipos Instalados</div>
-          <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Selecciona y agrega # de serie</div>
+          <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Selecciona los equipos instalados</div>
         </div>
       </div>
       <div class="ci-section-body" id="ci-equip-list">
@@ -198,52 +197,14 @@ export function renderConfirmacionInstalacion() {
         <div class="ci-check-row">
           <div class="ci-checkbox" data-key="water_treatment" onclick="window.ciToggleChk(this)"></div>
           <span class="ci-check-label">Sistema de tratamiento de agua para toda la casa</span>
-          <input class="ci-input ci-serial" type="text" id="ci-serial-water" placeholder="# Serie">
         </div>
         <div class="ci-check-row">
           <div class="ci-checkbox" data-key="reverse_osmosis" onclick="window.ciToggleChk(this)"></div>
           <span class="ci-check-label">Sistema de ósmosis inversa</span>
-          <input class="ci-input ci-serial" type="text" id="ci-serial-ro" placeholder="# Serie">
         </div>
         <div class="ci-check-row">
           <div class="ci-checkbox" data-key="well_water" onclick="window.ciToggleChk(this)"></div>
           <span class="ci-check-label">Sistema de agua de pozo</span>
-          <input class="ci-input ci-serial" type="text" id="ci-serial-well" placeholder="# Serie">
-        </div>
-      </div>
-    </div>
-
-    <!-- Costos -->
-    <div class="ci-section">
-      <div class="ci-section-hdr">
-        <div class="ci-section-icon" style="background:rgba(245,158,11,.1);"><i class="fa-solid fa-sack-dollar"></i></div>
-        <div>
-          <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Costos Adicionales</div>
-          <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Si aplica</div>
-        </div>
-      </div>
-      <div class="ci-section-body">
-        <div class="ci-grid">
-          <div class="ci-field">
-            <label class="ci-label">Costo Instalación ($)</label>
-            <input class="ci-input" type="text" id="ci-costo-instalacion" placeholder="0.00">
-          </div>
-          <div class="ci-field">
-            <label class="ci-label">Costo Millas ($)</label>
-            <input class="ci-input" type="text" id="ci-costo-millas" placeholder="0.00">
-          </div>
-          <div class="ci-field">
-            <label class="ci-label">Costo Extra ($)</label>
-            <input class="ci-input" type="text" id="ci-costo-extra" placeholder="0.00">
-          </div>
-          <div class="ci-field">
-            <label class="ci-label">Otro ($)</label>
-            <input class="ci-input" type="text" id="ci-costo-otro" placeholder="0.00">
-          </div>
-        </div>
-        <div class="ci-field">
-          <label class="ci-label">Total a Cobrar ($)</label>
-          <input class="ci-input" type="text" id="ci-costo-total" placeholder="0.00" style="font-weight:800;font-size:1.05rem;">
         </div>
       </div>
     </div>
@@ -449,16 +410,8 @@ window.ciSubmit = async () => {
     confirmacion_cliente: _getRadio('confirmacion_cliente'),
     iniciales:          _val('ci-iniciales'),
     water_treatment:    _isChecked('water_treatment'),
-    serial_water:       _val('ci-serial-water'),
     reverse_osmosis:    _isChecked('reverse_osmosis'),
-    serial_ro:          _val('ci-serial-ro'),
     well_water:         _isChecked('well_water'),
-    serial_well:        _val('ci-serial-well'),
-    costo_instalacion:  _val('ci-costo-instalacion'),
-    costo_millas:       _val('ci-costo-millas'),
-    costo_extra:        _val('ci-costo-extra'),
-    costo_otro:         _val('ci-costo-otro'),
-    costo_total:        _val('ci-costo-total'),
     firma_comprador:    firmaData,
     fecha_firma:        fecha,
   };
