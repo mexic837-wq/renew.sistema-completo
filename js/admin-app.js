@@ -1737,6 +1737,8 @@ function bindGlobalEvents() {
         initials: initials,
         rol: selectedRoles,
         rango: document.getElementById('inp-usr-rank').value,
+        // Con rango en Water, la Lista de Precios queda marcada sola (si la columna ya existe)
+        ...(workers.some(w => 'ver_lista_precios' in w) ? { ver_lista_precios: !!document.getElementById('inp-usr-rank').value && document.getElementById('inp-usr-rank').value !== 'no_aplica' } : {}),
         rango_solar: document.getElementById('inp-usr-rank-solar') ? document.getElementById('inp-usr-rank-solar').value : 'no_aplica',
         department: UI.inpUsrDept ? UI.inpUsrDept.value.trim() : '',
         sede: UI.inpUsrSede ? UI.inpUsrSede.value : 'orlando',
@@ -7831,6 +7833,15 @@ async function toggleDetailEditMode(id) {
         if (document.getElementById('det-edit-ver-catalogo')) document.getElementById('det-edit-ver-catalogo').checked = !!usr.ver_catalogo;
         if (document.getElementById('det-edit-ver-partners')) document.getElementById('det-edit-ver-partners').checked = !!usr.ver_partners;
         const chkLista = document.getElementById('det-edit-ver-lista-precios');
+        const selRango = document.getElementById('det-edit-rank');
+        if (selRango && !selRango.dataset.marcaLista) {
+            // Al asignarle un rango en Water se marca sola la Lista de Precios (se puede desmarcar)
+            selRango.dataset.marcaLista = '1';
+            selRango.addEventListener('change', () => {
+                const chk = document.getElementById('det-edit-ver-lista-precios');
+                if (chk && !chk.disabled && selRango.value && selRango.value !== 'no_aplica') chk.checked = true;
+            });
+        }
         if (chkLista) {
             // Hasta correr supabase_ver_lista_precios.sql no existe la columna: la casilla se ve pero no se puede usar
             const hayColumna = 'ver_lista_precios' in usr;
