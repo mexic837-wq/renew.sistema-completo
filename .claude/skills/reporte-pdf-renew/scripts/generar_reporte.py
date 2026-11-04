@@ -107,11 +107,12 @@ def construir_html(d):
   .meta div {{ flex: 1; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }}
   .meta span {{ display: block; font-size: 8pt; letter-spacing: .8px; text-transform: uppercase; color: #64748b; font-weight: 700; }}
   .meta b {{ font-size: 12pt; font-weight: 800; color: #0a4a6e; }}
-  section {{ margin: 0 0 14px; padding: 12px 16px 10px; background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid; border-radius: 12px; break-inside: avoid; }}
+  section {{ margin: 0 0 14px; padding: 12px 16px 10px; background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid; border-radius: 12px; }}
   h3 {{ display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 13pt; font-weight: 800; color: #0a4a6e; }}
   .ico {{ width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13pt; }}
   ul {{ margin: 0; padding: 0; list-style: none; }}
-  li {{ position: relative; margin: 0 0 5px; padding-left: 18px; color: #1e293b; }}
+  h3 {{ break-after: avoid; }}
+  li {{ position: relative; margin: 0 0 5px; padding-left: 18px; color: #1e293b; break-inside: avoid; }}
   li::before {{ content: ""; position: absolute; left: 3px; top: .62em; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }}
 </style></head>
 <body>
