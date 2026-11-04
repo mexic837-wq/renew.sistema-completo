@@ -29,7 +29,7 @@ El lector es el dueño del negocio, no un programador: habla de **qué cambió p
    git show --stat <hash>     # solo si el título del commit no basta
    ```
    Combínalo con lo que ya sabes de la conversación. Los commits son la fuente de verdad de lo que **sí está en `main`**: en "completadas" va solo eso.
-4. **Redacta los puntos**, uno por línea, empezando con un verbo en pasado ("Agregué…", "Corregí…", "Quité…"). Tras el título puedes añadir un detalle breve o el impacto: *"Desplegado en producción sin incidencias"*. Agrupa varios commits del mismo tema en un solo punto.
+4. **Redacta los puntos**, uno por línea, en **tercera persona impersonal**, nunca en primera persona: "Se creó…", "Se agregó…", "Se corrigió…", "Se quitó…" (no "Creé…" ni "Agregué…"). Tras el título puedes añadir un detalle breve o el impacto: *"Desplegado en producción sin incidencias"*. Agrupa varios commits del mismo tema en un solo punto.
 5. **En progreso / Pendientes:** lo que quedó a medias (con % de avance si se sabe: "70%") y lo programado para mañana. Aquí sí van pasos que dependen del usuario, como reimportar el workflow en n8n o correr `deploy.sh`.
 6. **Bloqueos:** dependencias, accesos o dudas que frenen el trabajo. Si no hay, deja `bloqueos` vacío y el PDF dirá "Ninguno".
 7. **Genera el PDF** (ver abajo) y entrega la ruta al usuario con 2–3 líneas de lo que contiene. No hagas commit del PDF salvo que lo pida.
@@ -51,7 +51,7 @@ El script imprime el PDF con Chrome o Edge en modo headless, así que no necesit
   "fecha": "Miércoles, 04/11/2026",
   "nombre": "Miguel Durantt Paolini",
   "completadas": [
-    "Quité el número de serie y los costos adicionales de la Confirmación de Instalación (PDF, plantilla y agente)",
+    "Se quitó el número de serie y los costos adicionales de la Confirmación de Instalación (PDF, plantilla y agente)",
     "El agente ahora pide la hora exacta al técnico y le manda el certificado a esa hora"
   ],
   "en_progreso": [
