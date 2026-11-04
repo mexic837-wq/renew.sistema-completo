@@ -758,6 +758,7 @@ async function _renderList(user, container) {
             </div>
           <div style="display:flex; align-items:center; gap:6px;">
              ${deleteBtnHtml}
+             ${String(c.notas || '').trim() ? `<span title="${String(c.notas).trim().slice(0, 300).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" style="width:26px; height:26px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:rgba(245,158,11,0.12); color:#f59e0b; font-size:0.8rem;"><i class="fa-solid fa-note-sticky"></i></span>` : ''}
              <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}">${etapaLabel}</span>
           </div>
         </div>
