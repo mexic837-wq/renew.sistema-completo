@@ -303,7 +303,10 @@ function applyPostProcessing(freshDB) {
                     const keepId = financieras[0].id;
                     const idsToDelete = financieras.slice(1).map(f => f.id);
                     freshDB.Admin_Campos_Formulario = freshDB.Admin_Campos_Formulario.filter(c => !idsToDelete.includes(c.id));
-                    deleteRecords('admin_campos_formulario', idsToDelete).catch(() => {});
+                    // Los que ya tienen respuestas no se pueden borrar en la BD (llave foránea): solo se ocultan aquí
+                    const conRespuestas = new Set((freshDB.Respuestas_Dinamicas || []).map(r => r.campo_id));
+                    const borrables = idsToDelete.filter(id => !conRespuestas.has(id));
+                    if (borrables.length) deleteRecords('admin_campos_formulario', borrables).catch(() => {});
                 }
                 
                 // (Removed) Convert Financiera to Text if it was injected as Dropdown previously

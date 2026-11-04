@@ -4,7 +4,7 @@
    Fase 1: Recolección → Aceptado / Rechazado (con tracking)
    Fase 2: Datos Extras → Ecosistema + Notas → Lead en CRM
    ============================================================ */
-import { getDB, saveDB, getAdminWorkers, createDynamicDeal } from '../api.js';
+import { getDB, saveGranular, getAdminWorkers, createDynamicDeal } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { getCurrentUser } from '../app.js';
 
@@ -69,8 +69,11 @@ async function patchProspecto(id, body) {
   } catch (e) { console.warn('[CallCenter] patchProspecto error', e); }
 }
 
-async function crearLeadEnCRM(prospecto, ecosistema, notas, operador, tipo = 'prospecto') {
-  const db = getDB();
+// ecosistemas: uno o varios (p. ej. ['Renew Water', 'Renew Solar'])
+async function crearLeadEnCRM(prospecto, ecosistemas, notas, operador, tipo = 'prospecto') {
+  const ecos = [].concat(ecosistemas).filter(Boolean);
+  const ecosistema = ecos.join(', ');
+  const origenCC = prospecto.origen ? `Origen del lead: ${prospecto.origen}` : '';
 
   const newCliente = {
     id:                       'cli_' + Date.now().toString(36),
@@ -79,8 +82,9 @@ async function crearLeadEnCRM(prospecto, ecosistema, notas, operador, tipo = 'pr
     direccion:                prospecto.direccion || '',
     email:                    prospecto.email     || '',
     empresa:                  ecosistema,
-    departamento:             ecosistema,   // alias for pipeline detection in vendor assignment
-    notas:                    notas || null,
+    departamento:             ecos[0],      // alias for pipeline detection in vendor assignment
+    departamentos_activos:    ecos.map(e => e.replace(/^Renew\s+/i, '')),
+    notas:                    [notas, origenCC].filter(Boolean).join('\n') || null,
     estado:                   'Lead',
     macro_estado:             'Prospecto',
     fecha:                    new Date().toISOString(),
@@ -89,20 +93,21 @@ async function crearLeadEnCRM(prospecto, ecosistema, notas, operador, tipo = 'pr
     origen_id:                operador.id,
     vendedor_asignado_id:     null,
     vendedor_asignado_nombre: null,
-    origen_lead_cc:           prospecto.origen || null,
     historial_llamadas:       prospecto.historial_llamadas || []
   };
 
 
-  if (!db.Clientes_Maestro) db.Clientes_Maestro = [];
-  db.Clientes_Maestro.push(newCliente);
-  await saveDB(db);
+  await saveGranular('clientes_maestro', [newCliente]);
+  const db = getDB();
+  if (db && Array.isArray(db.Clientes_Maestro) && !db.Clientes_Maestro.some(c => c.id === newCliente.id)) db.Clientes_Maestro.push(newCliente);
 
-  // Como cliente: se abre directamente un proyecto en el ecosistema elegido
+  // Como cliente: se abre un proyecto en cada ecosistema elegido
   let proyecto = null;
   if (tipo === 'cliente') {
-    const res = await createDynamicDeal({ cliente_id: newCliente.id, respuestas: {}, pipelineName: ecosistema, responsable_id: operador.id });
-    proyecto = res && res.pipeline_id ? res : null;
+    for (const eco of ecos) {
+      const res = await createDynamicDeal({ cliente_id: newCliente.id, respuestas: {}, pipelineName: eco, responsable_id: operador.id });
+      if (res && res.pipeline_id && !proyecto) proyecto = res;
+    }
   }
 
   // Send webhook
@@ -620,7 +625,7 @@ function renderFase2(screen, user, prospecto) {
         <!-- Ecosistema -->
         <div style="margin-bottom:20px;">
           <label style="font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.12em;display:block;margin-bottom:10px;">
-            <i class="fa-solid fa-leaf"></i> Ecosistema de interés *
+            <i class="fa-solid fa-leaf"></i> Ecosistema de interés * <span style="opacity:0.6;font-weight:600;text-transform:none;letter-spacing:0;">(puedes elegir varios)</span>
           </label>
           <div id="cc-eco-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
             ${ecoOptions.map(eco => `
@@ -665,14 +670,14 @@ function renderFase2(screen, user, prospecto) {
                 style="width:100%;padding:17px;background:rgba(0,245,212,0.3);color:var(--text);border:none;border-radius:16px;font-size:15px;font-weight:900;cursor:pointer;opacity:0.45;pointer-events:none;transition:all 0.2s;" disabled>
           <i class="fa-solid fa-bolt"></i> Guardar como Prospecto
         </button>
-        <p style="text-align:center;font-size:10px;color:var(--text-secondary);margin:8px 0 0;">Elige el ecosistema y si se guarda como prospecto o cliente</p>
+        <p style="text-align:center;font-size:10px;color:var(--text-secondary);margin:8px 0 0;">Elige uno o varios ecosistemas y si se guarda como prospecto o cliente</p>
       </div>
 
     </div>
   `;
 
   // Events for Fase 2
-  let selectedEco = null;
+  const selectedEcos = [];
   let selectedTipo = 'prospecto';
   const etiquetaGuardar = () => `<i class="fa-solid fa-bolt"></i> Guardar como ${selectedTipo === 'cliente' ? 'Cliente' : 'Prospecto'}`;
 
@@ -746,24 +751,25 @@ function renderFase2(screen, user, prospecto) {
     // Ecosystem selection
     const ecoBtn = e.target.closest('.cc-eco-btn');
     if (ecoBtn) {
-      selectedEco = ecoBtn.dataset.eco;
-      screen.querySelectorAll('.cc-eco-btn').forEach(b => {
-        b.style.background   = 'var(--surface)';
-        b.style.borderColor  = 'var(--border)';
-        b.style.color        = 'var(--text-secondary)';
-      });
-      ecoBtn.style.background  = 'rgba(0,245,212,0.12)';
-      ecoBtn.style.borderColor = 'var(--primary)';
-      ecoBtn.style.color       = 'var(--primary)';
+      // Marcar / desmarcar (se pueden elegir varios)
+      const eco = ecoBtn.dataset.eco;
+      const i = selectedEcos.indexOf(eco);
+      if (i === -1) selectedEcos.push(eco); else selectedEcos.splice(i, 1);
+      const on = selectedEcos.includes(eco);
+      ecoBtn.style.background  = on ? 'rgba(0,245,212,0.12)' : 'var(--surface)';
+      ecoBtn.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+      ecoBtn.style.color       = on ? 'var(--primary)' : 'var(--text-secondary)';
+      ecoBtn.innerHTML = on ? `<i class="fa-solid fa-check"></i> ${escHtml(eco)}` : escHtml(eco);
 
       const btnF = document.getElementById('btn-cc-finalizar');
-      if (btnF) { btnF.disabled = false; btnF.style.opacity = '1'; btnF.style.pointerEvents = 'auto'; btnF.style.background = 'var(--primary)'; btnF.style.color = 'black'; }
+      const listo = selectedEcos.length > 0;
+      if (btnF) { btnF.disabled = !listo; btnF.style.opacity = listo ? '1' : '0.45'; btnF.style.pointerEvents = listo ? 'auto' : 'none'; btnF.style.background = listo ? 'var(--primary)' : 'rgba(0,245,212,0.3)'; btnF.style.color = listo ? 'black' : 'var(--text)'; }
       return;
     }
 
     // Finalizar
     if (e.target.closest('#btn-cc-finalizar')) {
-      if (!selectedEco) return;
+      if (!selectedEcos.length) return;
       const notas   = document.getElementById('cc-notas-input')?.value?.trim() || null;
       const btnF    = document.getElementById('btn-cc-finalizar');
       if (btnF) { btnF.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...'; btnF.disabled = true; }
@@ -771,19 +777,19 @@ function renderFase2(screen, user, prospecto) {
       try {
         await patchProspecto(prospecto.id, {
           estado:    'aceptado',
-          ecosistema: selectedEco,
+          ecosistema: selectedEcos.join(', '),
           operador_id: user.id,
           operador_nombre: `${user.nombre || ''} ${user.apellido || ''}`.trim(),
           fecha_gestion: new Date().toISOString()
         });
 
-        const { cliente, vendedor, proyecto } = await crearLeadEnCRM(prospecto, selectedEco, notas, user, selectedTipo);
+        const { cliente, vendedor, proyecto } = await crearLeadEnCRM(prospecto, selectedEcos, notas, user, selectedTipo);
 
         // Remove from prospectos list
         _ccState.prospectos = _ccState.prospectos.filter(p => p.id !== prospecto.id);
 
         if (selectedTipo === 'cliente' && !proyecto) {
-          showToast(`Guardado como prospecto: no hay pipeline "${selectedEco}" para abrir el proyecto`, 'info');
+          showToast(`Guardado como prospecto: no hay pipeline "${selectedEcos.join(', ')}" para abrir el proyecto`, 'info');
         } else {
           showToast(`<i class="fa-solid fa-check text-green-500"></i> Guardado como ${proyecto ? 'cliente' : 'prospecto'}`, 'success');
         }
@@ -813,7 +819,7 @@ function renderSuccessScreen(screen, user, cliente, vendedor, comoCliente = fals
       <div style="width:80px;height:80px;border-radius:50%;background:rgba(0,245,212,0.12);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;animation:bounceIn 0.5s ease;"><i class="fa-solid fa-check text-green-500"></i></div>
       <p style="font-size:10px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:0.15em;margin:0 0 6px;">${comoCliente ? 'Cliente creado' : 'Prospecto guardado'}</p>
       <h2 style="font-size:22px;font-weight:900;color:var(--text);margin:0 0 8px;">${cliente.nombre}</h2>
-      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 24px;">Ecosistema: <strong style="color:var(--primary);">${cliente.empresa}</strong></p>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 24px;">Ecosistema${String(cliente.empresa || '').includes(',') ? 's' : ''}: <strong style="color:var(--primary);">${cliente.empresa}</strong></p>
 
       <!-- Vendedor asignado -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 24px;margin-bottom:24px;width:100%;max-width:300px;box-sizing:border-box;">
