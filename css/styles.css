@@ -2573,8 +2573,9 @@ body.is-callcenter #nav-btn-nuevo-cliente {
 
 @media (max-width: 767px) {
   #screen-clients .clients-tabs-fix { padding: 0 16px; margin: 16px 0 14px; }
-  #screen-clients .clients-tabs-fix .dash-tabs-container { gap: 4px; padding: 4px; border-radius: 14px; }
-  #screen-clients .clients-tabs-fix .dash-tab { flex: 0 0 auto; padding: 9px 14px; font-size: .78rem; border-radius: 10px; }
+  #screen-clients .clients-tabs-fix .dash-tabs-container { gap: 6px !important; padding: 5px !important; border-radius: 14px !important; scroll-padding: 5px; }
+  #screen-clients .clients-tabs-fix .dash-tab { flex: 0 0 auto !important; padding: 9px 16px !important; font-size: .8rem !important; border-radius: 10px !important; line-height: 1.2; }
+  #screen-clients .clients-tabs-fix .dash-tab span { margin-left: 3px; }
   #screen-clients .dash-header { padding-left: 16px; padding-right: 16px; }
   #screen-clients .dept-filter-pill { padding: 7px 16px !important; }
 }
