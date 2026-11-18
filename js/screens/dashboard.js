@@ -349,6 +349,25 @@ export async function renderDashboard() {
         --bg-tool-default: linear-gradient(135deg, #0f172a, #1e293b);
       }
 
+      /* —— Mobile: los 3 chips (Solar, Water, Home) caben siempre sin cortarse —— */
+      @media (max-width: 767px) {
+        .pip-chips-row {
+          width: 100%; max-width: 100%; box-sizing: border-box;
+          margin: 6px 0 14px !important;
+          gap: 4px;
+        }
+        .pip-chip {
+          flex: 1 1 0; min-width: 0;
+          flex-direction: column; gap: 3px;
+          padding: 6px 4px;
+        }
+        .pip-chip-logo { height: 15px; max-width: 100%; }
+        .pip-chip-badge {
+          font-size: 0.58rem; padding: 1px 4px;
+          max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+      }
+
       /* —— Desktop Proportions —— */
       @media (min-width: 768px) {
         .pip-chips-row {
@@ -2084,7 +2103,9 @@ function showProfileModal() {
   const user = getCurrentUser();
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay profile-modal';
-  overlay.style.position = 'absolute'; // Fill the #app relative container
+  // fixed (no absolute): con absolute el panel quedaba al fondo de todo el contenido,
+  // fuera de la pantalla, y solo se veía la capa oscura bloqueando la app.
+  overlay.style.position = 'fixed';
   overlay.style.inset = '0';
   overlay.style.zIndex = '1000';
   
