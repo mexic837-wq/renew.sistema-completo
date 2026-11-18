@@ -221,10 +221,15 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       let vals = [r.valor];
       if (typeof r.valor === 'string' && r.valor.trim().startsWith('[')) {
           try { const arr = JSON.parse(r.valor); if (Array.isArray(arr)) vals = arr.map(x => (x && typeof x === 'object') ? x.url : x); } catch (e) {}
+      } else if (typeof r.valor === 'string' && r.valor.includes(',')) {
+          // Campos con varios archivos (ej. Fotos de Instalación) guardan las URLs separadas por coma
+          vals = r.valor.split(',').map(x => x.trim()).filter(Boolean);
       }
       const campo = camposById.get(String(r.campo_id));
-      vals.filter(isFileUrl).forEach(u => {
-          const lbl = (u.toLowerCase().includes('pozo') ? 'Especificaciones de Pozo' : (campo?.etiqueta || 'Archivo'));
+      const fileVals = vals.filter(isFileUrl);
+      fileVals.forEach((u, i) => {
+          let lbl = (u.toLowerCase().includes('pozo') ? 'Especificaciones de Pozo' : (campo?.etiqueta || 'Archivo'));
+          if (fileVals.length > 1) lbl += ' ' + (i + 1);
           allGlobalFiles.push({ url: u, name: lbl });
       });
   });

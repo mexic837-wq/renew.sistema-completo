@@ -28,7 +28,7 @@ import { renderHub }       from './screens/hub.js';
 import { renderDashboard } from './screens/dashboard.js?v=15';
 import { renderNotificaciones } from './screens/notificaciones.js';
 import { renderNewClient }  from './screens/newClient.js';
-import { renderDetail }     from './screens/projectDetail.js?v=4';
+import { renderDetail }     from './screens/projectDetail.js?v=5';
 import { renderAcademy }    from './screens/academy.js';
 import { renderMenu }       from './screens/menu.js?v=4';
 import { renderInventoryTech } from './screens/inventory.js';
