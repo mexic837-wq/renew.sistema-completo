@@ -124,7 +124,7 @@ export async function renderMiMapa() {
         const proysCli = allProys.filter(p => String(p.cliente_id) === String(c.id));
         const isUnassignedLead = (!c.vendedor_asignado_id && !c.creador_id && !c.responsable_id) || c.origen_tipo === 'sitio_web';
         return isUnassignedLead ||
-          [c.vendedor_asignado_id, c.creador_id, c.responsable_id, c.origen_id, c.tecnico_id].some(v => String(v) === uid) ||
+          [c.vendedor_asignado_id, c.creador_id, c.responsable_id, c.origen_id, c.tecnico_id].some(v => String(v || '').split(',').map(x => x.trim()).includes(uid)) ||
           userClientIds.has(c.id) ||
           proysCli.some(p => String(p.responsable_id) === uid || String(p.creador_id) === uid || String(p.tecnico_id) === uid ||
             (Array.isArray(p.colaboradores) && p.colaboradores.some(col => String(col && col.id) === uid))) ||

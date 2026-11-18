@@ -841,7 +841,9 @@ export async function renderMiCalendario() {
         let msgGuardado = 'Evento guardado';
         if (quiereProspecto) {
             try {
-                const r = await crearProspectoDesdeCita(direccion, departamentos);
+                // Representantes = todos los colaboradores de la cita (los marcados + quien la crea)
+                const repsCita = [...attendees, ...colaboradores].filter((r, i, arr) => r && r.id && arr.findIndex(x => String(x.id) === String(r.id)) === i);
+                const r = await crearProspectoDesdeCita(direccion, departamentos, repsCita);
                 if (r.ok) msgGuardado = r.existente
                     ? `Evento guardado · ${r.cliente.nombre} ya existía como cliente (mismo teléfono)`
                     : `Evento guardado y ${r.cliente.nombre} creado como prospecto`;
@@ -896,7 +898,8 @@ export async function renderMiCalendario() {
   }
 
   // Devuelve { ok, cliente, existente } o { ok:false, msg }
-  async function crearProspectoDesdeCita(direccion, departamentos) {
+  // reps: colaboradores marcados en la cita → quedan como representantes del prospecto
+  async function crearProspectoDesdeCita(direccion, departamentos, reps = []) {
       const nombre = (document.getElementById('ev-pros-nombre').value || '').trim();
       const telefono = (document.getElementById('ev-pros-telefono').value || '').trim();
       const email = (document.getElementById('ev-pros-email').value || '').trim();
@@ -909,6 +912,9 @@ export async function renderMiCalendario() {
       if (existente) return { ok: true, cliente: existente, existente: true };
 
       const nombreUsuario = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+      const repsOk = (reps || []).filter(r => r && r.id);
+      const repsIds = repsOk.length ? repsOk.map(r => r.id).join(',') : user.id;
+      const repsNombres = repsOk.length ? repsOk.map(r => r.nombre).filter(Boolean).join(', ') : (nombreUsuario || 'Representante');
       const depts = (departamentos || []).filter(Boolean);
       const hoy = new Date().toISOString();
       const nuevo = {
@@ -930,8 +936,8 @@ export async function renderMiCalendario() {
           origen_tipo: 'representante',
           origen_id: user.id,
           origen_nombre: nombreUsuario || 'Representante',
-          vendedor_asignado_id: user.id,
-          vendedor_asignado_nombre: nombreUsuario || 'Representante'
+          vendedor_asignado_id: repsIds,
+          vendedor_asignado_nombre: repsNombres
       };
       db.Clientes_Maestro.push(nuevo);
       await saveGranular('clientes_maestro', [nuevo]);

@@ -6980,7 +6980,8 @@ window.prepararProspectoAdmin = function(mostrar) {
   }
 };
 
-async function crearProspectoDesdeCitaAdmin(direccion, departamentos) {
+// reps: colaboradores marcados en la cita → quedan como representantes del prospecto
+async function crearProspectoDesdeCitaAdmin(direccion, departamentos, reps = []) {
   const nombre = (document.getElementById('ev-pros-nombre').value || '').trim();
   const telefono = (document.getElementById('ev-pros-telefono').value || '').trim();
   const email = (document.getElementById('ev-pros-email').value || '').trim();
@@ -6992,6 +6993,7 @@ async function crearProspectoDesdeCitaAdmin(direccion, departamentos) {
 
   const u = JSON.parse(localStorage.getItem('rs_user') || '{}');
   const nombreUsuario = `${u.nombre || ''} ${u.apellido || ''}`.trim();
+  const repsOk = (reps || []).filter(r => r && r.id && String(r.id).length > 2);
   const depts = (departamentos || []).filter(Boolean);
   const hoy = new Date().toISOString();
   const nuevo = {
@@ -7006,7 +7008,8 @@ async function crearProspectoDesdeCitaAdmin(direccion, departamentos) {
     fecha: hoy, fecha_inicio: hoy.split('T')[0],
     notas: 'Creado desde una cita del calendario',
     origen_tipo: 'representante', origen_id: u.id || null, origen_nombre: nombreUsuario || 'Oficina',
-    vendedor_asignado_id: u.id || null, vendedor_asignado_nombre: nombreUsuario || null
+    vendedor_asignado_id: repsOk.length ? repsOk.map(r => r.id).join(',') : (u.id || null),
+    vendedor_asignado_nombre: repsOk.length ? repsOk.map(r => r.nombre).filter(Boolean).join(', ') : (nombreUsuario || null)
   };
   db.Clientes_Maestro.push(nuevo);
   await saveGranular('clientes_maestro', [nuevo]);
@@ -7147,7 +7150,7 @@ window.guardarEventoCalendario = async function(e) {
     let tipoMsg = 'success';
     if (quiereProspecto) {
       try {
-        const r = await crearProspectoDesdeCitaAdmin(direccion, departamentos);
+        const r = await crearProspectoDesdeCitaAdmin(direccion, departamentos, colaboradores);
         msgGuardado = r.existente
           ? `Evento guardado · ${r.cliente.nombre} ya existía como cliente (mismo teléfono)`
           : `Evento guardado y ${r.cliente.nombre} creado como prospecto`;

@@ -428,7 +428,7 @@ async function _renderList(user, container) {
       if (!isUnassignedLead &&
         String(c.creador_id) !== String(user.id) &&
         String(c.responsable_id) !== String(user.id) &&
-        String(c.vendedor_asignado_id) !== String(user.id) &&
+        !String(c.vendedor_asignado_id || '').split(',').map(x => x.trim()).includes(String(user.id)) &&
         String(c.origen_id) !== String(user.id) &&
         String(c.tecnico_id) !== String(user.id) &&
         !isTecnicoOfProject && 
