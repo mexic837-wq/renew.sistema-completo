@@ -1,3 +1,4 @@
+import { geocodeCached } from './geocache.js';
 import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,
@@ -3963,13 +3964,6 @@ window.renderView = async function renderView() {
           let addr = c.direccion || '';
           if (addr.includes('@')) addr = '';
           if (!addr && c.ciudad) addr = c.ciudad;
-          if (!addr && c.estado) addr = c.estado;
-          if (!addr) {
-            const tel = c.telefono || '';
-            if (tel.startsWith('+58') || tel.startsWith('041') || tel.startsWith('042')) addr = 'Venezuela';
-            else if (tel.startsWith('+57') || tel.startsWith('3')) addr = 'Colombia';
-            else addr = 'Florida, Estados Unidos';
-          }
           return addr;
         };
 
@@ -4071,7 +4065,7 @@ window.renderView = async function renderView() {
             return `<span style="font-size: 10px; background:${cfg.color}20; color:${cfg.color}; padding:2px 8px; border-radius:10px; font-weight:700; text-transform:uppercase; border:1px solid ${cfg.color}40;">${cfg.label}</span>`;
           }).join('');
 
-          geocoder.geocode({ address: addr }, (results, status) => {
+          geocodeCached(geocoder, { address: addr }, (results, status) => {
             if (status === 'OK' && results[0]) {
               const baseLat = results[0].geometry.location.lat();
               const baseLng = results[0].geometry.location.lng();

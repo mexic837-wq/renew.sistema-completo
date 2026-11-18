@@ -3,6 +3,7 @@
    ============================================================ */
 import { getCurrentUser, navigate } from '../app.js';
 import { getDB, getDeptArray, saveGranular } from '../api.js';
+import { geocodeCached } from '../geocache.js';
 
 export async function renderMiMapa() {
   const user = getCurrentUser();
@@ -117,12 +118,18 @@ export async function renderMiMapa() {
       const isSupervisor = window.isSupervisorUser(user);
       const teamIds = isSupervisor ? window.getTeamIds(user) : [];
 
-      const myClients = isAdmin ? allClients : allClients.filter(c =>
-        String(c.vendedor_asignado_id) === String(user.id) ||
-        String(c.creador_id) === String(user.id) ||
-        userClientIds.has(c.id) ||
-        (isSupervisor && window.clientBelongsTo(c, teamIds, allProys))
-      );
+      // Mismas reglas que "Mis Clientes" para saber qué clientes son del usuario
+      const uid = String(user.id);
+      const myClients = isAdmin ? allClients : allClients.filter(c => {
+        const proysCli = allProys.filter(p => String(p.cliente_id) === String(c.id));
+        const isUnassignedLead = (!c.vendedor_asignado_id && !c.creador_id && !c.responsable_id) || c.origen_tipo === 'sitio_web';
+        return isUnassignedLead ||
+          [c.vendedor_asignado_id, c.creador_id, c.responsable_id, c.origen_id, c.tecnico_id].some(v => String(v) === uid) ||
+          userClientIds.has(c.id) ||
+          proysCli.some(p => String(p.responsable_id) === uid || String(p.creador_id) === uid || String(p.tecnico_id) === uid ||
+            (Array.isArray(p.colaboradores) && p.colaboradores.some(col => String(col && col.id) === uid))) ||
+          (isSupervisor && window.clientBelongsTo(c, teamIds, proysCli));
+      });
 
       if (myClients.length === 0) {
         mapEl.innerHTML = '<div class="flex flex-col items-center justify-center w-full h-full text-gray-400 text-center"><i class="fa-solid fa-map-location-dot text-4xl mb-3 opacity-50"></i><p>No tienes clientes con dirección registrada aún.</p></div>';
@@ -280,14 +287,8 @@ export async function renderMiMapa() {
         let addr = c.direccion || '';
         if (addr.includes('@')) addr = '';
         if (!addr && c.ciudad) addr = c.ciudad;
-        if (!addr && c.estado) addr = c.estado;
         
-        if (!addr) {
-            const tel = c.telefono || '';
-            if (tel.startsWith('+58') || tel.startsWith('041') || tel.startsWith('042')) addr = 'Venezuela';
-            else if (tel.startsWith('+57') || tel.startsWith('3')) addr = 'Colombia';
-            else addr = 'Florida, Estados Unidos';
-        }
+        // Sin dirección no se adivina por el teléfono (antes un 352... caía en Colombia)
         return addr;
       };
 
@@ -353,9 +354,27 @@ export async function renderMiMapa() {
 
       const latLngOffsets = {}; // To spread out markers that share the exact same location
 
-      Object.values(clientsToMap).forEach(({ c, address, combos, depts }) => {
-        geocoder.geocode({ address: address }, (results, status) => {
-          if (status !== 'OK' || !results[0]) return;
+      // Aviso de progreso: cuántos clientes ya están ubicados
+      const porUbicar = Object.values(clientsToMap);
+      let ubicados = 0, sinUbicar = 0;
+      const sinDireccion = myClients.length - porUbicar.length;
+      const aviso = document.createElement('div');
+      aviso.style.cssText = 'position:absolute;left:12px;bottom:28px;z-index:5;background:rgba(15,23,42,.85);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;pointer-events:none;';
+      if (getComputedStyle(mapEl).position === 'static') mapEl.style.position = 'relative';
+      mapEl.appendChild(aviso);
+      const pintarAviso = () => {
+        const listos = ubicados + sinUbicar;
+        const extra = [sinUbicar ? `${sinUbicar} dirección(es) no encontradas` : '', sinDireccion > 0 ? `${sinDireccion} sin dirección` : ''].filter(Boolean).join(' · ');
+        aviso.textContent = listos < porUbicar.length
+          ? `Ubicando clientes… ${listos} de ${porUbicar.length}`
+          : `${ubicados} clientes en el mapa${extra ? ' · ' + extra : ''}`;
+      };
+      pintarAviso();
+
+      porUbicar.forEach(({ c, address, combos, depts }) => {
+        geocodeCached(geocoder, { address: address }, (results, status) => {
+          if (status !== 'OK' || !results || !results[0]) { sinUbicar++; pintarAviso(); return; }
+          ubicados++; pintarAviso();
 
           const baseLat = results[0].geometry.location.lat();
           const baseLng = results[0].geometry.location.lng();
