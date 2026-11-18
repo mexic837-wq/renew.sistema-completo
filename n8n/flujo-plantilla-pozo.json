@@ -1,0 +1,68 @@
+{
+  "name": "Plantilla de Pozo - aviso al grupo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "plantilla-pozo",
+        "options": {}
+      },
+      "id": "6f1c2a10-1b2c-4d3e-9f40-a1b2c3d4e501",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "plantilla-pozo"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolutionapi.renewgroup.site/message/sendText/RenewIA",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "PEGA_AQUI_EL_APIKEY_DE_RENEWIA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "PEGA_AQUI_EL_ID_DEL_GRUPO@g.us"
+            },
+            {
+              "name": "text",
+              "value": "=💧 *¡Nueva Plantilla de Pozo - Renew Water!* 💧\n\n👤 *Cliente:* {{ $json.body.cliente?.nombre || $json.body.pozo.nombre || '-' }}\n📞 *Teléfono:* {{ $json.body.cliente?.telefono || '-' }}\n📍 *Dirección:* {{ $json.body.cliente?.direccion || '-' }}\n🤝 *Vendedor:* {{ $json.body.vendedor || '-' }}\n✍️ *Llenada por:* {{ $json.body.creado_por || '-' }}\n\n*Datos del pozo:*\n• Tanques: {{ $json.body.pozo.tanques || '-' }}\n• Medidas: {{ $json.body.pozo.medidas || '-' }}\n• Material: {{ $json.body.pozo.material || '-' }}\n\n*Análisis del agua:*\n• TDS: {{ $json.body.pozo.tds || '-' }}\n• Dureza: {{ $json.body.pozo.dureza || '-' }}\n• PH: {{ $json.body.pozo.ph || '-' }}\n• Hierro: {{ $json.body.pozo.hierro || '-' }}\n• Color: {{ $json.body.pozo.color || '-' }}\n• Olor: {{ $json.body.pozo.olor || '-' }}\n• Sulfuro: {{ $json.body.pozo.sulfuro || '-' }}\n• Tanil: {{ $json.body.pozo.tanil || '-' }}\n\n📝 *Nota:* {{ $json.body.pozo.nota || '-' }}\n\n📄 *Ver PDF:*\n{{ $json.body.pdf_url || 'No se pudo generar el enlace' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6f1c2a10-1b2c-4d3e-9f40-a1b2c3d4e502",
+      "name": "Enviar al grupo de Pozos - WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Enviar al grupo de Pozos - WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

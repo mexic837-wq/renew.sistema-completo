@@ -1927,20 +1927,24 @@ app.post('/api/generar-plantilla-pozo', async (req, res) => {
             .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
 
         let finalUrl = null;
+        let cliente = null;
+        let proyecto = null;
         if (!uploadError) {
             const { data: { publicUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
             finalUrl = publicUrl;
 
             let targetClienteId = d.clienteId || null;
-            if (!targetClienteId && d.proyectoId) {
+            if (d.proyectoId) {
                 const { data: proy } = await supabase.from('proyectos_dinamicos')
-                    .select('cliente_id').eq('id', d.proyectoId).single();
-                if (proy?.cliente_id) targetClienteId = proy.cliente_id;
+                    .select('*').eq('id', d.proyectoId).single();
+                if (proy) proyecto = proy;
+                if (!targetClienteId && proy?.cliente_id) targetClienteId = proy.cliente_id;
             }
 
             if (targetClienteId) {
                 const { data: cli } = await supabase.from('clientes_maestro')
-                    .select('adjuntos_oficina').eq('id', targetClienteId).single();
+                    .select('*').eq('id', targetClienteId).single();
+                if (cli) cliente = cli;
                 let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
                 adj.plantilla_pozo_url = finalUrl;
                 await supabase.from('clientes_maestro')
@@ -1951,6 +1955,39 @@ app.post('/api/generar-plantilla-pozo', async (req, res) => {
         } else {
             console.error('[STORAGE ERROR - PLANTILLA POZO]', uploadError);
         }
+
+        // Aviso a n8n (grupo de WhatsApp de plantillas de pozo) con todos los datos
+        const vendedorId = cliente?.vendedor_asignado_id || proyecto?.asignado_a || proyecto?.responsable_id || null;
+        let vendedorNombre = null;
+        if (vendedorId) {
+            try {
+                const { data: v } = await supabase.from('usuarios').select('nombre, apellido')
+                    .eq('id', String(vendedorId).split(',')[0].trim()).single();
+                if (v) vendedorNombre = `${v.nombre || ''} ${v.apellido || ''}`.trim() || null;
+            } catch (e) { /* sin vendedor */ }
+        }
+        fetch(process.env.POZO_WEBHOOK_URL || 'https://n8n.renewgroup.site/webhook/plantilla-pozo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                evento: 'plantilla_pozo_generada',
+                pdf_url: finalUrl,
+                fecha: new Date().toISOString(),
+                pozo: {
+                    nombre: d.nombre || '', tanques: d.tanques || '', medidas: d.medidas || '',
+                    material: d.material || '', tds: d.tds || '', dureza: d.dureza || '', ph: d.ph || '',
+                    hierro: d.hierro || '', color: d.color || '', olor: d.olor || '',
+                    sulfuro: d.sulfuro || '', tanil: d.tanil || '', nota: d.nota || '',
+                },
+                creado_por: d.creadoPor || null,
+                cliente: cliente ? {
+                    id: cliente.id, nombre: cliente.nombre || '', telefono: cliente.telefono || '',
+                    email: cliente.email || '', direccion: cliente.direccion || '',
+                } : null,
+                proyecto: proyecto ? { id: proyecto.id, nombre: proyecto.nombre || '' } : null,
+                vendedor: vendedorNombre,
+            }),
+        }).catch(err => console.error('Error al disparar webhook plantilla-pozo:', err));
 
         res.json({ 
             success: true, 

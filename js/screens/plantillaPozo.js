@@ -234,6 +234,7 @@ export function renderPlantillaPozo(proyIdParam = null) {
     const d = {
       clienteId: linkedClienteId,
       proyectoId: linkedProyectoId,
+      creadoPor: (() => { const u = getCurrentUser(); return u ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null; })(),
       nombre: document.getElementById('pp-nombre').value.trim(),
       tanques: document.getElementById('pp-tanques').value.trim(),
       medidas: document.getElementById('pp-medidas').value.trim(),
