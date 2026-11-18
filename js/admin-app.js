@@ -4101,6 +4101,9 @@ window.renderView = async function renderView() {
                                 <div style="font-size:12px; color:#374151;">${c.nota_mapa}</div>
                               </div>` : ''}
                             </div>
+                            <button onclick="window.mapaAbrirProyecto('${c.id}')" style="margin-top:10px; width:100%; background:#0ea5e9; color:#fff; border:none; border-radius:8px; padding:8px 10px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                              <i class="fa-solid fa-folder-open"></i> Abrir proyecto
+                            </button>
                           </div>`
               });
               marker.addListener('click', () => { infoWindow.open(map, marker); });
@@ -11842,6 +11845,40 @@ window.saveDynamicFields = async function(dealId, respuestas) {
 };
 
 window.openKanbanDrawer = openKanbanDrawer;
+
+// Mapa Clientes: abrir el proyecto del cliente. Si tiene varios (ej. Solar y Water), pregunta cuál.
+window.mapaAbrirProyecto = function (clienteId) {
+    const db = getDB();
+    const proys = (db.Proyectos_Dinamicos || []).filter(p => String(p.cliente_id) === String(clienteId));
+    if (!proys.length) { showToast('Este cliente aún no tiene proyectos', 'info'); return; }
+    if (proys.length === 1) { openKanbanDrawer(proys[0].id); return; }
+
+    const nombrePip = (p) => ((db.Admin_Pipelines || []).find(x => x.id === p.pipeline_id) || {}).nombre || 'Proyecto';
+    const colorPip = (p) => ((db.Admin_Pipelines || []).find(x => x.id === p.pipeline_id) || {}).color || '#0ea5e9';
+    const nombreFase = (p) => ((db.Admin_Fases || []).find(f => f.id === p.fase_id) || {}).nombre || (p.estado || '');
+    document.getElementById('mapa-elegir-proyecto')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'mapa-elegir-proyecto';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML = `
+      <div style="background:var(--surface,#0f172a);color:var(--text-primary,#fff);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;width:100%;max-width:360px;font-family:Inter,sans-serif;">
+        <div style="font-weight:800;font-size:15px;margin-bottom:4px;">¿Qué proyecto quieres abrir?</div>
+        <div style="font-size:12px;opacity:.7;margin-bottom:14px;">Este cliente tiene ${proys.length} proyectos.</div>
+        ${proys.map(p => `
+          <button data-pid="${p.id}" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:inherit;cursor:pointer;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${colorPip(p)};flex-shrink:0;"></span>
+            <span style="flex:1;min-width:0;"><b style="display:block;font-size:13px;">${nombrePip(p)}</b><span style="font-size:11px;opacity:.7;">${nombreFase(p)}</span></span>
+            <i class="fa-solid fa-chevron-right" style="opacity:.5;font-size:11px;"></i>
+          </button>`).join('')}
+        <button data-cerrar="1" style="width:100%;margin-top:4px;padding:10px;border-radius:12px;border:none;background:transparent;color:inherit;opacity:.7;cursor:pointer;font-weight:600;">Cancelar</button>
+      </div>`;
+    modal.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (e.target === modal || (b && b.dataset.cerrar)) { modal.remove(); return; }
+        if (b && b.dataset.pid) { modal.remove(); openKanbanDrawer(b.dataset.pid); }
+    });
+    document.body.appendChild(modal);
+};
 
 window.populateRolesDropdowns = function() {
     const db = getDB();
