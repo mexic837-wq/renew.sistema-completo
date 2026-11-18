@@ -1,0 +1,159 @@
+{
+  "name": "Orden de Instalación - WhatsApp al técnico",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "orden-instalacion",
+        "options": {}
+      },
+      "id": "9b1d0c20-0001-4a00-9000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "orden-instalacion"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.tecnico?.whatsapp || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9b1d0c20-0002-4a00-9000-000000000002",
+      "name": "¿Técnico tiene WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolutionapi.renewgroup.site/message/sendText/RenewIA",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "PEGA_AQUI_EL_APIKEY_DE_RENEWIA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Webhook').item.json.body.tecnico.whatsapp }}"
+            },
+            {
+              "name": "text",
+              "value": "=🔧 *¡Nueva Orden de Instalación - Renew Water!* 🔧\n\nHola {{ $('Webhook').item.json.body.tecnico.nombre || '' }}, tienes una instalación asignada:\n\n👤 *Cliente:* {{ $('Webhook').item.json.body.cliente.nombre || '-' }}\n📞 *Teléfono:* {{ $('Webhook').item.json.body.cliente.telefono || '-' }}\n📍 *Dirección:* {{ $('Webhook').item.json.body.cliente.direccion || '-' }}\n🗺️ *Mapa:* https://www.google.com/maps/search/?api=1&query={{ encodeURIComponent($('Webhook').item.json.body.cliente.direccion || '') }}\n\n📅 *Fecha:* {{ $('Webhook').item.json.body.instalacion.fecha || '-' }}\n🕒 *Hora:* {{ $('Webhook').item.json.body.instalacion.hora || '-' }}\n\n💧 *Tipo de equipo:* {{ $('Webhook').item.json.body.equipo.tipo || '-' }}\n{{ $('Webhook').item.json.body.equipo.detalle ? '• ' + $('Webhook').item.json.body.equipo.detalle.split('\\n').join('\\n• ') + '\\n' : '' }}{{ $('Webhook').item.json.body.equipo.pozo ? '\\n*Datos del pozo:*\\n' + $('Webhook').item.json.body.equipo.pozo + '\\n' : '' }}\n📝 *Instrucciones:* {{ $('Webhook').item.json.body.instrucciones || '-' }}\n🤝 *Representante:* {{ $('Webhook').item.json.body.vendedor || '-' }}\n\n📄 *Orden de Instalación (PDF):*\n{{ $('Webhook').item.json.body.pdf_url || 'No se pudo generar el enlace' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b1d0c20-0003-4a00-9000-000000000003",
+      "name": "Mensaje al técnico - WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolutionapi.renewgroup.site/message/sendMedia/RenewIA",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "PEGA_AQUI_EL_APIKEY_DE_RENEWIA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $('Webhook').item.json.body.tecnico.whatsapp, mediatype: 'document', mimetype: 'application/pdf', media: $('Webhook').item.json.body.pdf_url, fileName: 'Orden_Instalacion_' + ($('Webhook').item.json.body.cliente.nombre || 'cliente').replace(/\\s+/g, '_') + '.pdf', caption: 'Orden de Instalación - ' + ($('Webhook').item.json.body.cliente.nombre || '') }) }}",
+        "options": {}
+      },
+      "id": "9b1d0c20-0004-4a00-9000-000000000004",
+      "name": "PDF al técnico - WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        -80
+      ],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "¿Técnico tiene WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Técnico tiene WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Mensaje al técnico - WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Mensaje al técnico - WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "PDF al técnico - WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

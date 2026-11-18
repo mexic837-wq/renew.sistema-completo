@@ -194,6 +194,7 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       { keys: ['plantilla_pozo_url'], name: 'Especificaciones de Pozo' },
       { keys: ['confirmacion_instalacion_url'], name: 'Confirmación de Instalación' },
       { keys: ['extras_instalacion_url'], name: 'Extras de Instalación' },
+      { keys: ['orden_instalacion_url'], name: 'Orden de Instalación' },
       { keys: ['contrato_water_url', 'contrato_solar_url', 'contrato_home_url', 'contrato_url'], name: 'Contrato Firmado' },
       { keys: ['app_url', 'credit_app_url'], name: 'Hoja de Aplicación' },
       { keys: ['recibo_url', 'recibo_vendedor_url', 'recibo_tecnico_url'], name: 'Recibo de Pago' },
@@ -2009,7 +2010,52 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
           const val = c.tipo === 'Archivo' ? (fileAnswers[c.id] || "") : (el?.value || "").trim();
           resp[c.id] = val || "";
         }
+        const btnHtmlOrig = btnSubmit.innerHTML;
         btnSubmit.innerHTML = 'Espere...';
+
+        // ── ORDEN DE INSTALACIÓN: al asignar técnico (Water) se genera el PDF y se envía al técnico ──
+        const faseLow = (actFase?.nombre || '').toLowerCase();
+        const esFaseTecnico = isWaterPip && faseLow.includes('asignaci') && /t[eé]cnic/.test(faseLow);
+        if (esFaseTecnico) {
+          const campoTec = campos.find(c => c.tipo === 'Técnico');
+          const campoFecha = campos.find(c => ['Fecha', 'FechaHora', 'Fecha y Hora'].includes(c.tipo) && /instalaci/i.test(c.etiqueta || ''))
+                          || campos.find(c => ['Fecha', 'FechaHora', 'Fecha y Hora'].includes(c.tipo));
+          const campoHora = campos.find(c => /\bhora\b/i.test(c.etiqueta || '') && c !== campoFecha);
+          const tecnicoId = campoTec ? resp[campoTec.id] : '';
+          const fechaInst = campoFecha ? resp[campoFecha.id] : '';
+          if (!tecnicoId || !fechaInst) {
+            showToast('<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Escoge el técnico y la fecha de instalación para generar la Orden de Instalación.', 'warning');
+            btnSubmit.innerHTML = btnHtmlOrig;
+            return;
+          }
+          btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando Orden de Instalación...';
+          (async () => {
+            try {
+              const r = await fetch('/api/generar-orden-instalacion', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ proyectoId: deal.id, tecnicoId, fecha: fechaInst, hora: campoHora ? resp[campoHora.id] : '' }),
+              });
+              const out = await r.json().catch(() => ({}));
+              if (!r.ok || !out.success) throw new Error(out.error || `HTTP ${r.status}`);
+              // Reflejar el PDF en la copia local del cliente para que no se pierda en el próximo guardado
+              const dbL = getDB();
+              const cliL = (dbL?.Clientes_Maestro || []).find(cl => String(cl.id) === String(deal.cliente_id));
+              if (cliL) {
+                if (!cliL.adjuntos_oficina || Array.isArray(cliL.adjuntos_oficina)) cliL.adjuntos_oficina = {};
+                cliL.adjuntos_oficina.orden_instalacion_url = out.url;
+              }
+              if (out.tecnico_sin_telefono) showToast('Orden de Instalación generada, pero el técnico no tiene teléfono registrado: no se le envió por WhatsApp.', 'warning');
+              else if (!out.tecnico_avisado) showToast('Orden de Instalación generada, pero no se pudo enviar al WhatsApp del técnico.', 'warning');
+              else showToast('<i class="fa-solid fa-check text-green-500"></i> Orden de Instalación enviada al WhatsApp del técnico.', 'success');
+            } catch (err) {
+              console.error('[ORDEN INSTALACION]', err);
+              showToast(`No se pudo generar la Orden de Instalación (${err.message}). La fase se guardará igual.`, 'error');
+            }
+            submitPhase(deal.id, resp, actFase.nombre, { ignoreMissingFields: true });
+          })();
+          return;
+        }
+
         submitPhase(deal.id, resp, actFase.nombre, { ignoreMissingFields: true });
       });
     }

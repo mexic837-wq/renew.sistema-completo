@@ -1950,6 +1950,148 @@ app.post('/api/firmas/:token', async (req, res) => {
 });
 
 // ── PLANTILLA POZO PDF ENDPOINT ──
+// ── ORDEN DE INSTALACION (fase Asignación de Técnicos) ──
+// Se genera sola al finalizar la fase: toma cliente, técnico, fecha/hora, representante y el
+// equipo (de la Orden de Trabajo / Plantilla de Pozo guardadas en adjuntos_oficina), guarda el PDF
+// en el cliente y avisa a n8n para que llegue por WhatsApp al técnico.
+const _txt = (v) => (v === null || v === undefined) ? '' : String(v).trim();
+const _nombreUsuario = (u) => u ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : '';
+function _whatsappNumero(tel) {
+    let d = _txt(tel).replace(/\D/g, '');
+    if (d.length === 10) d = '1' + d; // números de EE. UU. sin código de país
+    return d;
+}
+function _fechaLegible(f) {
+    const s = _txt(f);
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[2]}/${m[3]}/${m[1]}` : s;
+}
+function _equipoDesdeOrden(ot) {
+    const e = (ot && ot.equipos) || {};
+    const lista = [];
+    if (e.suavizadorCasa || e.suavizadorCasa_entera) lista.push('Suavizador casa entera (Whole house softener)');
+    if (e.osmosisReversa || e.osmosisReverso) lista.push('Ósmosis inversa (Reverse osmosis)');
+    if (e.aguaAlcalina) lista.push('Agua alcalina (Alkaline)');
+    if (e.otro || e.otro_texto || e.otros) lista.push(`Otro: ${e.otro_texto || e.otros || ''}`.trim());
+    if (e.tipoLinea) lista.push(`Tipo de línea: ${e.tipoLinea}`);
+    if (e.productoEspecifico) lista.push(`Producto: ${e.productoEspecifico}`);
+    return { ciudad: !!e.aguaCiudad, pozo: !!e.aguaPozo, detalle: lista.join('\n') };
+}
+function _pozoDetalle(p) {
+    if (!p) return '';
+    const par = (k, v) => (_txt(v) ? `${k}: ${_txt(v)}` : null);
+    return [
+        [par('Tanques', p.tanques), par('Medidas', p.medidas), par('Material', p.material)].filter(Boolean).join('  ·  '),
+        [par('TDS', p.tds), par('Dureza', p.dureza), par('PH', p.ph), par('Hierro', p.hierro)].filter(Boolean).join('  ·  '),
+        [par('Color', p.color), par('Olor', p.olor), par('Sulfuro', p.sulfuro), par('Tanil', p.tanil)].filter(Boolean).join('  ·  '),
+        par('Nota', p.nota),
+    ].filter(Boolean).join('\n');
+}
+
+app.post('/api/generar-orden-instalacion', requiereSesion(), async (req, res) => {
+    try {
+        const b = req.body || {};
+        const proyectoId = _txt(b.proyectoId);
+        const tecnicoId = _txt(b.tecnicoId);
+        if (!proyectoId || !tecnicoId) return res.status(400).json({ error: 'Faltan el proyecto o el técnico' });
+
+        const moldePath = path.join(__dirname, 'orden_instalacion_molde.pdf');
+        if (!fs.existsSync(moldePath)) return res.status(404).json({ error: 'No se encontró el molde de la Orden de Instalación' });
+
+        const { data: proy } = await supabase.from('proyectos_dinamicos').select('*').eq('id', proyectoId).single();
+        if (!proy) return res.status(404).json({ error: 'Proyecto no encontrado' });
+        const { data: cli } = await supabase.from('clientes_maestro').select('*').eq('id', proy.cliente_id).single();
+        if (!cli) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+        const { data: tec } = await supabase.from('usuarios').select('id, nombre, apellido, telefono').eq('id', tecnicoId).single();
+        const vendedorId = _txt(cli.vendedor_asignado_id || proy.responsable_id).split(',')[0].trim();
+        let vendedor = _txt(cli.vendedor_asignado_nombre);
+        if (vendedorId) {
+            const { data: v } = await supabase.from('usuarios').select('nombre, apellido').eq('id', vendedorId).single();
+            if (v) vendedor = _nombreUsuario(v) || vendedor;
+        }
+
+        const adj = (cli.adjuntos_oficina && typeof cli.adjuntos_oficina === 'object' && !Array.isArray(cli.adjuntos_oficina)) ? cli.adjuntos_oficina : {};
+        const ot = adj.orden_trabajo_datos || null;
+        const pozoDatos = adj.pozo_datos || null;
+        const eq = _equipoDesdeOrden(ot);
+        // Sin datos de la orden: si hay plantilla de pozo se asume equipo de pozo
+        const esPozo = eq.pozo || (!eq.ciudad && !!(adj.plantilla_pozo_url || cli.plantilla_pozo_url));
+        const esCiudad = eq.ciudad;
+        const tipoEquipo = esPozo && esCiudad ? 'Ciudad y Pozo' : esPozo ? 'Pozo' : esCiudad ? 'Ciudad' : 'Sin especificar';
+
+        let detalleEquipo = eq.detalle;
+        if (!detalleEquipo && adj.orden_trabajo_url) detalleEquipo = 'Ver la Orden de Trabajo del cliente.';
+        let detallePozo = esPozo ? _pozoDetalle(pozoDatos) : '';
+        if (esPozo && !detallePozo && (adj.plantilla_pozo_url || cli.plantilla_pozo_url)) detallePozo = 'Ver la Especificación de Pozo del cliente.';
+
+        // Fecha y hora: lo elegido en la fase manda; si no hay hora se usa el horario de la Orden de Trabajo
+        let fecha = _txt(b.fecha) || _txt(ot?.instalacion?.fechaEstimada);
+        let hora = _txt(b.hora);
+        const mT = fecha.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+        if (mT) { fecha = mT[1]; if (!hora) hora = mT[2]; }
+        if (!hora) hora = _txt(ot?.instalacion?.horario);
+
+        const datos = {
+            fecha: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', timeZone: 'America/New_York' }),
+            comprador: _txt(cli.nombre), telefono: _txt(cli.telefono), email: _txt(cli.email),
+            direccion: _txt(cli.direccion), ciudad: _txt(ot?.comprador?.ciudad), estado: _txt(ot?.comprador?.estado),
+            zip: _txt(ot?.comprador?.zipCode || ot?.comprador?.zip),
+            inst_fecha: _fechaLegible(fecha), inst_hora: hora,
+            tecnico: _nombreUsuario(tec), tecnico_tel: _txt(tec?.telefono),
+            representante: vendedor,
+            chk_ciudad: esCiudad ? 'X' : '', chk_pozo: esPozo ? 'X' : '',
+            equipo_detalle: detalleEquipo, pozo_detalle: detallePozo,
+            instrucciones: _txt(ot?.instalacion?.instruccionesEspeciales),
+            cliente_nombre: _txt(cli.nombre),
+        };
+
+        const pdfBytes = await generarPDF(moldePath, datos);
+        const fileName = `ordenes_instalacion/orden_instalacion_${Date.now()}_${Math.round(Math.random() * 1e6)}.pdf`;
+        const { error: upErr } = await supabase.storage.from('archivos_renew')
+            .upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: true });
+        if (upErr) throw new Error('No se pudo guardar el PDF: ' + upErr.message);
+        const { data: { publicUrl: finalUrl } } = supabase.storage.from('archivos_renew').getPublicUrl(fileName);
+
+        // Guardar en el perfil del cliente (se relee justo antes para no pisar nada)
+        const { data: cliNow } = await supabase.from('clientes_maestro').select('adjuntos_oficina').eq('id', cli.id).single();
+        const adjNow = (cliNow?.adjuntos_oficina && typeof cliNow.adjuntos_oficina === 'object' && !Array.isArray(cliNow.adjuntos_oficina)) ? cliNow.adjuntos_oficina : {};
+        adjNow.orden_instalacion_url = finalUrl;
+        adjNow.ultima_orden_instalacion_fecha = new Date().toISOString();
+        const { error: cErr } = await supabase.from('clientes_maestro').update({ adjuntos_oficina: adjNow }).eq('id', cli.id);
+        if (cErr) console.error('[ORDEN INSTALACION] No se pudo ligar al cliente:', cErr.message);
+
+        const payload = {
+            evento: 'orden_instalacion_generada',
+            pdf_url: finalUrl,
+            fecha_generada: new Date().toISOString(),
+            tecnico: { id: tec?.id || tecnicoId, nombre: _nombreUsuario(tec), telefono: _txt(tec?.telefono), whatsapp: _whatsappNumero(tec?.telefono) },
+            cliente: { id: cli.id, nombre: datos.cliente_nombre, telefono: datos.telefono, direccion: datos.direccion, email: datos.email },
+            instalacion: { fecha: datos.inst_fecha, hora: datos.inst_hora },
+            equipo: { tipo: tipoEquipo, detalle: detalleEquipo || '', pozo: detallePozo || '' },
+            instrucciones: datos.instrucciones,
+            vendedor: vendedor || '',
+            proyecto: { id: proy.id },
+            creado_por: _nombreUsuario(req.usuario) || null,
+        };
+        let avisado = false;
+        if (payload.tecnico.whatsapp) {
+            try {
+                const r = await fetch(process.env.ORDEN_INSTALACION_WEBHOOK_URL || 'https://n8n.renewgroup.site/webhook/orden-instalacion', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+                });
+                avisado = r.ok;
+                if (!r.ok) console.error('[ORDEN INSTALACION] n8n respondió', r.status);
+            } catch (e) { console.error('[ORDEN INSTALACION] Error al avisar a n8n:', e.message); }
+        }
+
+        res.json({ success: true, url: finalUrl, tecnico_avisado: avisado, tecnico_sin_telefono: !payload.tecnico.whatsapp, ligado_cliente: !cErr });
+    } catch (err) {
+        console.error('[/api/generar-orden-instalacion] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/generar-plantilla-pozo', async (req, res) => {
     console.log('[/api/generar-plantilla-pozo] Petición recibida.');
     try {
@@ -1990,6 +2132,11 @@ app.post('/api/generar-plantilla-pozo', async (req, res) => {
                 if (cli) cliente = cli;
                 let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
                 adj.plantilla_pozo_url = finalUrl;
+                adj.pozo_datos = {
+                    tanques: d.tanques || '', medidas: d.medidas || '', material: d.material || '',
+                    tds: d.tds || '', dureza: d.dureza || '', ph: d.ph || '', hierro: d.hierro || '',
+                    color: d.color || '', olor: d.olor || '', sulfuro: d.sulfuro || '', tanil: d.tanil || '', nota: d.nota || '',
+                };
                 await supabase.from('clientes_maestro')
                     .update({ adjuntos_oficina: adj, plantilla_pozo_url: finalUrl })
                     .eq('id', targetClienteId);
@@ -2475,6 +2622,13 @@ app.post('/api/generar-orden', async (req, res) => {
                         
                         adjuntos.orden_trabajo_url = finalUrl;
                         adjuntos.ultima_orden_fecha = new Date().toISOString();
+                        // Datos (sin firmas ni fotos) para la Orden de Instalación del técnico
+                        adjuntos.orden_trabajo_datos = {
+                            comprador: { ciudad: rawData.comprador?.ciudad || '', estado: rawData.comprador?.estado || '', zipCode: rawData.comprador?.zipCode || rawData.comprador?.zip || '' },
+                            equipos: rawData.equipos || {},
+                            instalacion: rawData.instalacion || {},
+                            representante: rawData.nombre_dealer || '',
+                        };
                         
                         const { error: uErr } = await supabase.from('clientes_maestro')
                             .update({ 
