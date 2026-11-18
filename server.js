@@ -1763,10 +1763,14 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
                     .select('adjuntos_oficina').eq('id', targetClienteId).single();
                 let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
                 adj.confirmacion_instalacion_url = finalUrl;
-                await supabase.from('clientes_maestro')
-                    .update({ adjuntos_oficina: adj, confirmacion_instalacion_url: finalUrl })
+                // Solo adjuntos_oficina: la columna confirmacion_instalacion_url no existe en la tabla
+                // y hacía fallar todo el update (la confirmación nunca quedaba en el cliente).
+                adj.ultima_confirmacion_fecha = new Date().toISOString();
+                const { error: ciErr } = await supabase.from('clientes_maestro')
+                    .update({ adjuntos_oficina: adj })
                     .eq('id', targetClienteId);
-                console.log(`[CONFIRMACION] Cliente ${targetClienteId} actualizado.`);
+                if (ciErr) console.error(`[CONFIRMACION] No se pudo ligar al cliente ${targetClienteId}:`, ciErr.message);
+                else console.log(`[CONFIRMACION] Cliente ${targetClienteId} actualizado.`);
             }
         } else {
             console.error('[STORAGE ERROR - CONFIRMACION]', uploadError);
