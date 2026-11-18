@@ -56,7 +56,7 @@ async function handleDecisions() {
     await say(`Anotado, ${nombreUser}. Dejé al prospecto como Declinado (motivo: "${text.slice(0, 120)}").`);
     return 'rechazo_con_motivo';
   }
-  const pend = (await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos,adjuntos_oficina&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`)).filter(esWater).filter(esDePrueba);
+  const pend = (await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos,adjuntos_oficina,fecha,fecha_inicio&${Q_PROSPECTO}&vendedor_asignado_id=eq.${user.id}`)).filter(esWater).filter(esDePrueba).filter(esNuevo);
   if (!pend.length) return null;
   const ext = await llm(
     'Un vendedor responde por WhatsApp sobre prospectos cuya Aplicación de Crédito ya se envió. Detecta si informa que una aplicación fue ACEPTADA (aprobada) o RECHAZADA (negada). Responde SOLO JSON: {"decisiones":[{"cliente_id": string, "decision": "aceptada"|"rechazada", "motivo": string|null}]}. Lista vacía si el mensaje no habla de aprobación/rechazo. Si solo hay un prospecto y dice "aceptada/aprobada/sí" o "rechazada/negada/no", aplica a ese. NUNCA adivines.',
@@ -90,8 +90,8 @@ async function handleDecisions() {
 
 // ---------- Proyectos del usuario (según la fase en la que está cada uno) ----------
 async function misProyectos() {
-  const all = await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null');
-  const cand = all.filter((p) => sigueAbierto(p, ctx) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
+  const all = await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre,fecha&pipeline_id=eq.pip_water&fase_id=not.is.null');
+  const cand = all.filter((p) => sigueAbierto(p, ctx) && esNuevo(p) && encargadosDe(ctx.F[p.fase_id], p, ctx.users).some((u) => u.id === user.id));
   await nombresClientes(ctx, cand.map((p) => p.cliente_id));
   // SEGURIDAD: un representante nunca ve proyectos de otros aunque comparta rol en la fase
   const mine = cand.filter((p) => proyDePrueba(p, ctx) && puedeTrabajar(user, p, ctx.CL[p.cliente_id], ctx.F[p.fase_id], ctx.users));

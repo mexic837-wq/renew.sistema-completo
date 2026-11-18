@@ -44,6 +44,14 @@ const sendText = async (number, text) => {
 const SOLO = sinAcentos(E.SOLO_CLIENTE || '');
 const esDePrueba = (c) => !SOLO || (!!c && (String(c.id) === String(E.SOLO_CLIENTE).trim() || sinAcentos(c.nombre).includes(SOLO)));
 const proyDePrueba = (p, ctx) => !SOLO || esDePrueba({ id: p.cliente_id, nombre: ctx.N[p.cliente_id] || (ctx.CL && ctx.CL[p.cliente_id] || {}).nombre });
+// Solo nuevos: con DESDE_FECHA (AAAA-MM-DD) el agente solo persigue prospectos y proyectos con fecha desde ese día.
+// Los anteriores (o sin fecha) se siguen manejando desde la app. Vacío = todos.
+const DESDE = /^d{4}-d{2}-d{2}$/.test(String(E.DESDE_FECHA || '').trim()) ? String(E.DESDE_FECHA).trim() : '';
+const fechaDe = (x) => String((x && (x.fecha || x.fecha_inicio)) || '').slice(0, 10);
+const esNuevo = (x) => !DESDE || fechaDe(x) >= DESDE;
+// El formulario externo guarda 'Prospectos' y la app 'Prospecto': el agente toma ambos
+const Q_PROSPECTO = 'macro_estado=in.(Prospecto,Prospectos)';
+const esProspecto = (c) => ['Prospecto', 'Prospectos'].includes(c && c.macro_estado);
 const sendSafe = async (number, text) => { try { const r = await sendText(number, text); return !(r && r.pausado); } catch (e) { console.log('sendText falló', e.message); return false; } };
 
 async function llm(system, user) {
@@ -538,7 +546,7 @@ async function cargarVisibles(u, ctx) {
   const CL = Object.fromEntries(cs.map((c) => [c.id, c]));
   const proyectos = ps.filter((p) => puedeVerProyecto(u, p, CL[p.cliente_id]) && esDePrueba(CL[p.cliente_id]));
   const conProyecto = new Set(ps.map((p) => p.cliente_id));
-  const prospectos = cs.filter((c) => c.macro_estado === 'Prospecto' && esWaterCli(c) && !conProyecto.has(c.id) && puedeVerCliente(u, c) && esDePrueba(c));
+  const prospectos = cs.filter((c) => esProspecto(c) && esWaterCli(c) && !conProyecto.has(c.id) && puedeVerCliente(u, c) && esDePrueba(c));
   return { ps, cs, CL, proyectos, prospectos };
 }
 const nomFase = (p, ctx) => (p.fase_id && ctx.F[p.fase_id] ? ctx.F[p.fase_id].nombre : 'Completado');
@@ -677,10 +685,10 @@ function lineaPendiente(p, ctx, resp, opts = {}) {
 // Todo lo que una persona le debe al agente ahora mismo (solo de clientes que le corresponden)
 async function pendientesDe(user, ctx) {
   const out = [];
-  const pros = await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos&macro_estado=eq.Prospecto&vendedor_asignado_id=eq.${user.id}`);
-  pros.filter(esWaterCli).filter(esDePrueba).forEach((c) => out.push({ key: 'prospecto:' + c.id, line: `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*?` }));
-  const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
-    .filter((p) => sigueAbierto(p, ctx));
+  const pros = await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos,fecha,fecha_inicio&${Q_PROSPECTO}&vendedor_asignado_id=eq.${user.id}`);
+  pros.filter(esWaterCli).filter(esDePrueba).filter(esNuevo).forEach((c) => out.push({ key: 'prospecto:' + c.id, line: `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*?` }));
+  const ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre,fecha&pipeline_id=eq.pip_water&fase_id=not.is.null'))
+    .filter((p) => sigueAbierto(p, ctx) && esNuevo(p));
   await nombresClientes(ctx, ps.map((p) => p.cliente_id));
   const mios = ps.filter((p) => proyDePrueba(p, ctx) && encargadosAutorizados(ctx.F[p.fase_id], p, ctx).some((u) => u.id === user.id));
   if (mios.length) {

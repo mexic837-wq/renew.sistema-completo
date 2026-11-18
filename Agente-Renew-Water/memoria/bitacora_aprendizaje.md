@@ -25,3 +25,6 @@ Formato: `[AAAA-MM-DD HH:mm] Observación / regla aprendida`
 - [2026-10-29 15:40] REGLA (usuario): el crédito aprobado pasa el proyecto directo a Orden de Trabajo (no se queda en Aprobación aunque falte la aplicación cargada).
 
 - [2026-10-29 20:05] REGLA (usuario): el día de la instalación el agente le recuerda la cita al técnico y, después de la hora programada, le pregunta si ya terminó y le pide los datos de la confirmación. No se persigue al técnico antes de la instalación.
+
+- [2026-11-18 12:00] REGLA (usuario): el agente solo trabaja con prospectos y proyectos NUEVOS, con fecha desde DESDE_FECHA (nodo Config, por defecto 2026-11-18). Los viejos se manejan en la app.
+- [2026-11-18 12:00] El formulario externo crea clientes con macro_estado 'Prospectos' (plural) y la app usa 'Prospecto': el agente busca ambos.

@@ -37,6 +37,12 @@ apikey: <EVOLUTION_API_KEY>
 2. Verifica en Supabase: proyecto nuevo en `pip_water`, cliente `En Proceso`.
 3. Barrido: déjalo con `BARRIDO_SEND=false` y ejecútalo manual (Execute node) para ver los mensajes simulados; cuando estén bien, pon `true`.
 
+## Solo clientes nuevos (DESDE_FECHA)
+En el nodo **Config**, `DESDE_FECHA` (AAAA-MM-DD, por defecto `2026-11-18`) hace que el agente solo pregunte, persiga y avance:
+- **Prospectos** de Water (`macro_estado` = `Prospecto` o `Prospectos`) con `fecha`/`fecha_inicio` desde ese día.
+- **Proyectos** de `pip_water` con `fecha` desde ese día (incluye los que el agente crea al aceptar un crédito).
+Los anteriores, o sin fecha, no reciben mensajes ni recordatorios: se siguen manejando desde la app. Las consultas de solo lectura (*mis clientes*, *cómo va…*) y las firmas de clientes sí incluyen todo. Vacío = todos.
+
 ## Modo prueba (un solo cliente)
 En el nodo **Config**:
 - `SOLO_CLIENTE` = nombre completo (o id) del cliente de prueba, p. ej. `Miguel prueba agenteia`. El agente solo pregunta, responde y avanza ese cliente; los demás clientes y encargados no reciben nada.

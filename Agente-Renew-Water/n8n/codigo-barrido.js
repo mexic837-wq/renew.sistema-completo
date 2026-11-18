@@ -25,13 +25,13 @@ const add = (u, key, line) => {
   (porUsuario[u.id] = porUsuario[u.id] || { u, items: [] }).items.push({ k, line });
 };
 
-const pros = await sel('clientes_maestro', 'select=id,nombre,departamento,departamentos_activos,vendedor_asignado_id&macro_estado=eq.Prospecto');
-for (const c of pros.filter(esWaterCli).filter(esDePrueba)) {
+const pros = await sel('clientes_maestro', `select=id,nombre,departamento,departamentos_activos,vendedor_asignado_id,fecha,fecha_inicio&${Q_PROSPECTO}`);
+for (const c of pros.filter(esWaterCli).filter(esDePrueba).filter(esNuevo)) {
   const u = ctx.users.find((x) => x.id === c.vendedor_asignado_id && !x.is_suspended);
   if (u) add(u, 'prospecto:' + c.id, `🆕 *${c.nombre}*: ¿la Aplicación de Crédito fue *aceptada* o *rechazada*? (si fue rechazada, dime el motivo)`);
 }
-let ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre&pipeline_id=eq.pip_water&fase_id=not.is.null'))
-  .filter((p) => sigueAbierto(p, ctx));
+let ps = (await sel('proyectos_dinamicos', 'select=id,cliente_id,fase_id,responsable_id,tecnico_id,fecha_cierre,fecha&pipeline_id=eq.pip_water&fase_id=not.is.null'))
+  .filter((p) => sigueAbierto(p, ctx) && esNuevo(p));
 if (ps.length) await nombresClientes(ctx, ps.map((p) => p.cliente_id));
 ps = ps.filter((p) => proyDePrueba(p, ctx));
 if (ps.length) {
