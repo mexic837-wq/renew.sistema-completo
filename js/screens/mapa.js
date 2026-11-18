@@ -3,7 +3,7 @@
    ============================================================ */
 import { getCurrentUser, navigate } from '../app.js';
 import { getDB, getDeptArray, saveGranular } from '../api.js';
-import { geocodeCached } from '../geocache.js';
+import { geocodeCached } from '../geocache.js?v=2';
 
 export async function renderMiMapa() {
   const user = getCurrentUser();

@@ -1,4 +1,4 @@
-import { geocodeCached } from './geocache.js';
+import { geocodeCached } from './geocache.js?v=2';
 import {
   initDB, uploadFile, uploadAcademia, saveDB, getDB, saveGranular, genId,
   getAdminPipelines, getAdminFases, getAdminCampos,

@@ -4719,6 +4719,85 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
     }
 });
 
+// ── UBICACIONES DE CLIENTES PARA LOS MAPAS ──
+// El servidor ubica cada dirección una sola vez con Google y guarda las coordenadas
+// (fuera de la carpeta pública). Los mapas piden todas en una sola llamada y cargan al instante.
+const GEO_KEY = process.env.GOOGLE_MAPS_KEY || 'AIzaSyCFoQ242PO7RbV_EVjrT7Qt1uDDxuMqLE4';
+const GEO_FILE = process.env.GEOCACHE_PATH || path.join(os.homedir(), '.renew-geocache.json');
+let geoCache = {};
+try { geoCache = JSON.parse(fs.readFileSync(GEO_FILE, 'utf8')) || {}; } catch (e) { geoCache = {}; }
+let geoGuardarT = null;
+const geoGuardar = () => {
+    clearTimeout(geoGuardarT);
+    geoGuardarT = setTimeout(() => fs.writeFile(GEO_FILE, JSON.stringify(geoCache), () => {}), 1000);
+};
+const geoPreparar = (addr) => {
+    let a = String(addr || '').replace(/\s+/g, ' ').trim();
+    if (!a || a.includes('@')) return '';
+    if (!/\b(usa|us|united states|estados unidos|puerto rico|venezuela|colombia|m[eé]xico)\b/i.test(a)) a += ', USA';
+    return a;
+};
+async function geoUbicar(address) {
+    const c = geoCache[address];
+    if (c && typeof c.lat === 'number') return c;
+    if (c && c.n && Date.now() - c.n < 7 * 864e5) return null;
+    for (let intento = 0; intento < 4; intento++) {
+        try {
+            const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?region=us&address=${encodeURIComponent(address)}&key=${GEO_KEY}`);
+            const j = await r.json();
+            if (j.status === 'OVER_QUERY_LIMIT') { await new Promise(ok => setTimeout(ok, 1000 * (intento + 1))); continue; }
+            if (j.status === 'OK' && j.results && j.results[0]) {
+                const { lat, lng } = j.results[0].geometry.location;
+                geoCache[address] = { lat, lng }; geoGuardar();
+                return geoCache[address];
+            }
+            if (j.status === 'ZERO_RESULTS') { geoCache[address] = { n: Date.now() }; geoGuardar(); }
+            else console.warn('[GEO]', j.status, j.error_message || '');
+            return null;
+        } catch (e) { await new Promise(ok => setTimeout(ok, 500)); }
+    }
+    return null;
+}
+let geoTrabajando = null;
+async function geoUbicarTodos() {
+    if (geoTrabajando) return geoTrabajando;
+    geoTrabajando = (async () => {
+        const clientes = [];
+        for (let off = 0; ; off += 1000) {
+            const { data, error } = await supabase.from('clientes_maestro').select('direccion').range(off, off + 999);
+            if (error || !data) break;
+            clientes.push(...data);
+            if (data.length < 1000) break;
+        }
+        const faltan = [...new Set(clientes.map(c => geoPreparar(c.direccion)).filter(a => a && !geoCache[a]))];
+        // 10 a la vez (el servicio de Google acepta hasta 50 por segundo)
+        for (let i = 0; i < faltan.length; i += 10) await Promise.all(faltan.slice(i, i + 10).map(geoUbicar));
+        if (faltan.length) console.log(`[GEO] ${faltan.length} direcciones nuevas revisadas`);
+    })().catch(e => console.warn('[GEO] error:', e.message)).finally(() => { geoTrabajando = null; });
+    return geoTrabajando;
+}
+
+// GET /api/geo-clientes → { direccionPreparada: [lat, lng] }
+app.get('/api/geo-clientes', requiereSesion(), async (req, res) => {
+    // Si hay direcciones sin ubicar, se espera un máximo de 15 s; lo que falte llega en la siguiente carga
+    await Promise.race([geoUbicarTodos(), new Promise(ok => setTimeout(ok, 15000))]);
+    const out = {};
+    Object.entries(geoCache).forEach(([a, v]) => { if (v && typeof v.lat === 'number') out[a] = [v.lat, v.lng]; });
+    res.json({ ubicaciones: out });
+});
+// Ubicaciones que encontró el navegador (para direcciones que el servidor aún no tenía)
+app.post('/api/geo-clientes', requiereSesion(), (req, res) => {
+    const items = Array.isArray(req.body && req.body.items) ? req.body.items.slice(0, 500) : [];
+    items.forEach(it => {
+        const a = geoPreparar(it && it.address);
+        if (a && typeof it.lat === 'number' && typeof it.lng === 'number' && !(geoCache[a] && geoCache[a].lat)) geoCache[a] = { lat: it.lat, lng: it.lng };
+    });
+    geoGuardar();
+    res.json({ ok: true });
+});
+setTimeout(geoUbicarTodos, 20000);
+setInterval(geoUbicarTodos, 10 * 60 * 1000);
+
 app.listen(port, '0.0.0.0', () => {
     console.log(`\n<i class="fa-solid fa-rocket"></i> RENEW CLOUD SERVER RUNNING`);
     console.log(`<i class="fa-solid fa-satellite-dish"></i> Admin Panel : http://localhost:${port}/admin.html`);
