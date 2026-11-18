@@ -6,7 +6,7 @@ import {
   deleteAdminPipeline, deleteAdminFase, deleteAdminCampo, reorderAdminCampos, reorderAdminFases,
   getAdminWorkers, saveAdminWorker, deleteAdminWorker,
   getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
-  getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
+  getInventario, inventarioWaterDeSede, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
@@ -5225,7 +5225,9 @@ window.renderView = async function renderView() {
     const invData = getInventario();
 
     // 1. First filter by Warehouse (Sede) and Ecosystem (Solar/Water/Home)
-    const baseItems = invData.filter(i => {
+    // Water: mismos productos que la lista de precios (stock por sede desde inventario)
+    const waterVinculado = ecoFilter === 'water' ? inventarioWaterDeSede(activeInventorySede) : null;
+    const baseItems = waterVinculado || invData.filter(i => {
         const matchesSede = i.locacion === activeInventorySede;
         if (!state.activeEcoFilter) return matchesSede;
         
@@ -5252,7 +5254,7 @@ window.renderView = async function renderView() {
 
         return `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                <td class="px-6 py-4 whitespace-nowrap text-[10px] text-gray-500 font-bold uppercase tracking-tight">${ite.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] text-gray-500 font-bold uppercase tracking-tight">${ite.codigoLista || ite.id}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-900 dark:text-white uppercase">${ite.nombreItem}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                    <span class="px-2 py-0.5 ${lineBadge} text-[8px] font-black uppercase tracking-widest rounded border">${ite.ecosistema}</span>

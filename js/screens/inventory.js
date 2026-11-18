@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/inventory.js
    Drill-down Inventory Form for Techs
    ============================================================ */
-import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
+import { getInventario, inventarioWaterDeSede, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { navigate, getCurrentUser } from '../app.js';
 
@@ -36,6 +36,11 @@ function escHtml(v) {
 }
 
 function itemsDe(sede, eco) {
+  // Water: mismos productos que la lista de precios
+  if (eco === 'water') {
+    const vinculados = inventarioWaterDeSede(sede);
+    if (vinculados) return vinculados;
+  }
   return getInventario().filter(item => {
     const matchesSede = item.locacion === sede;
     const matchesEco = !eco || (item.category === eco) || (item.ecosistema && item.ecosistema.toLowerCase().includes(eco));
@@ -221,7 +226,7 @@ export function renderInventoryTech(dealId = null) {
   function renderSelected(item) {
     const triggerContent = document.getElementById('inv-trigger-content');
     triggerContent.innerHTML = `
-      <span class="inv-sel-id">${escHtml(item.id)}</span>
+      <span class="inv-sel-id">${escHtml(item.codigoLista || item.id)}</span>
       <span class="inv-sel-name">${escHtml(item.nombreItem)}</span>
       <span class="inv-sel-eco">${escHtml(item.ecosistema || '')}</span>
       ${isAdmin ? `<span class="inv-sel-stock"><b>${item.stockActual}</b> unidades disponibles</span>` : ''}
@@ -258,7 +263,8 @@ export function renderInventoryTech(dealId = null) {
         return;
     }
 
-    filtered.sort((a, b) => {
+    // Water ya viene en el orden de la lista de precios
+    if (selectedEcosistema !== 'water' || !filtered.some(i => i.codigoLista)) filtered.sort((a, b) => {
         const getRank = (eco) => {
             if (!eco) return 99;
             const text = eco.toLowerCase();
@@ -277,9 +283,9 @@ export function renderInventoryTech(dealId = null) {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'inv-item';
-      card.dataset.search = `${item.id} ${item.nombreItem} ${item.ecosistema || ''}`.toLowerCase();
+      card.dataset.search = `${item.codigoLista || item.id} ${item.nombreItem} ${item.ecosistema || ''}`.toLowerCase();
       card.innerHTML = `
-        <span class="inv-item-id">${escHtml(item.id)}</span>
+        <span class="inv-item-id">${escHtml(item.codigoLista || item.id)}</span>
         <span class="inv-item-name">${escHtml(item.nombreItem)}</span>
         <span class="inv-item-foot">
           <span class="inv-item-eco">${escHtml(item.ecosistema || '')}</span>

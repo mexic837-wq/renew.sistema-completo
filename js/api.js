@@ -1481,6 +1481,60 @@ export function getInventario() {
   return db.inventarioGlobal || [];
 }
 
+// ── Inventario Water vinculado a la Lista de Precios ─────────────
+// Los productos de Water en inventario son los mismos de la lista de precios
+// (Water_Productos). El stock se toma de inventario_global emparejando por código:
+// "C-A04" en la lista ↔ "C-A04" o "C-A04-ORL" (sufijo de sede) en inventario.
+const SUFIJOS_SEDE = ['orlando', 'miami', 'dallas', 'houston', 'austin', 'north_carolina', 'new_york']
+  .map(s => s.substring(0, 3).toUpperCase());
+
+function normCodigo(c) {
+  return String(c ?? '').trim().toUpperCase();
+}
+
+export function codigoBaseInventario(id) {
+  const c = normCodigo(id);
+  const m = c.match(/^(.+)-([A-Z]{3})$/);
+  return m && SUFIJOS_SEDE.includes(m[2]) ? m[1] : c;
+}
+
+// Devuelve las filas de inventario de Water para la sede, en el orden de la lista de precios.
+// Los productos sin fila en esa sede se agregan en memoria con stock 0 (se guardan al moverles stock).
+// Si la lista de precios no está cargada devuelve null para usar el inventario tal cual.
+export function inventarioWaterDeSede(sede) {
+  const db = getDB();
+  const productos = (db.Water_Productos || [])
+    .filter(p => p.es_activo !== false && p.codigo)
+    .filter(p => !p.sede || p.sede === 'todas' || p.sede === sede)
+    .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  if (!productos.length) return null;
+
+  if (!Array.isArray(db.inventarioGlobal)) db.inventarioGlobal = [];
+  const inv = db.inventarioGlobal;
+  const sufijo = String(sede).substring(0, 3).toUpperCase();
+
+  return productos.map(p => {
+    const codigo = normCodigo(p.codigo);
+    let row = inv.find(i => i.locacion === sede && codigoBaseInventario(i.id) === codigo);
+    if (!row) {
+      let id = `${codigo}-${sufijo}`;
+      if (inv.some(i => i.id === id)) id = `${codigo}-${String(sede).toUpperCase()}`;
+      row = { id, stockActual: 0, locacion: sede, storage: sede, category: 'water' };
+      inv.push(row);
+    }
+    // Nombre, línea y datos técnicos salen de la lista de precios
+    row.nombreItem = p.nombre || row.nombreItem;
+    row.ecosistema = p.categoria || row.ecosistema;
+    row.medida = p.medida || row.medida;
+    row.boton = p.boton || row.boton;
+    row.color = p.color || row.color;
+    row.category = 'water';
+    row.codigoLista = codigo;
+    row.stockActual = Number(row.stockActual) || 0;
+    return row;
+  });
+}
+
 // Envía solo los registros de una tabla a /api/upsert (sin tocar el caché).
 // El inventario ya no usa saveDB: mandar la BD completa supera el límite del servidor (413).
 async function upsertDirecto(table, records) {
