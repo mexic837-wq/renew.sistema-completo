@@ -7,11 +7,11 @@ import {
   deleteAdminPipeline, deleteAdminFase, deleteAdminCampo, reorderAdminCampos, reorderAdminFases,
   getAdminWorkers, saveAdminWorker, deleteAdminWorker,
   getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
-  getInventario, inventarioWaterDeSede, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
+  getInventario, inventarioWaterDeSede, moverStock, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js?v=7';
+} from './api.js?v=8';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
@@ -144,8 +144,8 @@ window.addStock = (id) => {
         btnConfirm.onclick = async () => {
             const val = parseInt(inputQty.value) || 0;
             if (val > 0) {
-                item.stockActual = (parseInt(item.stockActual) || 0) + val;
-                saveInventario(invData);
+                try { await moverStock(item, val); }
+                catch (err) { return showToast(err.message, 'error'); }
 
                 // Record in history
                 const historial = getHistorialInventario();
@@ -201,8 +201,8 @@ window.subtractStock = (id) => {
                 if (item.stockActual < val) {
                     if (!confirm('El stock actual es menor a la cantidad a retirar. ¿Continuar con stock negativo?')) return;
                 }
-                item.stockActual = (parseInt(item.stockActual) || 0) - val;
-                saveInventario(invData);
+                try { await moverStock(item, -val, { permitirNegativo: true }); }
+                catch (err) { return showToast(err.message, 'error'); }
 
                 // Record in history
                 const historial = getHistorialInventario();
@@ -1046,7 +1046,7 @@ window.adminCreateFolder = async () => {
     await saveDB(db);
     
     try {
-        const { saveGranular } = await import('./api.js?v=7');
+        const { saveGranular } = await import('./api.js?v=8');
         await saveGranular('academia_content', newFolder);
     } catch(err) {
         console.error('Error guardando carpeta granularmente', err);
@@ -1478,7 +1478,8 @@ function bindGlobalEvents() {
             });
         }
         
-        saveInventario(invData);
+        // Solo se guarda este artículo (mandar todo el inventario pisaba el stock que otros movieron)
+        await saveInventario(invData, [codigo]);
         delete btnSaveInv.dataset.editId; 
         
         window.closeModals();

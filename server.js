@@ -4719,6 +4719,48 @@ app.post('/api/zadarma/webhook', express.urlencoded({ extended: true }), async (
     }
 });
 
+// ── INVENTARIO: mover stock en el servidor ──
+// La app manda "suma N" o "resta N" y el servidor aplica el cambio sobre el stock real de Supabase.
+// Así dos personas moviendo el mismo artículo a la vez no se pisan (antes se guardaba el número
+// que cada pantalla tenía y el último en guardar borraba el movimiento del otro).
+const invCola = new Map(); // un movimiento a la vez por artículo
+app.post('/api/inventario/mover', requiereSesion(), (req, res) => {
+    const { id, delta, permitirNegativo, item } = req.body || {};
+    const d = Math.trunc(Number(delta));
+    if (!id || !d) return res.status(400).json({ error: 'Faltan el artículo o la cantidad' });
+    const previo = invCola.get(id) || Promise.resolve();
+    const tarea = previo.catch(() => {}).then(async () => {
+        const { data: fila, error: eL } = await supabase.from('inventario_global').select('*').eq('id', id).maybeSingle();
+        if (eL) return res.status(500).json({ error: 'No se pudo leer el inventario: ' + eL.message });
+        const actual = fila ? (Number(fila.stock_actual) || 0) : 0;
+        const nuevo = actual + d;
+        if (nuevo < 0 && !permitirNegativo) {
+            return res.status(409).json({ error: `No hay suficiente stock (quedan ${actual})`, stock: actual });
+        }
+        let err;
+        if (fila) {
+            ({ error: err } = await supabase.from('inventario_global').update({ stock_actual: nuevo }).eq('id', id));
+        } else {
+            // Artículo de la lista de precios que aún no tenía fila en esa sede: se crea
+            const base = (item && typeof item === 'object') ? item : {};
+            const nuevoReg = {
+                id,
+                nombre_item: base.nombre_item || null, ecosistema: base.ecosistema || null, category: base.category || null,
+                locacion: base.locacion || null, storage: base.storage || base.locacion || null,
+                medida: base.medida || null, boton: base.boton || null, color: base.color || null,
+                stock_actual: nuevo
+            };
+            ({ error: err } = await supabase.from('inventario_global').insert([nuevoReg]));
+        }
+        if (err) return res.status(500).json({ error: 'No se pudo guardar el stock: ' + err.message });
+        res.json({ ok: true, stock: nuevo });
+    }).catch(e => {
+        console.error('[INVENTARIO] mover:', e);
+        if (!res.headersSent) res.status(500).json({ error: 'Fallo al mover el stock' });
+    }).finally(() => { if (invCola.get(id) === tarea) invCola.delete(id); });
+    invCola.set(id, tarea);
+});
+
 // ── UBICACIONES DE CLIENTES PARA LOS MAPAS ──
 // El servidor ubica cada dirección una sola vez con Google y guarda las coordenadas
 // (fuera de la carpeta pública). Los mapas piden todas en una sola llamada y cargan al instante.

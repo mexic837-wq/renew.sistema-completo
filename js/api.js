@@ -1578,11 +1578,31 @@ function mapInventarioItem(item) {
   };
 }
 
-export async function saveInventario(data) {
+// soloIds: guardar únicamente esos artículos (para no pisar el stock que otros movieron)
+export async function saveInventario(data, soloIds = null) {
   const db = getDB();
   db.inventarioGlobal = data;
   cachedDB = db;
-  await upsertDirecto('inventario_global', (data || []).map(mapInventarioItem));
+  const filas = Array.isArray(soloIds) ? (data || []).filter(i => soloIds.includes(i.id)) : (data || []);
+  await upsertDirecto('inventario_global', filas.map(mapInventarioItem));
+}
+
+// Suma o resta stock en el servidor sobre el valor real (sin pisar movimientos de otros).
+// Actualiza item.stockActual con el resultado. Si no alcanza el stock lanza un error con .stock
+export async function moverStock(item, delta, { permitirNegativo = false } = {}) {
+  const res = await fetch(`${API_BASE}/inventario/mover`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: item.id, delta, permitirNegativo, item: mapInventarioItem(item) })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (typeof data.stock === 'number') item.stockActual = data.stock;
+  if (!res.ok) {
+    const e = new Error(data.error || `No se pudo mover el stock (error ${res.status})`);
+    e.stock = data.stock;
+    throw e;
+  }
+  return data.stock;
 }
 
 export async function deleteInventarioItem(id) {

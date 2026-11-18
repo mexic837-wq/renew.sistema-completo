@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/inventory.js
    Drill-down Inventory Form for Techs
    ============================================================ */
-import { getInventario, inventarioWaterDeSede, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
+import { getInventario, inventarioWaterDeSede, moverStock, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { navigate, getCurrentUser } from '../app.js';
 
@@ -340,15 +340,15 @@ export function renderInventoryTech(dealId = null) {
       return;
     }
 
-    if (mode === 'withdrawal') {
-        if (qty > item.stockActual) {
-          showToast('Error: No hay suficiente material en la sede para este retiro', 'error');
-          return;
-        }
-        item.stockActual -= qty;
-    } else {
-        // Addition (Admin only)
-        item.stockActual += qty;
+    // El servidor aplica el cambio sobre el stock real (sin pisar lo que movieron otros al mismo tiempo)
+    try {
+      await moverStock(item, mode === 'withdrawal' ? -qty : qty);
+    } catch (movErr) {
+      showToast(movErr.stock !== undefined ? 'No hay suficiente material en la sede para este retiro' : movErr.message, 'error');
+      renderSelected(item);
+      const tag = document.querySelector('#inv-item-list-container .inv-item.selected .inv-item-stock');
+      if (tag) tag.textContent = `Stock: ${item.stockActual}`;
+      return;
     }
 
     // ── Registro en historialInventario ──────────────────────────
@@ -380,21 +380,6 @@ export function renderInventoryTech(dealId = null) {
         cliente_nombre: clienteNombre,
         tipo_movimiento: currentDealId && mode === 'withdrawal' ? 'Salida (Proyecto)' : (mode === 'withdrawal' ? 'RETIRO' : 'SURTIDO')
       };
-      // Guardado granular: solo el artículo, el movimiento y (si aplica) el proyecto.
-      // Antes se enviaba la BD completa a /api/db y el servidor la rechazaba (413).
-      await saveGranular('inventario_global', [{
-        id:           item.id,
-        nombre_item:  item.nombreItem  || null,
-        ecosistema:   item.ecosistema  || null,
-        category:     item.category    || null,
-        locacion:     item.locacion    || null,
-        storage:      item.storage     || null,
-        stock_actual: item.stockActual || 0,
-        medida:       item.medida      || null,
-        boton:        item.boton       || null,
-        color:        item.color       || null
-      }]);
-
       // Se agrega primero al historial local para que saveGranular lo fusione consigo mismo
       historial.unshift(newEntry);
       if (historial.length > 500) historial.length = 500;
@@ -421,11 +406,9 @@ export function renderInventoryTech(dealId = null) {
       }
 
     } catch (histErr) {
+      // El stock ya quedó guardado en el servidor; solo falló el registro del movimiento
       console.warn('No se pudo guardar el historial de inventario:', histErr);
-      // Revertir el stock en pantalla para no mostrar un cambio que no se guardó
-      item.stockActual += mode === 'withdrawal' ? qty : -qty;
-      showToast('Error al sincronizar historial con la nube', 'error');
-      return; // Stop here if save fails
+      showToast('El stock se guardó, pero no se pudo registrar el movimiento en el historial', 'error');
     }
     // ─────────────────────────────────────────────────────────────
 
