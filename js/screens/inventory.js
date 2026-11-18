@@ -331,9 +331,14 @@ export function renderInventoryTech(dealId = null) {
       return;
     }
 
-    const invData = getInventario();
-    const item = invData.find(i => i.id === itemId);
-    if (!item) return;
+    // Buscar en los artículos de la sede: los de Water que aún no tienen fila en esa sede solo existen
+    // en memoria y se pierden cuando la app se resincroniza; itemsDe() los vuelve a crear.
+    let item = getInventario().find(i => i.id === itemId)
+      || itemsDe(selectedSede, selectedEcosistema).find(i => i.id === itemId);
+    if (!item) {
+      showToast('No se encontró el artículo. Vuelve a seleccionarlo.', 'error');
+      return;
+    }
 
     if (mode === 'withdrawal') {
         if (qty > item.stockActual) {

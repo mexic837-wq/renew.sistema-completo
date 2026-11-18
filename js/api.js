@@ -1506,8 +1506,9 @@ function normCodigo(c) {
 
 export function codigoBaseInventario(id) {
   const c = normCodigo(id);
-  const m = c.match(/^(.+)-([A-Z]{3})$/);
-  return m && SUFIJOS_SEDE.includes(m[2]) ? m[1] : c;
+  // Sufijo de sede: "-ORL", "-MIA"… (también tolera errores como "-ORLL")
+  const m = c.match(/^(.+)-([A-Z]{3,4})$/);
+  return m && SUFIJOS_SEDE.includes(m[2].substring(0, 3)) ? m[1] : c;
 }
 
 // Devuelve las filas de inventario de Water para la sede, en el orden de la lista de precios.

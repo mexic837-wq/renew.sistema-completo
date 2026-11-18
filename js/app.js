@@ -35,7 +35,7 @@ import { renderNewClient }  from './screens/newClient.js';
 import { renderDetail }     from './screens/projectDetail.js?v=6';
 import { renderAcademy }    from './screens/academy.js';
 import { renderMenu }       from './screens/menu.js?v=4';
-import { renderInventoryTech } from './screens/inventory.js?v=2';
+import { renderInventoryTech } from './screens/inventory.js?v=3';
 import { renderClients } from './screens/clients.js?v=19';
 import { renderCallCenter } from './screens/callCenter.js?v=3';
 import { renderMiCalendario } from './screens/calendar.js?v=8';

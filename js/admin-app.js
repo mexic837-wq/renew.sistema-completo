@@ -11,7 +11,7 @@ import {
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js?v=6';
+} from './api.js?v=7';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
@@ -118,8 +118,14 @@ window.setWorkerSedeFilter = (sede) => {
 // ââ‚¬ââ‚¬ GLOBAL INVENTORY FUNCTIONS (Top Level for maximum accessibility) ââ‚¬ââ‚¬
 window.addStock = (id) => {
     console.log("Global addStock called for ID:", id);
-    const invData = getInventario();
-    const item = invData.find(i => i.id === id);
+    let invData = getInventario();
+    // Los de Water sin fila en la sede viven solo en memoria: si una resincronización los borró, se vuelven a crear
+    let item = invData.find(i => i.id === id);
+    if (!item && state.activeInventorySede) {
+        inventarioWaterDeSede(state.activeInventorySede);
+        invData = getInventario();
+        item = invData.find(i => i.id === id);
+    }
     if (!item) return showToast("Artículo no encontrado", "error");
     
     // Fix IDs to match admin.html
@@ -168,8 +174,14 @@ window.addStock = (id) => {
 
 window.subtractStock = (id) => {
     console.log("Global subtractStock called for ID:", id);
-    const invData = getInventario();
-    const item = invData.find(i => i.id === id);
+    let invData = getInventario();
+    // Los de Water sin fila en la sede viven solo en memoria: si una resincronización los borró, se vuelven a crear
+    let item = invData.find(i => i.id === id);
+    if (!item && state.activeInventorySede) {
+        inventarioWaterDeSede(state.activeInventorySede);
+        invData = getInventario();
+        item = invData.find(i => i.id === id);
+    }
     if (!item) return showToast("Artículo no encontrado", "error");
     
     const labelName = document.getElementById('lbl-add-stock-name');
@@ -219,8 +231,14 @@ window.subtractStock = (id) => {
 
 window.editStock = (id) => {
     console.log("Global editStock called for ID:", id);
-    const invData = getInventario();
-    const item = invData.find(i => i.id === id);
+    let invData = getInventario();
+    // Los de Water sin fila en la sede viven solo en memoria: si una resincronización los borró, se vuelven a crear
+    let item = invData.find(i => i.id === id);
+    if (!item && state.activeInventorySede) {
+        inventarioWaterDeSede(state.activeInventorySede);
+        invData = getInventario();
+        item = invData.find(i => i.id === id);
+    }
     if (!item) return showToast("Artículo no encontrado", "error");
 
     const modInv = document.getElementById('modal-nuclear-inv');
@@ -1028,7 +1046,7 @@ window.adminCreateFolder = async () => {
     await saveDB(db);
     
     try {
-        const { saveGranular } = await import('./api.js?v=6');
+        const { saveGranular } = await import('./api.js?v=7');
         await saveGranular('academia_content', newFolder);
     } catch(err) {
         console.error('Error guardando carpeta granularmente', err);
