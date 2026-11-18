@@ -7,7 +7,7 @@ import { showToast } from '../components/toast.js';
 
 let sigCanvas, sigCtx, sigDrawing = false;
 
-export function renderConfirmacionInstalacion() {
+export function renderConfirmacionInstalacion(param = null) {
   const screen = document.getElementById('screen-confirmacion-instalacion');
   if (!screen) return;
 
@@ -248,7 +248,7 @@ export function renderConfirmacionInstalacion() {
   _initSig();
   _initDate();
   _initAutocomplete();
-  _autofillFromParams();
+  _autofillFromParams(param);
 }
 
 function _initAutocomplete() {
@@ -332,12 +332,57 @@ function _initDate() {
   if (repEl && user) repEl.value = user.nombre || '';
 }
 
-function _autofillFromParams() {
-  // Try to prefill from URL params or saved project data
+// Abierta desde el proyecto (fase Certificado de Instalación): se llena sola con
+// cliente, técnico, fecha de instalación, representante y equipos de la Orden de Trabajo.
+function _autofillFromParams(param) {
   const hash = window.location.hash || '';
   const match = hash.match(/proyectoId=([^&]+)/);
-  if (!match) return;
-  window._ci_proyectoId = match[1];
+  window._ci_proyectoId = param || (match ? match[1] : null);
+  window._ci_clienteId = null;
+  if (!window._ci_proyectoId) return;
+
+  const db = getDB() || {};
+  const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(window._ci_proyectoId));
+  if (!proy) return;
+  const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id)) || {};
+  window._ci_clienteId = cli.id || null;
+  const adj = (cli.adjuntos_oficina && !Array.isArray(cli.adjuntos_oficina)) ? cli.adjuntos_oficina : {};
+  const ot = adj.orden_trabajo_datos || {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+
+  set('ci-comprador', cli.nombre);
+  set('ci-telefono', cli.telefono);
+  set('ci-email', cli.email);
+  set('ci-direccion', cli.direccion);
+  set('ci-ciudad', ot.comprador?.ciudad || cli.ciudad);
+  set('ci-estado', ot.comprador?.estado || (cli.state_id && cli.state_id !== '-' ? cli.state_id : ''));
+  set('ci-zip', ot.comprador?.zipCode || (cli.zip && cli.zip !== 'Pendiente' ? cli.zip : ''));
+
+  // Técnico y fecha: lo elegido en "Asignación de Técnicos"
+  const campos = db.Admin_Campos_Formulario || [];
+  const resps = (db.Respuestas_Dinamicas || []).filter(r => String(r.proyecto_id) === String(proy.id));
+  const valDe = (pred) => { const c = campos.find(pred); const r = c && resps.find(x => String(x.campo_id) === String(c.id)); return r?.valor || ''; };
+  const tecId = valDe(c => c.tipo === 'Técnico') || proy.tecnico_id;
+  const tec = (db.Usuarios || []).find(u => String(u.id) === String(tecId));
+  if (tec) set('ci-instalador', `${tec.nombre || ''} ${tec.apellido || ''}`.trim());
+  const fechaInst = valDe(c => ['Fecha', 'FechaHora', 'Fecha y Hora'].includes(c.tipo) && /instalaci/i.test(c.etiqueta || ''));
+  const m = String(fechaInst).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) set('ci-fecha-instalacion', `${m[2]}/${m[3]}/${m[1]}`);
+
+  // Representante de ventas
+  const vendId = String(cli.vendedor_asignado_id || proy.responsable_id || '').split(',')[0].trim();
+  const vend = (db.Usuarios || []).find(u => String(u.id) === vendId);
+  set('ci-rep-ventas', vend ? `${vend.nombre || ''} ${vend.apellido || ''}`.trim() : cli.vendedor_asignado_nombre);
+
+  // Equipos según la Orden de Trabajo (o pozo si tiene especificación de pozo)
+  const e = ot.equipos || {};
+  const marcar = (key, on) => {
+    const el = document.querySelector(`#ci-equip-list [data-key="${key}"]`);
+    if (el && on && !el.classList.contains('checked')) window.ciToggleChk(el);
+  };
+  marcar('water_treatment', e.suavizadorCasa || e.suavizadorCasa_entera);
+  marcar('reverse_osmosis', e.osmosisReversa || e.osmosisReverso);
+  marcar('well_water', e.aguaPozo || (!ot.equipos && (adj.plantilla_pozo_url || cli.plantilla_pozo_url)));
 }
 
 function _initSig() {
@@ -373,7 +418,7 @@ window.ciPickRadio = (el) => {
   el.classList.add(el.dataset.val === 'si' ? 'active-yes' : 'active-no');
 };
 
-window.ciToggleChk = (el) => { el.classList.toggle('checked'); el.textContent = el.classList.contains('checked') ? '<i class="fa-solid fa-check text-green-500"></i>' : ''; };
+window.ciToggleChk = (el) => { el.classList.toggle('checked'); el.innerHTML = el.classList.contains('checked') ? '<i class="fa-solid fa-check text-green-500"></i>' : ''; };
 
 const _getRadio = (group) => { const el = document.querySelector(`[data-group="${group}"].active-yes, [data-group="${group}"].active-no`); return el ? el.dataset.val : ''; };
 const _isChecked = (key) => document.querySelector(`[data-key="${key}"].checked`) !== null;
@@ -432,6 +477,35 @@ window.ciSubmit = async () => {
     showToast('¡Confirmación generada y guardada! <i class="fa-solid fa-check text-green-500"></i>', 'success');
     if (result.url) {
       setTimeout(() => { window.open(result.url, '_blank'); }, 500);
+    }
+
+    // Ligar el PDF a la fase "Certificado de Instalación" del proyecto y volver al proyecto
+    const proyId = window._ci_proyectoId;
+    if (proyId && result.url) {
+      try {
+        const db = getDB() || {};
+        const proy = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(proyId));
+        if (proy) {
+          const cli = (db.Clientes_Maestro || []).find(c => String(c.id) === String(proy.cliente_id));
+          if (cli) {
+            if (!cli.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) cli.adjuntos_oficina = {};
+            cli.adjuntos_oficina.confirmacion_instalacion_url = result.url;
+          }
+          const faseCert = (db.Admin_Fases || []).find(f => f.pipeline_id === proy.pipeline_id && /certificado de instalaci/i.test(f.nombre || ''));
+          const campoCert = faseCert && (db.Admin_Campos_Formulario || []).find(c => String(c.fase_id) === String(faseCert.id) && c.tipo === 'Archivo');
+          if (campoCert) {
+            const prev = (db.Respuestas_Dinamicas || []).find(r => String(r.proyecto_id) === String(proy.id) && String(r.campo_id) === String(campoCert.id));
+            const lista = String(prev?.valor || '').split(',').map(x => x.trim()).filter(x => x && /^(https?:|\/api\/|\/uploads\/)/.test(x));
+            if (!lista.includes(result.url)) lista.push(result.url);
+            const { advanceDealPhase } = await import('../api.js');
+            await advanceDealPhase(proy.id, { [campoCert.id]: lista.join(',') }, { preventAutoAdvance: true });
+          }
+          setTimeout(() => window.appNavigate && window.appNavigate('detail', proy.id), 1200);
+        }
+      } catch (linkErr) {
+        console.error('[CI] No se pudo ligar a la fase:', linkErr);
+        showToast('PDF generado, pero no se pudo poner en la fase del proyecto: ' + linkErr.message, 'warning');
+      }
     }
   } catch (err) {
     console.error('[CI Submit]', err);

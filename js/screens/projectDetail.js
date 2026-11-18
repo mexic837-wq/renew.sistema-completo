@@ -1936,6 +1936,13 @@ async function renderDynamicAction(deal, pipeline, fases, curFidx, db) {
       </p>
       
       <div id="form-fields-container" style="${isLocked ? 'pointer-events:none' : ''}">
+        ${(!isLocked && /certificado de instalaci/i.test(actFase?.nombre || '')) ? `
+          <button type="button" onclick="window.appNavigate ? window.appNavigate('confirmacion-instalacion', '${deal.id}') : null"
+            style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:#0ea5e9; color:white; border:none; padding:14px; border-radius:12px; font-size:0.9rem; font-weight:800; cursor:pointer; box-shadow:0 4px 16px rgba(14,165,233,.3); margin-bottom:10px;">
+            <i class="fa-solid fa-file-signature"></i> Llenar Confirmación de Instalación
+          </button>
+          <p style="text-align:center; font-size:0.72rem; color:var(--text-muted); margin:0 0 12px;">o sube la foto del certificado firmado:</p>
+        ` : ''}
         ${inputsHtml}
         ${extraHtml}
       </div>
