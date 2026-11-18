@@ -243,7 +243,7 @@ export async function renderClients() {
     // ── Search Bar ───────────────────────────────────────────
     let searchHTML = '';
     searchHTML = `
-      <div style="margin-bottom:12px;">
+      <div style="margin-bottom:4px;">
         <div style="position:relative;">
           <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
           <input id="clients-app-search" type="text" placeholder="Buscar por nombre de cliente..." autocomplete="off"
@@ -303,7 +303,7 @@ export async function renderClients() {
     if (!searchEl) {
       searchEl = document.createElement('div');
       searchEl.id = 'clients-app-search-container';
-      searchEl.style.padding = '0 20px';
+      searchEl.style.padding = '0 16px';
       searchEl.style.marginBottom = '4px';
       searchEl.innerHTML = searchHTML;
       // Insert just before the list container
@@ -660,7 +660,7 @@ async function _renderList(user, container) {
     if (mainDept.toLowerCase().includes('solar')) { deptColor = '#f59e0b'; deptBg = 'rgba(245, 158, 11, 0.15)'; mainDept = 'Solar'; }
     else if (mainDept.toLowerCase().includes('water')) { deptColor = '#0ea5e9'; deptBg = 'rgba(14, 165, 233, 0.15)'; mainDept = 'Water'; }
     else if (mainDept.toLowerCase().includes('home')) { deptColor = '#a855f7'; deptBg = 'rgba(168, 85, 247, 0.15)'; mainDept = 'Home'; }
-    const deptBadgeHtml = `<span style="font-size:0.55rem; font-weight:900; background:${deptBg}; color:${deptColor}; padding:2px 6px; border-radius:6px; text-transform:uppercase; margin-left:6px; letter-spacing:0.5px; align-self:center;">${mainDept}</span>`;
+    const deptBadgeHtml = `<span style="font-size:0.55rem; font-weight:900; background:${deptBg}; color:${deptColor}; padding:2px 6px; border-radius:6px; text-transform:uppercase; margin-left:6px; letter-spacing:0.5px; display:inline-block; vertical-align:middle; position:relative; top:-1px;">${mainDept}</span>`;
 
     const allWorkers = [...(db.Usuarios || [])];
     
@@ -716,9 +716,9 @@ async function _renderList(user, container) {
       }
 
       enManosDeHtml = `
-        <div style="display:flex; align-items:center; gap:6px; margin-top:8px; padding:6px 10px; background:${color}18; border:1px solid ${color}35; border-radius:8px;">
-          <i class="fas ${icon}" style="font-size:10px; color:${color};"></i>
-          <span style="font-size:11px; font-weight:700; color:${color};">En manos de: ${nombre}</span>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:4px; padding:8px 12px; background:${color}18; border:1px solid ${color}35; border-radius:10px; min-width:0;">
+          <i class="fas ${icon}" style="font-size:11px; color:${color}; flex-shrink:0;"></i>
+          <span style="font-size:12px; font-weight:700; color:${color}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">En manos de: ${nombre}</span>
         </div>
       `;
     }
@@ -730,7 +730,7 @@ async function _renderList(user, container) {
     let deleteBtnHtml = '';
       const isDeletableRole = ['admin', 'administrador', 'ceo'].some(r => userRolNorm.includes(r));
       if (isDeletableRole) {
-        deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s; margin-right:8px;" title="${targetId ? 'Eliminar Proyecto' : 'Eliminar Prospecto'}"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
+        deleteBtnHtml = `<button class="btn-eliminar-cliente" data-client-id="${c.id}" data-project-id="${targetId}" style="background:rgba(239, 68, 68, 0.1); border:none; color:#ef4444; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all 0.2s;" title="${targetId ? 'Eliminar Proyecto' : 'Eliminar Prospecto'}"><i class="fas fa-trash-alt" style="font-size:0.85rem; pointer-events:none;"></i></button>`;
       }
 
       // Resolve Representative:
@@ -742,27 +742,27 @@ async function _renderList(user, container) {
       const repUser = allWorkers.find(u => String(u.id) === String(repId));
       const repName = repUser ? (repUser.nombre + ' ' + (repUser.apellido || '')).trim() : (c.vendedor_asignado_nombre || 'Desconocido');
 
+      const cityName = getClientCity(c);
       const repHtml = `
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-user-tie"></i> <span>Rep: <strong>${repName}</strong></span>
-          ${getClientCity(c) ? `<span style="opacity:.5;">·</span><i class="fa-solid fa-location-dot" style="color:var(--primary);"></i> <strong style="color:var(--text-secondary);">${getClientCity(c)}</strong>` : ''}
+        <div class="deal-meta-row">
+          <span class="deal-meta-item"><i class="fa-solid fa-user-tie"></i> Rep: <strong>${repName}</strong></span>
+          ${cityName ? `<span class="deal-meta-item"><i class="fa-solid fa-location-dot" style="color:var(--primary);"></i> <strong style="color:var(--text-secondary);">${cityName}</strong></span>` : ''}
         </div>
       `;
 
+      const notesHtml = String(c.notas || '').trim() ? `<span class="deal-icon-btn" title="${String(c.notas).trim().slice(0, 300).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" style="background:rgba(245,158,11,0.12); color:#f59e0b;"><i class="fa-solid fa-note-sticky"></i></span>` : '';
+
       return `
-        <div class="deal-card" style="--card-accent:var(--primary); cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
-          <div class="deal-card-top" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-            <div>
-               <div class="deal-client-name" style="color:var(--text-primary); font-weight:700; font-size:1.05rem; display:flex; align-items:center; flex-wrap:wrap; line-height:1.25;">${c.nombre} ${deptBadgeHtml}</div>
-               ${repHtml}
+        <div class="deal-card client-card" style="--card-accent:var(--primary); cursor:pointer;" data-id="${targetId}" data-client-id="${c.id}">
+          <div class="deal-card-top client-card-top">
+            <div class="client-card-head">
+              <div class="deal-client-name client-card-name">${c.nombre} ${deptBadgeHtml}</div>
+              ${(notesHtml || deleteBtnHtml) ? `<div class="client-card-actions">${notesHtml}${deleteBtnHtml}</div>` : ''}
             </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-             ${deleteBtnHtml}
-             ${String(c.notas || '').trim() ? `<span title="${String(c.notas).trim().slice(0, 300).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" style="width:26px; height:26px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:rgba(245,158,11,0.12); color:#f59e0b; font-size:0.8rem;"><i class="fa-solid fa-note-sticky"></i></span>` : ''}
-             <span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}">${etapaLabel}</span>
+            <div class="client-card-stage"><span class="badge ${progress === 100 ? 'badge-green' : 'badge-gray'}">${etapaLabel}</span></div>
+            ${repHtml}
           </div>
-        </div>
-        
+
         <div class="deal-progress-wrap">
           <div class="deal-progress-info">
             <span>Avance de Proyecto</span>
@@ -775,7 +775,7 @@ async function _renderList(user, container) {
 
         ${enManosDeHtml}
 
-        <div class="deal-card-bottom" style="display:flex; justify-content:space-between; align-items:center; color:var(--text-muted); font-size:0.8rem; margin-top:8px;">
+        <div class="deal-card-bottom" style="display:flex; justify-content:space-between; align-items:center; color:var(--text-muted); font-size:0.8rem; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
           <div class="deal-date">
             <i class="far fa-calendar-alt" style="margin-right:6px"></i>
             ${dateStr}
