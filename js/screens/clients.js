@@ -747,10 +747,11 @@ async function _renderList(user, container) {
       // Priority: client's explicit vendedor_asignado_id (set from admin) > project's responsable_id > client fallbacks
       let repId = c.vendedor_asignado_id;
       if (!repId && proy) repId = proy.responsable_id || proy.creador_id;
-      if (!repId) repId = c.responsable_id || c.creador_id;
+      if (!repId) repId = c.responsable_id || c.creador_id || c.origen_id;
       if (repId && String(repId).includes(',')) repId = String(repId).split(',')[0].trim();
       const repUser = allWorkers.find(u => String(u.id) === String(repId));
-      const repName = repUser ? (repUser.nombre + ' ' + (repUser.apellido || '')).trim() : (c.vendedor_asignado_nombre || 'Desconocido');
+      // Sin vendedor guardado: se muestra quién lo creó / de dónde vino; si no hay nada, "Sin asignar"
+      const repName = repUser ? (repUser.nombre + ' ' + (repUser.apellido || '')).trim() : (c.vendedor_asignado_nombre || c.origen_nombre || 'Sin asignar');
 
       const cityName = getClientCity(c);
       const repHtml = `
