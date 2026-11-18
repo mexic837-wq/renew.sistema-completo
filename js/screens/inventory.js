@@ -14,6 +14,9 @@ const SEDES = [
   { id: 'orlando',  nombre: 'Orlando',    estado: 'Florida' },
   { id: 'miami',    nombre: 'Miami',      estado: 'Florida' },
   { id: 'dallas',   nombre: 'Dallas',     estado: 'Texas' },
+  { id: 'houston',  nombre: 'Houston',    estado: 'Texas' },
+  { id: 'austin',   nombre: 'Austin',     estado: 'Texas' },
+  { id: 'north_carolina', nombre: 'North Carolina', estado: 'North Carolina' },
   { id: 'new_york', nombre: 'Nueva York', estado: 'New York' }
 ];
 

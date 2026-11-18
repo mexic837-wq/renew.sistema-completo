@@ -897,10 +897,10 @@ window.openInventoryCart = (dealId) => {
 
 function renderCartSedes() {
     const container = document.getElementById('cart-sede-filters');
-    const sedes = ['orlando', 'miami', 'dallas', 'new_york'];
+    const sedes = ['orlando', 'miami', 'dallas', 'houston', 'austin', 'north_carolina', 'new_york'];
     container.innerHTML = sedes.map(s => `
         <button onclick="window.setCartSede('${s}')" class="sede-tab-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${cartSelectedSede === s ? 'bg-tealAccent text-black' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}" data-sede="${s}">
-            ${s.replace('_', ' ')}
+            ${s.replace(/_/g, ' ')}
         </button>
     `).join('');
 }

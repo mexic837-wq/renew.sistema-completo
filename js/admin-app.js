@@ -5414,6 +5414,9 @@ window.renderView = async function renderView() {
              <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'orlando' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="orlando">Orlando</button>
              <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'miami' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="miami">Miami</button>
              <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'dallas' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="dallas">Dallas</button>
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'houston' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="houston">Houston</button>
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'austin' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="austin">Austin</button>
+             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'north_carolina' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="north_carolina">North Carolina</button>
              <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'new_york' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="new_york">Nueva York</button>
           </div>
 
