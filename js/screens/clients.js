@@ -246,7 +246,7 @@ export async function renderClients() {
       <div style="margin-bottom:4px;">
         <div style="position:relative;">
           <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
-          <input id="clients-app-search" type="text" placeholder="Buscar por nombre de cliente..." autocomplete="off"
+          <input id="clients-app-search" type="text" placeholder="Buscar por nombre, teléfono o correo..." autocomplete="off"
             style="width:100%;padding:11px 14px 11px 40px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem;font-weight:600;box-sizing:border-box;outline:none;"
             onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
         </div>
@@ -470,10 +470,16 @@ async function _renderList(user, container) {
 
   // Search filtering applied FIRST so counts reflect search
   const searchInput = document.getElementById('clients-app-search');
-  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  // Sin acentos ni mayúsculas: "jose" encuentra "José"
+  const sinAcentos = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const searchQuery = searchInput ? sinAcentos(searchInput.value).trim() : '';
   let baseClientes = misClientes;
   if (searchQuery) {
-      baseClientes = baseClientes.filter(c => (c.nombre || '').toLowerCase().includes(searchQuery));
+      const qDig = searchQuery.replace(/\D/g, '');
+      baseClientes = baseClientes.filter(c =>
+        sinAcentos(c.nombre).includes(searchQuery) ||
+        sinAcentos(c.email).includes(searchQuery) ||
+        (qDig.length >= 4 && String(c.telefono || '').replace(/\D/g, '').includes(qDig)));
   }
 
   // --- NEW: Calculate and update tab counters ---
