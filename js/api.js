@@ -67,6 +67,14 @@ const marcado = (v) => v === true || v === 'true';
 window.esAccesoTotal = function(user) {
   return window.getUserRoles(user).some(r => ROLES_ACCESO_TOTAL.includes(r));
 };
+// Roles normalizados (soporta varios roles: array, JSON o separados por coma)
+const rolesNorm = (user) => window.getUserRoles(user).map(r => r.replace(/_/g, ' ').replace(/\s+/g, ' ').trim());
+// Admin/CEO/Desarrollador/Manager: nunca ven las fases en solo lectura
+const esAdminFases = (user) => rolesNorm(user).some(r => ROLES_ACCESO_TOTAL.includes(r) || r === 'manager');
+// ¿Alguno de los roles del usuario le toca esta fase?
+const tocaFase = (user, faseRolNorm, isResponsable) => rolesNorm(user).some(r =>
+  r === faseRolNorm || (r.includes('call') && faseRolNorm.includes('call')) ||
+  (faseRolNorm === 'encargado del proyecto' && (isResponsable || r === 'project manager')));
 window.puedeVerCatalogo = function(user) {
   return !!user && (window.esAccesoTotal(user) || marcado(user.ver_catalogo));
 };
@@ -2023,8 +2031,8 @@ export async function getDealsByUser(userId, pipelineName) {
     const myProyectos = projects.filter(p => {
       if (!targetPipelineIds.includes(p.pipeline_id)) return false;
       
-      const userRolNorm = (u && u.rol) ? u.rol.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim() : '';
-      const isAdminUser = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
+      const userRolNorm = (u && typeof u.rol === 'string') ? u.rol.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim() : '';
+      const isAdminUser = esAdminFases(u);
 
       // Admin sees everything
       if (isAdminUser) return true; 
@@ -2043,7 +2051,7 @@ export async function getDealsByUser(userId, pipelineName) {
         if (fase.rol_encargado) {
           const faseRolNorm = fase.rol_encargado.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
           const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(u.id)) || String(p.creador_id) === String(u.id);
-          const isMyTurn = userRolNorm === faseRolNorm || (userRolNorm.includes('call') && faseRolNorm.includes('call')) || (faseRolNorm === 'encargado del proyecto' && (isResponsable || userRolNorm === 'project manager'));
+          const isMyTurn = tocaFase(u, faseRolNorm, isResponsable);
           
           if (isMyTurn) {
             if (p.asignado_a) {
@@ -2059,15 +2067,15 @@ export async function getDealsByUser(userId, pipelineName) {
 
     return myProyectos.map(p => {
       const cli = (db.Clientes_Maestro || []).find(c => c.id === p.cliente_id) || {};
-      const userRolNorm = (u && u.rol) ? u.rol.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim() : '';
-      const isAdminUser = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
+      const userRolNorm = (u && typeof u.rol === 'string') ? u.rol.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim() : '';
+      const isAdminUser = esAdminFases(u);
       
       const fase = (db.Admin_Fases || []).find(f => f.id === p.fase_id) || {};
       const faseRolNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
       const faseOrden = fase.orden || 0;
       
       const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(u.id)) || String(p.creador_id) === String(u.id);
-      const isMyTurn = userRolNorm === faseRolNorm || (userRolNorm.includes('call') && faseRolNorm.includes('call')) || (faseRolNorm === 'encargado del proyecto' && (isResponsable || userRolNorm === 'project manager'));
+      const isMyTurn = tocaFase(u, faseRolNorm, isResponsable);
       const isLocked = !isAdminUser && !isMyTurn;
 
       return {
@@ -2314,13 +2322,13 @@ export async function getDealById(dealId) {
   const cli = db.Clientes_Maestro.find(c => c.id === p.cliente_id) || {};
   const fase = db.Admin_Fases.find(f => f.id === p.fase_id) || {};
   const user = JSON.parse(localStorage.getItem('rs_user') || '{}');
-  const userRolNorm = (user.rol || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-  const isAdmin = ['admin', 'administrador', 'ceo', 'manager'].includes(userRolNorm);
+  const userRolNorm = (typeof user.rol === 'string' ? user.rol : '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  const isAdmin = esAdminFases(user);
   
   const specificUsers = fase.usuarios_especificos || [];
   const rolEncargadoNorm = (fase.rol_encargado || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
   const isResponsable = (p.responsable_id || '').split(',').map(id=>id.trim()).includes(String(user.id)) || String(p.creador_id) === String(user.id);
-  const isMyTurn = userRolNorm === rolEncargadoNorm || (userRolNorm.includes('call') && rolEncargadoNorm.includes('call')) || specificUsers.includes(user.id) || (rolEncargadoNorm === 'encargado del proyecto' && (isResponsable || userRolNorm === 'project manager'));
+  const isMyTurn = tocaFase(user, rolEncargadoNorm, isResponsable) || specificUsers.includes(user.id);
   const isLocked = !isAdmin && !isMyTurn;
 
   return { 
