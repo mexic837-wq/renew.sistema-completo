@@ -147,7 +147,9 @@ export function renderInventoryTech(dealId = null) {
   const step2 = document.getElementById('inv-step-2');
   const step3 = document.getElementById('inv-step-3');
 
+  let pasoActual = 1;
   function mostrarPaso(n) {
+    pasoActual = n;
     step1.style.display = n === 1 ? 'block' : 'none';
     step2.style.display = n === 2 ? 'block' : 'none';
     step3.style.display = n === 3 ? 'block' : 'none';
@@ -215,6 +217,15 @@ export function renderInventoryTech(dealId = null) {
   const btnBackDash = document.getElementById('btn-inventory-back');
   if (btnBackDash) {
     btnBackDash.addEventListener('click', () => {
+        // Retroceder dentro de Inventario: Material → Ecosistema → Sede
+        if (pasoActual === 3) {
+            mostrarPaso(ecosistemasDeSede(selectedSede).length === 1 ? 1 : 2);
+            return;
+        }
+        if (pasoActual === 2) {
+            mostrarPaso(1);
+            return;
+        }
         if (currentDealId) {
             navigate('detail', currentDealId);
         } else {
