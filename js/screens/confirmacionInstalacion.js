@@ -8,6 +8,8 @@ import { showToast } from '../components/toast.js';
 let sigCanvas, sigCtx, sigDrawing = false;
 
 export function renderConfirmacionInstalacion(param = null) {
+  // Si se abrió desde un proyecto, regresar vuelve a ese proyecto; si no, a Plantillas
+  window.ciVolver = () => (param ? window.appNavigate('detail', param) : window.appNavigate('plantillas'));
   const screen = document.getElementById('screen-confirmacion-instalacion');
   if (!screen) return;
 
@@ -52,7 +54,7 @@ export function renderConfirmacionInstalacion(param = null) {
 
   <!-- Header -->
   <div class="tpl-header">
-    <button class="tpl-back" onclick="window.appNavigate('plantillas')" title="Volver a Plantillas">
+    <button class="tpl-back" onclick="window.ciVolver()" title="${param ? 'Volver al proyecto' : 'Volver a Plantillas'}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     </button>
     <div>
