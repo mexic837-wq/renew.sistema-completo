@@ -346,22 +346,12 @@ export function renderPlantillaPozo(proyIdParam = null) {
           const db = getDB();
           const project = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(linkedProyectoId));
           if (project) {
-              // El PDF de pozo ya quedó en el cliente (adjuntos_oficina.plantilla_pozo_url);
-              // no se pisa la Orden de Trabajo del proyecto con el PDF de pozo.
-              const dynamicField = db.Admin_Campos_Formulario?.find(c => 
-                  c.tipo === 'Orden de Trabajo' && String(c.fase_id) === String(project.fase_id)
-              );
-              const responses = {};
-              if (dynamicField && finalPdfUrl) responses[dynamicField.id] = finalPdfUrl;
-              
-              // 
-              
-              const { advanceDealPhase, saveGranular } = await import('../api.js');
+              // El PDF de pozo ya quedó en el cliente (adjuntos_oficina.plantilla_pozo_url).
+              // NO se escribe en el campo "Orden de Trabajo" de la fase: eso reemplazaba la
+              // respuesta de la orden real por el PDF de pozo y la orden "desaparecía".
+              const { saveGranular } = await import('../api.js');
               await saveGranular('proyectos_dinamicos', [project]);
-              if (Object.keys(responses).length > 0) {
-                  await advanceDealPhase(linkedProyectoId, responses, { preventAutoAdvance: false });
-              }
-              
+
               showToast('Plantilla de Pozo Guardada en el Proyecto', 'success');
               setTimeout(() => window.appNavigate('detail', linkedProyectoId), 1500);
               return; // EXIT HERE so it doesn't redirect to plantillas

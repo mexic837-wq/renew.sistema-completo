@@ -1121,7 +1121,7 @@ app.post('/api/db', requiereSesion(), async (req, res) => {
                 }
                 return mapped;
             });
-            syncTasks.push(supabase.from('clientes_maestro').upsert(cli, { onConflict: 'id' }));
+            syncTasks.push(preservarDocsServidor('clientes_maestro', cli).then(rows => supabase.from('clientes_maestro').upsert(rows, { onConflict: 'id' })));
         }
 
         if (db.Proyectos_Dinamicos?.length) {
@@ -1132,7 +1132,7 @@ app.post('/api/db', requiereSesion(), async (req, res) => {
                 fase_id: rest.fase_id === 'Completado' ? null : rest.fase_id
             }));
             console.log("PROYECTOS TO UPSERT:", JSON.stringify(proy).substring(0, 500));
-            syncTasks.push(supabase.from('proyectos_dinamicos').upsert(proy, { onConflict: 'id' }));
+            syncTasks.push(preservarDocsServidor('proyectos_dinamicos', proy).then(rows => supabase.from('proyectos_dinamicos').upsert(rows, { onConflict: 'id' })));
         }
         if (db.Respuestas_Dinamicas?.length) {
             // Filtrar respuestas con IDs inválidos o nulos que causan errores de FK
@@ -1363,6 +1363,47 @@ app.post('/api/db', requiereSesion(), async (req, res) => {
 
 // ── FAST GRANULAR UPSERT API ──
 // Recibe { table: 'nombre_tabla', records: [ { id: '...', ... } ] }
+// ── PRESERVAR DOCUMENTOS GENERADOS EN EL SERVIDOR ──
+// Endpoints como /api/generar-orden escriben la URL del PDF directo en Supabase.
+// Si luego el navegador guarda el cliente/proyecto con su copia en caché (vieja),
+// pisaría adjuntos_oficina y los *_url con vacío y el documento "desaparece".
+// Aquí se fusiona: lo que trae el navegador gana solo si tiene valor.
+const _vacio = (v) => v === null || v === undefined || v === '';
+async function preservarDocsServidor(table, records) {
+    if (!['clientes_maestro', 'proyectos_dinamicos'].includes(table) || !Array.isArray(records) || !records.length) return records;
+    const ids = [...new Set(records.map(r => r && r.id).filter(Boolean))];
+    if (!ids.length) return records;
+    const existentes = {};
+    try {
+        for (let i = 0; i < ids.length; i += 200) {
+            const { data, error } = await supabase.from(table).select('*').in('id', ids.slice(i, i + 200));
+            if (error) { console.warn('[PRESERVAR-DOCS]', table, error.message); return records; }
+            (data || []).forEach(row => { existentes[row.id] = row; });
+        }
+    } catch (e) {
+        console.warn('[PRESERVAR-DOCS] fallo leyendo existentes:', e.message);
+        return records;
+    }
+    return records.map(rec => {
+        const prev = rec && existentes[rec.id];
+        if (!prev) return rec;
+        const out = { ...rec };
+        // Columnas de documentos (*_url): no borrar una URL existente con vacío
+        Object.keys(out).forEach(k => {
+            if (k.endsWith('_url') && _vacio(out[k]) && !_vacio(prev[k])) out[k] = prev[k];
+        });
+        // adjuntos_oficina: fusionar llave por llave
+        const prevAdj = (prev.adjuntos_oficina && typeof prev.adjuntos_oficina === 'object' && !Array.isArray(prev.adjuntos_oficina)) ? prev.adjuntos_oficina : null;
+        if (prevAdj && 'adjuntos_oficina' in out) {
+            const inAdj = (out.adjuntos_oficina && typeof out.adjuntos_oficina === 'object' && !Array.isArray(out.adjuntos_oficina)) ? out.adjuntos_oficina : {};
+            const merged = { ...prevAdj };
+            Object.keys(inAdj).forEach(k => { if (!_vacio(inAdj[k]) || !(k in merged)) merged[k] = inAdj[k]; });
+            out.adjuntos_oficina = merged;
+        }
+        return out;
+    });
+}
+
 app.post('/api/upsert', requiereSesion(), async (req, res) => {
     try {
         const { table, records } = req.body;
@@ -1458,6 +1499,8 @@ app.post('/api/upsert', requiereSesion(), async (req, res) => {
         let conflictObj = { onConflict: 'id' };
         if (table === 'historial_inventario') conflictObj.onConflict = 'fecha';
         
+        sanitizedRecords = await preservarDocsServidor(table, sanitizedRecords);
+
         let { error, data } = await supabase.from(table).upsert(sanitizedRecords, conflictObj).select();
         
         if (error && table === 'water_productos' && error.message && error.message.includes('precio_dealer')) {
