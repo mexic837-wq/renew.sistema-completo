@@ -2988,6 +2988,22 @@
                     </div>
                 </div>
 
+                <!-- Crear prospecto desde la cita -->
+                <div id="ev-prospecto-wrap" class="space-y-2">
+                    <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-tealAccent/10 border border-tealAccent/30">
+                        <input type="checkbox" id="ev-crear-prospecto" class="w-5 h-5 rounded text-[#0d9488] focus:ring-[#0d9488]">
+                        <span class="flex-1">
+                            <span class="block text-sm font-bold text-gray-800 dark:text-white"><i class="fa-solid fa-user-plus mr-1 text-tealAccent"></i> Crear también como prospecto</span>
+                            <span class="block text-[11px] text-gray-500 dark:text-gray-400">Se guarda en Clientes → Prospectos con la dirección y departamentos de la cita</span>
+                        </span>
+                    </label>
+                    <div id="ev-prospecto-campos" class="space-y-2 hidden">
+                        <input type="text" id="ev-pros-nombre" placeholder="Nombre completo del cliente *" autocomplete="off" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                        <input type="tel" id="ev-pros-telefono" placeholder="Teléfono *" autocomplete="off" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                        <input type="email" id="ev-pros-email" placeholder="Correo (opcional)" autocomplete="off" class="w-full bg-bgLight dark:bg-bgDark border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-sm text-gray-800 dark:text-white focus:border-tealAccent outline-none transition-all">
+                    </div>
+                </div>
+
                 <div>
                     <label class="aqua-label mb-2"><i class="fas fa-palette"></i> Clasificación por Color</label>
                     
@@ -3319,7 +3335,7 @@
     </div>
 
     <!-- Module script -->
-    <script type="module" src="./js/admin-app.js?v=41"></script>
+    <script type="module" src="./js/admin-app.js?v=42"></script>
 
     <!-- Zadarma WebRTC -->
     <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"></script>

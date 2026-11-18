@@ -6446,6 +6446,7 @@ window.onStartDateChange = function(startInput) {
 };
 
 window.mostrarDetalleEventoCalendario = async function(event) {
+  window.prepararProspectoAdmin(!event); // "Crear también como prospecto": solo al añadir o editar
   const modal = document.getElementById('modal-calendar-event');
   if (!modal) return;
 
@@ -6894,6 +6895,7 @@ window.eliminarEventoCalendarioAdmin = async function(passedEventId) {
 // ââ‚¬ââ‚¬ END Eliminar Evento ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬ââ‚¬
 
 window.switchEventToEditModeAdmin = function() {
+  window.prepararProspectoAdmin(true);
     const btnGuardar = document.getElementById('btn-guardar-evento');
     const btnEditar = document.getElementById('btn-editar-evento-admin');
     const titleEl = document.getElementById('modo-texto');
@@ -6924,8 +6926,69 @@ window.switchEventToEditModeAdmin = function() {
     if (oldParts) oldParts.innerHTML = '';
 };
 
+// ── Crear prospecto desde una cita del calendario ──
+window.prepararProspectoAdmin = function(mostrar) {
+  const wrap = document.getElementById('ev-prospecto-wrap');
+  const chk = document.getElementById('ev-crear-prospecto');
+  const campos = document.getElementById('ev-prospecto-campos');
+  if (!wrap || !chk || !campos) return;
+  wrap.classList.toggle('hidden', !mostrar);
+  chk.checked = false;
+  ['ev-pros-nombre', 'ev-pros-telefono', 'ev-pros-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  campos.classList.add('hidden');
+  if (!chk._listo) {
+    chk._listo = true;
+    chk.addEventListener('change', () => {
+      campos.classList.toggle('hidden', !chk.checked);
+      const nom = document.getElementById('ev-pros-nombre');
+      if (chk.checked && nom && !nom.value) {
+        // "CITA Leonardo Martín" → "Leonardo Martín"
+        nom.value = (document.getElementById('ev-nombre').value || '').replace(/^\s*(cita|instalaci[oó]n|visita)\s*[:\-]?\s*/i, '').trim();
+      }
+    });
+  }
+};
+
+async function crearProspectoDesdeCitaAdmin(direccion, departamentos) {
+  const nombre = (document.getElementById('ev-pros-nombre').value || '').trim();
+  const telefono = (document.getElementById('ev-pros-telefono').value || '').trim();
+  const email = (document.getElementById('ev-pros-email').value || '').trim();
+  const db = getDB();
+  if (!db.Clientes_Maestro) db.Clientes_Maestro = [];
+  const dig = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : d; };
+  const existente = db.Clientes_Maestro.find(c => dig(c.telefono) && dig(c.telefono) === dig(telefono));
+  if (existente) return { cliente: existente, existente: true };
+
+  const u = JSON.parse(localStorage.getItem('rs_user') || '{}');
+  const nombreUsuario = `${u.nombre || ''} ${u.apellido || ''}`.trim();
+  const depts = (departamentos || []).filter(Boolean);
+  const hoy = new Date().toISOString();
+  const nuevo = {
+    id: genId('cli', db),
+    nombre, telefono,
+    email: email || 'Sin Email',
+    direccion: direccion || 'Pendiente',
+    zip: 'Pendiente', dob: '-', state_id: '-',
+    estado: 'Lead', macro_estado: 'Prospecto',
+    departamento: depts[0] || null,
+    departamentos_activos: depts,
+    fecha: hoy, fecha_inicio: hoy.split('T')[0],
+    notas: 'Creado desde una cita del calendario',
+    origen_tipo: 'representante', origen_id: u.id || null, origen_nombre: nombreUsuario || 'Oficina',
+    vendedor_asignado_id: u.id || null, vendedor_asignado_nombre: nombreUsuario || null
+  };
+  db.Clientes_Maestro.push(nuevo);
+  await saveGranular('clientes_maestro', [nuevo]);
+  return { cliente: nuevo, existente: false };
+}
+
 window.guardarEventoCalendario = async function(e) {
   if (e) e.preventDefault();
+  const quiereProspecto = !!document.getElementById('ev-crear-prospecto')?.checked;
+  if (quiereProspecto && (!(document.getElementById('ev-pros-nombre').value || '').trim() || !(document.getElementById('ev-pros-telefono').value || '').trim())) {
+    showToast('Para crear el prospecto escribe el nombre y el teléfono', 'error');
+    return;
+  }
   try {
     const btnGuardar = document.getElementById('btn-guardar-evento');
     btnGuardar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
@@ -7049,7 +7112,20 @@ window.guardarEventoCalendario = async function(e) {
         console.error('[RENEW-GCAL] Error communicating with sync server:', syncErr);
     }
 
-    showToast('Evento guardado con éxito', 'success');
+    let msgGuardado = 'Evento guardado con éxito';
+    let tipoMsg = 'success';
+    if (quiereProspecto) {
+      try {
+        const r = await crearProspectoDesdeCitaAdmin(direccion, departamentos);
+        msgGuardado = r.existente
+          ? `Evento guardado · ${r.cliente.nombre} ya existía como cliente (mismo teléfono)`
+          : `Evento guardado y ${r.cliente.nombre} creado como prospecto`;
+      } catch (pe) {
+        console.error('[CITA→PROSPECTO]', pe);
+        msgGuardado = 'Evento guardado, pero no se pudo crear el prospecto'; tipoMsg = 'error';
+      }
+    }
+    showToast(msgGuardado, tipoMsg);
     window.closeModals();
     
     // Refresh calendar to show the new event
