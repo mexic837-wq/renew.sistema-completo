@@ -2079,6 +2079,7 @@ app.post('/api/generar-orden-instalacion', requiereSesion(), async (req, res) =>
             try {
                 const r = await fetch(process.env.ORDEN_INSTALACION_WEBHOOK_URL || 'https://n8n.renewgroup.site/webhook/orden-instalacion', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+                    ...(typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? { signal: AbortSignal.timeout(10000) } : {}),
                 });
                 avisado = r.ok;
                 if (!r.ok) console.error('[ORDEN INSTALACION] n8n respondió', r.status);

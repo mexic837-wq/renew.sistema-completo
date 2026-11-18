@@ -395,9 +395,17 @@ export async function initDB() {
         setInterval(async () => {
             try {
                 console.log('[DB] Periodic background sync...');
+                const syncStartedAt = Date.now();
                 const res = await fetch(`${API_BASE}/db`);
                 if (res.ok) {
                     const freshDB = await res.json();
+                    // Si hubo un guardado local durante (o justo antes de) esta descarga, los datos que
+                    // llegaron pueden ser anteriores a ese guardado: se descartan y se espera la próxima sync.
+                    // Sin esto, al finalizar una fase la pantalla volvía a la fase anterior hasta recargar.
+                    if ((window.__rsLastLocalWrite || 0) >= syncStartedAt - 5000) {
+                        console.log('[DB] Sync de fondo descartada: hubo un guardado local reciente.');
+                        return;
+                    }
                     
                     // Map keys from snake_case (server) to CamelCase (client cachedDB)
                     const keyMap = {
@@ -743,6 +751,8 @@ function checkAndTriggerWhatsAppNotifs(table, records, db) {
 }
 
 export async function saveGranular(table, records) {
+  // Marca de escritura local: la sincronización de fondo no debe pisar lo que se está guardando
+  window.__rsLastLocalWrite = Date.now();
   // ── STRIP VIRTUAL FIELDS (CLIENT-SIDE) ──
   // These fields only exist in memory and are NOT columns in Supabase.
   // Strip them at the source so they never reach the server regardless of code path.
@@ -852,6 +862,8 @@ export async function saveGranular(table, records) {
         throw new Error(`Error de conexión con el servidor: ${netErr.message}`);
       }
     }
+
+    window.__rsLastLocalWrite = Date.now(); // el guardado terminó: la sync que ya iba en camino trae datos viejos
 
     // ── SIDE EFFECT: Sync Receipt Uploads to Client Profile ──
     if (table === 'respuestas_dinamicas' && records.length > 0) {
