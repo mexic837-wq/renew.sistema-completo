@@ -345,7 +345,8 @@ export function renderPlantillaPozo(proyIdParam = null) {
           const db = getDB();
           const project = (db.Proyectos_Dinamicos || []).find(p => String(p.id) === String(linkedProyectoId));
           if (project) {
-              project.orden_trabajo_url = finalPdfUrl;
+              // El PDF de pozo ya quedó en el cliente (adjuntos_oficina.plantilla_pozo_url);
+              // no se pisa la Orden de Trabajo del proyecto con el PDF de pozo.
               const dynamicField = db.Admin_Campos_Formulario?.find(c => 
                   c.tipo === 'Orden de Trabajo' && String(c.fase_id) === String(project.fase_id)
               );

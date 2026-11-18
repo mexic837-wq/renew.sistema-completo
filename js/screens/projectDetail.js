@@ -187,17 +187,55 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
   if (linkedCliente?.archivos) allGlobalFiles = allGlobalFiles.concat(linkedCliente.archivos);
   if (deal.archivos) allGlobalFiles = allGlobalFiles.concat(deal.archivos);
   
+  // Documentos generados por plantillas / formularios: se buscan tanto en adjuntos_oficina
+  // como en el nivel superior del cliente y del proyecto (cada plantilla guarda en un lugar distinto).
+  const SYS_DOCS = [
+      { keys: ['orden_trabajo_url'], name: 'Orden de Trabajo' },
+      { keys: ['plantilla_pozo_url'], name: 'Especificaciones de Pozo' },
+      { keys: ['confirmacion_instalacion_url'], name: 'Confirmación de Instalación' },
+      { keys: ['extras_instalacion_url'], name: 'Extras de Instalación' },
+      { keys: ['contrato_water_url', 'contrato_solar_url', 'contrato_home_url', 'contrato_url'], name: 'Contrato Firmado' },
+      { keys: ['app_url', 'credit_app_url'], name: 'Hoja de Aplicación' },
+      { keys: ['recibo_url', 'recibo_vendedor_url', 'recibo_tecnico_url'], name: 'Recibo de Pago' },
+      { keys: ['id_photo_url'], name: 'Identificación', type: 'image' },
+  ];
+  const isFileUrl = (v) => typeof v === 'string' && (v.startsWith('http') || v.startsWith('/api/'));
   const addSysFiles = (obj) => {
-      if (!obj || !obj.adjuntos_oficina) return;
-      if (obj.adjuntos_oficina.orden_trabajo_url) allGlobalFiles.push({ url: obj.adjuntos_oficina.orden_trabajo_url, name: 'Orden de Trabajo', type: 'application/pdf' });
-      if (obj.adjuntos_oficina.contrato_url) allGlobalFiles.push({ url: obj.adjuntos_oficina.contrato_url, name: 'Contrato Firmado', type: 'application/pdf' });
-      if (obj.adjuntos_oficina.app_url) allGlobalFiles.push({ url: obj.adjuntos_oficina.app_url, name: 'Hoja de Aplicación', type: 'application/pdf' });
-      const rUrl = obj.adjuntos_oficina.recibo_url || obj.adjuntos_oficina.recibo_vendedor_url || obj.adjuntos_oficina.recibo_tecnico_url;
-      if (rUrl) allGlobalFiles.push({ url: rUrl, name: 'Recibo de Pago', type: 'application/pdf' });
+      if (!obj) return;
+      const adj = (obj.adjuntos_oficina && !Array.isArray(obj.adjuntos_oficina)) ? obj.adjuntos_oficina : {};
+      SYS_DOCS.forEach(doc => {
+          doc.keys.forEach(k => {
+              [adj[k], obj[k]].forEach(u => {
+                  if (isFileUrl(u)) allGlobalFiles.push({ url: u, name: doc.name, type: doc.type === 'image' ? 'image' : 'application/pdf' });
+              });
+          });
+      });
   };
   addSysFiles(linkedCliente);
   addSysFiles(deal);
-  
+
+  // Cualquier archivo subido/generado en las fases del proyecto (respuestas con URL)
+  const camposById = new Map((db.Admin_Campos_Formulario || []).map(c => [String(c.id), c]));
+  (respuestas || []).forEach(r => {
+      let vals = [r.valor];
+      if (typeof r.valor === 'string' && r.valor.trim().startsWith('[')) {
+          try { const arr = JSON.parse(r.valor); if (Array.isArray(arr)) vals = arr.map(x => (x && typeof x === 'object') ? x.url : x); } catch (e) {}
+      }
+      const campo = camposById.get(String(r.campo_id));
+      vals.filter(isFileUrl).forEach(u => {
+          const lbl = (u.toLowerCase().includes('pozo') ? 'Especificaciones de Pozo' : (campo?.etiqueta || 'Archivo'));
+          allGlobalFiles.push({ url: u, name: lbl });
+      });
+  });
+
+  // Quitar duplicados por URL (el mismo PDF puede estar en cliente, proyecto y respuestas)
+  const seenFileUrls = new Set();
+  allGlobalFiles = allGlobalFiles.filter(f => {
+      if (!f || typeof f.url !== 'string' || !f.url || seenFileUrls.has(f.url)) return false;
+      seenFileUrls.add(f.url);
+      return true;
+  });
+
   if (allGlobalFiles.length > 0) {
       globalFilesHtml = `
       <div class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
