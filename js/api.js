@@ -2901,6 +2901,18 @@ export async function updateProyectoFase(proyectoId, nuevaFaseId, extraContext =
 
   // ── PASO 4: Actualizar la base de datos ──────────────────────────────────
   proyecto.fase_id = nuevaFaseId;
+
+  // WATER: la venta cuenta al terminar "Certificado de Instalación". Guardar ese día como fecha de la venta
+  // para que el Leaderboard la ponga en el mes correcto (no en el mes en que se creó el proyecto).
+  if (nuevaFase && !proyecto.fecha_cierre) {
+    const pipFase = (db.Admin_Pipelines || []).find(x => x.id === nuevaFase.pipeline_id);
+    if (pipFase && String(pipFase.nombre || '').toLowerCase().includes('water')) {
+      const cert = (db.Admin_Fases || []).find(f => f.pipeline_id === nuevaFase.pipeline_id && /certificad/i.test(f.nombre || ''));
+      if (cert && typeof cert.orden === 'number' && typeof nuevaFase.orden === 'number' && nuevaFase.orden > cert.orden) {
+        proyecto.fecha_cierre = new Date().toISOString().split('T')[0];
+      }
+    }
+  }
   const recordsToUpdate = [proyecto];
   const rrResp = db.Respuestas_Dinamicas?.find(r => r.campo_id === '__round_robin_cc__');
   const asigResp = db.Respuestas_Dinamicas?.find(r => r.proyecto_id === proyecto.id && r.campo_id === '__asignado_a__');
