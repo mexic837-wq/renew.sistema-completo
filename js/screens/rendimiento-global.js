@@ -634,6 +634,11 @@ async function updateGlobalData(ecosystem, range = 'monthly', dateFrom = null, d
 
     const getClientDate = (c) => {
         if (!c) return null;
+        // Declinados: cuentan en el día en que se declinaron
+        if (c.macro_estado === 'Declinado') {
+            const adj = (c.adjuntos_oficina && typeof c.adjuntos_oficina === 'object') ? c.adjuntos_oficina : {};
+            if (adj.fecha_declinado) return adj.fecha_declinado;
+        }
         return c.fecha || c.fecha_inicio || c.fecha_registro || c.created_at || null;
     };
 

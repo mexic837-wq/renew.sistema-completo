@@ -1369,6 +1369,17 @@ app.post('/api/db', requiereSesion(), async (req, res) => {
 // pisaría adjuntos_oficina y los *_url con vacío y el documento "desaparece".
 // Aquí se fusiona: lo que trae el navegador gana solo si tiene valor.
 const _vacio = (v) => v === null || v === undefined || v === '';
+// Al pasar un cliente a "Declinado" se guarda el día en adjuntos_oficina.fecha_declinado
+// (Rendimiento Global y la lista de Declinados lo usan para ubicarlo en el mes correcto).
+function marcarFechaDeclinado(table, rec, prev) {
+    if (table !== 'clientes_maestro' || !rec || rec.macro_estado !== 'Declinado') return rec;
+    const adjPrev = (prev && prev.adjuntos_oficina && typeof prev.adjuntos_oficina === 'object' && !Array.isArray(prev.adjuntos_oficina)) ? prev.adjuntos_oficina : {};
+    const adjIn = (rec.adjuntos_oficina && typeof rec.adjuntos_oficina === 'object' && !Array.isArray(rec.adjuntos_oficina)) ? rec.adjuntos_oficina : {};
+    // Solo cuando cambia a Declinado (los que ya estaban declinados conservan lo que tengan)
+    if (prev && prev.macro_estado === 'Declinado') return rec;
+    return { ...rec, adjuntos_oficina: { ...adjPrev, ...adjIn, fecha_declinado: new Date().toISOString() } };
+}
+
 async function preservarDocsServidor(table, records) {
     if (!['clientes_maestro', 'proyectos_dinamicos'].includes(table) || !Array.isArray(records) || !records.length) return records;
     const ids = [...new Set(records.map(r => r && r.id).filter(Boolean))];
@@ -1384,7 +1395,7 @@ async function preservarDocsServidor(table, records) {
         console.warn('[PRESERVAR-DOCS] fallo leyendo existentes:', e.message);
         return records;
     }
-    return records.map(rec => {
+    return records.map(rec => marcarFechaDeclinado(table, rec, existentes[rec && rec.id])).map(rec => {
         const prev = rec && existentes[rec.id];
         if (!prev) return rec;
         const out = { ...rec };
@@ -1438,8 +1449,8 @@ app.post('/api/upsert', requiereSesion(), async (req, res) => {
             // Strip fields that don't exist in Supabase schema
             sanitizedRecords = records.map(({ 
                 creador_id, responsable_id, id_photo, is_locked, 
-                foto_id, lat, lng, ...rest 
-            }) => rest);
+                foto_id, lat, lng, motivo_declinacion, ...rest 
+            }) => (motivo_declinacion && !rest.motivo_declinado ? { ...rest, motivo_declinado: motivo_declinacion } : rest));
         } else if (table === 'usuarios') {
             // Map ONLY the columns that exist in Supabase's 'usuarios' table
             sanitizedRecords = records.map(u => ({

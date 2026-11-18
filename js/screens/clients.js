@@ -724,7 +724,11 @@ async function _renderList(user, container) {
     }
 
     const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    const dateStr = c.fecha ? new Date(c.fecha).toLocaleString('en-US', dateOptions) : 'Reciente';
+    const fechaDecl = c.macro_estado === 'Declinado' && c.adjuntos_oficina && typeof c.adjuntos_oficina === 'object' ? c.adjuntos_oficina.fecha_declinado : null;
+    const fechaCard = fechaDecl || c.fecha || c.fecha_inicio || null;
+    const dateStr = fechaCard
+      ? (fechaDecl ? 'Declinado: ' : '') + new Date(fechaCard.length === 10 ? fechaCard + 'T12:00:00' : fechaCard).toLocaleString('en-US', fechaCard.length === 10 ? { year: 'numeric', month: 'numeric', day: 'numeric' } : dateOptions)
+      : 'Sin fecha';
     const targetId = proy ? proy.id : null;
 
     let deleteBtnHtml = '';
