@@ -2219,7 +2219,6 @@ window.deleteProjectDetailFile = async function(projectId, campoId, urlToDelete)
             if (idx > -1) dbLocal.Respuestas_Dinamicas.splice(idx, 1);
         } else {
             resp.valor = finalUrlStr;
-            resp.actualizado_en = new Date().toISOString();
             if (saveGranular) await saveGranular('respuestas_dinamicas', [resp]);
         }
 
