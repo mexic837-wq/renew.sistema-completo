@@ -76,6 +76,20 @@ function readFileAsBase64(file) {
   });
 }
 
+// Inventario: Orlando tiene los tres ecosistemas; las demás sedes solo Renew Water
+const INV_SEDES = [
+  { id: 'orlando', nombre: 'Orlando' },
+  { id: 'miami', nombre: 'Miami' },
+  { id: 'dallas', nombre: 'Dallas' },
+  { id: 'houston', nombre: 'Houston' },
+  { id: 'austin', nombre: 'Austin' },
+  { id: 'north_carolina', nombre: 'North Carolina' },
+  { id: 'new_york', nombre: 'Nueva York' }
+];
+function sedeTieneEco(sede, eco) {
+  return sede === 'orlando' || !eco || eco === 'water';
+}
+
 let state = {
   activeView: 'crm',
   activeClientId: null,
@@ -5204,6 +5218,8 @@ window.renderView = async function renderView() {
     UI.viewDesc.textContent = t('inv_desc');
     setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> ${t('inv_btn_add')}`);
     
+    // Solo Orlando maneja Solar y Home; el resto de sedes solo Water
+    if (!sedeTieneEco(state.activeInventorySede, ecoFilter)) state.activeInventorySede = 'orlando';
     const activeInventorySede = state.activeInventorySede;
     const activeInventoryLine = state.activeInventoryLine || 'all';
     const invData = getInventario();
@@ -5411,13 +5427,7 @@ window.renderView = async function renderView() {
       <div class="max-w-6xl mx-auto animate-fadeIn space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 text-xs w-fit">
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'orlando' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="orlando">Orlando</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'miami' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="miami">Miami</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'dallas' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="dallas">Dallas</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'houston' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="houston">Houston</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'austin' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="austin">Austin</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'north_carolina' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="north_carolina">North Carolina</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'new_york' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="new_york">Nueva York</button>
+             ${INV_SEDES.filter(s => sedeTieneEco(s.id, ecoFilter)).map(s => `<button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === s.id ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="${s.id}">${s.nombre}</button>`).join('')}
           </div>
 
           <!-- Line Filters -->

@@ -26,6 +26,11 @@ const ECOSISTEMAS = [
   { id: 'home',  nombre: 'Renew Home',  icon: 'fa-house',   desc: 'Soluciones para el hogar' }
 ];
 
+// Solo la sede de Orlando maneja los tres ecosistemas; el resto solo Renew Water
+function ecosistemasDeSede(sede) {
+  return sede === 'orlando' ? ECOSISTEMAS : ECOSISTEMAS.filter(e => e.id === 'water');
+}
+
 function escHtml(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -151,11 +156,22 @@ export function renderInventoryTech(dealId = null) {
   document.querySelectorAll('.inv-sede').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedSede = btn.dataset.sede;
+      const permitidos = ecosistemasDeSede(selectedSede).map(e => e.id);
       ECOSISTEMAS.forEach(e => {
+        const card = screen.querySelector(`.inv-eco[data-eco="${e.id}"]`);
+        if (card) card.style.display = permitidos.includes(e.id) ? '' : 'none';
         const el = screen.querySelector(`[data-eco-count="${e.id}"]`);
         if (el) el.textContent = `${itemsDe(selectedSede, e.id).length} artículos`;
       });
-      mostrarPaso(2);
+      document.getElementById('btn-back-2').innerHTML = `<i class="fa-solid fa-arrow-left"></i> ${permitidos.length === 1 ? 'Volver a sedes' : 'Volver a ecosistemas'}`;
+      // Si la sede solo tiene un ecosistema (Water), saltar directo a los materiales
+      if (permitidos.length === 1) {
+        selectedEcosistema = permitidos[0];
+        mostrarPaso(3);
+        populateItems();
+      } else {
+        mostrarPaso(2);
+      }
     });
   });
 
@@ -168,7 +184,9 @@ export function renderInventoryTech(dealId = null) {
   });
 
   document.getElementById('btn-back-1').addEventListener('click', () => mostrarPaso(1));
-  document.getElementById('btn-back-2').addEventListener('click', () => mostrarPaso(2));
+  document.getElementById('btn-back-2').addEventListener('click', () => {
+    mostrarPaso(ecosistemasDeSede(selectedSede).length === 1 ? 1 : 2);
+  });
 
   const btnSubStock = document.getElementById('btn-sub-stock-inv');
   if (btnSubStock) {
