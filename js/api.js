@@ -1481,10 +1481,41 @@ export function getInventario() {
   return db.inventarioGlobal || [];
 }
 
+// Envía solo los registros de una tabla a /api/upsert (sin tocar el caché).
+// El inventario ya no usa saveDB: mandar la BD completa supera el límite del servidor (413).
+async function upsertDirecto(table, records) {
+  if (!records.length) return;
+  const res = await fetch(`${API_BASE}/upsert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ table, records })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error('Error BD: ' + JSON.stringify(errorData.details || errorData.error || errorData));
+  }
+}
+
+function mapInventarioItem(item) {
+  return {
+    id:           item.id,
+    nombre_item:  item.nombreItem  || null,
+    ecosistema:   item.ecosistema  || null,
+    category:     item.category    || null,
+    locacion:     item.locacion    || null,
+    storage:      item.storage     || null,
+    stock_actual: item.stockActual || 0,
+    medida:       item.medida      || null,
+    boton:        item.boton       || null,
+    color:        item.color       || null
+  };
+}
+
 export async function saveInventario(data) {
   const db = getDB();
   db.inventarioGlobal = data;
-  await saveDB(db);
+  cachedDB = db;
+  await upsertDirecto('inventario_global', (data || []).map(mapInventarioItem));
 }
 
 export async function deleteInventarioItem(id) {
@@ -1510,7 +1541,21 @@ export function getHistorialInventario() {
 export async function saveHistorialInventario(data) {
   const db = getDB();
   db.historialInventario = data;
-  await saveDB(db);
+  cachedDB = db;
+  // Solo los movimientos nuevos (sin id de Supabase); los existentes ya están guardados
+  const nuevos = (data || []).filter(h => h.id == null).map(h => ({
+    fecha:             h.fecha             || new Date().toISOString(),
+    tecnico_nombre:    h.tecnico_nombre    || null,
+    item_nombre:       h.item_nombre       || null,
+    item_id:           h.item_id           || null,
+    cantidad_retirada: h.cantidad_retirada || 0,
+    sede:              h.sede              || 'orlando',
+    ecosistema:        h.ecosistema        || 'solar',
+    proyecto_id:       h.proyecto_id       || null,
+    cliente_nombre:    h.cliente_nombre    || null,
+    tipo_movimiento:   h.tipo_movimiento   || null
+  }));
+  await upsertDirecto('historial_inventario', nuevos);
 }
 
 // Returns an array of department names regardless of old (string) or new (array) format

@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/inventory.js
    Drill-down Inventory Form for Techs
    ============================================================ */
-import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, syncKanbanActivity } from '../api.js';
+import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { navigate, getCurrentUser } from '../app.js';
 
@@ -340,13 +340,31 @@ export function renderInventoryTech(dealId = null) {
         cliente_nombre: clienteNombre,
         tipo_movimiento: currentDealId && mode === 'withdrawal' ? 'Salida (Proyecto)' : (mode === 'withdrawal' ? 'RETIRO' : 'SURTIDO')
       };
+      // Guardado granular: solo el artículo, el movimiento y (si aplica) el proyecto.
+      // Antes se enviaba la BD completa a /api/db y el servidor la rechazaba (413).
+      await saveGranular('inventario_global', [{
+        id:           item.id,
+        nombre_item:  item.nombreItem  || null,
+        ecosistema:   item.ecosistema  || null,
+        category:     item.category    || null,
+        locacion:     item.locacion    || null,
+        storage:      item.storage     || null,
+        stock_actual: item.stockActual || 0,
+        medida:       item.medida      || null,
+        boton:        item.boton       || null,
+        color:        item.color       || null
+      }]);
+
+      // Se agrega primero al historial local para que saveGranular lo fusione consigo mismo
       historial.unshift(newEntry);
       if (historial.length > 500) historial.length = 500;
-      
-      // Update DB and Save once
-      const db = getDB();
-      db.inventarioGlobal = invData;
-      db.historialInventario = historial;
+      const { tecnico_id, ...histRecord } = newEntry;
+      try {
+        await saveGranular('historial_inventario', [histRecord]);
+      } catch (e) {
+        historial.shift();
+        throw e;
+      }
 
       if (currentDealId && mode === 'withdrawal') {
           syncKanbanActivity({
@@ -358,12 +376,14 @@ export function renderInventoryTech(dealId = null) {
               fase_nombre: 'Materiales',
               skipSave: true
           });
+          const proj = (getDB().Proyectos_Dinamicos || []).find(p => p.id === currentDealId);
+          if (proj) saveGranular('proyectos_dinamicos', [proj]).catch(e => console.warn('No se pudo guardar la actividad del proyecto:', e));
       }
-
-      await saveDB(db);
 
     } catch (histErr) {
       console.warn('No se pudo guardar el historial de inventario:', histErr);
+      // Revertir el stock en pantalla para no mostrar un cambio que no se guardó
+      item.stockActual += mode === 'withdrawal' ? qty : -qty;
       showToast('Error al sincronizar historial con la nube', 'error');
       return; // Stop here if save fails
     }
