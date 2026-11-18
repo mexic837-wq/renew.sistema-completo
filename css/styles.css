@@ -2579,3 +2579,8 @@ body.is-callcenter #nav-btn-nuevo-cliente {
   #screen-clients .dash-header { padding-left: 16px; padding-right: 16px; }
   #screen-clients .dept-filter-pill { padding: 7px 16px !important; }
 }
+
+/* Inventario: Todos / Stock disponible */
+.inv-vista { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+.inv-vista-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); font-size: .82rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+.inv-vista-btn.active { background: var(--primary); border-color: var(--primary); color: #04201c; }

@@ -8,6 +8,7 @@ import { navigate, getCurrentUser } from '../app.js';
 
 let selectedSede = null;
 let selectedEcosistema = null;
+let vistaStock = false; // "Stock disponible": solo productos con stock, de mayor a menor
 let currentDealId = null;
 
 const SEDES = [
@@ -115,6 +116,10 @@ export function renderInventoryTech(dealId = null) {
       <div id="inv-step-3" class="inv-step" style="display:none;">
         <button id="btn-back-2" class="inv-link"><i class="fa-solid fa-arrow-left"></i> Volver a ecosistemas</button>
         <p class="inv-label" id="form-title">Retiro de material</p>
+        <div class="inv-vista" id="inv-vista">
+          <button type="button" class="inv-vista-btn active" data-vista="todos"><i class="fa-solid fa-list"></i> Todos los productos</button>
+          <button type="button" class="inv-vista-btn" data-vista="stock"><i class="fa-solid fa-boxes-stacked"></i> Stock disponible</button>
+        </div>
 
         <div class="inv-work">
           <div class="inv-panel inv-list-panel">
@@ -163,6 +168,7 @@ export function renderInventoryTech(dealId = null) {
   document.querySelectorAll('.inv-sede').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedSede = btn.dataset.sede;
+      ponerVista(false);
       const permitidos = ecosistemasDeSede(selectedSede).map(e => e.id);
       ECOSISTEMAS.forEach(e => {
         const card = screen.querySelector(`.inv-eco[data-eco="${e.id}"]`);
@@ -185,10 +191,20 @@ export function renderInventoryTech(dealId = null) {
   document.querySelectorAll('.inv-eco').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedEcosistema = btn.dataset.eco;
+      ponerVista(false);
       mostrarPaso(3);
       populateItems();
     });
   });
+
+  function ponerVista(soloStock) {
+    vistaStock = soloStock;
+    screen.querySelectorAll('.inv-vista-btn').forEach(b => b.classList.toggle('active', (b.dataset.vista === 'stock') === soloStock));
+  }
+  screen.querySelectorAll('.inv-vista-btn').forEach(b => b.addEventListener('click', () => {
+    ponerVista(b.dataset.vista === 'stock');
+    populateItems();
+  }));
 
   document.getElementById('btn-back-1').addEventListener('click', () => mostrarPaso(1));
   document.getElementById('btn-back-2').addEventListener('click', () => {
@@ -267,15 +283,29 @@ export function renderInventoryTech(dealId = null) {
 
     document.getElementById('form-title').innerHTML = formTitle;
 
-    const filtered = itemsDe(selectedSede, selectedEcosistema);
+    let filtered;
+    if (vistaStock) {
+        // Todos los ecosistemas de la sede, solo con stock (1 o más), de mayor a menor
+        const vistos = new Set();
+        filtered = [];
+        ecosistemasDeSede(selectedSede).forEach(e => itemsDe(selectedSede, e.id).forEach(i => {
+            if (!vistos.has(i.id)) { vistos.add(i.id); filtered.push(i); }
+        }));
+        filtered = filtered
+            .filter(i => (Number(i.stockActual) || 0) >= 1)
+            .sort((a, b) => (Number(b.stockActual) || 0) - (Number(a.stockActual) || 0) || (a.nombreItem || '').localeCompare(b.nombreItem || ''));
+        if (!currentDealId) document.getElementById('form-title').innerHTML = `Stock disponible · Sede ${escHtml(selectedSede.replace('_', ' '))} · ${filtered.length} productos`;
+    } else {
+        filtered = itemsDe(selectedSede, selectedEcosistema);
+    }
 
     if (filtered.length === 0) {
-        listContainer.innerHTML = `<p class="inv-empty" style="grid-column:1/-1;"><i class="fa-solid fa-box-open"></i>Sin existencias en esta línea</p>`;
+        listContainer.innerHTML = `<p class="inv-empty" style="grid-column:1/-1;"><i class="fa-solid fa-box-open"></i>${vistaStock ? 'No hay productos con stock en esta sede' : 'Sin existencias en esta línea'}</p>`;
         return;
     }
 
     // Water ya viene en el orden de la lista de precios
-    if (selectedEcosistema !== 'water' || !filtered.some(i => i.codigoLista)) filtered.sort((a, b) => {
+    if (!vistaStock && (selectedEcosistema !== 'water' || !filtered.some(i => i.codigoLista))) filtered.sort((a, b) => {
         const getRank = (eco) => {
             if (!eco) return 99;
             const text = eco.toLowerCase();
@@ -375,7 +405,7 @@ export function renderInventoryTech(dealId = null) {
         item_id: item.id,
         cantidad_retirada: mode === 'withdrawal' ? qty : -qty,
         sede: selectedSede,
-        ecosistema: selectedEcosistema,
+        ecosistema: item.category || selectedEcosistema,
         proyecto_id: currentDealId || null,
         cliente_nombre: clienteNombre,
         tipo_movimiento: currentDealId && mode === 'withdrawal' ? 'Salida (Proyecto)' : (mode === 'withdrawal' ? 'RETIRO' : 'SURTIDO')
