@@ -11,7 +11,7 @@ import {
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js?v=8';
+} from './api.js?v=9';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
@@ -1046,7 +1046,7 @@ window.adminCreateFolder = async () => {
     await saveDB(db);
     
     try {
-        const { saveGranular } = await import('./api.js?v=8');
+        const { saveGranular } = await import('./api.js?v=9');
         await saveGranular('academia_content', newFolder);
     } catch(err) {
         console.error('Error guardando carpeta granularmente', err);
@@ -10023,7 +10023,10 @@ async function showClientDetail(id) {
         selAssigned.onchange = async () => {
             const newId = selAssigned.value;
             cli.vendedor_asignado_id = newId || null;
-            await saveDB(db);
+            const wSel = workers.find(w => String(w.id) === String(newId));
+            cli.vendedor_asignado_nombre = wSel ? `${wSel.nombre || ''} ${wSel.apellido || ''}`.trim() : null;
+            try { await saveDB(db); }
+            catch (err) { console.error(err); showToast('No se pudo guardar la asignación', 'error'); return; }
             showToast('Asignación actualizada', 'success');
             
             // Refresh mini-view

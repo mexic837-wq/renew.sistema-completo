@@ -452,6 +452,7 @@ export async function initDB() {
                     applyPostProcessing(fixedDB);
                     
                     cachedDB = { ...cachedDB, ...fixedDB };
+                    tomarFotoServidor(cachedDB);
                     
                     try {
                         const sessionStr = localStorage.getItem('rs_user');
@@ -533,6 +534,7 @@ export async function initDB() {
       applyPostProcessing(freshDB);
 
       cachedDB = freshDB;
+      tomarFotoServidor(cachedDB);
       updateChatBadges();
       
       // SYNC CURRENT SESSION USER
@@ -575,6 +577,7 @@ export async function initDB() {
         const rawCache = localStorage.getItem('rs_admin_db');
         if (rawCache) {
             cachedDB = JSON.parse(rawCache);
+            tomarFotoServidor(cachedDB);
             console.log('[DB] Fallback to local cache due to cloud error.');
         } else {
             cachedDB = {
@@ -604,6 +607,21 @@ export async function initDB() {
 // Auto-init on load (but admin-app.js will also await it)
 // initDB(); // Let's wait for the app to call it for better control
 
+// ── Copia de referencia de lo último que llegó del servidor ──
+// saveDB solo manda los registros que cambiaron respecto a esta copia. Antes mandaba la
+// base de datos completa y el servidor la rechazaba por tamaño (error 413), además de
+// poder pisar cambios que otras personas hicieron en registros que este usuario no tocó.
+let fotoServidor = null;
+function tomarFotoServidor(db) {
+  try {
+    const foto = {};
+    Object.keys(db || {}).forEach(k => {
+      if (Array.isArray(db[k])) foto[k] = new Set(db[k].map(r => JSON.stringify(r)));
+    });
+    fotoServidor = foto;
+  } catch (e) { fotoServidor = null; }
+}
+
 export async function saveDB(db) {
   // CRITICAL: Safety check. Never save if the database looks empty or failed to load.
   if (!db || (!db.Admin_Pipelines?.length && !db.Clientes_Maestro?.length && !db.Usuarios?.length)) {
@@ -612,16 +630,36 @@ export async function saveDB(db) {
   }
 
   cachedDB = db;
+  // Solo lo que cambió (el servidor hace upsert de lo que recibe y no borra lo que falta)
+  let envio = db;
+  if (fotoServidor) {
+    envio = {};
+    Object.keys(db).forEach(k => {
+      const v = db[k];
+      if (!Array.isArray(v)) { envio[k] = v; return; }
+      const foto = fotoServidor[k];
+      const cambiados = foto ? v.filter(r => !foto.has(JSON.stringify(r))) : v;
+      if (cambiados.length) envio[k] = cambiados;
+    });
+  }
   try {
     const res = await fetch(`${API_BASE}/db`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(db)
+      body: JSON.stringify(envio)
     });
     if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         console.error('Error al persistir en servidor:', errorData);
         throw new Error('Error BD: ' + JSON.stringify(errorData.details || errorData));
+    }
+    // Lo enviado ya está en el servidor: se suma a la copia de referencia
+    if (fotoServidor && envio !== db) {
+      Object.keys(envio).forEach(k => {
+        if (!Array.isArray(envio[k])) return;
+        if (!fotoServidor[k]) fotoServidor[k] = new Set();
+        envio[k].forEach(r => fotoServidor[k].add(JSON.stringify(r)));
+      });
     }
   } catch (e) {
     console.error('Servidor offline o error al persistir', e);
