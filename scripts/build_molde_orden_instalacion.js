@@ -68,6 +68,15 @@ const QUITAR = [
     field(name, x + 5, y + 3, w - 10, h - 6, 10, true);
   };
 
+  // ── Dirección de la oficina en el encabezado (reemplaza 1621 E Vine St) ──
+  {
+    const DIR = '102 Park Place Blvd, Suite B1, Kissimmee, FL 34741';
+    page.drawRectangle({ x: 235, y: 702, width: 240, height: 16, color: WHITE });
+    let size = 10;
+    while (bold.widthOfTextAtSize(DIR, size) > 232 && size > 7) size -= 0.1;
+    page.drawText(DIR, { x: 236.5, y: 706.3, size, font: bold, color: INK });
+  }
+
   // ── Franja del título (degradado turquesa → verde) ──
   const A = [78, 178, 178], B = [180, 206, 105], X0 = 17, X1 = 592;
   for (let x = 100; x < 532; x += 2) {
