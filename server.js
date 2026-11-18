@@ -2417,6 +2417,17 @@ app.post('/api/generar-pdf', async (req, res) => {
 
     const pdfBytes = await generarPDF(moldePath, datos);
 
+    // 0. Subir la foto del ID (aplicante y co-aplicante) para guardarla también en el cliente
+    let idPhotoUrl = null;
+    if (rawData.aplicante?.fotoId) {
+        idPhotoUrl = await uploadBase64ToSupabase(rawData.aplicante.fotoId, 'creditos_ids');
+        if (idPhotoUrl) rawData.aplicante.fotoIdUrl = idPhotoUrl;
+    }
+    let coIdPhotoUrl = null;
+    if (rawData.coAplicante?.fotoId) {
+        coIdPhotoUrl = await uploadBase64ToSupabase(rawData.coAplicante.fotoId, 'creditos_ids');
+    }
+
     // 1. Subir PDF a Supabase Storage
     const fileName = `creditos/app_credito_${Date.now()}_${Math.round(Math.random() * 1E9)}.pdf`;
     console.log(`[STORAGE] Iniciando subida de PDF: ${fileName}...`);
@@ -2485,12 +2496,18 @@ app.post('/api/generar-pdf', async (req, res) => {
                     
                     adjuntos.app_url = finalUrl;
                     adjuntos.ultima_credit_fecha = new Date().toISOString();
+                    const cambiosCli = { credit_app_url: finalUrl };
+                    if (idPhotoUrl) {
+                        adjuntos.id_photo_url = idPhotoUrl;
+                        cambiosCli.id_photo = idPhotoUrl;
+                        cambiosCli.adjunto_id_url = idPhotoUrl;
+                    }
+                    if (coIdPhotoUrl) adjuntos.co_applicant_id_url = coIdPhotoUrl;
+                    if (rawData.aplicante?.licencia) cambiosCli.licencia = rawData.aplicante.licencia;
+                    cambiosCli.adjuntos_oficina = adjuntos;
 
                     const { error: updateError } = await supabase.from('clientes_maestro')
-                        .update({ 
-                            adjuntos_oficina: adjuntos, 
-                            credit_app_url: finalUrl 
-                        })
+                        .update(cambiosCli)
                         .eq('id', cliId);
                     
                     if (updateError) {
@@ -2509,12 +2526,6 @@ app.post('/api/generar-pdf', async (req, res) => {
         }
     }
 
-    // 3. Procesar foto del ID si existe
-    let idPhotoUrl = null;
-    if (rawData.aplicante?.fotoId) {
-        idPhotoUrl = await uploadBase64ToSupabase(rawData.aplicante.fotoId, 'creditos_ids');
-        if (idPhotoUrl) rawData.aplicante.fotoIdUrl = idPhotoUrl;
-    }
 
     // Webhook Trigger a n8n para Administración
     const WEBHOOK_URL = 'https://n8n.renewgroup.site/webhook/aplicacion-credito-o-trabajo';

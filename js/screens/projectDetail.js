@@ -242,6 +242,8 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
       return true;
   });
 
+  const idFotoUrl = deal.id_photo || deal.foto_id || null;
+
   if (allGlobalFiles.length > 0) {
       globalFilesHtml = `
       <div class="info-card slide-in-bottom" style="padding:0; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.05); overflow:hidden;">
@@ -496,10 +498,20 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
               </div>
               <div style="display:flex; flex-direction:column; gap:4px; margin-top:auto;">
                 <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600">ID / Licencia de Conducir</span>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${deal.licencia || '-'}</span>
-                  ${deal.foto_id ? `<button onclick="window.open('${deal.foto_id}')" style="background:${pipeline.color}; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold; cursor:pointer">Ver Documento</button>` : `<span style="font-size:0.7rem; color:var(--text-muted); font-style:italic">Sin adjunto</span>`}
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                  <span style="font-size:0.95rem; font-weight:600; color:var(--text-primary); word-break:break-all">${(deal.licencia && deal.licencia !== '-') ? deal.licencia : (idFotoUrl ? '' : '-')}</span>
+                  ${idFotoUrl ? '' : `<span style="font-size:0.7rem; color:var(--text-muted); font-style:italic">Sin adjunto</span>`}
                 </div>
+                ${idFotoUrl ? `
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+                  ${[[idFotoUrl, 'Aplicante'], [deal.co_id_photo, 'Co-aplicante']].filter(x => x[0]).map(([u, lbl]) => `
+                  <a href="${u}" target="_blank" title="Ver ID ${lbl}" style="display:flex; flex-direction:column; gap:6px; width:150px; text-decoration:none;">
+                    <div style="width:150px; height:96px; border-radius:10px; overflow:hidden; border:1px solid var(--border); background:var(--surface-alt);">
+                      <img src="${u}" alt="ID ${lbl}" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.style.display='none'">
+                    </div>
+                    <span style="font-size:0.7rem; font-weight:700; color:${pipeline.color};">Ver ID${deal.co_id_photo ? ' ' + lbl : ''}</span>
+                  </a>`).join('')}
+                </div>` : ''}
               </div>
             </div>
           </div>
