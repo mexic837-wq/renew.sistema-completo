@@ -1486,7 +1486,7 @@ function _showPipelineSelector(client, user) {
         ">
           <span style="width:14px; height:14px; border-radius:50%; background:${pip.color || 'var(--primary)'}; flex-shrink:0; display:inline-block;"></span>
           ${pip.nombre}
-          <svg style="margin-left:auto; color:var(--text-muted);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="pip-check" style="margin-left:auto; width:22px; height:22px; border-radius:7px; border:2px solid var(--border); display:inline-flex; align-items:center; justify-content:center; font-size:12px; color:#04201c; flex-shrink:0;"></span>
         </button>
       `).join('')
     : `<p style="color:var(--text-muted); text-align:center; padding:20px 0;">No tienes pipelines disponibles. Contacta al administrador.</p>`;
@@ -1506,8 +1506,10 @@ function _showPipelineSelector(client, user) {
       </div>
       <div style="flex:1; overflow-y:auto; padding:20px 20px 32px;">
         ${isActuallyAdmin ? repsHTML : `<input type="hidden" id="pip-selector-rep" value="${user.id}">`}
-        <p style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:16px;">Selecciona el pipeline</p>
+        <p style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Selecciona los pipelines</p>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin:0 0 14px;">Puedes marcar varios: se crea un proyecto por cada uno.</p>
         ${pipelinesHTML}
+        ${availablePipelines.length ? `<button id="btn-crear-proyectos" disabled style="width:100%; margin-top:8px; padding:15px; border:none; border-radius:14px; background:var(--primary); color:#04201c; font-weight:800; font-size:0.95rem; cursor:pointer; opacity:.45;">Selecciona al menos un pipeline</button>` : ''}
       </div>
     </div>
   `;
@@ -1520,75 +1522,71 @@ function _showPipelineSelector(client, user) {
   });
   document.getElementById('btn-close-pip-selector').addEventListener('click', () => modal.remove());
 
-  // Pipeline selection
-  modal.querySelectorAll('.pip-select-btn').forEach(btn => {
-    btn.addEventListener('mouseenter', () => {
-      btn.style.borderColor = 'var(--primary)';
-      btn.style.background = 'rgba(0,245,212,0.05)';
-    });
-    btn.addEventListener('mouseleave', () => {
-      btn.style.borderColor = 'var(--border)';
-      btn.style.background = 'var(--surface-alt)';
-    });
-    btn.addEventListener('click', async () => {
-      const pipName = btn.dataset.pipName;
-
-      // ── VALIDACIÓN COMPLETA AL CONVERTIR PROSPECTO → CLIENTE (Desactivado por petición: todos los campos opcionales) ──
-      /*
-      const missingClientFields = [];
-      if (!client.email || client.email.trim() === '') missingClientFields.push('Email');
-      if (!client.telefono || client.telefono.trim() === '') missingClientFields.push('Teléfono');
-      if (!client.direccion || client.direccion.trim() === '') missingClientFields.push('Dirección');
-      if (!client.dob || client.dob === '-' || client.dob.trim() === '') missingClientFields.push('Fecha de Nacimiento');
-      if (!client.licencia || client.licencia === '-' || client.licencia.trim() === '') missingClientFields.push('Licencia / ID');
-
-      const hasPhotoFinal = (client.adjunto_id_url && client.adjunto_id_url !== 'null' && client.adjunto_id_url !== '-') ||
-        (client.foto && client.foto !== 'null');
-
-      if (!hasPhotoFinal) missingClientFields.push('Foto del ID');
-
-      if (missingClientFields.length > 0) {
-        showToast(
-          `<i class="fa-solid fa-triangle-exclamation text-orange-500"></i> Para crear un proyecto, completa los datos del cliente: ${missingClientFields.join(', ')}.`,
-          'error'
-        );
-        return;
+  // Selección múltiple de pipelines: se crea un proyecto por cada uno marcado
+  const seleccionados = new Set();
+  const btnCrear = document.getElementById('btn-crear-proyectos');
+  const pintarSeleccion = () => {
+    modal.querySelectorAll('.pip-select-btn').forEach(btn => {
+      const on = seleccionados.has(btn.dataset.pipName);
+      btn.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+      btn.style.background = on ? 'rgba(0,245,212,0.08)' : 'var(--surface-alt)';
+      const chk = btn.querySelector('.pip-check');
+      if (chk) {
+        chk.style.background = on ? 'var(--primary)' : 'transparent';
+        chk.style.borderColor = on ? 'var(--primary)' : 'var(--border)';
+        chk.innerHTML = on ? '<i class="fa-solid fa-check"></i>' : '';
       }
-      */
+    });
+    if (btnCrear) {
+      const n = seleccionados.size;
+      btnCrear.disabled = n === 0;
+      btnCrear.style.opacity = n === 0 ? '.45' : '1';
+      btnCrear.textContent = n === 0 ? 'Selecciona al menos un pipeline' : (n === 1 ? 'Crear proyecto' : `Crear ${n} proyectos`);
+    }
+  };
+  modal.querySelectorAll('.pip-select-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const nombre = btn.dataset.pipName;
+      if (seleccionados.has(nombre)) seleccionados.delete(nombre); else seleccionados.add(nombre);
+      pintarSeleccion();
+    });
+  });
 
-      btn.innerHTML = `<i class="fas fa-spinner fa-spin" style="margin:0 auto;"></i>`;
-      btn.disabled = true;
+  if (btnCrear) btnCrear.addEventListener('click', async () => {
+    const pips = [...seleccionados];
+    if (!pips.length) return;
+    btnCrear.disabled = true;
+    const repSelect = document.getElementById('pip-selector-rep');
+    const selectedRepId = repSelect ? repSelect.value : user.id;
+    const creados = [];
+    const fallidos = [];
+    // Uno tras otro para que los consecutivos de ID no choquen
+    for (const pipName of pips) {
+      btnCrear.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Creando ${pipName}… (${creados.length + fallidos.length + 1}/${pips.length})`;
       try {
-        const repSelect = document.getElementById('pip-selector-rep');
-        const selectedRepId = repSelect ? repSelect.value : user.id;
-
         const result = await createDynamicDeal({
           cliente_id: client.id,
           respuestas: {},
           pipelineName: pipName,
           responsable_id: selectedRepId
         });
-        modal.remove();
-        showToast(`Proyecto creado en ${pipName}`, 'success');
-        if (result && result.id && window.appNavigate) {
-          window.appNavigate('detail', result.id);
-        } else {
-          const container = document.getElementById('lista-clientes-movil');
-          if (container && typeof _renderList === 'function') {
-            _renderList(user, container);
-          } else if (window.renderClientsList) {
-            window.renderClientsList();
-          } else {
-            window.location.reload();
-          }
-        }
+        creados.push({ pipName, id: result && result.id });
       } catch (err) {
         console.error(err);
-        showToast('Error al crear proyecto: ' + err.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = btn.dataset.pipName;
+        fallidos.push(`${pipName}: ${err.message}`);
       }
-    });
+    }
+    modal.remove();
+    if (fallidos.length) showToast(`No se pudo crear: ${fallidos.join(' · ')}`, 'error');
+    if (creados.length) showToast(creados.length === 1 ? `Proyecto creado en ${creados[0].pipName}` : `${creados.length} proyectos creados: ${creados.map(c => c.pipName).join(', ')}`, 'success');
+
+    if (creados.length === 1 && creados[0].id && window.appNavigate) {
+      window.appNavigate('detail', creados[0].id);
+    } else {
+      const container = document.getElementById('lista-clientes-movil');
+      if (container && typeof _renderList === 'function') _renderList(user, container);
+      else if (window.renderClientsList) window.renderClientsList();
+    }
   });
 }
 

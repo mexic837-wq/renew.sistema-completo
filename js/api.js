@@ -2410,6 +2410,17 @@ export async function createDynamicDeal({ cliente, cliente_id, respuestas, pipel
     existingCli.estado = 'En Proceso';
   }
 
+  // El cliente queda activo también en el departamento del nuevo proyecto (ej. Water + Solar)
+  if (pipeline && existingCli) {
+    const dept = ['Solar', 'Water', 'Home'].find(d => String(pipeline.nombre || '').toLowerCase().includes(d.toLowerCase()));
+    if (dept) {
+      const actuales = Array.isArray(existingCli.departamentos_activos) ? existingCli.departamentos_activos : [];
+      if (!actuales.some(x => String(x).toLowerCase().includes(dept.toLowerCase()))) {
+        existingCli.departamentos_activos = [...actuales, dept];
+      }
+    }
+  }
+
   if (pipeline) {
     newProyId = genId('proy', db);
     newProyecto = {
