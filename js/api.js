@@ -1033,7 +1033,7 @@ export async function deleteRecord(table, id, column) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
         console.error(`Error al eliminar en servidor (Tabla: ${table}, ID: ${id})`, data);
-        throw new Error(data.error || `Error al eliminar en servidor (Tabla: ${table}, ID: ${id})`);
+        throw new Error(data.error || data.message || `Error al eliminar en servidor (Tabla: ${table}, ID: ${id}, código ${res.status})`);
     } else {
         console.log(`Eliminado exitosamente de ${table}: ${id} (Filas: ${data.count})`);
     }
@@ -1767,21 +1767,17 @@ export async function updateAdminFaseUsers(faseId, userIds) {
 export async function deleteAdminFase(faseId) {
   const db = getDB();
   try {
-    // 1. Identify fields in this phase
-    const fields = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === faseId);
-    const fieldIds = fields.map(c => c.id);
+    let fieldIds = (db.Admin_Campos_Formulario || []).filter(c => c.fase_id === faseId).map(c => c.id);
 
-    // 2. Delete answers associated with these fields
-    if (fieldIds.length > 0) {
-      console.log(`[CASCADE] Cleaning answers for ${fieldIds.length} fields in phase`);
-      await deleteRecords('respuestas_dinamicas', fieldIds, 'campo_id');
-    }
-
-    // 3. Delete fields in this phase
-    await deleteRecord('admin_campos_formulario', faseId, 'fase_id');
-    
-    // 4. Delete phase
-    await deleteRecord('admin_fases', faseId);
+    // El servidor borra en orden (respuestas → campos → fase) con los datos reales de Supabase
+    const res = await fetch(`${API_BASE}/delete-fase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: faseId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `No se pudo borrar la fase (error ${res.status})`);
+    if (Array.isArray(data.campoIds)) fieldIds = Array.from(new Set([...fieldIds, ...data.campoIds]));
 
     // 5. Local cleanup
     db.Admin_Fases = (db.Admin_Fases || []).filter(f => f.id !== faseId);

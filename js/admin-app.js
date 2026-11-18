@@ -10,7 +10,7 @@ import {
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js?v=4';
+} from './api.js?v=5';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
@@ -880,6 +880,10 @@ window.adminDeleteFase = async (id, e) => {
         await deleteAdminFase(id);
         await loadData();
         renderView();
+      } catch (err) {
+        console.error(err);
+        alert('No se pudo borrar la fase: ' + (err.message || err));
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-trash-can text-sm" style="pointer-events: none;"></i>';
       } finally {
         if (btn) btn.style.pointerEvents = 'auto';
       }
@@ -1009,7 +1013,7 @@ window.adminCreateFolder = async () => {
     await saveDB(db);
     
     try {
-        const { saveGranular } = await import('./api.js?v=4');
+        const { saveGranular } = await import('./api.js?v=5');
         await saveGranular('academia_content', newFolder);
     } catch(err) {
         console.error('Error guardando carpeta granularmente', err);

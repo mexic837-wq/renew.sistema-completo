@@ -4106,7 +4106,7 @@ app.post('/api/delete', requiereSesion(), async (req, res) => {
 
         if (error) {
             console.error('[SUPABASE ERROR] delete:', error.message);
-            return res.status(500).json({ error: error.message, details: error });
+            return res.status(500).json({ error: textoErrorSupabase(error), details: error });
         }
 
         console.log(`[SUPABASE] Borrado exitoso en ${table}. Filas eliminadas: ${count}`);
@@ -4114,6 +4114,43 @@ app.post('/api/delete', requiereSesion(), async (req, res) => {
     } catch (error) {
         console.error('[CRITICAL ERROR] api/delete:', error);
         res.status(500).json({ error: 'Fallo crítico al eliminar de Supabase' });
+    }
+});
+
+// Borrar una fase completa en orden: respuestas de sus campos → campos → fase.
+// Se hace aquí (con los datos reales de Supabase) para no depender de lo que la app tenga en memoria,
+// y si algo lo impide se devuelve el motivo exacto.
+const textoErrorSupabase = (e) => e ? (e.message || e.details || e.hint || e.code || JSON.stringify(e)) : '';
+app.post('/api/delete-fase', requiereSesion({ soloAdmin: true }), async (req, res) => {
+    const faseId = req.body && req.body.id;
+    if (!faseId) return res.status(400).json({ error: 'Falta la fase a borrar' });
+    try {
+        // Proyectos parados en esta fase: no se pueden quedar sin fase
+        const { data: proys, error: eP } = await supabase.from('proyectos_dinamicos').select('id').eq('fase_id', faseId);
+        if (eP) return res.status(500).json({ error: 'No se pudo revisar los proyectos de la fase: ' + textoErrorSupabase(eP) });
+        if (proys && proys.length) {
+            return res.status(409).json({ error: `No se puede borrar: hay ${proys.length} proyecto(s) en esta fase. Muévelos a otra fase primero.` });
+        }
+
+        const { data: campos, error: eC } = await supabase.from('admin_campos_formulario').select('id').eq('fase_id', faseId);
+        if (eC) return res.status(500).json({ error: 'No se pudo leer los campos de la fase: ' + textoErrorSupabase(eC) });
+        const campoIds = (campos || []).map(c => c.id);
+
+        if (campoIds.length) {
+            const { error: eR } = await supabase.from('respuestas_dinamicas').delete().in('campo_id', campoIds);
+            if (eR) return res.status(500).json({ error: 'No se pudieron borrar las respuestas de la fase: ' + textoErrorSupabase(eR) });
+            const { error: eD } = await supabase.from('admin_campos_formulario').delete().in('id', campoIds);
+            if (eD) return res.status(500).json({ error: 'No se pudieron borrar los campos de la fase: ' + textoErrorSupabase(eD) });
+        }
+
+        const { error: eF } = await supabase.from('admin_fases').delete().eq('id', faseId);
+        if (eF) return res.status(500).json({ error: 'No se pudo borrar la fase: ' + textoErrorSupabase(eF) });
+
+        console.log(`[SUPABASE] Fase ${faseId} borrada (${campoIds.length} campos) por ${req.usuario.nombre || req.usuario.id}`);
+        res.json({ success: true, campoIds });
+    } catch (error) {
+        console.error('[CRITICAL ERROR] api/delete-fase:', error);
+        res.status(500).json({ error: 'Fallo al borrar la fase: ' + (error.message || error) });
     }
 });
 
@@ -4136,7 +4173,7 @@ app.post('/api/delete-bulk', requiereSesion(), async (req, res) => {
 
         if (error) {
             console.error('[SUPABASE ERROR] bulk delete:', error.message);
-            return res.status(500).json({ error: error.message, details: error });
+            return res.status(500).json({ error: textoErrorSupabase(error), details: error });
         }
 
         console.log(`[SUPABASE] Bulk delete exitoso en ${table}. Filas eliminadas: ${count}`);
