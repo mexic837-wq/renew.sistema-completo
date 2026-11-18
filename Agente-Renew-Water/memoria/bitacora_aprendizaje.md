@@ -28,3 +28,4 @@ Formato: `[AAAA-MM-DD HH:mm] Observación / regla aprendida`
 
 - [2026-11-18 12:00] REGLA (usuario): el agente solo trabaja con prospectos y proyectos NUEVOS, con fecha desde DESDE_FECHA (nodo Config, por defecto 2026-11-18). Los viejos se manejan en la app.
 - [2026-11-18 12:00] El formulario externo crea clientes con macro_estado 'Prospectos' (plural) y la app usa 'Prospecto': el agente busca ambos.
+- [2026-11-18 12:30] REGLA (usuario): si una fase genérica ya está completa en la app y nadie la avanzó, el barrido la avanza solo y avisa al siguiente encargado.

@@ -86,6 +86,7 @@ La Orden de Trabajo sigue el PDF oficial (`orden_trabajo_oficial.pdf` → `molde
 - **Escalamiento:** desde el 3er aviso sin respuesta se le avisa a su **Manager de Venta** (1 vez al día); desde el 6º, a **Admin/CEO** con un resumen (1 vez al día).
 - **Día de la instalación:** por la mañana le recuerda al técnico su cita (hora, cliente y dirección). Antes de esa fecha no lo persigue. Unas **2 horas después de la hora programada** le pregunta *"¿ya terminaste la instalación?"* y le pide confirmar los equipos instalados; si no responde, sigue insistiendo y escala como cualquier pendiente.
 - Cuando el dato llega, el contador de ese pendiente se borra solo.
+- **Avance automático:** si una fase (Llamada, Contrato, Financiera, Fotos, Extras…) ya tiene todos sus campos obligatorios llenos en la app pero nadie la avanzó, el barrido la pasa sola a la siguiente y le escribe al nuevo encargado (respeta los desplegables que deben ser "Si"). No aplica a Crédito, Orden de Trabajo, Técnico ni Certificado (tienen su flujo propio) ni a fases sin campos obligatorios. Requiere `AUTO_ADVANCE=true`; con `BARRIDO_SEND=false` solo muestra qué avanzaría.
 - `BARRIDO_SEND` viene en `true` (envía de verdad). Ponlo en `false` para solo simular.
 
 ## Seguridad: quién puede ver qué

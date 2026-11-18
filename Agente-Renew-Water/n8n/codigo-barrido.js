@@ -17,6 +17,7 @@ const ctx = await cargarCtx();
 
 // 1) Pendientes de todos, agrupados por persona (solo clientes que le corresponden)
 const porUsuario = {}; // userId -> { u, items: [{k, line}] }
+const avancesAuto = []; // fases completas que se avanzaron solas en este barrido
 const vivos = new Set();
 const add = (u, key, line) => {
   const k = `${u.id}|${key}`;
@@ -38,6 +39,19 @@ if (ps.length) {
   await cargarInstalaciones(ctx, ps);
   const resp = await sel('respuestas_dinamicas', `select=proyecto_id,campo_id,valor&proyecto_id=${inList(ps.map((p) => p.id))}`);
   for (const p of ps) {
+    // Fase genérica ya completa (la llenaron en la app pero nadie la avanzó): se avanza sola y se avisa al siguiente encargado
+    if (AUTO_ADVANCE && ![FASE_1, FASE_OT, FASE_TEC, FASE_CERT].includes(p.fase_id)) {
+      const cs = camposFase(p.fase_id, ctx.campos);
+      const completa = cs.length && cs.every((c) => !faltaValor(resp.find((x) => x.proyecto_id === p.id && x.campo_id === c.id)));
+      if (completa) {
+        const cli = ctx.N[p.cliente_id] || p.cliente_id, de = ctx.F[p.fase_id].nombre;
+        if (!SEND) { avancesAuto.push({ json: { cliente: cli, avance_automatico: de, simulacion: true } }); continue; }
+        try {
+          const r = await revisarFase(p, ctx, 'agente-renew-water');
+          if (r.estado === 'avanzo') { avancesAuto.push({ json: { cliente: cli, avance_automatico: `${de} → ${r.sig.nombre}`, avisados: (r.sig.notif || {}).notificados || [] } }); continue; }
+        } catch (e) { console.log('avance automático falló', p.id, e.message); }
+      }
+    }
     const linea = lineaPendiente(p, ctx, resp);
     if (linea) encargadosAutorizados(ctx.F[p.fase_id], p, ctx).forEach((u) => add(u, `proy:${p.id}:${p.fase_id}`, linea));
   }
@@ -88,7 +102,7 @@ if (aLaHora.length) {
 Object.keys(sd.cnt).forEach((k) => { if (!vivos.has(k)) { delete sd.cnt[k]; delete sd.reg[k]; } });
 
 // 2) Recordatorio a cada persona, cada vez más firme
-const out = [...avisosHoy];
+const out = [...avancesAuto, ...avisosHoy];
 const escalarMgr = {}, escalarAdm = {}; // destinatario -> líneas
 for (const { u, items } of Object.values(porUsuario)) {
   if (await estaPausado(norm(u.telefono))) { out.push({ json: { para: u.nombre.trim(), pausado: true, enviado: false } }); continue; } // lo atiende una persona: ni recordar ni escalar
