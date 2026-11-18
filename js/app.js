@@ -15,7 +15,11 @@ window.closeModals = () => {
         const el = document.getElementById(id);
         if (el) {
             el.style.display = 'none';
-            el.classList.add('nuclear-hidden');
+            // Solo el modal del calendario se abre quitando esta clase; a los demás se les quita
+            // para que puedan volver a abrirse con style.display (antes "Nuevo" quedaba invisible
+            // después de cerrar una cita del calendario)
+            if (id === 'modal-calendar-event') el.classList.add('nuclear-hidden');
+            else el.classList.remove('nuclear-hidden');
         }
     });
 };
@@ -32,7 +36,7 @@ import { renderDetail }     from './screens/projectDetail.js?v=6';
 import { renderAcademy }    from './screens/academy.js';
 import { renderMenu }       from './screens/menu.js?v=4';
 import { renderInventoryTech } from './screens/inventory.js?v=2';
-import { renderClients } from './screens/clients.js?v=18';
+import { renderClients } from './screens/clients.js?v=19';
 import { renderCallCenter } from './screens/callCenter.js?v=3';
 import { renderMiCalendario } from './screens/calendar.js?v=8';
 import { renderMiMapa } from './screens/mapa.js?v=4';

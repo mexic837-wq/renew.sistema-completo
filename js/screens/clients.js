@@ -327,7 +327,7 @@ export async function renderClients() {
         const title = document.querySelector('#modal-nuevo-cliente h3');
         if (title) title.textContent = 'Nuevo Prospecto';
         const modal = document.getElementById('modal-nuevo-cliente');
-        if (modal) modal.style.display = 'flex';
+        if (modal) { modal.classList.remove('nuclear-hidden'); modal.style.display = 'flex'; }
 
         const mapCont = document.getElementById('quick-map-container');
         if (mapCont) mapCont.style.display = 'block';
@@ -1921,6 +1921,7 @@ function _wireModalControls(user, container) {
     // If already initialized, just ensure it's visible and resized
     if (window.quickMapInstance) {
       mapContainer.style.display = 'block';
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
       setTimeout(() => {
         window.google.maps.event.trigger(window.quickMapInstance, 'resize');
         if (window.quickMapInstance.getCenter()) {
@@ -1987,9 +1988,12 @@ function _wireModalControls(user, container) {
     };
     initAutocomplete();
 
+    let intentosMapa = 0;
     const ensureMapCreated = () => {
       if (map) return;
       mapContainer.style.display = 'block';
+      // Si el modal todavía no se ve (ancho 0), Google crea el mapa en blanco: esperar a que tenga tamaño
+      if (!mapDiv.offsetWidth && intentosMapa++ < 30) { setTimeout(ensureMapCreated, 150); return; }
       map = new window.google.maps.Map(mapDiv, {
         center: defaultCenter,
         zoom: 15,
@@ -2070,27 +2074,7 @@ function _wireModalControls(user, container) {
       }
     });
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (!place.geometry) return;
-
-      // Update input text if place has formatted_address
-      if (place.formatted_address) {
-        dirInput.value = place.formatted_address;
-      } else if (place.name) {
-        dirInput.value = place.name;
-      }
-
-      ensureMapCreated();
-      setTimeout(() => {
-        google.maps.event.trigger(map, 'resize');
-        map.setCenter(place.geometry.location);
-        map.setZoom(17);
-        marker.setPosition(place.geometry.location);
-        quickLat = place.geometry.location.lat();
-        quickLng = place.geometry.location.lng();
-      }, 200);
-    });
+    // (el autocompletado de la dirección ya se maneja en initAutocomplete)
 
     // Fix for mobile: Google Places sometimes requires a double tap or fails on mobile touch
     setTimeout(() => {
@@ -2285,7 +2269,7 @@ window.openNuevoProspectoGlobal = () => {
     const title = document.querySelector('#modal-nuevo-cliente h3');
     if (title) title.textContent = 'Nuevo Prospecto';
     const modal = document.getElementById('modal-nuevo-cliente');
-    if (modal) modal.style.display = 'flex';
+    if (modal) { modal.classList.remove('nuclear-hidden'); modal.style.display = 'flex'; }
 
     const mapCont = document.getElementById('quick-map-container');
     if (mapCont) mapCont.style.display = 'block';
