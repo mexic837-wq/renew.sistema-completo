@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/inventory.js
    Drill-down Inventory Form for Techs
    ============================================================ */
-import { getInventario, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
+import { getInventario, inventarioWaterDeSede, saveInventario, getHistorialInventario, saveHistorialInventario, getDB, saveDB, saveGranular, syncKanbanActivity } from '../api.js';
 import { showToast } from '../components/toast.js';
 import { navigate, getCurrentUser } from '../app.js';
 
@@ -26,11 +26,21 @@ const ECOSISTEMAS = [
   { id: 'home',  nombre: 'Renew Home',  icon: 'fa-house',   desc: 'Soluciones para el hogar' }
 ];
 
+// Solo la sede de Orlando maneja los tres ecosistemas; el resto solo Renew Water
+function ecosistemasDeSede(sede) {
+  return sede === 'orlando' ? ECOSISTEMAS : ECOSISTEMAS.filter(e => e.id === 'water');
+}
+
 function escHtml(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function itemsDe(sede, eco) {
+  // Water: mismos productos que la lista de precios
+  if (eco === 'water') {
+    const vinculados = inventarioWaterDeSede(sede);
+    if (vinculados) return vinculados;
+  }
   return getInventario().filter(item => {
     const matchesSede = item.locacion === sede;
     const matchesEco = !eco || (item.category === eco) || (item.ecosistema && item.ecosistema.toLowerCase().includes(eco));
@@ -137,7 +147,9 @@ export function renderInventoryTech(dealId = null) {
   const step2 = document.getElementById('inv-step-2');
   const step3 = document.getElementById('inv-step-3');
 
+  let pasoActual = 1;
   function mostrarPaso(n) {
+    pasoActual = n;
     step1.style.display = n === 1 ? 'block' : 'none';
     step2.style.display = n === 2 ? 'block' : 'none';
     step3.style.display = n === 3 ? 'block' : 'none';
@@ -151,11 +163,22 @@ export function renderInventoryTech(dealId = null) {
   document.querySelectorAll('.inv-sede').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedSede = btn.dataset.sede;
+      const permitidos = ecosistemasDeSede(selectedSede).map(e => e.id);
       ECOSISTEMAS.forEach(e => {
+        const card = screen.querySelector(`.inv-eco[data-eco="${e.id}"]`);
+        if (card) card.style.display = permitidos.includes(e.id) ? '' : 'none';
         const el = screen.querySelector(`[data-eco-count="${e.id}"]`);
         if (el) el.textContent = `${itemsDe(selectedSede, e.id).length} artículos`;
       });
-      mostrarPaso(2);
+      document.getElementById('btn-back-2').innerHTML = `<i class="fa-solid fa-arrow-left"></i> ${permitidos.length === 1 ? 'Volver a sedes' : 'Volver a ecosistemas'}`;
+      // Si la sede solo tiene un ecosistema (Water), saltar directo a los materiales
+      if (permitidos.length === 1) {
+        selectedEcosistema = permitidos[0];
+        mostrarPaso(3);
+        populateItems();
+      } else {
+        mostrarPaso(2);
+      }
     });
   });
 
@@ -168,7 +191,9 @@ export function renderInventoryTech(dealId = null) {
   });
 
   document.getElementById('btn-back-1').addEventListener('click', () => mostrarPaso(1));
-  document.getElementById('btn-back-2').addEventListener('click', () => mostrarPaso(2));
+  document.getElementById('btn-back-2').addEventListener('click', () => {
+    mostrarPaso(ecosistemasDeSede(selectedSede).length === 1 ? 1 : 2);
+  });
 
   const btnSubStock = document.getElementById('btn-sub-stock-inv');
   if (btnSubStock) {
@@ -192,6 +217,15 @@ export function renderInventoryTech(dealId = null) {
   const btnBackDash = document.getElementById('btn-inventory-back');
   if (btnBackDash) {
     btnBackDash.addEventListener('click', () => {
+        // Retroceder dentro de Inventario: Material → Ecosistema → Sede
+        if (pasoActual === 3) {
+            mostrarPaso(ecosistemasDeSede(selectedSede).length === 1 ? 1 : 2);
+            return;
+        }
+        if (pasoActual === 2) {
+            mostrarPaso(1);
+            return;
+        }
         if (currentDealId) {
             navigate('detail', currentDealId);
         } else {
@@ -203,7 +237,7 @@ export function renderInventoryTech(dealId = null) {
   function renderSelected(item) {
     const triggerContent = document.getElementById('inv-trigger-content');
     triggerContent.innerHTML = `
-      <span class="inv-sel-id">${escHtml(item.id)}</span>
+      <span class="inv-sel-id">${escHtml(item.codigoLista || item.id)}</span>
       <span class="inv-sel-name">${escHtml(item.nombreItem)}</span>
       <span class="inv-sel-eco">${escHtml(item.ecosistema || '')}</span>
       ${isAdmin ? `<span class="inv-sel-stock"><b>${item.stockActual}</b> unidades disponibles</span>` : ''}
@@ -240,7 +274,8 @@ export function renderInventoryTech(dealId = null) {
         return;
     }
 
-    filtered.sort((a, b) => {
+    // Water ya viene en el orden de la lista de precios
+    if (selectedEcosistema !== 'water' || !filtered.some(i => i.codigoLista)) filtered.sort((a, b) => {
         const getRank = (eco) => {
             if (!eco) return 99;
             const text = eco.toLowerCase();
@@ -259,9 +294,9 @@ export function renderInventoryTech(dealId = null) {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'inv-item';
-      card.dataset.search = `${item.id} ${item.nombreItem} ${item.ecosistema || ''}`.toLowerCase();
+      card.dataset.search = `${item.codigoLista || item.id} ${item.nombreItem} ${item.ecosistema || ''}`.toLowerCase();
       card.innerHTML = `
-        <span class="inv-item-id">${escHtml(item.id)}</span>
+        <span class="inv-item-id">${escHtml(item.codigoLista || item.id)}</span>
         <span class="inv-item-name">${escHtml(item.nombreItem)}</span>
         <span class="inv-item-foot">
           <span class="inv-item-eco">${escHtml(item.ecosistema || '')}</span>

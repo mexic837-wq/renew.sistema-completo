@@ -7,11 +7,11 @@ import {
   deleteAdminPipeline, deleteAdminFase, deleteAdminCampo, reorderAdminCampos, reorderAdminFases,
   getAdminWorkers, saveAdminWorker, deleteAdminWorker,
   getClientesMaestro, updateClientMaestro, deleteClientesMaestro,
-  getInventario, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
+  getInventario, inventarioWaterDeSede, saveInventario, deleteInventarioItem, getHistorialInventario, saveHistorialInventario, 
   syncClientStatuses, deleteAdminProject, advanceDealPhase, syncKanbanActivity, getCurrentUser,
   getCatalogos, saveCatalogo, deleteRecord,
   getInternalMessages, sendInternalMessage, markMessageAsRead, updateInternalMessage, deleteInternalMessage
-} from './api.js?v=5';
+} from './api.js?v=6';
 window.getDB = getDB;
 window.saveDB = saveDB;
 import { showToast } from './components/toast.js';
@@ -75,6 +75,20 @@ function readFileAsBase64(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// Inventario: Orlando tiene los tres ecosistemas; las demás sedes solo Renew Water
+const INV_SEDES = [
+  { id: 'orlando', nombre: 'Orlando' },
+  { id: 'miami', nombre: 'Miami' },
+  { id: 'dallas', nombre: 'Dallas' },
+  { id: 'houston', nombre: 'Houston' },
+  { id: 'austin', nombre: 'Austin' },
+  { id: 'north_carolina', nombre: 'North Carolina' },
+  { id: 'new_york', nombre: 'Nueva York' }
+];
+function sedeTieneEco(sede, eco) {
+  return sede === 'orlando' || !eco || eco === 'water';
 }
 
 let state = {
@@ -1014,7 +1028,7 @@ window.adminCreateFolder = async () => {
     await saveDB(db);
     
     try {
-        const { saveGranular } = await import('./api.js?v=5');
+        const { saveGranular } = await import('./api.js?v=6');
         await saveGranular('academia_content', newFolder);
     } catch(err) {
         console.error('Error guardando carpeta granularmente', err);
@@ -5205,12 +5219,16 @@ window.renderView = async function renderView() {
     UI.viewDesc.textContent = t('inv_desc');
     setGlobalButton(true, `<i class="fa-solid fa-plus text-sm"></i> ${t('inv_btn_add')}`);
     
+    // Solo Orlando maneja Solar y Home; el resto de sedes solo Water
+    if (!sedeTieneEco(state.activeInventorySede, ecoFilter)) state.activeInventorySede = 'orlando';
     const activeInventorySede = state.activeInventorySede;
     const activeInventoryLine = state.activeInventoryLine || 'all';
     const invData = getInventario();
 
     // 1. First filter by Warehouse (Sede) and Ecosystem (Solar/Water/Home)
-    const baseItems = invData.filter(i => {
+    // Water: mismos productos que la lista de precios (stock por sede desde inventario)
+    const waterVinculado = ecoFilter === 'water' ? inventarioWaterDeSede(activeInventorySede) : null;
+    const baseItems = waterVinculado || invData.filter(i => {
         const matchesSede = i.locacion === activeInventorySede;
         if (!state.activeEcoFilter) return matchesSede;
         
@@ -5237,7 +5255,7 @@ window.renderView = async function renderView() {
 
         return `
             <tr class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                <td class="px-6 py-4 whitespace-nowrap text-[10px] text-gray-500 font-bold uppercase tracking-tight">${ite.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-[10px] text-gray-500 font-bold uppercase tracking-tight">${ite.codigoLista || ite.id}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-900 dark:text-white uppercase">${ite.nombreItem}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                    <span class="px-2 py-0.5 ${lineBadge} text-[8px] font-black uppercase tracking-widest rounded border">${ite.ecosistema}</span>
@@ -5412,13 +5430,7 @@ window.renderView = async function renderView() {
       <div class="max-w-6xl mx-auto animate-fadeIn space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5 text-xs w-fit">
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'orlando' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="orlando">Orlando</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'miami' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="miami">Miami</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'dallas' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="dallas">Dallas</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'houston' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="houston">Houston</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'austin' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="austin">Austin</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'north_carolina' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="north_carolina">North Carolina</button>
-             <button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === 'new_york' ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="new_york">Nueva York</button>
+             ${INV_SEDES.filter(s => sedeTieneEco(s.id, ecoFilter)).map(s => `<button class="inv-sede-tab px-3.5 py-1.5 rounded-lg font-bold transition-all ${activeInventorySede === s.id ? 'bg-white dark:bg-[#0c1322] text-tealAccent shadow-sm' : 'text-gray-400 hover:text-white'}" data-sede="${s.id}">${s.nombre}</button>`).join('')}
           </div>
 
           <!-- Line Filters -->
