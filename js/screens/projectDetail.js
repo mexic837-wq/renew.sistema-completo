@@ -248,8 +248,15 @@ async function buildDetailView(screen, deal, pipeline, fases, curFidx, db, respu
                 const isPdf = file.url.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
                 const icon = isPdf ? 'fa-file-pdf' : 'fa-image';
                 const color = isPdf ? '#ef4444' : '#3b82f6';
-                return '<a href="' + file.url + '" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.borderColor=\'' + color + '\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
-                    '<i class="fa-solid ' + icon + '" style="font-size:1.5rem; color:' + color + '; margin-bottom:8px;"></i>' +
+                const safeUrl = String(file.url).replace(/"/g, '&quot;');
+                // Fotos: miniatura pequeña de la imagen (si no carga, vuelve al ícono)
+                const preview = isPdf
+                    ? '<i class="fa-solid ' + icon + '" style="font-size:1.5rem; color:' + color + '; margin-bottom:8px;"></i>'
+                    : '<div style="width:100%; height:56px; margin-bottom:8px; border-radius:8px; overflow:hidden; background:var(--surface); display:flex; align-items:center; justify-content:center;">' +
+                        '<img src="' + safeUrl + '" alt="" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.outerHTML=\'<i class=&quot;fa-solid fa-image&quot; style=&quot;font-size:1.5rem; color:' + color + ';&quot;></i>\'">' +
+                      '</div>';
+                return '<a href="' + safeUrl + '" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:' + (isPdf ? '12px' : '8px 8px 10px') + '; background:var(--surface-alt); border:1px solid var(--border); border-radius:12px; text-decoration:none; transition:all 0.2s; min-width:0;" onmouseover="this.style.borderColor=\'' + color + '\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+                    preview +
                     '<span style="font-size:0.65rem; color:var(--text-primary); font-weight:700; text-align:center; word-break:break-word; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + file.name + '">' + file.name + '</span>' +
                 '</a>';
             }).join('') + `
