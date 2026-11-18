@@ -2536,7 +2536,13 @@ app.post('/api/generar-pdf', async (req, res) => {
         evento: "aplicacion_credito_generada", 
         pdf_url: finalUrl, 
         id_photo_url: idPhotoUrl,
-        datos: { ...rawData, aplicante: { ...rawData.aplicante, fotoId: "[BASE64_REMOVED]" } } 
+        co_id_photo_url: coIdPhotoUrl,
+        // fotoId: en vez de la imagen completa (pesa varios MB) va el enlace de la foto, o vacío si no se subió
+        datos: {
+          ...rawData,
+          aplicante: { ...rawData.aplicante, fotoId: idPhotoUrl || "" },
+          ...(rawData.coAplicante ? { coAplicante: { ...rawData.coAplicante, fotoId: coIdPhotoUrl || "" } } : {})
+        } 
       })
     }).catch(err => console.error("Error al disparar webhook crédito:", err));
 
@@ -2687,7 +2693,7 @@ app.post('/api/generar-orden', async (req, res) => {
             evento: "orden_trabajo_generada", 
             orden_url: finalUrl, 
             id_photo_url: idPhotoUrl,
-            datos: { ...rawData, comprador: { ...rawData.comprador, fotoId: "[BASE64_REMOVED]" } } 
+            datos: { ...rawData, comprador: { ...rawData.comprador, fotoId: idPhotoUrl || "" } } 
           })
         }).catch(err => console.error("Error al disparar webhook:", err));
 
