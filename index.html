@@ -812,6 +812,25 @@
                     </div>
                 </div>
 
+                <!-- Crear prospecto desde la cita -->
+                <div id="ev-prospecto-wrap" class="space-y-2">
+                    <label class="flex items-center gap-3 cursor-pointer p-3 rounded-2xl bg-tealAccent/10 border border-tealAccent/30">
+                        <input type="checkbox" id="ev-crear-prospecto" class="w-5 h-5 rounded text-[#0d9488] focus:ring-[#0d9488]">
+                        <span class="flex-1">
+                            <span class="block text-sm font-black text-gray-800 dark:text-white"><i class="fa-solid fa-user-plus mr-1 text-tealAccent"></i> Crear también como prospecto</span>
+                            <span class="block text-[11px] font-semibold text-gray-500 dark:text-white/50">Se guarda en Mis Clientes → Prospectos con la dirección y departamentos de la cita</span>
+                        </span>
+                    </label>
+                    <div id="ev-prospecto-campos" class="space-y-2 nuclear-hidden" style="display:none;">
+                        <input type="text" id="ev-pros-nombre" placeholder="Nombre completo del cliente *" autocomplete="off"
+                            class="w-full bg-gray-50 dark:bg-white/5 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-tealAccent/50 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20">
+                        <input type="tel" id="ev-pros-telefono" placeholder="Teléfono *" autocomplete="off"
+                            class="w-full bg-gray-50 dark:bg-white/5 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-tealAccent/50 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20">
+                        <input type="email" id="ev-pros-email" placeholder="Correo (opcional)" autocomplete="off"
+                            class="w-full bg-gray-50 dark:bg-white/5 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-tealAccent/50 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20">
+                    </div>
+                </div>
+
                 <div class="space-y-3">
                     <label class="text-[10px] font-black text-tealAccent uppercase tracking-[0.2em] ml-2"><i class="fa-solid fa-palette mr-1"></i> Color de Etiqueta</label>
                     
@@ -1177,7 +1196,7 @@
 
   <!-- ── Archivos principales de la aplicación ── -->
   <script type="module" src="./js/api.js?v=67"></script>
-  <script type="module" src="./js/app.js?v=1044"></script>
+  <script type="module" src="./js/app.js?v=1045"></script>
 
   <!-- Zadarma WebRTC -->
   <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"></script>

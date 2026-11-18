@@ -34,7 +34,7 @@ import { renderMenu }       from './screens/menu.js?v=4';
 import { renderInventoryTech } from './screens/inventory.js';
 import { renderClients } from './screens/clients.js?v=18';
 import { renderCallCenter } from './screens/callCenter.js?v=3';
-import { renderMiCalendario } from './screens/calendar.js?v=7';
+import { renderMiCalendario } from './screens/calendar.js?v=8';
 import { renderMiMapa } from './screens/mapa.js?v=4';
 import { renderMiEquipo } from './screens/equipo.js?v=7';
 import { renderPartners } from './screens/partners.js';

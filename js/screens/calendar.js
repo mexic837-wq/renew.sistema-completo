@@ -2,7 +2,7 @@
    RENEW SOLAR – screens/calendar.js
    ============================================================ */
 import { getCurrentUser, navigate } from '../app.js';
-import { getDB, saveGranular, deleteRecord, getAdminWorkers } from '../api.js';
+import { getDB, saveGranular, deleteRecord, getAdminWorkers, genId } from '../api.js';
 import { t } from '../i18n.js';
 
 export async function renderMiCalendario() {
@@ -455,6 +455,8 @@ export async function renderMiCalendario() {
     const form = document.getElementById('form-calendario-evento');
     
     const props = (event && event.extendedProps) ? event.extendedProps : {};
+    // "Crear también como prospecto": solo al añadir o editar (no al ver una cita)
+    prepararProspectoUI(!event);
     
     const colabWrapper = document.getElementById('ev-colaboradores-wrapper');
     if(colabWrapper) {
@@ -746,6 +748,12 @@ export async function renderMiCalendario() {
         const fechaInicioVal = document.getElementById('ev-fecha-inicio').value;
         if (!fechaInicioVal) { import('../components/toast.js').then(m => m.showToast('Fecha inicio obligatoria', 'error')); return; }
 
+        const quiereProspecto = !!document.getElementById('ev-crear-prospecto')?.checked;
+        if (quiereProspecto && (!(document.getElementById('ev-pros-nombre').value || '').trim() || !(document.getElementById('ev-pros-telefono').value || '').trim())) {
+            import('../components/toast.js').then(m => m.showToast('Para crear el prospecto escribe el nombre y el teléfono', 'error'));
+            return;
+        }
+
         btnGuardar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
         btnGuardar.disabled = true;
 
@@ -830,7 +838,19 @@ export async function renderMiCalendario() {
             console.error('[N8N-ERR]', n8nErr);
         }
 
-        import('../components/toast.js').then(m => m.showToast('Evento guardado', 'success'));
+        let msgGuardado = 'Evento guardado';
+        if (quiereProspecto) {
+            try {
+                const r = await crearProspectoDesdeCita(direccion, departamentos);
+                if (r.ok) msgGuardado = r.existente
+                    ? `Evento guardado · ${r.cliente.nombre} ya existía como cliente (mismo teléfono)`
+                    : `Evento guardado y ${r.cliente.nombre} creado como prospecto`;
+            } catch (pe) {
+                console.error('[CITA→PROSPECTO]', pe);
+                msgGuardado = 'Evento guardado, pero no se pudo crear el prospecto';
+            }
+        }
+        import('../components/toast.js').then(m => m.showToast(msgGuardado, msgGuardado.includes('no se pudo') ? 'error' : 'success'));
         
         // Close modal
         const modal = document.getElementById('modal-calendar-event');
@@ -851,7 +871,75 @@ export async function renderMiCalendario() {
     }
   }
 
+  // ── Crear prospecto desde la cita ──
+  function prepararProspectoUI(mostrar) {
+      const wrap = document.getElementById('ev-prospecto-wrap');
+      const chk = document.getElementById('ev-crear-prospecto');
+      const campos = document.getElementById('ev-prospecto-campos');
+      if (!wrap || !chk || !campos) return;
+      wrap.style.display = mostrar ? '' : 'none';
+      chk.checked = false;
+      ['ev-pros-nombre', 'ev-pros-telefono', 'ev-pros-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      campos.classList.add('nuclear-hidden'); campos.style.display = 'none';
+      if (!chk._listo) {
+          chk._listo = true;
+          chk.addEventListener('change', () => {
+              campos.classList.toggle('nuclear-hidden', !chk.checked);
+              campos.style.display = chk.checked ? '' : 'none';
+              const nom = document.getElementById('ev-pros-nombre');
+              if (chk.checked && nom && !nom.value) {
+                  // Sugerir el nombre a partir del título de la cita ("CITA Leonardo Martín" → "Leonardo Martín")
+                  nom.value = (document.getElementById('ev-nombre').value || '').replace(/^\s*(cita|instalaci[oó]n|visita)\s*[:\-]?\s*/i, '').trim();
+              }
+          });
+      }
+  }
+
+  // Devuelve { ok, cliente, existente } o { ok:false, msg }
+  async function crearProspectoDesdeCita(direccion, departamentos) {
+      const nombre = (document.getElementById('ev-pros-nombre').value || '').trim();
+      const telefono = (document.getElementById('ev-pros-telefono').value || '').trim();
+      const email = (document.getElementById('ev-pros-email').value || '').trim();
+      if (!nombre || !telefono) return { ok: false, msg: 'Para crear el prospecto escribe el nombre y el teléfono' };
+
+      const db = getDB();
+      if (!db.Clientes_Maestro) db.Clientes_Maestro = [];
+      const dig = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : d; };
+      const existente = db.Clientes_Maestro.find(c => dig(c.telefono) && dig(c.telefono) === dig(telefono));
+      if (existente) return { ok: true, cliente: existente, existente: true };
+
+      const nombreUsuario = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+      const depts = (departamentos || []).filter(Boolean);
+      const hoy = new Date().toISOString();
+      const nuevo = {
+          id: genId('cli', db),
+          nombre,
+          telefono,
+          email: email || 'Sin Email',
+          direccion: direccion || 'Pendiente',
+          zip: 'Pendiente',
+          dob: '-',
+          state_id: '-',
+          estado: 'Lead',
+          macro_estado: 'Prospecto',
+          departamento: depts[0] || null,
+          departamentos_activos: depts,
+          fecha: hoy,
+          fecha_inicio: hoy.split('T')[0],
+          notas: 'Creado desde una cita del calendario',
+          origen_tipo: 'representante',
+          origen_id: user.id,
+          origen_nombre: nombreUsuario || 'Representante',
+          vendedor_asignado_id: user.id,
+          vendedor_asignado_nombre: nombreUsuario || 'Representante'
+      };
+      db.Clientes_Maestro.push(nuevo);
+      await saveGranular('clientes_maestro', [nuevo]);
+      return { ok: true, cliente: nuevo, existente: false };
+  }
+
   function switchEventToEditMode() {
+      prepararProspectoUI(true);
       const btnGuardar = document.getElementById('btn-guardar-evento');
       const btnEditar = document.getElementById('btn-editar-evento');
       const titleEl = document.getElementById('modal-calendar-title');
