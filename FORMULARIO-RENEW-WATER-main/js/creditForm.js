@@ -216,6 +216,22 @@ async function handleCreditFormSubmit(e) {
     form.querySelector('.error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
+  // La foto del ID del aplicante es obligatoria: sin ella el sistema no la guarda en el cliente
+  // y el aviso de WhatsApp de n8n falla ("media is not of a type(s) string")
+  const previewId = document.getElementById('ca_id_photo_preview');
+  if (!previewId || !previewId.dataset.base64) {
+    const wrap = previewId ? previewId.closest('.field-group') : null;
+    if (wrap) {
+      wrap.classList.add('error');
+      wrap.style.outline = '2px solid #ef4444';
+      wrap.style.borderRadius = '12px';
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => { wrap.style.outline = ''; }, 4000);
+    }
+    showToast('Falta la foto del ID del aplicante. Tómala o súbela antes de enviar.', 'error');
+    return;
+  }
+
 
   // Validación de cliente seleccionado
   const urlParams = new URLSearchParams(window.location.search);
