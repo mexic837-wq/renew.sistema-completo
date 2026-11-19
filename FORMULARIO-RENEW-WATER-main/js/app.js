@@ -210,13 +210,29 @@ async function handleFileSelect(input, previewId) {
       // Mostrar estado de "procesando"
       preview.innerHTML = '<p style="font-size: 0.8rem; color: #666; margin-top: 5px;"><i class="fa-solid fa-fire text-orange-500"></i> Comprimiendo imagen...</p>';
       
-      const compressedBase64 = await compressImage(file);
-      
-      preview.innerHTML = `<img src="${compressedBase64}" style="max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd;" />`;
+      let compressedBase64;
+      try {
+        compressedBase64 = await compressImage(file);
+      } catch (e) {
+        // Si no se pudo comprimir pero es JPG/PNG liviano, se usa la imagen original
+        if (/^image\/(jpeg|jpg|png|webp)$/i.test(file.type) && file.size < 4 * 1024 * 1024) {
+          compressedBase64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(file); });
+        } else {
+          throw e;
+        }
+      }
+      if (!compressedBase64 || !String(compressedBase64).startsWith('data:image')) throw new Error('Imagen vacía');
+
+      preview.innerHTML = `<img src="${compressedBase64}" style="max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd;" />
+        <p style="font-size:0.8rem; color:#059669; font-weight:700; margin-top:6px;">✓ Foto lista</p>`;
       preview.dataset.base64 = compressedBase64;
     } catch (error) {
       console.error("Error al procesar imagen:", error);
-      showToast("Error al procesar la imagen. Intenta con otra.", "error");
+      // Antes se quedaba "Comprimiendo imagen..." y parecía cargada aunque no lo estaba
+      delete preview.dataset.base64;
+      input.value = '';
+      preview.innerHTML = `<p style="font-size:0.85rem; color:#dc2626; font-weight:700; margin-top:6px;">✗ No se pudo leer esta foto${/heic|heif/i.test(file.type + file.name) ? ' (formato HEIC de iPhone)' : ''}. Toma la foto con la cámara o sube una en JPG/PNG.</p>`;
+      showToast("No se pudo leer la foto del ID. Intenta con otra.", "error");
     }
   } else {
     preview.innerHTML = '';

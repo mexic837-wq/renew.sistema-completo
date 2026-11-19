@@ -2433,7 +2433,9 @@ app.post('/api/generar-pdf', async (req, res) => {
     if (rawData.aplicante?.fotoId) {
         idPhotoUrl = await uploadBase64ToSupabase(rawData.aplicante.fotoId, 'creditos_ids');
         if (idPhotoUrl) rawData.aplicante.fotoIdUrl = idPhotoUrl;
+        else console.error('[CREDITO] Llegó foto del ID pero no se pudo guardar. Inicio:', String(rawData.aplicante.fotoId).slice(0, 40));
     }
+    const fotoIdEstado = !rawData.aplicante?.fotoId ? 'sin-foto' : (idPhotoUrl ? 'ok' : 'error');
     let coIdPhotoUrl = null;
     if (rawData.coAplicante?.fotoId) {
         coIdPhotoUrl = await uploadBase64ToSupabase(rawData.coAplicante.fotoId, 'creditos_ids');
@@ -2559,8 +2561,9 @@ app.post('/api/generar-pdf', async (req, res) => {
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="aplicacion_credito.pdf"');
+    res.setHeader('X-Foto-Id', fotoIdEstado);
+    res.setHeader('Access-Control-Expose-Headers', 'X-Document-Url, X-Foto-Id');
     if (finalUrl) {
-      res.setHeader('Access-Control-Expose-Headers', 'X-Document-Url');
       res.setHeader('X-Document-Url', finalUrl);
     }
     return res.status(200).send(Buffer.from(pdfBytes));

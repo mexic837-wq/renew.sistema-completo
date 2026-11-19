@@ -303,7 +303,11 @@ async function handleCreditFormSubmit(e) {
           console.error(e);
         }
         
-        showToast('¡Aplicación de Crédito enviada y generada exitosamente! ✅', 'success');
+        if (response.headers.get('X-Foto-Id') === 'error') {
+          showToast('La aplicación se guardó, pero la foto del ID NO se pudo guardar. Súbela en la ficha del cliente.', 'error', 10000);
+        } else {
+          showToast('¡Aplicación de Crédito enviada y generada exitosamente! ✅', 'success');
+        }
         resetCreditForm(form);
         
         const pdfUrl = response.headers.get('X-Document-Url');
