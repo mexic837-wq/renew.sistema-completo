@@ -38,8 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateAdminBellBadge, 60000); // Refresh badge every 60s
 
     // Contador y avisos de WhatsApp sin responder (solo Admin/CEO)
-    iniciarAvisosChats();
+    if (!CHATS_AGENTE_DESACTIVADO) iniciarAvisosChats();
 });
+
+// Interruptor temporal: "Chats Agente IA" apagado (hay un número personal conectado).
+// Para reactivar: poner en false aquí y AGENTE_CHATS_ACTIVO=1 en el servidor.
+const CHATS_AGENTE_DESACTIVADO = true;
 
 async function updateAdminBadges() {
     const user = getCurrentUser();
@@ -856,6 +860,10 @@ const updateAdminNavLabels = () => {
         });
     }
     */
+
+    if (CHATS_AGENTE_DESACTIVADO) {
+        document.querySelectorAll('#admin-nav a[data-view="chats-agente"]').forEach(el => { el.style.display = 'none'; });
+    }
 
     if (!['admin', 'administrador', 'ceo'].includes(rol)) {
         document.querySelectorAll('#admin-nav a[data-view="callcenter"], #admin-nav a[data-view="call_center"], #admin-nav a[data-view="call-center"], #admin-nav a[data-view="chats-agente"]').forEach(el => {
@@ -4487,7 +4495,12 @@ window.renderView = async function renderView() {
       UI.viewTitle.textContent = "Chats del Agente IA";
       UI.viewDesc.textContent = "Conversaciones de WhatsApp del agente Renew (Evolution API).";
       setGlobalButton(false);
-      renderChatsAgente();
+      if (CHATS_AGENTE_DESACTIVADO) {
+          const canvas = document.getElementById('main-canvas');
+          if (canvas) canvas.innerHTML ='<div class="p-10 text-center text-gray-500 font-semibold text-sm">Esta sección está desactivada temporalmente.</div>';
+      } else {
+          renderChatsAgente();
+      }
   }
   else if (state.activeView === 'call-center') {
       UI.viewTitle.textContent = "Call Center";

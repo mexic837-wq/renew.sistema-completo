@@ -3526,6 +3526,13 @@ async function listaChats(instancia = EVO_INST) {
     return datos;
 }
 
+// Interruptor temporal: Chats Agente IA apagado (número personal conectado).
+// Para reactivar: definir AGENTE_CHATS_ACTIVO=1 en el entorno del servidor.
+app.use('/api/agente-chats', (req, res, next) => {
+    if (process.env.AGENTE_CHATS_ACTIVO === '1') return next();
+    res.status(503).json({ error: 'Sección desactivada temporalmente' });
+});
+
 // GET: números (instancias) que se pueden ver, con su estado y cuántos chats esperan respuesta
 let instanciasCache = null; // { t, datos }
 app.get('/api/agente-chats/instancias', requiereSesion({ soloAdmin: true }), async (req, res) => {
