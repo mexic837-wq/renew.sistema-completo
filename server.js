@@ -1747,7 +1747,29 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
         d.chk_well_water = d.well_water ? 'X' : '';
 
         console.log('[PDF] Generando confirmación con molde:', moldePath);
-        const pdfBytes = await generarPDF(moldePath, d, { fitImages: true });
+        let pdfBytes = await generarPDF(moldePath, d, { fitImages: true });
+
+        // Extras de Instalación (los llena el técnico después de la firma): van como
+        // página(s) adicional(es) dentro del mismo PDF de la confirmación.
+        const ex = d.extras;
+        const conExtras = !!(ex && ex.hubo === 'si');
+        if (conExtras) {
+            const moldeExtras = path.join(__dirname, 'extras_instalacion_molde.pdf');
+            if (!fs.existsSync(moldeExtras)) throw new Error('No se encontró el PDF molde de Extras de Instalación');
+            const { extras, firma_comprador, ...base } = d;
+            const extrasBytes = await generarPDF(moldeExtras, {
+                ...base,
+                extras_millas: ex.millas || '',
+                extras_trabajo: ex.trabajo || '',
+                extras_dias_monto: ex.dias_monto || '',
+                extras_total: ex.total || '',
+            });
+            const final = await PDFDocument.load(pdfBytes);
+            const extrasDoc = await PDFDocument.load(extrasBytes);
+            const paginas = await final.copyPages(extrasDoc, extrasDoc.getPageIndices());
+            paginas.forEach((p) => final.addPage(p));
+            pdfBytes = await final.save();
+        }
 
         // Subir a Supabase
         const esBorrador = !!d._borrador;
@@ -1774,6 +1796,7 @@ app.post('/api/generar-confirmacion-instalacion', async (req, res) => {
                     .select('adjuntos_oficina').eq('id', targetClienteId).single();
                 let adj = (!cli?.adjuntos_oficina || Array.isArray(cli.adjuntos_oficina)) ? {} : cli.adjuntos_oficina;
                 adj.confirmacion_instalacion_url = finalUrl;
+                if (conExtras) adj.extras_instalacion_url = finalUrl;
                 // Solo adjuntos_oficina: la columna confirmacion_instalacion_url no existe en la tabla
                 // y hacía fallar todo el update (la confirmación nunca quedaba en el cliente).
                 adj.ultima_confirmacion_fecha = new Date().toISOString();

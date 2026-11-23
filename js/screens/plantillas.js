@@ -194,7 +194,7 @@ export function renderPlantillas() {
             id:     'confirmacion-instalacion',
             title:  'Confirmación de Instalación',
             sub:    'Renew Water',
-            desc:   'Documento de cierre que confirma equipos instalados, observaciones y firma del cliente.',
+            desc:   'Documento de cierre que confirma equipos instalados, observaciones, firma del cliente y extras de instalación.',
             icon:   '<i class="fa-solid fa-check text-green-500"></i>',
             iconBg: 'rgba(14,165,233,.12)',
             iconColor: '#0ea5e9',
@@ -211,17 +211,6 @@ export function renderPlantillas() {
             iconColor: '#0ea5e9',
             cat:    'water',
             navigate: 'plantilla-pozo'
-        },
-        {
-            id:     'extras-instalacion',
-            title:  'Extras de Instalación',
-            sub:    'Renew Water',
-            desc:   'Millas, trabajo extra, días y monto y total de los extras de una instalación.',
-            icon:   '<i class="fa-solid fa-sack-dollar"></i>',
-            iconBg: 'rgba(245,158,11,.12)',
-            iconColor: '#f59e0b',
-            cat:    'water',
-            navigate: 'extras-instalacion'
         }
     ];
 

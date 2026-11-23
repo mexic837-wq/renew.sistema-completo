@@ -5,7 +5,16 @@
 import { getCurrentUser, getDB } from '../api.js';
 import { showToast } from '../components/toast.js';
 
-let sigCanvas, sigCtx, sigDrawing = false;
+let sigCanvas, sigCtx, sigDrawing = false, sigConTrazo = false;
+
+// Fase "Extras de Instalación" del pipeline Water (ahora se llena dentro de esta plantilla)
+const CAMPO_EXTRAS_HUBO = 'campo_extras_hubo';
+const CAMPO_EXTRAS_PDF = 'campo_extras_pdf';
+
+const ICON_ENVIAR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>';
+const BTN_PASO1 = 'Continuar <i class="fa-solid fa-arrow-right"></i>';
+const BTN_FINAL = `${ICON_ENVIAR} Generar Confirmación PDF`;
+const _num = (v) => { const n = parseFloat(String(v || '').replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; };
 
 export function renderConfirmacionInstalacion(param = null) {
   // Si se abrió desde un proyecto, regresar vuelve a ese proyecto; si no, a Plantillas
@@ -73,7 +82,7 @@ export function renderConfirmacionInstalacion(param = null) {
     </div>
   </div>
 
-  <div class="ci-body">
+  <div class="ci-body" id="ci-paso1">
 
     <!-- Datos del Cliente -->
     <div class="ci-section">
@@ -236,16 +245,76 @@ export function renderConfirmacionInstalacion(param = null) {
       </div>
     </div>
 
-  </div><!-- /ci-body -->
+  </div><!-- /ci-body paso 1 -->
+
+  <!-- Paso 2: Extras de Instalación (solo el técnico, después de la firma) -->
+  <div class="ci-body" id="ci-paso2" style="display:none">
+    <div class="ci-notice">
+      <div class="ci-notice-icon"><i class="fa-solid fa-user-gear"></i></div>
+      <div>
+        <div class="ci-notice-title">Firma guardada · Solo para el técnico</div>
+        <p>Indica si hubo extras en esta instalación. Se agregarán al mismo documento de confirmación.</p>
+      </div>
+    </div>
+    <div class="ci-section">
+      <div class="ci-section-hdr">
+        <div class="ci-section-icon" style="background:rgba(245,158,11,.1);"><i class="fa-solid fa-sack-dollar"></i></div>
+        <div>
+          <div style="font-size:.95rem;font-weight:900;color:var(--text-primary);">Extras de Instalación</div>
+          <div style="font-size:.65rem;color:var(--text-muted);font-weight:600;">Millas, trabajo extra, días y monto</div>
+        </div>
+      </div>
+      <div class="ci-section-body">
+        <div class="ci-field">
+          <label class="ci-label">¿Hubo extras? <span style="color:#ef4444">*</span></label>
+          <div class="ci-radios">
+            <div class="ci-radio-btn" data-group="hubo_extras" data-val="si" onclick="window.ciPickExtras(this)"><i class="fa-solid fa-check text-green-500"></i> Sí</div>
+            <div class="ci-radio-btn" data-group="hubo_extras" data-val="no" onclick="window.ciPickExtras(this)"><i class="fa-solid fa-xmark text-red-500"></i> No</div>
+          </div>
+        </div>
+        <div id="ci-extras-campos" style="display:none">
+          <div class="ci-grid">
+            <div class="ci-field">
+              <label class="ci-label">Millas ($)</label>
+              <input class="ci-input ci-ex-monto" type="text" inputmode="decimal" id="ci-ex-millas" placeholder="0.00">
+            </div>
+            <div class="ci-field">
+              <label class="ci-label">Trabajo extra ($)</label>
+              <input class="ci-input ci-ex-monto" type="text" inputmode="decimal" id="ci-ex-trabajo" placeholder="0.00">
+            </div>
+          </div>
+          <div class="ci-field">
+            <label class="ci-label">Días y monto</label>
+            <textarea class="ci-input" id="ci-ex-dias-monto" style="height:90px;resize:vertical;" placeholder="Ej. 2 días adicionales - $300.00"></textarea>
+          </div>
+          <div class="ci-field">
+            <label class="ci-label">Total ($) <span style="color:#ef4444">*</span></label>
+            <input class="ci-input" type="text" inputmode="decimal" id="ci-ex-total" placeholder="0.00" style="font-weight:800;font-size:1.05rem;">
+            <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">Se suma solo con millas y trabajo extra; puedes ajustarlo si hay un monto por días.</div>
+          </div>
+        </div>
+        <button type="button" onclick="window.ciIrPaso(1)" style="margin-top:6px;background:none;border:none;color:var(--text-secondary);font-size:.78rem;font-weight:700;cursor:pointer;padding:4px 0;">
+          <i class="fa-solid fa-arrow-left"></i> Volver a la confirmación
+        </button>
+      </div>
+    </div>
+  </div><!-- /ci-body paso 2 -->
 
   <!-- Botón Guardar -->
   <div class="ci-submit">
-    <button class="ci-btn-submit" id="ci-btn-submit" onclick="window.ciSubmit()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
-      Generar Confirmación PDF
-    </button>
+    <button class="ci-btn-submit" id="ci-btn-submit" onclick="window.ciSubmit()">${BTN_PASO1}</button>
   </div>
   `;
+
+  window._ci_paso = 1;
+  window._ci_totalTocado = false;
+  const recalcular = () => {
+    if (window._ci_totalTocado) return;
+    const t = _num(_val('ci-ex-millas')) + _num(_val('ci-ex-trabajo'));
+    document.getElementById('ci-ex-total').value = t ? t.toFixed(2) : '';
+  };
+  document.querySelectorAll('.ci-ex-monto').forEach((el) => el.addEventListener('input', recalcular));
+  document.getElementById('ci-ex-total').addEventListener('input', (e) => { window._ci_totalTocado = e.target.value.trim() !== ''; });
 
   _initSig();
   _initDate();
@@ -392,6 +461,7 @@ function _initSig() {
   if (!sigCanvas) return;
   sigCanvas.width  = sigCanvas.offsetWidth  || 340;
   sigCanvas.height = 140;
+  sigConTrazo = false;
   sigCtx = sigCanvas.getContext('2d');
   sigCtx.strokeStyle = '#1e293b';
   sigCtx.lineWidth = 2.5;
@@ -404,15 +474,30 @@ function _initSig() {
     return { x: src.clientX - r.left, y: src.clientY - r.top };
   };
   sigCanvas.addEventListener('mousedown', e => { sigDrawing = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
-  sigCanvas.addEventListener('mousemove', e => { if (!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); });
+  sigCanvas.addEventListener('mousemove', e => { if (!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); sigConTrazo = true; });
   sigCanvas.addEventListener('mouseup',   () => { sigDrawing = false; });
   sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); sigDrawing = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); }, { passive: false });
-  sigCanvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); }, { passive: false });
+  sigCanvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); sigConTrazo = true; }, { passive: false });
   sigCanvas.addEventListener('touchend',   () => { sigDrawing = false; });
 }
 
 // Globals
-window.ciClearSig = () => { if (sigCtx && sigCanvas) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); };
+window.ciClearSig = () => { if (sigCtx && sigCanvas) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); sigConTrazo = false; };
+
+// Paso 1 = confirmación + firma del cliente; paso 2 = extras (solo técnico)
+window.ciIrPaso = (n) => {
+  window._ci_paso = n;
+  document.getElementById('ci-paso1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('ci-paso2').style.display = n === 2 ? '' : 'none';
+  const btn = document.getElementById('ci-btn-submit');
+  if (btn) btn.innerHTML = n === 1 ? BTN_PASO1 : BTN_FINAL;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.ciPickExtras = (el) => {
+  window.ciPickRadio(el);
+  document.getElementById('ci-extras-campos').style.display = el.dataset.val === 'si' ? '' : 'none';
+};
 
 window.ciPickRadio = (el) => {
   const group = el.dataset.group;
@@ -438,6 +523,25 @@ window.ciSubmit = async () => {
   if (!fechaInst) { showToast('La fecha de instalación es obligatoria', 'error'); return; }
   if (!instalador){ showToast('El nombre del instalador es obligatorio', 'error'); return; }
 
+  // Paso 1 completo: pasar a los extras (solo técnico)
+  if (window._ci_paso !== 2) {
+    if (!sigConTrazo) { showToast('Falta la firma del cliente', 'error'); return; }
+    window.ciIrPaso(2);
+    return;
+  }
+
+  const hubo = _getRadio('hubo_extras');
+  if (!hubo) { showToast('Indica si hubo extras de instalación', 'error'); return; }
+  const extras = { hubo };
+  if (hubo === 'si') {
+    const d2 = (id) => { const n = _num(_val(id)); return n ? n.toFixed(2) : ''; };
+    extras.millas = d2('ci-ex-millas');
+    extras.trabajo = d2('ci-ex-trabajo');
+    extras.dias_monto = _val('ci-ex-dias-monto');
+    extras.total = d2('ci-ex-total');
+    if (!extras.total) { showToast('Indica el total de los extras', 'error'); return; }
+  }
+
   const firmaData = sigCanvas ? sigCanvas.toDataURL('image/png') : null;
 
   const datos = {
@@ -461,6 +565,7 @@ window.ciSubmit = async () => {
     well_water:         _isChecked('well_water'),
     firma_comprador:    firmaData,
     fecha_firma:        fecha,
+    extras,
   };
 
   try {
@@ -495,12 +600,20 @@ window.ciSubmit = async () => {
           }
           const faseCert = (db.Admin_Fases || []).find(f => f.pipeline_id === proy.pipeline_id && /certificado de instalaci/i.test(f.nombre || ''));
           const campoCert = faseCert && (db.Admin_Campos_Formulario || []).find(c => String(c.fase_id) === String(faseCert.id) && c.tipo === 'Archivo');
+          const respuestas = {};
           if (campoCert) {
             const prev = (db.Respuestas_Dinamicas || []).find(r => String(r.proyecto_id) === String(proy.id) && String(r.campo_id) === String(campoCert.id));
             const lista = String(prev?.valor || '').split(',').map(x => x.trim()).filter(x => x && /^(https?:|\/api\/|\/uploads\/)/.test(x));
             if (!lista.includes(result.url)) lista.push(result.url);
+            respuestas[campoCert.id] = lista.join(',');
+          }
+          // Fase "Extras de Instalación": ¿hubo extras? y el mismo PDF (ya trae los extras)
+          const campos = db.Admin_Campos_Formulario || [];
+          if (campos.some(c => c.id === CAMPO_EXTRAS_HUBO)) respuestas[CAMPO_EXTRAS_HUBO] = extras.hubo === 'si' ? 'Si' : 'No';
+          if (extras.hubo === 'si' && campos.some(c => c.id === CAMPO_EXTRAS_PDF)) respuestas[CAMPO_EXTRAS_PDF] = result.url;
+          if (Object.keys(respuestas).length) {
             const { advanceDealPhase } = await import('../api.js');
-            await advanceDealPhase(proy.id, { [campoCert.id]: lista.join(',') }, { preventAutoAdvance: true });
+            await advanceDealPhase(proy.id, respuestas, { preventAutoAdvance: true });
           }
           setTimeout(() => window.appNavigate && window.appNavigate('detail', proy.id), 1200);
         }
@@ -514,6 +627,6 @@ window.ciSubmit = async () => {
     showToast('Error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Generar Confirmación PDF';
+    btn.innerHTML = window._ci_paso === 2 ? BTN_FINAL : BTN_PASO1;
   }
 };
