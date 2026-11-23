@@ -284,7 +284,7 @@ async function handleCampos(proy) {
   if (!guardados.length) { await say(`No logré identificar datos para *${cli}* (${fase.nombre}) en tu mensaje. Para avanzar necesito:\n${pedibles.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}\n\nEscríbeme *hola* para ver todo lo que tienes pendiente.`); return 'no_entendido'; }
   const res = await revisarFase(proy, ctx, user.id);
   let out = `✅ Guardé ${guardados.join(', ')} de *${cli}*.`;
-  if (guardados.extras) out += `\n💵 Llena la plantilla *Extras de Instalación* en la app (Plantillas → Extras de Instalación) con las millas, el trabajo extra, los días y el monto y el total.`;
+  if (guardados.extras) out += `\n💵 Llena los extras en la app dentro de la *Confirmación de Instalación* (Plantillas → Confirmación de Instalación): después de la firma del cliente aparece el paso de extras (millas, trabajo extra, días y monto y total) y todo sale en un solo PDF.`;
   if (res.estado === 'faltan') out += `\n\nAún me falta que me pases estos datos para poder avanzar de fase:\n${res.pend.map((c) => '• ' + preguntaCampo(c, ctx)).join('\n')}`;
   else if (res.estado === 'bloqueada') out += `\nQueda en *${fase.nombre}* porque "${res.campo.etiqueta}" no es afirmativo. Avísame apenas cambie para proseguir.`;
   else if (res.estado === 'avanzo') out += textoAvance(res.sig, cli);
